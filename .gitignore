@@ -1,0 +1,48 @@
+# Build Folders 
+[Bb]in/
+[Oo]bj/
+
+# Build results
+TestResults/
+[Dd]ebug/
+[Rr]elease/
+x64/
+*_i.c
+*_p.c
+*.ilk
+*.meta
+*.obj
+*.pch
+*.pgc
+*.pgd
+*.rsp
+*.sbr
+*.tlb
+*.tli
+*.tlh
+*.tmp
+*.log
+*.vspscc
+*.vssscc
+.builds
+*.suo
+*.error
+*.user
+
+# ReSharper is a .NET coding add-in
+_ReSharper*
+*.DotSettings.user
+
+# NuGet Packages Directory
+src/packages/**/*
+
+# OS generated files
+._*
+.DS_Store
+
+*.suo
+*.user
+_ReSharper.*
+bin
+obj
+packages
