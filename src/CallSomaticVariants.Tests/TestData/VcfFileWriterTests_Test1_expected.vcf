@@ -1,0 +1,28 @@
+##fileformat=VCFv4.1
+##fileDate=20150624
+##source=CallSomaticVariants 1.0.0.0
+##CallSomaticVariants_cmdline="myCommandLine"
+##reference=myReference
+##INFO=<ID=DP,Number=1,Type=Integer,Description="Total Depth">
+##INFO=<ID=TI,Number=.,Type=String,Description="Transcript ID">
+##INFO=<ID=GI,Number=.,Type=String,Description="Gene ID">
+##INFO=<ID=EXON,Number=0,Type=Flag,Description="Exon Region">
+##INFO=<ID=FC,Number=.,Type=String,Description="Functional Consequence">
+##FILTER=<ID=q20,Description="Quality below 20">
+##FILTER=<ID=LowDP,Description="Low coverage (DP tag), therefore no genotype called">
+##FILTER=<ID=SB,Description="Variant strand bias too high or coverage on only one strand">
+##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">
+##FORMAT=<ID=GQ,Number=1,Type=Integer,Description="Genotype Quality">
+##FORMAT=<ID=AD,Number=.,Type=Integer,Description="Allele Depth">
+##FORMAT=<ID=VF,Number=1,Type=Float,Description="Variant Frequency">
+##FORMAT=<ID=NL,Number=1,Type=Integer,Description="Applied BaseCall Noise Level">
+##FORMAT=<ID=SB,Number=1,Type=Float,Description="StrandBias Score">
+##FORMAT=<ID=NC,Number=1,Type=Float,Description="Fraction of bases which were uncalled or with basecall quality below the minimum threshold">
+##contig=<ID=chr1,length=10001>
+##contig=<ID=chrX,length=500>
+#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	mySample
+chr1	123	.	A	T	25	PASS	DP=0	GT:GQ:AD:VF:NL:SB:NC	0/1:25:0,0:0.0000:23:0.0000:0.0010
+chr1	234	.	ATCA	TCGC	25	PASS	DP=0	GT:GQ:AD:VF:NL:SB:NC	0/1:25:0,0:0.0000:23:0.0000:0.0010
+chr1	456	.	A	.	27	PASS	DP=99	GT:GQ:AD:VF:NL:SB:NC	0/0:27:155:0.0000:23:0.0000:0.0124
+chr1	567	.	A	.	20	LowDP;q20;SB	DP=0	GT:GQ:AD:VF:NL:SB:NC	0/1:20:0:1.0000:23:0.0000:0.0010
+chr1	678	.	A	T	25	LowDP	DP=0	GT:GQ:AD:VF:NL:SB:NC	0/1:25:0,0:0.0000:23:0.0000:0.0010

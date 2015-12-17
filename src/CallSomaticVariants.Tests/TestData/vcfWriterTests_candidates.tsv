@@ -1,0 +1,6 @@
+Chromosome	Coordinate	Reference	Alternate	Genotype	Qscore	FractionNoCalls	Filters	StrandBiasScore	TotalCoverage	AlleleSupport
+chr1	983	A	T	HeterozygousAlt	25	0.01243231		-100.0012312	99	55
+chr1	990	A	T	HomozygousRef	20	0.01243231		-100	155	155
+chr1	999	A	T	RefLikeNoCall	20	0.01243231	LowDepth,LowQscore,StrandBias	0.23123123	155	34
+chr1	1000	A	T	HomozygousAlt	12	0.01243231	LowDepth	-44.123123	155	50
+chr1	1002	A	T	AltLikeNoCall	12	0.01243231		0	155	120

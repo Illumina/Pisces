@@ -1,0 +1,4 @@
+﻿<sequences genomeName="chr17chr19FASTA">
+  <chromosome fileName="chr17chr19.fa" contigName="chr17" totalBases="107349500" isCircular="false" md5="1aacd71f30db8e561810913e0b72636d" ploidy="2" knownBases="107349500" />
+  <chromosome fileName="chr17chr19.fa" contigName="chr19" totalBases="59128950" isCircular="false" md5="1aacd71f30db8e561810913e0b72636d" ploidy="2" knownBases="59128950" />
+</sequences>
