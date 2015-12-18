@@ -142,7 +142,6 @@
   <ItemGroup>
     <None Include="App.config" />
     <None Include="CallSomaticVariants.nuspec" />
-    <None Include="ClassDiagram1.cd" />
   </ItemGroup>
   <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
