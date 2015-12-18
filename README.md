@@ -7,7 +7,7 @@ Pisces source code is provided under the GPLv3 license. Pisces includes third pa
 
 # Similar Software at Illumina
 
-Strelka is available for matched tumor/normal variant calling, and is part of the TUNE workflow seconadary analysis workflow.
+Strelka is available for matched tumor/normal variant calling, and is part of the TUNE workflow secondary analysis workflow.
 http://www.ncbi.nlm.nih.gov/pubmed/22581179
 
 # System requirements
