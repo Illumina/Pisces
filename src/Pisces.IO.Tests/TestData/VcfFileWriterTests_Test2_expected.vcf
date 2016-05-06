@@ -1,0 +1,17 @@
+##fileformat=VCFv4.1
+##fileDate=20150624
+##source=Pisces 1.0.0.0
+##Pisces_cmdline="myCommandLine"
+##reference=myReference
+##INFO=<ID=DP,Number=1,Type=Integer,Description="Total Depth">
+##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">
+##FORMAT=<ID=GQ,Number=1,Type=Integer,Description="Genotype Quality">
+##FORMAT=<ID=AD,Number=.,Type=Integer,Description="Allele Depth">
+##FORMAT=<ID=DP,Number=1,Type=Integer,Description="Total Depth Used For Variant Calling">
+##FORMAT=<ID=VF,Number=.,Type=Float,Description="Variant Frequency">
+##contig=<ID=chr10,length=123>
+##contig=<ID=chr9,length=5>
+#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	mySample
+chr1	123	.	A	T	25	PASS	DP=0	GT:GQ:AD:DP:VF	0/1:25:0,0:0:0
+chr1	234	.	ATCA	TCGC	25	PASS	DP=0	GT:GQ:AD:DP:VF	0/1:25:0,0:0:0
+chr1	456	.	A	.	27	PASS	DP=99	GT:GQ:AD:DP:VF	0/0:27:155:99:0

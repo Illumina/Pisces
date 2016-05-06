@@ -1,0 +1,20 @@
+﻿<?xml version="1.0"?>
+<package >
+  <metadata>
+    <id>Pisces.Processing</id>
+    <version>$version$</version>
+    <title>Pisces.Processing</title>
+    <authors>Illumina</authors>
+    <owners>Illumina</owners>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <description>Processing library for algorithms</description>
+    <releaseNotes></releaseNotes>
+    <copyright>Copyright 2015</copyright>
+    <tags></tags>
+    <dependencies>
+    </dependencies>
+  </metadata>
+  <files>
+    <file src="bin\x64\Release\Pisces.*.dll" target="lib\net40" />
+  </files>
+</package>

@@ -1,0 +1,3 @@
+<sequenceSizes genomeName="chr19FASTA">
+	<chromosome fileName="chr19.fa" contigName="chr19" totalBases="3119000" isCircular="false" md5="1aacd71f30db8e561810913e0b72636d" ploidy="2" knownBases="3119000" />
+</sequenceSizes>
