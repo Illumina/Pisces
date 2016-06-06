@@ -21,22 +21,25 @@ Mono is freely available from http://www.mono-project.com/docs/about-mono/releas
 
 # Running from a binary distribution
 
-So long as mono (for Linux) or .NET (for Windows) has been installed, the uncompressed binary is ready to go.
-Example command lines are:
+Latest distributions are available at: https://github.com/Illumina/Pisces/tree/release/Pisces_5_1_3/redist
+
+So long as mono (for Linux) or .NET (for Windows) has been installed, the uncompressed binary is ready to go. Example command lines are:
 
 Windows:
 
-CallSomaticVariants.exe -B C:\my\path\to\TestData\example_S1.bam -g C:\my\path\to\WholeGenomeFasta -f 0.01 -fo False -b 20 -q 100 -c 1200 -s 0.5 -a 20 -F 20 -gVCF True
+Pisces.exe -B C:\my\path\to\TestData\example_S1.bam -g C:\my\path\to\WholeGenomeFasta -f 0.01 -fo False -b 20 -q 100 -c 1200 -s 0.5 -a 20 -F 20 -gVCF True
 
 Linux:
 
-mono CallSomaticVariants.exe -B /my/path/to/TestData/example_S1.bam -g /my/path/to/WholeGenomeFasta -f 0.01 -fo False -b 20 -q 100 -c 1200 -s 0.5 -a 20 -F 20 -gVCF True 
+mono Pisces.exe -B /my/path/to/TestData/example_S1.bam -g /my/path/to/WholeGenomeFasta -f 0.01 -fo False -b 20 -q 100 -c 1200 -s 0.5 -a 20 -F 20 -gVCF True
 
 example qsub cmd to a grid cluster:
 
-echo "CallSomaticVariants.exe -B /path/to/mybam.bam -g /Genomes/Homo_sapiens/UCSC/hg19/Sequence/WholeGenomeFasta -f 0.01 -fo False -b 20 -q 100 -c 1200 -s 0.5 -a 20 -F 20 -gVCF True "  | qsub -N PISCESJob -pe threaded 16-20 -M you@yoursmtp.com -m eas
+echo "Pisces.exe -B /path/to/mybam.bam -g /Genomes/Homo_sapiens/UCSC/hg19/Sequence/WholeGenomeFasta -f 0.01 -fo False -b 20 -q 100 -c 1200 -s 0.5 -a 20 -F 20 -gVCF True " | qsub -N PISCESJob -pe threaded 16-20 -M you@yoursmtp.com -m eas
 
 It is necessary to supply a reference genome following the -g argument. Reference genomes may be downloaded from illumina's website at: http://support.illumina.com/sequencing/sequencing_software/igenome.ilmn
+
+Note, the main executable Pisces.exe was originally named CallSomaticVariants.exe. So the above commands need to be altered for the 5.0.x releases.
 
 # Build instructions
 
