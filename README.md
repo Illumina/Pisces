@@ -2,6 +2,10 @@
 
 This application calls low frequency variants, on Linux or Windows. It will run on tumor-only samples, and search for SNVs, MNVs, and small indels. It takes in .bams and generates .vcf or .gvcf files. It is included with the Illumina MiSeqReporter pipeline and various BaseSpace workflows. The caller can also be run as a standalone program.  
 
+POC: 
+[Tamsen Dunn](https://www.linkedin.com/in/tamsen-dunn-7340145) and
+[Gwenn Berry](https://www.linkedin.com/in/gwenn-berry-43071939)
+
 # License
 Pisces source code is provided under the GPLv3 license. Pisces includes third party packages provided under other open source licenses, please see COPYRIGHT.txt for additional details.
 
