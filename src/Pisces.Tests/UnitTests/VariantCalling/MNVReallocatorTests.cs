@@ -17,7 +17,7 @@ namespace Pisces.Tests.UnitTests.Pisces
         [Trait("ReqID", "SDS-57")]
         public void ReallocateFailedMnvs()
         {
-            var failedMnvs = new List<BaseCalledAllele>{new BaseCalledAllele
+            var failedMnvs = new List<CalledAllele>{new CalledAllele
             {
                 AlleleSupport = 1,
                 Coordinate = 101,
@@ -27,21 +27,21 @@ namespace Pisces.Tests.UnitTests.Pisces
             }};
 
             //Happy path - break into three existing alleles, and up their support
-            var calledAlleles = new List<BaseCalledAllele>{new BaseCalledAllele
+            var calledAlleles = new List<CalledAllele>{new CalledAllele
             {
                 AlleleSupport = 5,
                 Coordinate = 101,
                 Reference = "TTT",
                 Alternate = "ATC",
             },
-            new BaseCalledAllele
+            new CalledAllele
             {
                 AlleleSupport = 5,
                 Coordinate = 104,
                 Reference = "TT",
                 Alternate = "AG"
             },
-            new BaseCalledAllele
+            new CalledAllele
             {
                 AlleleSupport = 5,
                 Coordinate = 106,
@@ -58,7 +58,7 @@ namespace Pisces.Tests.UnitTests.Pisces
             Assert.True(calledAlleles.All(a => a.AlleleSupport == 6));
 
             //Second half of big MNV could go to two called alleles or one bigger MNV - should take the big one.
-            var triNucVariant = new BaseCalledAllele()
+            var triNucVariant = new CalledAllele()
             {
                 AlleleSupport = 5,
                 Coordinate = 104,
@@ -67,22 +67,22 @@ namespace Pisces.Tests.UnitTests.Pisces
                 SupportByDirection = new []{5,6,1}
             };
 
-            calledAlleles = new List<BaseCalledAllele>{
-            new BaseCalledAllele
+            calledAlleles = new List<CalledAllele>{
+            new CalledAllele
             {
                 AlleleSupport = 5,
                 Coordinate = 101,
                 Reference = "TTT",
                 Alternate = "ATC"
             },
-            new BaseCalledAllele
+            new CalledAllele
             {
                 AlleleSupport = 5,
                 Coordinate = 104,
                 Reference = "TT",
                 Alternate = "AG"
             },
-            new BaseCalledAllele
+            new CalledAllele
             {
                 AlleleSupport = 5,
                 Coordinate = 106,
@@ -102,7 +102,7 @@ namespace Pisces.Tests.UnitTests.Pisces
             Assert.Equal(new[] { 15, 26, 31 }, triNucVariant.SupportByDirection);
 
             //Big MNV has two valid sub-MNVs of equal length. Should take the one with higher support.
-            var lowSupportTNV = new BaseCalledAllele()
+            var lowSupportTNV = new CalledAllele()
             {
                 AlleleSupport = 3,
                 Coordinate = 103,
@@ -110,22 +110,22 @@ namespace Pisces.Tests.UnitTests.Pisces
                 Alternate = "CAG"
             };
 
-            calledAlleles = new List<BaseCalledAllele>{
-            new BaseCalledAllele
+            calledAlleles = new List<CalledAllele>{
+            new CalledAllele
             {
                 AlleleSupport = 5,
                 Coordinate = 101,
                 Reference = "TTT",
                 Alternate = "ATC"
             },
-            new BaseCalledAllele
+            new CalledAllele
             {
                 AlleleSupport = 5,
                 Coordinate = 104,
                 Reference = "TT",
                 Alternate = "AG"
             },
-            new BaseCalledAllele
+            new CalledAllele
             {
                 AlleleSupport = 5,
                 Coordinate = 106,
@@ -144,7 +144,7 @@ namespace Pisces.Tests.UnitTests.Pisces
 
 
             //MNV at end has some overlap but extends beyond big MNV. Should not get any support from big MNV
-            var mnvExtendsPastBigMnv = new BaseCalledAllele()
+            var mnvExtendsPastBigMnv = new CalledAllele()
             {
                 AlleleSupport = 3,
                 Coordinate = 106,
@@ -152,22 +152,22 @@ namespace Pisces.Tests.UnitTests.Pisces
                 Alternate = "GCC"
             };
 
-            calledAlleles = new List<BaseCalledAllele>{
-            new BaseCalledAllele
+            calledAlleles = new List<CalledAllele>{
+            new CalledAllele
             {
                 AlleleSupport = 5,
                 Coordinate = 101,
                 Reference = "TTT",
                 Alternate = "ATC"
             },
-            new BaseCalledAllele
+            new CalledAllele
             {
                 AlleleSupport = 5,
                 Coordinate = 104,
                 Reference = "TT",
                 Alternate = "AG"
             },
-            new BaseCalledAllele
+            new CalledAllele
             {
                 AlleleSupport = 5,
                 Coordinate = 106,
@@ -184,7 +184,7 @@ namespace Pisces.Tests.UnitTests.Pisces
             Assert.Equal(3, mnvExtendsPastBigMnv.AlleleSupport);
 
             //MNV at beginning has some overlap but starts before big MNV. Should not get any support from big MNV
-            var mnvStartsBeforeBigMnv = new BaseCalledAllele()
+            var mnvStartsBeforeBigMnv = new CalledAllele()
             {
                 AlleleSupport = 3,
                 Coordinate = 100,
@@ -192,22 +192,22 @@ namespace Pisces.Tests.UnitTests.Pisces
                 Alternate = "GAT"
             };
 
-            calledAlleles = new List<BaseCalledAllele>{
-            new BaseCalledAllele
+            calledAlleles = new List<CalledAllele>{
+            new CalledAllele
             {
                 AlleleSupport = 5,
                 Coordinate = 101,
                 Reference = "TTT",
                 Alternate = "ATC"
             },
-            new BaseCalledAllele
+            new CalledAllele
             {
                 AlleleSupport = 5,
                 Coordinate = 104,
                 Reference = "TT",
                 Alternate = "AG"
             },
-            new BaseCalledAllele
+            new CalledAllele
             {
                 AlleleSupport = 5,
                 Coordinate = 106,
@@ -224,14 +224,14 @@ namespace Pisces.Tests.UnitTests.Pisces
             Assert.Equal(3, mnvStartsBeforeBigMnv.AlleleSupport);
 
             //Should not reallocate anything to indels
-            var deletion = new BaseCalledAllele()
+            var deletion = new CalledAllele()
             {
                 Coordinate = 101,
                 AlleleSupport = 5,
                 Alternate = "ATC",
                 Type = AlleleCategory.Deletion
             };
-            calledAlleles = new List<BaseCalledAllele>()
+            calledAlleles = new List<CalledAllele>()
             {
               deletion
             };
@@ -241,7 +241,7 @@ namespace Pisces.Tests.UnitTests.Pisces
             Assert.Equal(5, deletion.AlleleSupport);
 
             //Should work with overlaps that are not at the first base
-            failedMnvs = new List<BaseCalledAllele>{new BaseCalledAllele
+            failedMnvs = new List<CalledAllele>{new CalledAllele
             {
                 AlleleSupport = 1,
                 Coordinate = 100,
@@ -249,21 +249,21 @@ namespace Pisces.Tests.UnitTests.Pisces
                 Alternate = "GATCAGGC"
             }};
 
-            calledAlleles = new List<BaseCalledAllele>{new BaseCalledAllele
+            calledAlleles = new List<CalledAllele>{new CalledAllele
             {
                 AlleleSupport = 5,
                 Coordinate = 101,
                 Reference = "TTT",
                 Alternate = "ATC"
             },
-            new BaseCalledAllele
+            new CalledAllele
             {
                 AlleleSupport = 5,
                 Coordinate = 104,
                 Reference = "TT",
                 Alternate = "AG"
             },
-            new BaseCalledAllele
+            new CalledAllele
             {
                 AlleleSupport = 5,
                 Coordinate = 106,
@@ -282,7 +282,7 @@ namespace Pisces.Tests.UnitTests.Pisces
             Assert.True(calledAlleles.Where(a => a.Alternate.Length > 1).All(a => a.AlleleSupport == 6));
 
             //If MNV can't be fully attributed to MNVs, break out into SNVs
-            failedMnvs = new List<BaseCalledAllele>{new BaseCalledAllele
+            failedMnvs = new List<CalledAllele>{new CalledAllele
             {
                 AlleleSupport = 1,
                 Coordinate = 101,
@@ -290,21 +290,21 @@ namespace Pisces.Tests.UnitTests.Pisces
                 Alternate = "ATCAGGCA"
             }};
 
-            calledAlleles = new List<BaseCalledAllele>{new BaseCalledAllele
+            calledAlleles = new List<CalledAllele>{new CalledAllele
             {
                 AlleleSupport = 5,
                 Coordinate = 101,
                 Reference = "TTT",
                 Alternate = "ATC"
             },
-            new BaseCalledAllele
+            new CalledAllele
             {
                 AlleleSupport = 5,
                 Coordinate = 105,
                 Reference = "TT",
                 Alternate = "GG"
             },
-            new BaseCalledAllele
+            new CalledAllele
             {
                 AlleleSupport = 5,
                 Coordinate = 107,
@@ -316,12 +316,13 @@ namespace Pisces.Tests.UnitTests.Pisces
             MnvReallocator.ReallocateFailedMnvs(failedMnvs, calledAlleles);
             PrintResults(calledAlleles);
 
-            var expectedSnv = new BaseCalledAllele
+            var expectedSnv = new CalledAllele
             {
                 AlleleSupport = 1,
                 Reference = "T",
                 Alternate = "A",
-                Coordinate = 104
+                Coordinate = 104,
+                Type = AlleleCategory.Snv
             };
 
             Assert.Equal(3, calledAlleles.Count(a => a.Alternate.Length > 1)); //All three original MNVs should still be there
@@ -330,7 +331,7 @@ namespace Pisces.Tests.UnitTests.Pisces
             Assert.True(calledAlleles.Where(a => a.Alternate.Length > 1).All(a => a.AlleleSupport == 6));
 
             //If MNV includes some reference bases, make sure they are accounted for as refs
-            failedMnvs = new List<BaseCalledAllele>{new BaseCalledAllele
+            failedMnvs = new List<CalledAllele>{new CalledAllele
             {
                 AlleleSupport = 1,
                 Coordinate = 101,
@@ -338,21 +339,21 @@ namespace Pisces.Tests.UnitTests.Pisces
                 Alternate = "ATCTGGCA"
             }};
 
-            calledAlleles = new List<BaseCalledAllele>{new BaseCalledAllele
+            calledAlleles = new List<CalledAllele>{new CalledAllele
             {
                 AlleleSupport = 5,
                 Coordinate = 101,
                 Reference = "TTT",
                 Alternate = "ATC"
             },
-            new BaseCalledAllele
+            new CalledAllele
             {
                 AlleleSupport = 5,
                 Coordinate = 105,
                 Reference = "TT",
                 Alternate = "GG"
             },
-            new BaseCalledAllele
+            new CalledAllele
             {
                 AlleleSupport = 5,
                 Coordinate = 107,
@@ -364,7 +365,7 @@ namespace Pisces.Tests.UnitTests.Pisces
             MnvReallocator.ReallocateFailedMnvs(failedMnvs, calledAlleles);
             PrintResults(calledAlleles);
 
-            var expectedRef = new CalledReference()
+            var expectedRef = new CalledAllele()
             {
                 AlleleSupport = 1,
                 Reference = "T",
@@ -377,14 +378,14 @@ namespace Pisces.Tests.UnitTests.Pisces
             Assert.True(calledAlleles.Where(a => a.Alternate.Length > 1).All(a => a.AlleleSupport == 6));
 
             //If MNV can't be fully attributed to MNVs, break out into SNVs
-            failedMnvs = new List<BaseCalledAllele>{new BaseCalledAllele
+            failedMnvs = new List<CalledAllele>{new CalledAllele
             {
                 AlleleSupport = 1,
                 Coordinate = 101,
                 Reference = "TTTTTTTT",
                 Alternate = "ATCAGGCA"
             }};
-            expectedSnv = new BaseCalledAllele
+            expectedSnv = new CalledAllele
             {
                 AlleleSupport = 1,
                 Reference = "T",
@@ -393,21 +394,21 @@ namespace Pisces.Tests.UnitTests.Pisces
             };
 
 
-            calledAlleles = new List<BaseCalledAllele>{new BaseCalledAllele
+            calledAlleles = new List<CalledAllele>{new CalledAllele
             {
                 AlleleSupport = 5,
                 Coordinate = 101,
                 Reference = "TTT",
                 Alternate = "ATC"
             },
-            new BaseCalledAllele
+            new CalledAllele
             {
                 AlleleSupport = 5,
                 Coordinate = 105,
                 Reference = "TT",
                 Alternate = "GG"
             },
-            new BaseCalledAllele
+            new CalledAllele
             {
                 AlleleSupport = 5,
                 Coordinate = 107,
@@ -427,55 +428,60 @@ namespace Pisces.Tests.UnitTests.Pisces
             Assert.True(calledAlleles.Where(a => a.Alternate.Length > 1).All(a => a.AlleleSupport == 6));
 
             //If MNV includes some reference bases - allocate to existing references if exist
-            failedMnvs = new List<BaseCalledAllele>{new BaseCalledAllele
+            failedMnvs = new List<CalledAllele>{new CalledAllele
             {
                 AlleleSupport = 1,
                 Coordinate = 101,
                 Reference = "TTTTTTTT",
-                Alternate = "ATCTGGCA"
+                Alternate = "ATCTGGCA",
+                Type = AlleleCategory.Mnv
             }};
-            expectedRef = new CalledReference
+            expectedRef = new CalledAllele()
             {
                 AlleleSupport = 1,
                 Reference = "T",
                 Alternate = "T",
-                Coordinate = 104
+                Coordinate = 104,
+                Type = AlleleCategory.Reference
             };
 
             //Don't output references ever
-            calledAlleles = new List<BaseCalledAllele>{new BaseCalledAllele
+            calledAlleles = new List<CalledAllele>{new CalledAllele
             {
                 AlleleSupport = 5,
                 Coordinate = 101,
                 Reference = "TTT",
-                Alternate = "ATC"
+                Alternate = "ATC",
+                Type = AlleleCategory.Mnv
             },
-            new BaseCalledAllele
+            new CalledAllele
             {
                 AlleleSupport = 5,
                 Coordinate = 105,
                 Reference = "TT",
-                Alternate = "GG"
+                Alternate = "GG",
+                Type = AlleleCategory.Mnv
             },
-            new BaseCalledAllele
+            new CalledAllele
             {
                 AlleleSupport = 5,
                 Coordinate = 107,
                 Reference = "TT",
-                Alternate = "CA"
-            },
+                Alternate = "CA",
+                Type = AlleleCategory.Mnv
+        },
             };
 
             MnvReallocator.ReallocateFailedMnvs(failedMnvs, calledAlleles);
             PrintResults(calledAlleles);
             Assert.Equal(3, calledAlleles.Count(a => a.Alternate.Length > 1)); //All three original MNVs should still be there
-            Assert.False(calledAlleles.Any(a => a is CalledReference)); 
+            Assert.False(calledAlleles.Any(a => a .Type == AlleleCategory.Reference)); 
         }
 
         [Fact]
         public void ReallocateMnvs_BlockStraddling()
         {
-            var failedMnvs = new List<BaseCalledAllele>{new BaseCalledAllele
+            var failedMnvs = new List<CalledAllele>{new CalledAllele
             {
                 AlleleSupport = 1,
                 Coordinate = 99,
@@ -486,8 +492,8 @@ namespace Pisces.Tests.UnitTests.Pisces
 
             // If there are any overlapping MNVs in the current block, reallocate to them.
             
-            var calledAlleles = new List<BaseCalledAllele>{
-                new BaseCalledAllele
+            var calledAlleles = new List<CalledAllele>{
+                new CalledAllele
                 {
                     AlleleSupport = 5,
                     Coordinate = 99,
@@ -504,13 +510,13 @@ namespace Pisces.Tests.UnitTests.Pisces
             PrintResults(leftoversInNextBlock.ToList());
             Assert.Equal(1, leftoversInNextBlock.Count());
             Assert.True(VerifyCalledAlleleMatch(
-                new BaseCalledAllele { Type = AlleleCategory.Snv, Coordinate = 102, Reference = "T", Alternate = "G", AlleleSupport = 1 },
+                new CalledAllele { Type = AlleleCategory.Snv, Coordinate = 102, Reference = "T", Alternate = "G", AlleleSupport = 1 },
                 leftoversInNextBlock.First()));
 
             // If there are no overlapping MNVs in the current block to reallocate to, take what is in the current block 
             // as new SNVs and pass the remaining chunk as an MNV for the next block to deal with.
 
-            failedMnvs = new List<BaseCalledAllele>{new BaseCalledAllele
+            failedMnvs = new List<CalledAllele>{new CalledAllele
             {
                 AlleleSupport = 1,
                 Coordinate = 99,
@@ -519,25 +525,25 @@ namespace Pisces.Tests.UnitTests.Pisces
                 SupportByDirection = new []{10,20,30}
             }};
 
-            calledAlleles = new List<BaseCalledAllele>();
+            calledAlleles = new List<CalledAllele>();
 
             leftoversInNextBlock = MnvReallocator.ReallocateFailedMnvs(failedMnvs, calledAlleles, 100);
 
             PrintResults(calledAlleles);
             Assert.Equal(2, calledAlleles.Count);
             Assert.Equal(calledAlleles.Count(x => VerifyCalledAlleleMatch(
-                new BaseCalledAllele { Type = AlleleCategory.Snv, Coordinate = 100, Reference = "T", Alternate = "G", AlleleSupport = 1 }, x)), 1);
+                new CalledAllele { Type = AlleleCategory.Snv, Coordinate = 100, Reference = "T", Alternate = "G", AlleleSupport = 1 }, x)), 1);
 
             PrintResults(leftoversInNextBlock.ToList());
             Assert.Equal(1, leftoversInNextBlock.Count());
             Assert.True(VerifyCalledAlleleMatch(
-                new BaseCalledAllele { Type = AlleleCategory.Mnv, Coordinate = 101, Reference = "TT", Alternate = "CG", AlleleSupport = 1 },
+                new CalledAllele { Type = AlleleCategory.Mnv, Coordinate = 101, Reference = "TT", Alternate = "CG", AlleleSupport = 1 },
                 leftoversInNextBlock.First()));
 
             // If there are no overlapping MNVs in the current block to reallocate to, take what is in the current block 
             // and reallocate to any existing SNVs and pass the remaining chunk as an MNV for the next block to deal with.
 
-            failedMnvs = new List<BaseCalledAllele>{new BaseCalledAllele
+            failedMnvs = new List<CalledAllele>{new CalledAllele
             {
                 AlleleSupport = 1,
                 Coordinate = 99,
@@ -546,7 +552,7 @@ namespace Pisces.Tests.UnitTests.Pisces
                 SupportByDirection = new []{10,20,30}
             }};
 
-            var existingSNV = new BaseCalledAllele
+            var existingSNV = new CalledAllele
             {
                 AlleleSupport = 5,
                 Coordinate = 99,
@@ -554,7 +560,7 @@ namespace Pisces.Tests.UnitTests.Pisces
                 Alternate = "A",
             };
 
-            calledAlleles = new List<BaseCalledAllele>
+            calledAlleles = new List<CalledAllele>
             {
                 existingSNV
             };
@@ -565,18 +571,18 @@ namespace Pisces.Tests.UnitTests.Pisces
             Assert.Equal(2, calledAlleles.Count);
             Assert.True(calledAlleles.First(x=>VerifyCalledAlleleMatch(existingSNV, x)).AlleleSupport == 6);
             Assert.Equal(calledAlleles.Count(x=> VerifyCalledAlleleMatch(
-                new BaseCalledAllele { Type = AlleleCategory.Snv, Coordinate = 100, Reference = "T", Alternate = "G", AlleleSupport = 1}, x)), 1);
+                new CalledAllele { Type = AlleleCategory.Snv, Coordinate = 100, Reference = "T", Alternate = "G", AlleleSupport = 1}, x)), 1);
 
             PrintResults(leftoversInNextBlock.ToList());
             Assert.Equal(1, leftoversInNextBlock.Count());
             Assert.True(VerifyCalledAlleleMatch(
-                new BaseCalledAllele { Type=AlleleCategory.Mnv, Coordinate = 101, Reference = "TT", Alternate = "CG", AlleleSupport = 1 },
+                new CalledAllele { Type=AlleleCategory.Mnv, Coordinate = 101, Reference = "TT", Alternate = "CG", AlleleSupport = 1 },
                 leftoversInNextBlock.First()));
 
             // When passing remaining chunk to next block, if it has now been trimmed such that there is a reference edge, 
             // pass it as a reference plus the rest of the MNV
 
-            failedMnvs = new List<BaseCalledAllele>{new BaseCalledAllele
+            failedMnvs = new List<CalledAllele>{new CalledAllele
             {
                 AlleleSupport = 1,
                 Coordinate = 99,
@@ -585,23 +591,23 @@ namespace Pisces.Tests.UnitTests.Pisces
                 SupportByDirection = new []{10,20,30}
             }};
 
-            calledAlleles = new List<BaseCalledAllele>();
+            calledAlleles = new List<CalledAllele>();
 
             leftoversInNextBlock = MnvReallocator.ReallocateFailedMnvs(failedMnvs, calledAlleles, 100);
 
             PrintResults(calledAlleles);
             Assert.Equal(2, calledAlleles.Count);
             Assert.Equal(calledAlleles.Count(x => VerifyCalledAlleleMatch(
-                new BaseCalledAllele { Type = AlleleCategory.Snv, Coordinate = 99, Reference = "T", Alternate = "A", AlleleSupport = 1 }, x)), 1);
+                new CalledAllele { Type = AlleleCategory.Snv, Coordinate = 99, Reference = "T", Alternate = "A", AlleleSupport = 1 }, x)), 1);
             Assert.Equal(calledAlleles.Count(x => VerifyCalledAlleleMatch(
-                new BaseCalledAllele { Type = AlleleCategory.Snv, Coordinate = 100, Reference = "T", Alternate = "G", AlleleSupport = 1 }, x)), 1);
+                new CalledAllele { Type = AlleleCategory.Snv, Coordinate = 100, Reference = "T", Alternate = "G", AlleleSupport = 1 }, x)), 1);
 
             PrintResults(leftoversInNextBlock.ToList());
             Assert.Equal(1, leftoversInNextBlock.Count());
             Assert.Equal(0, leftoversInNextBlock.Count(x => VerifyCalledAlleleMatch(
-                new BaseCalledAllele { Type = AlleleCategory.Reference, Coordinate = 101, Reference = "T", Alternate = "T", AlleleSupport = 1 }, x)));
+                new CalledAllele { Type = AlleleCategory.Reference, Coordinate = 101, Reference = "T", Alternate = "T", AlleleSupport = 1 }, x)));
             Assert.Equal(1, leftoversInNextBlock.Count(x=>VerifyCalledAlleleMatch(
-                new BaseCalledAllele { Type = AlleleCategory.Mnv, Coordinate = 102, Reference = "TT", Alternate = "CG", AlleleSupport = 1 },
+                new CalledAllele { Type = AlleleCategory.Mnv, Coordinate = 102, Reference = "TT", Alternate = "CG", AlleleSupport = 1 },
                 x)));
 
         }
@@ -609,9 +615,9 @@ namespace Pisces.Tests.UnitTests.Pisces
         [Fact]
         public void ReallocateMnvs_DirectionalSupportReallocation()
         {
-            var failed = new List<BaseCalledAllele>()
+            var failed = new List<CalledAllele>()
             {
-                new BaseCalledAllele()
+                new CalledAllele()
                 {
                     AlleleSupport = 1,
                     SupportByDirection = new int[] {1, 0, 0},
@@ -620,7 +626,7 @@ namespace Pisces.Tests.UnitTests.Pisces
                     Reference = "TCT",                    
                     Alternate = "CTC",
                 },
-                new BaseCalledAllele()
+                new CalledAllele()
                 {
                     AlleleSupport = 1,
                     SupportByDirection = new int[] {0, 1, 0},
@@ -629,7 +635,7 @@ namespace Pisces.Tests.UnitTests.Pisces
                     Reference = "TCT",                   
                     Alternate = "CGC",
                 },
-                new BaseCalledAllele()
+                new CalledAllele()
                 {
                     AlleleSupport = 1,
                     SupportByDirection = new int[] {1, 0, 0},
@@ -639,7 +645,7 @@ namespace Pisces.Tests.UnitTests.Pisces
                     Alternate = "GCA",
                 }
             };
-            var callable = new List<BaseCalledAllele>();
+            var callable = new List<CalledAllele>();
 
             MnvReallocator.ReallocateFailedMnvs(failed, callable);
 
@@ -662,7 +668,7 @@ namespace Pisces.Tests.UnitTests.Pisces
             // non-mnv should be returned as-is
             // -----------------------------------------------
 
-            var nonMnv = new CalledVariant(AlleleCategory.Deletion)
+            var nonMnv = new CalledAllele(AlleleCategory.Deletion)
             {
                 Chromosome = "chr1",
                 Coordinate = 1000,
@@ -678,7 +684,7 @@ namespace Pisces.Tests.UnitTests.Pisces
             // mnv without leading or trailing refs should be returned as-is
             // -----------------------------------------------
 
-            var alleleWithoutLeadingRefs = new CalledVariant(AlleleCategory.Mnv)
+            var alleleWithoutLeadingRefs = new CalledAllele(AlleleCategory.Mnv)
             {
                 Chromosome = "chr1",
                 Coordinate = 1000,
@@ -694,7 +700,7 @@ namespace Pisces.Tests.UnitTests.Pisces
             // allele with two leading references should have them broken off, leaving just the rest of the mnv
             // -----------------------------------------------
 
-            var alleleWithLeadingRefs = new CalledVariant(AlleleCategory.Mnv)
+            var alleleWithLeadingRefs = new CalledAllele(AlleleCategory.Mnv)
             {
                 Chromosome = "chr1",
                 Coordinate = 1000,
@@ -703,7 +709,7 @@ namespace Pisces.Tests.UnitTests.Pisces
                 Alternate = "TTAAAA",
             };
 
-            var expectedLeadingRef1 = new CalledReference()
+            var expectedLeadingRef1 = new CalledAllele()
             {
                 Chromosome = "chr1",
                 Coordinate = 1000,
@@ -711,7 +717,7 @@ namespace Pisces.Tests.UnitTests.Pisces
                 Reference = "T",
                 Alternate = "T",
             };
-            var expectedLeadingRef2 = new CalledReference()
+            var expectedLeadingRef2 = new CalledAllele()
             {
                 Chromosome = "chr1",
                 Coordinate = 1001,
@@ -719,7 +725,7 @@ namespace Pisces.Tests.UnitTests.Pisces
                 Reference = "T",
                 Alternate = "T",
             };
-            var expectedRemainingMnv = new CalledVariant(AlleleCategory.Mnv)
+            var expectedRemainingMnv = new CalledAllele(AlleleCategory.Mnv)
             {
                 Chromosome = "chr1",
                 Coordinate = 1002,
@@ -738,7 +744,7 @@ namespace Pisces.Tests.UnitTests.Pisces
             // allele with two trailing references should have them broken off, leaving just the rest of the mnv
             // -----------------------------------------------
 
-            var alleleWithTrailingRefs = new CalledVariant(AlleleCategory.Mnv)
+            var alleleWithTrailingRefs = new CalledAllele(AlleleCategory.Mnv)
             {
                 Chromosome = "chr1",
                 Coordinate = 1000,
@@ -746,7 +752,7 @@ namespace Pisces.Tests.UnitTests.Pisces
                 Reference = "TTCCTT",
                 Alternate = "AAAATT",
             };
-            var expectedTrailingRef1 = new CalledReference()
+            var expectedTrailingRef1 = new CalledAllele()
             {
                 Chromosome = "chr1",
                 Coordinate = 1004,
@@ -754,7 +760,7 @@ namespace Pisces.Tests.UnitTests.Pisces
                 Reference = "T",
                 Alternate = "T",
             };
-            var expectedTrailingRef2 = new CalledReference()
+            var expectedTrailingRef2 = new CalledAllele()
             {
                 Chromosome = "chr1",
                 Coordinate = 1005,
@@ -762,7 +768,7 @@ namespace Pisces.Tests.UnitTests.Pisces
                 Reference = "T",
                 Alternate = "T",
             };
-            expectedRemainingMnv = new CalledVariant(AlleleCategory.Mnv)
+            expectedRemainingMnv = new CalledAllele(AlleleCategory.Mnv)
             {
                 Chromosome = "chr1",
                 Coordinate = 1000,
@@ -782,7 +788,7 @@ namespace Pisces.Tests.UnitTests.Pisces
             // allele with two leading references and two trailing references should have them broken off, leaving just the rest of the mnv
             // -----------------------------------------------
 
-            var alleleWithLeadingAndTrailingRefs = new CalledVariant(AlleleCategory.Mnv)
+            var alleleWithLeadingAndTrailingRefs = new CalledAllele(AlleleCategory.Mnv)
             {
                 Chromosome = "chr1",
                 Coordinate = 1000,
@@ -790,7 +796,7 @@ namespace Pisces.Tests.UnitTests.Pisces
                 Reference = "TTCCTT",
                 Alternate = "TTAATT",
             };
-            expectedRemainingMnv = new CalledVariant(AlleleCategory.Mnv)
+            expectedRemainingMnv = new CalledAllele(AlleleCategory.Mnv)
             {
                 Chromosome = "chr1",
                 Coordinate = 1002,
@@ -808,7 +814,7 @@ namespace Pisces.Tests.UnitTests.Pisces
             Assert.Equal(1, brokenOutAlleles.Count(x => VerifyCalledAlleleMatch(expectedRemainingMnv, x)));
         }
 
-        private static bool VerifyCalledAlleleMatch(BaseCalledAllele expected, BaseCalledAllele actual)
+        private static bool VerifyCalledAlleleMatch(CalledAllele expected, CalledAllele actual)
         {
             return expected.Coordinate == actual.Coordinate && 
                 expected.Type == actual.Type &&
@@ -817,7 +823,7 @@ namespace Pisces.Tests.UnitTests.Pisces
                 expected.AlleleSupport == actual.AlleleSupport;
         }
 
-        private static void PrintResults(List<BaseCalledAllele> calledAlleles)
+        private static void PrintResults(List<CalledAllele> calledAlleles)
         {
             Console.WriteLine("--------------------");
             foreach (var baseCalledAllele in calledAlleles)

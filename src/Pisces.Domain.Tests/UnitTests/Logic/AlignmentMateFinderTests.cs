@@ -1,5 +1,6 @@
 ﻿using System;
-using SequencingFiles;
+using System.Linq;
+using Alignment.Domain.Sequencing;
 using Pisces.Domain.Logic;
 using Pisces.Domain.Models;
 using Pisces.Domain.Tests;
@@ -10,14 +11,46 @@ namespace Pisces.Tests.UnitTests.Alignment
     public class AlignmentMateFinderTests
     {
         [Fact]
-        public void GetMate()
+        public void GetUnpaired()
         {
             var finder = new AlignmentMateFinder();
 
             var read1 = CreateAlignment(100, 500, "1");
+            Assert.Null(finder.GetMate(read1));
+            Assert.Equal(new[] {read1.Name}, finder.GetUnpairedReads().Select(x => x.Name).ToArray());
+        }
+
+        [Fact]
+        public void ReadPurgedEventTriggered()
+        {
+            var finder = new AlignmentMateFinder(maxWindow:500);
+            Read purgedRead = null;
+            finder.ReadPurged += read => purgedRead = read;
+
+            // reads whose mates will never be encountered because they are before the current position
+            var read1 = CreateAlignment(5000, 100, "1");
+            Assert.Equal(finder.GetMate(read1), null);
+            Assert.Equal(read1.Name, purgedRead.Name);
+
+            // reads whose mates are more than the max distance before a read being added (and thus will not be encountered)
+            var read2 = CreateAlignment(5000, 5100, "2");
+            Assert.Equal(finder.GetMate(read2), null);
+            Assert.Equal(finder.GetMate(CreateAlignment(6000, 6100, "3")), null);
+
+            Assert.Equal(read2.Name, purgedRead.Name);
+
+        }
+
+
+        [Fact]
+        public void GetMate()
+        {
+            var finder = new AlignmentMateFinder();
+            
+            var read1 = CreateAlignment(100, 500, "1");
             var read1Mate = CreateAlignment(500, 100, "1");
-            var read2 = CreateAlignment(200, 500, "2");
-            var read2Mate = CreateAlignment(500, 200, "2");
+            var read2 = CreateAlignment(200, 400, "2");
+            var read2Mate = CreateAlignment(400, 200, "2");
             var read3 = CreateAlignment(201, 600, "3");
             var read3Mate = CreateAlignment(600, 201, "3");
             var read4 = CreateAlignment(1000, 2000, "4");
@@ -26,21 +59,26 @@ namespace Pisces.Tests.UnitTests.Alignment
             var read5Mate = CreateAlignment(3501, 2500, "5");
 
             Assert.Equal(finder.LastClearedPosition, null);
+            Assert.Equal(finder.NextMatePosition, null);
 
             Assert.Equal(finder.GetMate(read1), null);
             Assert.Equal(finder.LastClearedPosition, 99);
+            Assert.Equal(finder.NextMatePosition, 500);
 
             Assert.Equal(finder.GetMate(read2), null);
             Assert.Equal(finder.LastClearedPosition, 99);
+            Assert.Equal(finder.NextMatePosition, 400);
 
             Assert.Equal(finder.GetMate(read3), null);
             Assert.Equal(finder.LastClearedPosition, 99);
 
             DomainTestHelper.CompareReads(finder.GetMate(read2Mate), read2);
             Assert.Equal(finder.LastClearedPosition, 99);
+            Assert.Equal(finder.NextMatePosition, 500);
 
             DomainTestHelper.CompareReads(finder.GetMate(read1Mate), read1);
             Assert.Equal(finder.LastClearedPosition, 200);
+            Assert.Equal(finder.NextMatePosition, 600);
 
             DomainTestHelper.CompareReads(finder.GetMate(read3Mate), read3);
             Assert.Equal(finder.LastClearedPosition, null);
@@ -56,8 +94,9 @@ namespace Pisces.Tests.UnitTests.Alignment
 
             Assert.Equal(finder.GetMate(read5Mate), null); // out of window gets tossed
             Assert.Equal(finder.LastClearedPosition, null);
-            Assert.Equal(2, finder.ReadsSkipped);
-
+            Assert.Equal(finder.NextMatePosition, null);
+            Assert.Equal(2, finder.ReadsUnpairable);
+            
             Assert.Throws<ArgumentException>(() => finder.GetMate(CreateAlignment(2500, 2500, null))); // null name
             Assert.Throws<ArgumentException>(() => finder.GetMate(CreateAlignment(2500, 2500, ""))); // empty name
             Assert.Throws<ArgumentException>(() => finder.GetMate(CreateAlignment(2500, -1, null))); // invalid mate position

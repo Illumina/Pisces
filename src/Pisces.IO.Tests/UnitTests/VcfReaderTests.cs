@@ -4,7 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using SequencingFiles;
+using Pisces.IO.Sequencing;
 using Xunit;
 
 namespace Pisces.IO.Tests.UnitTests

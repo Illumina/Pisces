@@ -13,12 +13,13 @@ using CandidateAllele = Pisces.Domain.Models.Alleles.CandidateAllele;
 
 namespace Pisces.Logic.VariantCalling
 {
-    public class AlleleCaller : IAlleleCaller
+
+        public class AlleleCaller : IAlleleCaller
     {
         private readonly VariantCallerConfig _config;
         private readonly ChrIntervalSet _intervalSet;
         private readonly IVariantCollapser _collapser;
-        private readonly GenotypeCalculator _genotypeCalculator;
+        private readonly IGenotypeCalculator _genotypeCalculator;
         private readonly ICoverageCalculator _coverageCalculator;
 
         public int TotalNumCollapsed { get { return _collapser == null ? 0 : _collapser.TotalNumCollapsed; } }
@@ -30,9 +31,8 @@ namespace Pisces.Logic.VariantCalling
             _config = config;
             _intervalSet = intervalSet;
             _collapser = variantCollapser;
-            _genotypeCalculator = new GenotypeCalculator(_config.GenotypeModel, _config.PloidyModel, 
-                _config.MinFrequency, _config.DiploidThresholdingParameters);
             _coverageCalculator = coverageCalculator ?? new CoverageCalculator();
+            _genotypeCalculator = config.GenotypeCalculator;
         }
 
         /// <summary>
@@ -41,16 +41,16 @@ namespace Pisces.Logic.VariantCalling
         /// <param name="batchToCall"></param>
         /// <param name="source"></param>
         /// <returns></returns>
-        public SortedList<int, List<BaseCalledAllele>> Call(ICandidateBatch batchToCall, IAlleleSource source)
+        public SortedList<int, List<CalledAllele>> Call(ICandidateBatch batchToCall, IAlleleSource source)
         {
             return CallForPositions(batchToCall.GetCandidates(), source, batchToCall.MaxClearedPosition);
         }
 
-        private SortedList<int, List<BaseCalledAllele>> CallForPositions(List<CandidateAllele> candidates, IAlleleSource source, int? maxPosition)
+        private SortedList<int, List<CalledAllele>> CallForPositions(List<CandidateAllele> candidates, IAlleleSource source, int? maxPosition)
         {
-            var calledAllelesByPosition = new SortedList<int, List<BaseCalledAllele>>();
-            var failedMnvs = new List<BaseCalledAllele>();
-            var callableAlleles = new List<BaseCalledAllele>();
+            var calledAllelesByPosition = new SortedList<int, List<CalledAllele>>();
+            var failedMnvs = new List<CalledAllele>();
+            var callableAlleles = new List<CalledAllele>();
 
             if (_collapser != null)
                 candidates = _collapser.Collapse(candidates.ToList(), source, maxPosition);
@@ -89,10 +89,10 @@ namespace Pisces.Logic.VariantCalling
                 ProcessVariant(source, baseCalledAllele);
                 if (IsCallable(baseCalledAllele) && ShouldReport(baseCalledAllele))
                 {
-                    List<BaseCalledAllele> calledAtPosition;
+                    List<CalledAllele> calledAtPosition;
                     if (!calledAllelesByPosition.TryGetValue(baseCalledAllele.Coordinate, out calledAtPosition))
                     {
-                        calledAtPosition = new List<BaseCalledAllele>();
+                        calledAtPosition = new List<CalledAllele>();
                         calledAllelesByPosition.Add(baseCalledAllele.Coordinate, calledAtPosition);
                     }
 
@@ -104,40 +104,35 @@ namespace Pisces.Logic.VariantCalling
             // and prune allele lists as needed.
             foreach (var allelesAtPosition in calledAllelesByPosition.Values)
             {
+                
                 //pruning ref calls
-                if (allelesAtPosition.Any(v => v is CalledVariant))
-                    allelesAtPosition.RemoveAll(v => v is CalledReference);
+                if (allelesAtPosition.Any(v => v.Type != AlleleCategory.Reference))//(v => v is BaseCalledAllele))
+                    allelesAtPosition.RemoveAll(v =>( v.Type == AlleleCategory.Reference));
 
-                //prune any variant calls that exceed the ploidy model
+                //set GT and GT score, and prune any variant calls that exceed the ploidy model
                 var allelesToPrune = _genotypeCalculator.SetGenotypes(allelesAtPosition);
 
                 foreach (var alleleToPrune in allelesToPrune)
                     allelesAtPosition.Remove(alleleToPrune);
-                
+
                 foreach (var allele in allelesAtPosition)
                 {
-                    if (_config.PloidyModel == PloidyModel.Diploid)
-                        allele.GenotypeQscore = GenotypeQualityCalculator.Compute(allele, _config.MinGenotypeQscore, _config.MaxGenotypeQscore);
-                    else
-                        allele.GenotypeQscore = allele.VariantQscore;
-                    
                     if (_config.LowGTqFilter.HasValue && allele.GenotypeQscore < _config.LowGTqFilter)
                         allele.AddFilter(FilterType.LowGenotypeQuality);
                 }
 
 
                 allelesAtPosition.Sort((a1, a2) =>
-                          {
-                              var refCompare = a1.Reference.CompareTo(a2.Reference);
-                              return refCompare == 0 ? a1.Alternate.CompareTo(a2.Alternate) : refCompare;
-                          });
+                {
+                    var refCompare = a1.Reference.CompareTo(a2.Reference);
+                    return refCompare == 0 ? a1.Alternate.CompareTo(a2.Alternate) : refCompare;
+                });
             }
 
             return calledAllelesByPosition;
         }
 
-
-        public static Dictionary<int, int> GetRefSupportFromGappedMnvs(IEnumerable<BaseCalledAllele> callableAlleles)
+        public static Dictionary<int, int> GetRefSupportFromGappedMnvs(IEnumerable<CalledAllele> callableAlleles)
         {
             var takenRefCounts = new Dictionary<int, int>();
             foreach (var allele in callableAlleles)
@@ -159,28 +154,35 @@ namespace Pisces.Logic.VariantCalling
             return takenRefCounts;
         }
 
-        private void ProcessVariant(IAlleleSource source, BaseCalledAllele variant)
+        private void ProcessVariant(IAlleleSource source, CalledAllele variant)
         {
             // determine metrics
             _coverageCalculator.Compute(variant, source);
 
             if (variant.AlleleSupport > 0)
             {
-                VariantQualityCalculator.Compute(variant, _config.MaxVariantQscore, _config.EstimatedBaseCallQuality);
+				if (_config.NoiseModel == NoiseModel.Window)
+				{
+					VariantQualityCalculator.Compute(variant, _config.MaxVariantQscore, (int)MathOperations.PtoQ(variant.SumOfBaseQuality / variant.TotalCoverage));
+				}
+				else
+				{
+					VariantQualityCalculator.Compute(variant, _config.MaxVariantQscore, _config.EstimatedBaseCallQuality);
+				}
 
-                StrandBiasCalculator.Compute(variant, variant.SupportByDirection, _config.EstimatedBaseCallQuality,
+				StrandBiasCalculator.Compute(variant, variant.SupportByDirection, _config.EstimatedBaseCallQuality,
                     _config.StrandBiasFilterThreshold, _config.StrandBiasModel);
             }
 
             // set genotype, filter, etc
-            AlleleProcessor.Process(variant, _config.GenotypeModel, _config.MinFrequency, _config.LowDepthFilter,
+            AlleleProcessor.Process(variant, _config.MinFrequency, _config.LowDepthFilter,
                 _config.VariantQscoreFilterThreshold, _config.FilterSingleStrandVariants, _config.VariantFreqFilter, _config.LowGTqFilter, _config.IndelRepeatFilter, 
-                _config.RMxNFilterMaxLengthRepeat, _config.RMxNFilterMinRepetitions, _config.ChrReference);
+                _config.RMxNFilterSettings, _config.ChrReference, source.ExpectStitchedReads);
         }
 
-        private bool IsCallable(BaseCalledAllele allele)
+        private bool IsCallable(CalledAllele allele)
         {
-            if (allele is CalledReference)
+            if (allele.Type== AlleleCategory.Reference)
                 // reference calls always get emitted
                 // intervals have already been applied to ref calls - performance improvement not to reapply
             {
@@ -202,7 +204,7 @@ namespace Pisces.Logic.VariantCalling
             return true;
         }
 
-        private bool ShouldReport(BaseCalledAllele allele)
+        private bool ShouldReport(CalledAllele allele)
         {
             return _intervalSet == null ? true : _intervalSet.ContainsPosition(allele.Coordinate);
         }
@@ -222,15 +224,14 @@ namespace Pisces.Logic.VariantCalling
         public float StrandBiasFilterThreshold { get; set; }
         public bool FilterSingleStrandVariants { get; set; }
         public StrandBiasModel StrandBiasModel { get; set; }
-        public GenotypeModel GenotypeModel { get; set; }
-        public PloidyModel PloidyModel { get; set; }
-        public GenotypeCalculator.DiploidThresholdingParameters DiploidThresholdingParameters { get; set; }
+        public IGenotypeCalculator GenotypeCalculator { get; set; }
         public float? VariantFreqFilter { get; set; }
         public float? LowGTqFilter { get; set; }
         public int? IndelRepeatFilter { get; set; }
         public int? LowDepthFilter { get; set; }
-        public int? RMxNFilterMaxLengthRepeat { get; set; }
-        public int? RMxNFilterMinRepetitions { get; set; }
+        public RMxNFilterSettings RMxNFilterSettings { get; set; }
         public ChrReference ChrReference { get; set; }
+		public NoiseModel NoiseModel { get; set; }
     }
+
 }

@@ -9,6 +9,12 @@ namespace Pisces.Domain.Utility
 {
     public static class DirectionHelper
     {
+
+        public static List<string> ListDirectionKeys()
+        {
+            return new List<string>() { "F", "R", "S" };
+        }
+
         public static string GetDirectionKey(DirectionType direction)
         {
             switch (direction)

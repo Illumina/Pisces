@@ -24,14 +24,9 @@ namespace Pisces.Domain.Logic
             _callMnvs = callMnvs;
         }
 
-        public IEnumerable<CandidateAllele> FindCandidates(AlignmentSet alignmentSet, string refChromosome, string chromosomeName)
+        public IEnumerable<CandidateAllele> FindCandidates(Read read, string refChromosome, string chromosomeName)
         {
-            var candidates = new List<CandidateAllele>();
-            foreach (var bamAlignment in alignmentSet.ReadsForProcessing)
-            {
-                candidates.AddRange(ProcessCigarOps(bamAlignment, refChromosome, bamAlignment.Position, chromosomeName));
-            }
-            return candidates;
+            return ProcessCigarOps(read, refChromosome, read.Position, chromosomeName);
         }
 
         private IEnumerable<CandidateAllele> ProcessCigarOps(Read alignment, string refChromosome, int readStartPosition, string chromosomeName)
@@ -312,7 +307,7 @@ namespace Pisces.Domain.Logic
         public static DirectionType GetSupportDirection(CandidateAllele candidate, Read bamAlignment, int startIndexInRead)
         {
             if (candidate.Type == AlleleCategory.Snv || candidate.Type == AlleleCategory.Reference)
-                return bamAlignment.DirectionMap[startIndexInRead];
+                return bamAlignment.SequencedBaseDirectionMap[startIndexInRead];
 
             var leftAnchorIndex = startIndexInRead - 1;
             var rightAnchorIndex = candidate.Type == AlleleCategory.Deletion ? startIndexInRead : startIndexInRead + candidate.Length;
@@ -320,17 +315,17 @@ namespace Pisces.Domain.Logic
 
             if (rightAnchorIndex == 0)
             {
-                return bamAlignment.DirectionMap[rightAnchorIndex];
+                return bamAlignment.SequencedBaseDirectionMap[rightAnchorIndex];
             }
             if (leftAnchorIndex == lastIndex) // this should only happen for deletion at the end
             {
-                return bamAlignment.DirectionMap[lastIndex];
+                return bamAlignment.SequencedBaseDirectionMap[lastIndex];
             }
 
             if (leftAnchorIndex == rightAnchorIndex - 1)  // for deletions
             {
-                var startDirection = bamAlignment.DirectionMap[leftAnchorIndex];
-                var endDirection = bamAlignment.DirectionMap[rightAnchorIndex];
+                var startDirection = bamAlignment.SequencedBaseDirectionMap[leftAnchorIndex];
+                var endDirection = bamAlignment.SequencedBaseDirectionMap[rightAnchorIndex];
 
                 return startDirection == DirectionType.Stitched ? endDirection : startDirection;
             }
@@ -339,13 +334,13 @@ namespace Pisces.Domain.Logic
             // otherwise, walk through and if any direction between anchor points is stitched, return stitched
             for (var i = leftAnchorIndex + 1; i < rightAnchorIndex; i ++)
             {
-                direction = bamAlignment.DirectionMap[i];
+                direction = bamAlignment.SequencedBaseDirectionMap[i];
                 if (direction == DirectionType.Stitched)
                     return DirectionType.Stitched;
             }
 
             // sanity check that we didn't magically transition from F/R or R/F without stitched region
-            if (bamAlignment.DirectionMap[leftAnchorIndex + 1] != bamAlignment.DirectionMap[rightAnchorIndex - 1])
+            if (bamAlignment.SequencedBaseDirectionMap[leftAnchorIndex + 1] != bamAlignment.SequencedBaseDirectionMap[rightAnchorIndex - 1])
                 throw new Exception("Found change in direction without encountering stitched direction");
 
             return direction;

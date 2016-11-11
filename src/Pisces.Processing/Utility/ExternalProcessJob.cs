@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Diagnostics;
 using System.IO;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Threading;
 
 namespace Pisces.Processing.Utility
@@ -18,6 +20,22 @@ namespace Pisces.Processing.Utility
         public string OutputLogPath { get; set; }
         public string ErrorLogPath { get; set; }
 
+        public bool Terminated
+        {
+            [MethodImpl(MethodImplOptions.Synchronized)]
+            get;
+            [MethodImpl(MethodImplOptions.Synchronized)]
+            private set;
+        }
+
+        public bool Started
+        {
+            [MethodImpl(MethodImplOptions.Synchronized)]
+            get;
+            [MethodImpl(MethodImplOptions.Synchronized)]
+            private set;
+        }
+
         public ExternalProcessJob(string name)
         {
             Name = name;
@@ -25,27 +43,46 @@ namespace Pisces.Processing.Utility
 
         public void Execute()
         {
-            var startInfo = new ProcessStartInfo();
-            startInfo.CreateNoWindow = false;
-            startInfo.UseShellExecute = false;
-            startInfo.FileName = ExecutablePath;
-            startInfo.WindowStyle = ProcessWindowStyle.Hidden;
-            startInfo.Arguments = CommandLineArguments;
-
-            // Call WaitForExit and then the using statement will close.
-            using (var exeProcess = new Process() {StartInfo = startInfo})
+            try
             {
-                SetupLogger(startInfo, exeProcess);
-                exeProcess.Start();
+                var startInfo = new ProcessStartInfo();
+                startInfo.CreateNoWindow = false;
+                startInfo.UseShellExecute = false;
+                startInfo.FileName = ExecutablePath;
+                startInfo.WindowStyle = ProcessWindowStyle.Hidden;
+                startInfo.Arguments = CommandLineArguments;
 
-                if (startInfo.RedirectStandardOutput)
-                    exeProcess.BeginOutputReadLine();
-                if (startInfo.RedirectStandardError)
-                    exeProcess.BeginErrorReadLine();
+                // Call WaitForExit and then the using statement will close.
+                using (var exeProcess = new Process() {StartInfo = startInfo})
+                {
+                    SetupLogger(startInfo, exeProcess);
+                    try
+                    {
+                        exeProcess.Start();
+                        Started = true;
 
-                exeProcess.WaitForExit();
-                if (GetProcessExitCode(exeProcess) != 0)
-                    throw new Exception(string.Format("Job '{0}' exited with exit code {1}", Name, exeProcess.ExitCode));
+                        if (startInfo.RedirectStandardOutput)
+                            exeProcess.BeginOutputReadLine();
+                        if (startInfo.RedirectStandardError)
+                            exeProcess.BeginErrorReadLine();
+
+                        exeProcess.WaitForExit();
+                        if (GetProcessExitCode(exeProcess) != 0)
+                            throw new Exception(string.Format("Job '{0}' exited with exit code {1}", Name,
+                                exeProcess.ExitCode));
+                    }
+                    catch (ThreadAbortException)
+                    {
+                        // the job is being terminated due to a failure in another job - terminate the executable
+                        exeProcess.Kill();
+                        throw;
+                    }
+                }
+            }
+            catch (ThreadAbortException)
+            {
+                Terminated = true;
+                throw;
             }
         }
 

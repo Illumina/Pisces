@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using Pisces.Calculators;
 using Pisces.Domain.Models;
 ﻿using Pisces.Domain.Models.Alleles;
 using Pisces.Domain.Types;
@@ -12,15 +13,15 @@ namespace Pisces.Logic.VariantCalling
     {
         private const int FlankingBaseCount = 50;
 
-        public static void Process(BaseCalledAllele allele, GenotypeModel model,
-            float minFrequency, int? lowDepthFilter, int? filterVariantQscore, bool filterSingleStrandVariants, float? variantFreqFilter, float? lowGqFilter, int? indelRepeatFilter, int? rmxnFilterMaxRepeatLength, int? rmxnFilterMinRepetitions, ChrReference chrReference)
+        public static void Process(CalledAllele allele, 
+            float minFrequency, int? lowDepthFilter, int? filterVariantQscore, bool filterSingleStrandVariants, float? variantFreqFilter, float? lowGqFilter, int? indelRepeatFilter, RMxNFilterSettings rMxNFilterSettings, ChrReference chrReference, bool isStitchedSource = false)
         {
             SetFractionNoCall(allele);
-            ApplyFilters(allele, lowDepthFilter, filterVariantQscore, filterSingleStrandVariants, variantFreqFilter, lowGqFilter, indelRepeatFilter, rmxnFilterMaxRepeatLength, rmxnFilterMinRepetitions, chrReference);
+            ApplyFilters(allele, lowDepthFilter, filterVariantQscore, filterSingleStrandVariants, variantFreqFilter, lowGqFilter, indelRepeatFilter, rMxNFilterSettings, isStitchedSource, chrReference);
         }
 
         // jg todo - set numnocalls - appears to only be applicable to SNVs
-        private static void SetFractionNoCall(BaseCalledAllele allele)
+        private static void SetFractionNoCall(CalledAllele allele)
         {
             var allReads = (float)(allele.TotalCoverage + allele.NumNoCalls);
             if (allReads == 0)
@@ -29,147 +30,55 @@ namespace Pisces.Logic.VariantCalling
                 allele.FractionNoCalls = allele.NumNoCalls / allReads;
         }
 
-        private static void ApplyFilters(BaseCalledAllele allele, int? minCoverageFilter, int? variantQscoreThreshold, bool filterSingleStrandVariants, float? variantFreqFilter, float? lowGenotypeqFilter, int? indelRepeatFilter, int? rmxnFilterMaxRepeatLength, int? rmxnFilterMinRepetitions, ChrReference chrReference)
+        private static void ApplyFilters(CalledAllele allele, int? minCoverageFilter, int? variantQscoreThreshold, bool filterSingleStrandVariants, float? variantFreqFilter, float? lowGenotypeqFilter, int? indelRepeatFilter,
+            RMxNFilterSettings rMxNFilterSettings, bool hasStitchedSource, ChrReference chrReference)
         {
             //Reset filters
             allele.Filters.Clear();
 
-            if (indelRepeatFilter.HasValue && indelRepeatFilter > 0)
-            {
-                var indelRepeatLength = ComputeIndelRepeatLength(allele, chrReference.Sequence);
-                if (indelRepeatFilter <= indelRepeatLength)
-                    allele.AddFilter(FilterType.IndelRepeatLength);
-            }
-
-            if (rmxnFilterMaxRepeatLength.HasValue && rmxnFilterMinRepetitions.HasValue && allele is CalledVariant)
-            {
-                var maxRepeatPerComponent = ComputeComponentRMxNLengths((CalledVariant)allele, chrReference.Sequence, (int)rmxnFilterMaxRepeatLength);
-                if (Math.Min(maxRepeatPerComponent.Item1, maxRepeatPerComponent.Item2) >= rmxnFilterMinRepetitions)
-                {
-                    allele.AddFilter(FilterType.RMxN);
-                }
-            }
-
-            if (variantFreqFilter.HasValue && allele.Frequency < variantFreqFilter)
-                allele.AddFilter(FilterType.LowVariantFrequency);
-
             if (minCoverageFilter.HasValue && allele.TotalCoverage < minCoverageFilter)
                 allele.AddFilter(FilterType.LowDepth);
 
-            if (variantQscoreThreshold.HasValue && allele.VariantQscore < variantQscoreThreshold)
+            if (variantQscoreThreshold.HasValue && allele.VariantQscore < variantQscoreThreshold  && (allele.TotalCoverage != 0))
+            {
+                //note we wont flag it for Qscore, if its got zero depth, because in that case, the Q score calc was not made anyway.
                 allele.AddFilter(FilterType.LowVariantQscore);
-
-            if (allele is CalledVariant)
+            }
+            if (allele.Type != AlleleCategory.Reference)
             {
                 if (!allele.StrandBiasResults.BiasAcceptable ||
                 (filterSingleStrandVariants && !allele.StrandBiasResults.VarPresentOnBothStrands))
                     allele.AddFilter(FilterType.StrandBias);
-            }
-        }
 
-        /// <summary>
-        ///     Calculates repeats of a part (front end, back end, or entirety) of an indel in the reference sequence. All possible prefix
-        ///     and suffix subunits of the variant bases are calculated (up to a configured max unit length), and we then search for each unit
-        ///     in the sequence directly flanking the variant position. Point of reference is the position of the base immediately preceding 
-        ///     the added or deleted bases. From there, we first look backward to see if there are instances of the unit directly before the 
-        ///     point of reference (inclusive). After ratcheting back to the first consecutive instance of the unit, we read through the sequence,
-        ///     counting number of repeats of the unit. We return the maximum number of repeats found for any eligible unit.
-        /// </summary>
-        private static int ComputeRMxNLengthForIndel(int variantPosition, string variantBases, string referenceBases, int maxRepeatUnitLength)
-        {
-            var maxRepeatsFound = 0;
-            var prefixes = new List<string>();
-            var suffixes = new List<string>();
-            var length = variantBases.Length;
-
-            for (var i = length - Math.Min(maxRepeatUnitLength, length); i < length; i++)
-            {
-                prefixes.Add(variantBases.Substring(0, length - i));
-                suffixes.Add(variantBases.Substring(i, length - i));
-            }
-            var bookends = prefixes.Concat(suffixes);
-
-            foreach (var bookend in bookends)
-            {
-                var backPeekPosition = variantPosition;
-
-                // Keep ratcheting backward as long as this motif is repeating
-                while (true)
+                if (indelRepeatFilter.HasValue && indelRepeatFilter > 0)
                 {
-                    var newBackPeekPosition = backPeekPosition - bookend.Length;
-                    if (newBackPeekPosition < 0) break;
-
-                    var snippetAtPeek = referenceBases.Substring(newBackPeekPosition, bookend.Length);
-                    if (snippetAtPeek != bookend) break;
-
-                    backPeekPosition = newBackPeekPosition;
+                    var indelRepeatLength = ComputeIndelRepeatLength(allele, chrReference.Sequence);
+                    if (indelRepeatFilter <= indelRepeatLength)
+                        allele.AddFilter(FilterType.IndelRepeatLength);
                 }
 
-                // Read forward from first instance of motif, counting consecutive repeats
-                var repeatCount = 0;
-                var currentPosition = backPeekPosition;
-                while (true)
+                if (RMxNCalculator.ShouldFilter(allele, rMxNFilterSettings, chrReference.Sequence))
+                    allele.AddFilter(FilterType.RMxN);
+
+                if (variantFreqFilter.HasValue && allele.Frequency < variantFreqFilter)
+                    allele.AddFilter(FilterType.LowVariantFrequency);
+
+                if (hasStitchedSource) //can only happen for insertions and MNVs
                 {
-                    if (currentPosition + bookend.Length > referenceBases.Length) break;
-
-                    var currentSnippet = referenceBases.Substring(currentPosition, bookend.Length);
-                    if (currentSnippet != bookend) break;
-
-                    repeatCount++;
-                    currentPosition += bookend.Length;
+                    if (allele.Alternate.Contains("N"))
+                        allele.AddFilter(FilterType.StrandBias);
                 }
-
-                if (repeatCount > maxRepeatsFound) maxRepeatsFound = repeatCount;
             }
-
-            return maxRepeatsFound;
         }
 
-        /// <summary>
-        ///     Calculates repeats of the front, back, or entirety of a variant. For MNVs and SNVs, the variant is broken down into hypothesized
-        ///     insertion/deletion events. A pair of integers is returned, and the minimum of the two is meant to be judged against the threshold
-        ///     number of repetitions. For MNVs and SNVs, this represents the max repeats found in the hypothesized component deletion event and 
-        ///     the larger of the max repeats found in the two hypothesized insertion events. For Insertions and Deletions, this is simply the 
-        ///     max number of repeats found and an impossibly large number (as there is only one component indel event).
-        /// </summary>
-        private static Tuple<int,int> ComputeComponentRMxNLengths(BaseCalledAllele allele, string referenceBases, int maxRepeatUnitLength)
-        {
-            var component1 = 0;
-            var component2 = int.MaxValue;
-
-            // TODO handle complex indels (ref length != alt length and neither = 1)
-            var variantBases = (
-                allele.Type == AlleleCategory.Mnv || allele.Type == AlleleCategory.Snv) ? allele.Alternate 
-                : allele.Type == AlleleCategory.Insertion ? allele.Alternate.Substring(1) 
-                : allele.Reference.Substring(1);
-
-            if (allele.Type == AlleleCategory.Insertion || allele.Type == AlleleCategory.Deletion)
-            {
-                // Only 1 indel component for insertions or deletions
-                component1 = ComputeRMxNLengthForIndel(allele.Coordinate, variantBases, referenceBases, maxRepeatUnitLength);
-            }
-            else
-            {
-                // Treat MNVs and SNVs as potential combination insertion-deletion events.
-                // Only ever one possible deletion component
-                component1 = ComputeRMxNLengthForIndel(allele.Coordinate - 1, allele.Reference, referenceBases, maxRepeatUnitLength);
-
-                // Try insertion at front or tail end of variant
-                var candidateComponentInsertion1 = ComputeRMxNLengthForIndel(allele.Coordinate + allele.Reference.Length - 1, variantBases, referenceBases, maxRepeatUnitLength);
-                var candidateComponentInsertion2 = ComputeRMxNLengthForIndel(allele.Coordinate - 1, variantBases, referenceBases, maxRepeatUnitLength);
-                component2 = Math.Max(candidateComponentInsertion1, candidateComponentInsertion2);
-            }
-
-            return new Tuple<int, int>(component1, component2);
-        }
-
+     
         /// <summary>
         ///     Calculates repeats for insertions and deletions by scanning up to 50 base pairs of the chromosome reference on either side of the allele coordinate. 
         ///     Duplicates of the allele alternate found in the reference are summed to compute the overall repeat length..  Useful for filtering some
         ///     indels - e.g. we mistrust a call of AAAAAAAA versus reference AAAAAAAAA, since it may be
         ///     polymerase slippage during PCR in sample prep, rather than an actual mutation.
         /// </summary>
-        private static int ComputeIndelRepeatLength(BaseCalledAllele allele, string referenceBases)
+        private static int ComputeIndelRepeatLength(CalledAllele allele, string referenceBases)
         {
             if (String.IsNullOrEmpty(referenceBases)) return 0;
             if (allele.Type != AlleleCategory.Insertion && allele.Type != AlleleCategory.Deletion && allele.Type != AlleleCategory.Snv) return 0;
@@ -198,7 +107,7 @@ namespace Pisces.Logic.VariantCalling
             return longestRepeatLength;
         }
 
-        private static int CheckVariantRepeatCount(BaseCalledAllele allele, string upstreamFlankingBases, string downstreamFlankingBases)
+        private static int CheckVariantRepeatCount(CalledAllele allele, string upstreamFlankingBases, string downstreamFlankingBases)
         {
             var currentPosition = 0;
             if(!String.IsNullOrEmpty(upstreamFlankingBases))

@@ -2,12 +2,15 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
+using Common.IO.Sequencing;
 
-namespace SequencingFiles
+namespace Pisces.IO.Sequencing
 {
     public interface IVcfVariantSource
     {
         IEnumerable<VcfVariant> GetVariants();
+        bool GetNextVariant(VcfVariant variant, out string varString);
+        bool GetNextVariant(VcfVariant variant);
     }
 
 	/// <summary>

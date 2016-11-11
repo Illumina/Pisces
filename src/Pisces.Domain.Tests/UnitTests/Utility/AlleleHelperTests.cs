@@ -23,7 +23,7 @@ namespace Pisces.Domain.Tests.UnitTests.Utility
         [Fact]
         public void MapToCandidateAllele()
         {
-            var allele = new BaseCalledAllele();
+            var allele = new CalledAllele();
             allele.Chromosome = "chr1";
             allele.Coordinate = 1;
             allele.Reference = "A";
@@ -49,23 +49,23 @@ namespace Pisces.Domain.Tests.UnitTests.Utility
             //Called variant
             var allele = new CandidateAllele("chr1",1,"A","G",AlleleCategory.Snv);
             allele.SupportByDirection = new[] { 10, 20, 30 };
-            var calledvariant = AlleleHelper.Map(allele);
-            Assert.True(calledvariant is CalledVariant);
-            Assert.Equal(calledvariant.Chromosome, allele.Chromosome);
-            Assert.Equal(calledvariant.Coordinate, allele.Coordinate);
-            Assert.Equal(calledvariant.Reference, allele.Reference);
-            Assert.Equal(calledvariant.Alternate, allele.Alternate);
-            Assert.Equal(calledvariant.Type, allele.Type);
-            Assert.Equal(calledvariant.SupportByDirection.Count(), allele.SupportByDirection.Count());
+            var BaseCalledAllele = AlleleHelper.Map(allele);
+            Assert.True(BaseCalledAllele.Type != AlleleCategory.Reference);
+            Assert.Equal(BaseCalledAllele.Chromosome, allele.Chromosome);
+            Assert.Equal(BaseCalledAllele.Coordinate, allele.Coordinate);
+            Assert.Equal(BaseCalledAllele.Reference, allele.Reference);
+            Assert.Equal(BaseCalledAllele.Alternate, allele.Alternate);
+            Assert.Equal(BaseCalledAllele.Type, allele.Type);
+            Assert.Equal(BaseCalledAllele.SupportByDirection.Count(), allele.SupportByDirection.Count());
             for (int i = 0; i < allele.SupportByDirection.Count(); i++)
             {
-                Assert.Equal(calledvariant.SupportByDirection[i], allele.SupportByDirection[i]);
+                Assert.Equal(BaseCalledAllele.SupportByDirection[i], allele.SupportByDirection[i]);
             }
 
             //Called reference
             allele.Type = AlleleCategory.Reference;
             var calledReference = AlleleHelper.Map(allele);
-            Assert.True(calledReference is CalledReference);
+            Assert.True(calledReference.Type == AlleleCategory.Reference);
             Assert.Equal(calledReference.Chromosome, allele.Chromosome);
             Assert.Equal(calledReference.Coordinate, allele.Coordinate);
             Assert.Equal(calledReference.Reference, allele.Reference);

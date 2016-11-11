@@ -13,7 +13,8 @@ namespace Pisces.Processing.RegionState
     {
         private List<CandidateAllele>[] _candidateVariantsLookup;
         private int[,,] _alleleCounts;
-        private int[] _gappedMnvReferenceCounts;
+		private double[,,] _sumOfAlleleBaseQualities;
+		private int[] _gappedMnvReferenceCounts;
         private List<ReadCoverageSummary>[] _coverageSummaries;
  
         public int MaxAlleleEndpoint { get; private set; }
@@ -45,8 +46,9 @@ namespace Pisces.Processing.RegionState
             _gappedMnvReferenceCounts = new int[regionSize];
             _candidateVariantsLookup = new List<CandidateAllele>[regionSize];
             _coverageSummaries = new List<ReadCoverageSummary>[regionSize];
+			_sumOfAlleleBaseQualities = new double[regionSize, Constants.NumAlleleTypes, Constants.NumDirectionTypes];
 
-        }
+		}
 
         /// <summary>
         /// Reset object to new region
@@ -61,12 +63,13 @@ namespace Pisces.Processing.RegionState
             Initialize();
         }
 
-        /// <summary>
-        /// Add ref count taken up by gapped mnv. 
-        /// </summary>
-        /// <param name="position"></param>
-        /// <param name="count"></param>
-        public void AddGappedMnvRefCount(int position, int count)
+
+		/// <summary>
+		/// Add ref count taken up by gapped mnv. 
+		/// </summary>
+		/// <param name="position"></param>
+		/// <param name="count"></param>
+		public void AddGappedMnvRefCount(int position, int count)
         {
             if (IsPositionInRegion(position))
             {
@@ -89,7 +92,11 @@ namespace Pisces.Processing.RegionState
                 _candidateVariantsLookup[regionIndex] = new List<CandidateAllele> { candidate };
             else
             {
-                var foundAtIndex = trackOpenEnded ? 
+                //TJD - this used to be a hash table, not a find,
+                //where each variants unique signature was the key. 
+                //this might be why we have seen a performance hit in the new pisces.
+
+                var foundAtIndex = trackOpenEnded ?                   
                     existingCandidates.FindIndex(c => c.Equals(candidate)
                                                  && c.OpenOnLeft == candidate.OpenOnLeft 
                                                  && c.OpenOnRight == candidate.OpenOnRight) :
@@ -143,7 +150,14 @@ namespace Pisces.Processing.RegionState
             }
         }
 
-        public void AddReadSummary(int position, ReadCoverageSummary summary)
+		public void AddBaseQualites(int position, AlleleType alleleType, DirectionType directionType, double baseQuality)
+		{
+			if (IsPositionInRegion(position))
+			{
+				_sumOfAlleleBaseQualities[position - StartPosition, (int)alleleType, (int)directionType] += baseQuality;
+			}
+		}
+		public void AddReadSummary(int position, ReadCoverageSummary summary)
         {
             if (IsPositionInRegion(position))
             {
@@ -166,13 +180,21 @@ namespace Pisces.Processing.RegionState
 
         public int GetAlleleCount(int position, AlleleType alleleType, DirectionType directionType)
         {
-            if (!IsPositionInRegion(position))
-                throw new ArgumentException(string.Format("Position {0} is not in region '{1}'.", position, Name));
+			if (!IsPositionInRegion(position))
+				throw new ArgumentException(string.Format("Position {0} is not in region '{1}'.", position, Name));
 
-            return _alleleCounts[position - StartPosition, (int)alleleType, (int)directionType];
-        }
+			return _alleleCounts[position - StartPosition, (int)alleleType, (int)directionType];
+		}
 
-        public List<ReadCoverageSummary> GetReadSummaries(int position)
+
+		public double GetSumOfAlleleBaseQualites(int position, AlleleType alleleType, DirectionType directionType)
+		{
+			if (!IsPositionInRegion(position))
+				throw new ArgumentException(string.Format("Position {0} is not in region '{1}'.", position, Name));
+
+			return _sumOfAlleleBaseQualities[position - StartPosition, (int)alleleType, (int)directionType];
+		}
+		public List<ReadCoverageSummary> GetReadSummaries(int position)
         {
             if (!IsPositionInRegion(position))
                 throw new ArgumentException(string.Format("Position {0} is not in region '{1}'.", position, Name));

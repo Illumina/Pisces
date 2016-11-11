@@ -10,13 +10,13 @@ namespace Pisces.Calculators
 {
     public class CoverageCalculator : ICoverageCalculator
     {
-        public virtual void Compute(BaseCalledAllele allele, IAlleleSource alleleCountSource)
+        public virtual void Compute(CalledAllele allele, IAlleleSource alleleCountSource)
         {
-            if (allele is CalledReference)
+            if (allele.Type == AlleleCategory.Reference)
                 CalculateSinglePoint(allele, alleleCountSource);
             else
             {
-                var variant = (CalledVariant) allele;
+                var variant = allele;
                 switch (variant.Type)
                 {
                     case AlleleCategory.Deletion:
@@ -28,7 +28,7 @@ namespace Pisces.Calculators
                             variant.Coordinate + variant.Length - 1, true);
                         break;
                     case AlleleCategory.Insertion:
-                        CalculateSpanning(variant, alleleCountSource, variant.Coordinate, variant.Coordinate + 1, false);
+                        CalculateSpanning(variant, alleleCountSource, variant.Coordinate, variant.Coordinate + 1, alleleCountSource.ExpectStitchedReads);
                         break;
                     default:
                         CalculateSinglePoint(variant, alleleCountSource);
@@ -37,20 +37,21 @@ namespace Pisces.Calculators
             }
         }
 
-        protected void CalculateSinglePoint(BaseCalledAllele allele, IAlleleSource alleleCountSource)
+        protected void CalculateSinglePoint(CalledAllele allele, IAlleleSource alleleCountSource)
         {
             //TODO: Is there a reason why we don't reallocate the stitched coverage here for point mutations? (as we do with spanning ones)
             // sum up all observations at that point
 
-            var variant = allele as CalledVariant;
+            var variant = allele as CalledAllele;
 
             for (var direction = 0; direction < Constants.NumDirectionTypes; direction++)
             {
                 foreach(var alleleType in Constants.CoverageContributingAlleles)
                 {
-                    allele.TotalCoverageByDirection[direction] += alleleCountSource.GetAlleleCount(allele.Coordinate, alleleType, (DirectionType)direction);
-                    
-                    if (alleleType != AlleleHelper.GetAlleleType(allele.Reference)) continue;
+                    allele.EstimatedCoverageByDirection[direction] += alleleCountSource.GetAlleleCount(allele.Coordinate, alleleType, (DirectionType)direction);
+					allele.SumOfBaseQuality += alleleCountSource.GetSumOfAlleleBaseQualities(allele.Coordinate, alleleType, (DirectionType)direction);
+
+					if (alleleType != AlleleHelper.GetAlleleType(allele.Reference)) continue;
                     if (variant != null)
                     {
                         variant.ReferenceSupport += alleleCountSource.GetAlleleCount(variant.Coordinate, alleleType,
@@ -58,7 +59,7 @@ namespace Pisces.Calculators
                     }
                 }
 
-                allele.TotalCoverage += allele.TotalCoverageByDirection[direction];
+                allele.TotalCoverage += allele.EstimatedCoverageByDirection[direction];
 
                 allele.NumNoCalls += alleleCountSource.GetAlleleCount(allele.Coordinate, AlleleType.N, (DirectionType)direction);
             }
@@ -87,11 +88,12 @@ namespace Pisces.Calculators
         /// For deletions and mnvs, take average of first and last datapoint for variant.
         /// jg todo - figure out this old comment - (Or if we're at the edge of the world, give up and just take the coverage of the left base)
         /// </summary>
-        private void CalculateSpanning(CalledVariant variant, IAlleleSource alleleCountSource, int startPointPosition, int endPointPosition, bool anchored = true)
+        private void CalculateSpanning(CalledAllele variant, IAlleleSource alleleCountSource, int startPointPosition, int endPointPosition, bool anchored = true)
         {
             //empty arrays to do our coverage calculations.  the three spaces are for each read direction.
             var startPointCoverage = new[] { 0, 0, 0 };
             var endPointCoverage = new[] { 0, 0, 0 };
+            float exactTotalCoverage = 0f;
 
             // sum coverage by direction across all allele types for each data point
             for (var directionIndex = 0; directionIndex < Constants.NumDirectionTypes; directionIndex++)
@@ -100,7 +102,9 @@ namespace Pisces.Calculators
                 {
                     startPointCoverage[directionIndex] += alleleCountSource.GetAlleleCount(startPointPosition, alleleType, (DirectionType)directionIndex);
                     endPointCoverage[directionIndex] += alleleCountSource.GetAlleleCount(endPointPosition, alleleType, (DirectionType)directionIndex);
-                }
+					variant.SumOfBaseQuality += alleleCountSource.GetSumOfAlleleBaseQualities(startPointPosition, alleleType, (DirectionType)directionIndex);
+					variant.SumOfBaseQuality += alleleCountSource.GetSumOfAlleleBaseQualities(endPointPosition, alleleType, (DirectionType)directionIndex);
+				}
             }
 
             // coverage by strand direction is used for strand bias.  need to redistribute stitched contribution to forward and reverse directions for book-ends before reconciling them.
@@ -110,12 +114,20 @@ namespace Pisces.Calculators
             // intentionally leave stitched coverage empty when calculating for a spanned variant (it's already been redistributed)
             for (var directionIndex = 0; directionIndex < 2; directionIndex++)
             {
-                variant.TotalCoverageByDirection[directionIndex] = anchored ? (startPointCoverage[directionIndex] + endPointCoverage[directionIndex]) /2 :
+                float exactCoverageForDir = anchored ? (  (startPointCoverage[directionIndex] + endPointCoverage[directionIndex])) / 2f : //will always round to lower.
                     Math.Min(startPointCoverage[directionIndex], endPointCoverage[directionIndex]);
+                variant.EstimatedCoverageByDirection[directionIndex] = (int) exactCoverageForDir;
+
+                exactTotalCoverage += exactCoverageForDir;
             }
 
-            // coverage should be total across the directions.  
-            variant.TotalCoverage = variant.TotalCoverageByDirection.Sum();
+            //for extended variants, coverage is not an exact value. 
+            //Its an estimate based on the depth over the length of the variant.
+            //In particular, the depth by direction does not always allocate neatly to an integer value.
+
+            //ie, variant.TotalCoverage != variant.EstimatedCoverageByDirection[directionIndex].Sum
+
+            variant.TotalCoverage = (int) exactTotalCoverage;
             variant.ReferenceSupport = Math.Max(0, variant.TotalCoverage - variant.AlleleSupport);
         }
 

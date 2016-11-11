@@ -5,7 +5,6 @@ namespace Pisces.Processing.Interfaces
 {
     public interface IStateManager : IAlleleSource 
     {
-        void AddAlleleCounts(AlignmentSet alignmentSet);
         void AddAlleleCounts(Read read);
 
         ICandidateBatch GetCandidatesToProcess(int? upToPosition, ChrReference chrReference = null);

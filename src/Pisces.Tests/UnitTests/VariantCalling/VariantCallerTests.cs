@@ -28,7 +28,13 @@ namespace Pisces.Logic.VariantCalling.Tests
             var config = new VariantCallerConfig
             {
                 MaxVariantQscore = 100,
-                EstimatedBaseCallQuality = 20
+                EstimatedBaseCallQuality = 20,
+                ChrReference = new ChrReference
+                {
+                    Sequence = "ACGTACGT",
+                    Name = "Boo"
+                },
+                GenotypeCalculator = new SomaticGenotypeCalculator()
             };
 
             var variantCaller = new AlleleCaller(config);
@@ -36,9 +42,9 @@ namespace Pisces.Logic.VariantCalling.Tests
             var highCoverageCoordinate = 123;
             var lowCoverageCoordinate = 456;
 
-            var passingVariant = new CandidateAllele( "chr1", highCoverageCoordinate, "A", "T",  AlleleCategory.Snv)
+            var passingVariant = new CandidateAllele("chr1", highCoverageCoordinate, "A", "T", AlleleCategory.Snv)
             {
-                SupportByDirection = new [] {500, 0, 0} // Freq is 500/1500, q is 100
+                SupportByDirection = new[] { 500, 0, 0 } // Freq is 500/1500, q is 100
             };
             var passingVariant2 = new CandidateAllele("chr1", highCoverageCoordinate, "A", "C", AlleleCategory.Snv)
             {
@@ -72,25 +78,25 @@ namespace Pisces.Logic.VariantCalling.Tests
 
             //Variants should be correctly mapped
             var mockAlleleCountSource = MockStateManager(highCoverageCoordinate, lowCoverageCoordinate).Object;
-            var calledVariants = variantCaller.Call(new CandidateBatch(candidateVariants), mockAlleleCountSource).Values.SelectMany(v => v);
-            var calledVariant = calledVariants.First();
-            Assert.Equal(passingVariant.Alternate, calledVariant.Alternate);
-            Assert.Equal(passingVariant.Reference, calledVariant.Reference);
-            Assert.Equal(passingVariant.Chromosome, calledVariant.Chromosome);
-            Assert.Equal(passingVariant.Coordinate, calledVariant.Coordinate);
-            Assert.Equal(passingVariant.Support, calledVariant.AlleleSupport);
-            Assert.True(calledVariant is CalledVariant);
-            Assert.True(((CalledVariant)calledVariant).Type == AlleleCategory.Snv);
+            var BaseCalledAlleles = variantCaller.Call(new CandidateBatch(candidateVariants), mockAlleleCountSource).Values.SelectMany(v => v);
+            var BaseCalledAllele = BaseCalledAlleles.First();
+            Assert.Equal(passingVariant.Alternate, BaseCalledAllele.Alternate);
+            Assert.Equal(passingVariant.Reference, BaseCalledAllele.Reference);
+            Assert.Equal(passingVariant.Chromosome, BaseCalledAllele.Chromosome);
+            Assert.Equal(passingVariant.Coordinate, BaseCalledAllele.Coordinate);
+            Assert.Equal(passingVariant.Support, BaseCalledAllele.AlleleSupport);
+            Assert.True(passingVariant.Type != AlleleCategory.Reference);
+            Assert.True(BaseCalledAllele.Type == AlleleCategory.Snv);
 
             //After the Calculator steps are performed, variants that don't meet 
             //our requirements to be callable should drop out
 
             //High coverage requirement - lowCoverageVariant should drop out.
-            config.MinCoverage = (HighCoverageMultiplier * NumAlleles * NumDirections)-1;
+            config.MinCoverage = (HighCoverageMultiplier * NumAlleles * NumDirections) - 1;
             config.IncludeReferenceCalls = false;
             config.MinVariantQscore = 0;
             config.MinFrequency = 0;
-            
+
             variantCaller = new AlleleCaller(config);
 
             candidateVariants = new List<CandidateAllele>
@@ -100,16 +106,16 @@ namespace Pisces.Logic.VariantCalling.Tests
                 lowCoverageVariant
             };
 
-            calledVariants = variantCaller.Call(new CandidateBatch(candidateVariants), mockAlleleCountSource).Values.SelectMany(v => v);
+            BaseCalledAlleles = variantCaller.Call(new CandidateBatch(candidateVariants), mockAlleleCountSource).Values.SelectMany(v => v);
 
-            Assert.Equal(2,calledVariants.Count());
-            Assert.True(calledVariants.Any(v=>MatchVariants(v,passingVariant)));
-            Assert.True(calledVariants.Any(v => MatchVariants(v, lowFreqVariant)));
-            Assert.False(calledVariants.Any(v => MatchVariants(v, lowCoverageVariant)));
+            Assert.Equal(2, BaseCalledAlleles.Count());
+            Assert.True(BaseCalledAlleles.Any(v => MatchVariants(v, passingVariant)));
+            Assert.True(BaseCalledAlleles.Any(v => MatchVariants(v, lowFreqVariant)));
+            Assert.False(BaseCalledAlleles.Any(v => MatchVariants(v, lowCoverageVariant)));
 
             //High coverage but allow reference calls = nothing should drop out
             config.IncludeReferenceCalls = true;
-            
+
             variantCaller = new AlleleCaller(config);
 
             candidateVariants = new List<CandidateAllele>
@@ -119,26 +125,26 @@ namespace Pisces.Logic.VariantCalling.Tests
                 lowCoverageVariant
             };
 
-            calledVariants = variantCaller.Call(new CandidateBatch(candidateVariants), mockAlleleCountSource).Values.SelectMany(v => v);
-            foreach (var cvar in calledVariants)
+            BaseCalledAlleles = variantCaller.Call(new CandidateBatch(candidateVariants), mockAlleleCountSource).Values.SelectMany(v => v);
+            foreach (var cvar in BaseCalledAlleles)
             {
                 Console.WriteLine(cvar.VariantQscore);
             }
 
-            Assert.Equal(3,calledVariants.Count());
+            Assert.Equal(3, BaseCalledAlleles.Count());
 
             //High frequency requirement - low frequency variant should drop out
             config.MinCoverage = 0;
             config.IncludeReferenceCalls = false;
             config.MinVariantQscore = 0;
-            config.MinFrequency = ((float)lowCoverageVariant.Support + 1)/ (HighCoverageMultiplier * NumAlleles * NumDirections);
+            config.MinFrequency = ((float)lowCoverageVariant.Support + 1) / (HighCoverageMultiplier * NumAlleles * NumDirections);
 
-            calledVariants = variantCaller.Call(new CandidateBatch(candidateVariants), mockAlleleCountSource).Values.SelectMany(v => v);
+            BaseCalledAlleles = variantCaller.Call(new CandidateBatch(candidateVariants), mockAlleleCountSource).Values.SelectMany(v => v);
 
-            Assert.Equal(2, calledVariants.Count());
-            Assert.True(calledVariants.Any(v => MatchVariants(v, passingVariant)));
-            Assert.False(calledVariants.Any(v => MatchVariants(v, lowFreqVariant)));
-            Assert.True(calledVariants.Any(v => MatchVariants(v, lowCoverageVariant)));
+            Assert.Equal(2, BaseCalledAlleles.Count());
+            Assert.True(BaseCalledAlleles.Any(v => MatchVariants(v, passingVariant)));
+            Assert.False(BaseCalledAlleles.Any(v => MatchVariants(v, lowFreqVariant)));
+            Assert.True(BaseCalledAlleles.Any(v => MatchVariants(v, lowCoverageVariant)));
 
             //High q score requirement - low frequency variant should drop out
             config.MinCoverage = 0;
@@ -146,7 +152,7 @@ namespace Pisces.Logic.VariantCalling.Tests
             config.MinVariantQscore = 0;
             config.MinFrequency = 0;
             config.MinVariantQscore = VariantQualityCalculator.AssignPoissonQScore(lowqVariant.Support,
-                (HighCoverageMultiplier*Constants.NumCovContributingAlleleTypes * Constants.NumDirectionTypes), config.EstimatedBaseCallQuality,
+                (HighCoverageMultiplier * Constants.NumCovContributingAlleleTypes * Constants.NumDirectionTypes), config.EstimatedBaseCallQuality,
                 config.MaxVariantQscore) + 1;
 
             candidateVariants = new List<CandidateAllele>
@@ -158,13 +164,56 @@ namespace Pisces.Logic.VariantCalling.Tests
                 lowqVariant
             };
 
-            calledVariants = variantCaller.Call(new CandidateBatch(candidateVariants), mockAlleleCountSource).Values.SelectMany(v => v);
-            Assert.Equal(3, calledVariants.Count());
-            Assert.True(calledVariants.Any(v => MatchVariants(v, passingVariant)));
-            Assert.True(calledVariants.Any(v => MatchVariants(v, passingVariant2)));
-            Assert.False(calledVariants.Any(v => MatchVariants(v, lowFreqVariant)));
-            Assert.True(calledVariants.Any(v => MatchVariants(v, lowCoverageVariant)));
-            Assert.False(calledVariants.Any(v => MatchVariants(v, lowqVariant)));
+            BaseCalledAlleles = variantCaller.Call(new CandidateBatch(candidateVariants), mockAlleleCountSource).Values.SelectMany(v => v);
+            Assert.Equal(3, BaseCalledAlleles.Count());
+            Assert.True(BaseCalledAlleles.Any(v => MatchVariants(v, passingVariant)));
+            Assert.True(BaseCalledAlleles.Any(v => MatchVariants(v, passingVariant2)));
+            Assert.False(BaseCalledAlleles.Any(v => MatchVariants(v, lowFreqVariant)));
+            Assert.True(BaseCalledAlleles.Any(v => MatchVariants(v, lowCoverageVariant)));
+            Assert.False(BaseCalledAlleles.Any(v => MatchVariants(v, lowqVariant)));
+
+
+
+            //High genotype q score requirement - low GQ variant should filter
+
+            config.MinCoverage = 0;
+            config.IncludeReferenceCalls = false;
+            config.MinVariantQscore = 0;
+            config.MinFrequency = 0;
+            config.GenotypeCalculator = new DiploidGenotypeCalculator();
+            config.LowGTqFilter = 20;
+            config.MaxGenotypeQscore = int.MaxValue;
+
+            candidateVariants = new List<CandidateAllele>
+            {
+                passingVariant,
+                passingVariant2,
+                lowFreqVariant,
+                lowCoverageVariant,
+                lowqVariant
+            };
+
+            variantCaller = new AlleleCaller(config);
+            BaseCalledAlleles = variantCaller.Call(new CandidateBatch(candidateVariants), mockAlleleCountSource).Values.SelectMany(v => v);
+            Assert.Equal(2, BaseCalledAlleles.Count());
+            Assert.True(BaseCalledAlleles.Any(v => MatchVariants(v, passingVariant)));
+            Assert.False(BaseCalledAlleles.Any(v => MatchVariants(v, passingVariant2)));
+            Assert.False(BaseCalledAlleles.Any(v => MatchVariants(v, lowFreqVariant)));
+            Assert.True(BaseCalledAlleles.Any(v => MatchVariants(v, lowCoverageVariant)));
+            Assert.False(BaseCalledAlleles.Any(v => MatchVariants(v, lowqVariant)));
+
+            var calledList = BaseCalledAlleles.ToList();
+            Assert.True(calledList[0].Filters.Contains(FilterType.LowGenotypeQuality));//1249, forced to 0 for nocall.
+            Assert.True(calledList[1].Filters.Contains(FilterType.LowGenotypeQuality));//1249, forced to 0 for nocall
+                                                                                       //Assert.True(calledList[2].Filters.Contains(FilterType.LowGenotypeQuality));//0 pruned
+
+            //go back to somatic config for the rest of the tests.
+            config.GenotypeCalculator = new SomaticGenotypeCalculator();
+            config.LowGTqFilter = 0;
+            config.MaxGenotypeQscore = 0;
+            config.MinVariantQscore = VariantQualityCalculator.AssignPoissonQScore(lowqVariant.Support,
+                   (HighCoverageMultiplier * Constants.NumCovContributingAlleleTypes * Constants.NumDirectionTypes), config.EstimatedBaseCallQuality,
+                   config.MaxVariantQscore) + 1;
 
             // reference calls included
             candidateVariants = new List<CandidateAllele>
@@ -173,10 +222,11 @@ namespace Pisces.Logic.VariantCalling.Tests
                 passingReferenceLow
             };
 
-            calledVariants = variantCaller.Call(new CandidateBatch(candidateVariants), mockAlleleCountSource).Values.SelectMany(v => v);
-            Assert.Equal(2, calledVariants.Count());
-            Assert.True(calledVariants.Any(v => MatchVariants(v, passingReferenceHigh)));
-            Assert.True(calledVariants.Any(v => MatchVariants(v, passingReferenceLow)));
+            variantCaller = new AlleleCaller(config);
+            BaseCalledAlleles = variantCaller.Call(new CandidateBatch(candidateVariants), mockAlleleCountSource).Values.SelectMany(v => v);
+            Assert.Equal(2, BaseCalledAlleles.Count());
+            Assert.True(BaseCalledAlleles.Any(v => MatchVariants(v, passingReferenceHigh)));
+            Assert.True(BaseCalledAlleles.Any(v => MatchVariants(v, passingReferenceLow)));
 
             // reference calls only included if no passing variant
             candidateVariants = new List<CandidateAllele>
@@ -190,18 +240,18 @@ namespace Pisces.Logic.VariantCalling.Tests
                 lowqVariant
             };
 
-            calledVariants = variantCaller.Call(new CandidateBatch(candidateVariants), mockAlleleCountSource).Values.SelectMany(v => v);
-            Assert.Equal(3, calledVariants.Count());
-            Assert.False(calledVariants.Any(v => MatchVariants(v, passingReferenceHigh)));
-            Assert.False(calledVariants.Any(v => MatchVariants(v, passingReferenceLow)));
-            Assert.True(calledVariants.Any(v => MatchVariants(v, passingVariant)));
-            Assert.True(calledVariants.Any(v => MatchVariants(v, passingVariant2)));
-            Assert.False(calledVariants.Any(v => MatchVariants(v, lowFreqVariant)));
-            Assert.True(calledVariants.Any(v => MatchVariants(v, lowCoverageVariant)));
-            Assert.False(calledVariants.Any(v => MatchVariants(v, lowqVariant)));
+            BaseCalledAlleles = variantCaller.Call(new CandidateBatch(candidateVariants), mockAlleleCountSource).Values.SelectMany(v => v);
+            Assert.Equal(3, BaseCalledAlleles.Count());
+            Assert.False(BaseCalledAlleles.Any(v => MatchVariants(v, passingReferenceHigh)));
+            Assert.False(BaseCalledAlleles.Any(v => MatchVariants(v, passingReferenceLow)));
+            Assert.True(BaseCalledAlleles.Any(v => MatchVariants(v, passingVariant)));
+            Assert.True(BaseCalledAlleles.Any(v => MatchVariants(v, passingVariant2)));
+            Assert.False(BaseCalledAlleles.Any(v => MatchVariants(v, lowFreqVariant)));
+            Assert.True(BaseCalledAlleles.Any(v => MatchVariants(v, lowCoverageVariant)));
+            Assert.False(BaseCalledAlleles.Any(v => MatchVariants(v, lowqVariant)));
 
             // reference calls only included if no passing variant (lowCoverageVariant fails)
-           
+
             candidateVariants = new List<CandidateAllele>
             {
                 passingReferenceLow,
@@ -213,10 +263,10 @@ namespace Pisces.Logic.VariantCalling.Tests
 
             variantCaller = new AlleleCaller(config);
 
-            calledVariants = variantCaller.Call(new CandidateBatch(candidateVariants), mockAlleleCountSource).Values.SelectMany(v => v);
-            Assert.Equal(1, calledVariants.Count());
-            Assert.True(calledVariants.Any(v => MatchVariants(v, passingReferenceLow)));
-            Assert.False(calledVariants.Any(v => MatchVariants(v, lowCoverageVariant)));
+            BaseCalledAlleles = variantCaller.Call(new CandidateBatch(candidateVariants), mockAlleleCountSource).Values.SelectMany(v => v);
+            Assert.Equal(1, BaseCalledAlleles.Count());
+            Assert.True(BaseCalledAlleles.Any(v => MatchVariants(v, passingReferenceLow)));
+            Assert.False(BaseCalledAlleles.Any(v => MatchVariants(v, lowCoverageVariant)));
 
             // candidates outside of intervals are trimmed off
 
@@ -224,7 +274,7 @@ namespace Pisces.Logic.VariantCalling.Tests
             config.MinVariantQscore = 0;
             config.MinFrequency = 0;
 
-            variantCaller = new AlleleCaller(config, new ChrIntervalSet(new List<Region>() { new Region(highCoverageCoordinate, lowCoverageCoordinate)}, "chr1"));
+            variantCaller = new AlleleCaller(config, new ChrIntervalSet(new List<Region>() { new Region(highCoverageCoordinate, lowCoverageCoordinate) }, "chr1"));
 
             candidateVariants = new List<CandidateAllele>
             {
@@ -233,23 +283,23 @@ namespace Pisces.Logic.VariantCalling.Tests
                 lowCoverageVariant
             };
 
-            calledVariants = variantCaller.Call(new CandidateBatch(candidateVariants), mockAlleleCountSource).Values.SelectMany(v => v);
+            BaseCalledAlleles = variantCaller.Call(new CandidateBatch(candidateVariants), mockAlleleCountSource).Values.SelectMany(v => v);
 
-            Assert.Equal(3, calledVariants.Count());
-            Assert.True(calledVariants.Any(v => MatchVariants(v, passingVariant)));
-            Assert.True(calledVariants.Any(v => MatchVariants(v, lowFreqVariant)));
-            Assert.True(calledVariants.Any(v => MatchVariants(v, lowCoverageVariant)));
+            Assert.Equal(3, BaseCalledAlleles.Count());
+            Assert.True(BaseCalledAlleles.Any(v => MatchVariants(v, passingVariant)));
+            Assert.True(BaseCalledAlleles.Any(v => MatchVariants(v, lowFreqVariant)));
+            Assert.True(BaseCalledAlleles.Any(v => MatchVariants(v, lowCoverageVariant)));
 
             variantCaller = new AlleleCaller(config, new ChrIntervalSet(new List<Region>() { new Region(highCoverageCoordinate, highCoverageCoordinate) }, "chr1"));
 
-            calledVariants = variantCaller.Call(new CandidateBatch(candidateVariants), mockAlleleCountSource).Values.SelectMany(v => v);
+            BaseCalledAlleles = variantCaller.Call(new CandidateBatch(candidateVariants), mockAlleleCountSource).Values.SelectMany(v => v);
 
-            Assert.Equal(2, calledVariants.Count());
-            Assert.True(calledVariants.Any(v => MatchVariants(v, passingVariant)));
-            Assert.True(calledVariants.Any(v => MatchVariants(v, lowFreqVariant)));
-            Assert.False(calledVariants.Any(v => MatchVariants(v, lowCoverageVariant)));
+            Assert.Equal(2, BaseCalledAlleles.Count());
+            Assert.True(BaseCalledAlleles.Any(v => MatchVariants(v, passingVariant)));
+            Assert.True(BaseCalledAlleles.Any(v => MatchVariants(v, lowFreqVariant)));
+            Assert.False(BaseCalledAlleles.Any(v => MatchVariants(v, lowCoverageVariant)));
         }
-            
+
         [Fact]
         [Trait("ReqID", "SDS-53")]
         public void CallVariants_MnvReallocation()
@@ -258,7 +308,13 @@ namespace Pisces.Logic.VariantCalling.Tests
             {
                 MaxVariantQscore = 100,
                 EstimatedBaseCallQuality = 20,
-                IncludeReferenceCalls = true
+                IncludeReferenceCalls = true,
+                ChrReference = new ChrReference
+                {
+                    Sequence = "ACGTACGT",
+                    Name = "Boo"
+                },
+                GenotypeCalculator = new SomaticGenotypeCalculator()
             };
 
             var variantCaller = new AlleleCaller(config);
@@ -308,20 +364,20 @@ namespace Pisces.Logic.VariantCalling.Tests
                 passingDeletion
             };
 
-            var calledVariants = variantCaller.Call(new CandidateBatch(candidateVariants), mockStateManager).Values.SelectMany(v => v);
+            var BaseCalledAlleles = variantCaller.Call(new CandidateBatch(candidateVariants), mockStateManager).Values.SelectMany(v => v);
 
-            PrintResults(calledVariants.ToList());
+            PrintResults(BaseCalledAlleles.ToList());
 
-            Assert.False(calledVariants.Any(v => MatchVariants(v, failingMnvToReallocate)));
-            Assert.False(calledVariants.Any(v => MatchVariants(v, failingMnvToNotRescue)));
-            Assert.True(calledVariants.Any(v => MatchVariants(v, passingMnv, 150, 1))); // Passing MNV should have additional support from big failed MNV
-            Assert.True(calledVariants.Any(v => MatchVariants(v, failingSnvToRescue, 105))); // SNV should be rescued and have support from both failed MNVs
-            Assert.True(calledVariants.Any(v => MatchVariants(v, passingDeletion))); // Passing deletion should still be called
+            Assert.False(BaseCalledAlleles.Any(v => MatchVariants(v, failingMnvToReallocate)));
+            Assert.False(BaseCalledAlleles.Any(v => MatchVariants(v, failingMnvToNotRescue)));
+            Assert.True(BaseCalledAlleles.Any(v => MatchVariants(v, passingMnv, 150, 1))); // Passing MNV should have additional support from big failed MNV
+            Assert.True(BaseCalledAlleles.Any(v => MatchVariants(v, failingSnvToRescue, 105))); // SNV should be rescued and have support from both failed MNVs
+            Assert.True(BaseCalledAlleles.Any(v => MatchVariants(v, passingDeletion))); // Passing deletion should still be called
             // There should NOT be new refs from where the MNV broke down, and should be emitted regardless of support
-            Assert.False(calledVariants.Any(v => v.Coordinate == 102 && v is CalledReference && v.AlleleSupport == 55)); // Should have support from both failed MNVs
-            Assert.False(calledVariants.Any(v => v.Coordinate == 104 && v is CalledReference && v.AlleleSupport == 50)); // Should have support from the big failed MNV only
+            Assert.False(BaseCalledAlleles.Any(v => v.Coordinate == 102 && v .Type == AlleleCategory.Reference && v.AlleleSupport == 55)); // Should have support from both failed MNVs
+            Assert.False(BaseCalledAlleles.Any(v => v.Coordinate == 104 && v .Type == AlleleCategory.Reference && v.AlleleSupport == 50)); // Should have support from the big failed MNV only
             //There should not be a new ref at position 106 from the passing gapped MNV
-            Assert.False(calledVariants.Any(v => v.Coordinate == 106 && v is CalledReference && v.AlleleSupport > 0 )); 
+            Assert.False(BaseCalledAlleles.Any(v => v.Coordinate == 106 && v .Type == AlleleCategory.Reference && v.AlleleSupport > 0));
 
 
             // -----------------------------------------------
@@ -363,18 +419,18 @@ namespace Pisces.Logic.VariantCalling.Tests
             config.IncludeReferenceCalls = false;
             variantCaller = new AlleleCaller(config);
 
-            calledVariants = variantCaller.Call(new CandidateBatch(candidateVariants), mockStateManager).Values.SelectMany(v => v);
+            BaseCalledAlleles = variantCaller.Call(new CandidateBatch(candidateVariants), mockStateManager).Values.SelectMany(v => v);
 
-            PrintResults(calledVariants.ToList());
+            PrintResults(BaseCalledAlleles.ToList());
 
-            Assert.False(calledVariants.Any(v => MatchVariants(v, failingMnvToReallocate)));
-            Assert.False(calledVariants.Any(v => MatchVariants(v, failingMnvToNotRescue)));
-            Assert.True(calledVariants.Any(v => MatchVariants(v, passingMnv, 150, 1))); // Passing MNV should have additional support from big failed MNV
-            Assert.True(calledVariants.Any(v => MatchVariants(v, failingSnvToRescue, 105))); // SNV should be rescued and have support from both failed MNVs
-            Assert.True(calledVariants.Any(v => MatchVariants(v, passingDeletion))); // Passing deletion should still be called
+            Assert.False(BaseCalledAlleles.Any(v => MatchVariants(v, failingMnvToReallocate)));
+            Assert.False(BaseCalledAlleles.Any(v => MatchVariants(v, failingMnvToNotRescue)));
+            Assert.True(BaseCalledAlleles.Any(v => MatchVariants(v, passingMnv, 150, 1))); // Passing MNV should have additional support from big failed MNV
+            Assert.True(BaseCalledAlleles.Any(v => MatchVariants(v, failingSnvToRescue, 105))); // SNV should be rescued and have support from both failed MNVs
+            Assert.True(BaseCalledAlleles.Any(v => MatchVariants(v, passingDeletion))); // Passing deletion should still be called
             // There should be no refs from where the MNV broke down since we have IncludeReferenceCalls set to false
-            Assert.False(calledVariants.Any(v => v.Coordinate == 102 && v is CalledReference)); 
-            Assert.False(calledVariants.Any(v => v.Coordinate == 104 && v is CalledReference));
+            Assert.False(BaseCalledAlleles.Any(v => v.Coordinate == 102 && v .Type == AlleleCategory.Reference));
+            Assert.False(BaseCalledAlleles.Any(v => v.Coordinate == 104 && v .Type == AlleleCategory.Reference));
 
         }
 
@@ -385,7 +441,13 @@ namespace Pisces.Logic.VariantCalling.Tests
             {
                 MaxVariantQscore = 100,
                 EstimatedBaseCallQuality = 20,
-                IncludeReferenceCalls = true
+                IncludeReferenceCalls = true,
+                ChrReference = new ChrReference
+                {
+                    Sequence = "ACGTACGT",
+                    Name = "Boo"
+                },
+                GenotypeCalculator = new SomaticGenotypeCalculator()
             };
 
             var variantCaller = new AlleleCaller(config);
@@ -393,11 +455,11 @@ namespace Pisces.Logic.VariantCalling.Tests
             //Failing MNV shouldn't contribute
             var passingMnv = new CandidateAllele("chr1", 305, "TTA", "GTG", AlleleCategory.Mnv)
             {
-                SupportByDirection = new[] { 10, 0, 0 } 
+                SupportByDirection = new[] { 10, 0, 0 }
             };
             var passingSnv = new CandidateAllele("chr1", 306, "T", "G", AlleleCategory.Snv)
             {
-                SupportByDirection = new[] { 200, 0, 0 } 
+                SupportByDirection = new[] { 200, 0, 0 }
             };
             var passingDeletion = new CandidateAllele("chr1", 305, "TTT", "T", AlleleCategory.Deletion)
             {
@@ -426,15 +488,15 @@ namespace Pisces.Logic.VariantCalling.Tests
                 passingSnv
             };
 
-            var calledVariants = variantCaller.Call(new CandidateBatch(candidateVariants), mockAlleleCountSource.Object).Values.SelectMany(v => v);
+            var BaseCalledAlleles = variantCaller.Call(new CandidateBatch(candidateVariants), mockAlleleCountSource.Object).Values.SelectMany(v => v);
 
-            PrintResults(calledVariants.ToList());
+            PrintResults(BaseCalledAlleles.ToList());
 
-            Assert.True(calledVariants.Any(v => MatchVariants(v, passingMnv, 10))); // Passing MNV should have additional support from big failed MNV
-            Assert.True(calledVariants.Any(v => MatchVariants(v, passingSnv, 200))); // Passing SNV should have coverage that includes the passing MNV but not support
-            Assert.True(calledVariants.Any(v => MatchVariants(v, passingDeletion))); // Passing deletion should not do anything here
+            Assert.True(BaseCalledAlleles.Any(v => MatchVariants(v, passingMnv, 10))); // Passing MNV should have additional support from big failed MNV
+            Assert.True(BaseCalledAlleles.Any(v => MatchVariants(v, passingSnv, 200))); // Passing SNV should have coverage that includes the passing MNV but not support
+            Assert.True(BaseCalledAlleles.Any(v => MatchVariants(v, passingDeletion))); // Passing deletion should not do anything here
 
-            Assert.Equal((3*HighCoverageMultiplier) - passingMnv.Support,((CalledVariant)calledVariants.First(v => MatchVariants(v, passingSnv))).ReferenceSupport); // Passing SNV should have coverage that includes the passing MNV but not support
+            Assert.Equal((3 * HighCoverageMultiplier) - passingMnv.Support, (BaseCalledAlleles.First(v => MatchVariants(v, passingSnv))).ReferenceSupport); // Passing SNV should have coverage that includes the passing MNV but not support
 
         }
 
@@ -448,7 +510,13 @@ namespace Pisces.Logic.VariantCalling.Tests
                 IncludeReferenceCalls = true,
                 MinCoverage = 0,
                 MinVariantQscore = 0,
-                MinFrequency = 6f/150
+                MinFrequency = 6f / 150,
+                ChrReference = new ChrReference
+                {
+                    Sequence = "ACGTACGT",
+                    Name = "Boo"
+                },
+                GenotypeCalculator = new SomaticGenotypeCalculator()
             };
 
             var variantCaller = new AlleleCaller(config);
@@ -460,11 +528,11 @@ namespace Pisces.Logic.VariantCalling.Tests
 
             var failingMnv = new CandidateAllele("chr1", 2000, "TTT", "GGG", AlleleCategory.Mnv)
             {
-                SupportByDirection = new[] { 5, 0, 0 } 
+                SupportByDirection = new[] { 5, 0, 0 }
             };
             var failingMnv2 = new CandidateAllele("chr1", 1999, "TTT", "AAA", AlleleCategory.Mnv)
             {
-                SupportByDirection = new[] { 5, 0, 0 } 
+                SupportByDirection = new[] { 5, 0, 0 }
             };
             var failingGappedMnv = new CandidateAllele("chr1", 2000, "TTT", "ATA", AlleleCategory.Mnv)
             {
@@ -485,9 +553,9 @@ namespace Pisces.Logic.VariantCalling.Tests
                 failingGappedMnv
             };
 
-            var batch = new CandidateBatch(candidateVariants){MaxClearedPosition = 2000};
+            var batch = new CandidateBatch(candidateVariants) { MaxClearedPosition = 2000 };
 
-            var calledVariants = variantCaller.Call(batch, mockStateManager.Object);
+            var BaseCalledAlleles = variantCaller.Call(batch, mockStateManager.Object);
             mockStateManager.Setup(c => c.AddCandidates(It.IsAny<IEnumerable<CandidateAllele>>()))
                 .Callback((IEnumerable<CandidateAllele> vars) => Console.WriteLine(vars.Count()));
             mockStateManager.Verify(c => c.AddCandidates(It.IsAny<IEnumerable<CandidateAllele>>()), Times.Once);
@@ -504,14 +572,14 @@ namespace Pisces.Logic.VariantCalling.Tests
                 && x.Count(a => a.Coordinate == 2002) == 1)),
                 Times.Once);
             mockStateManager.Verify(c => c.AddCandidates(It.Is<IEnumerable<CandidateAllele>>(x =>
-                x.Count(a => a.Coordinate == 2001 && a.Type==AlleleCategory.Mnv) == 1
+                x.Count(a => a.Coordinate == 2001 && a.Type == AlleleCategory.Mnv) == 1
                 && x.Count(a => a.Coordinate == 2001 && a.Type == AlleleCategory.Snv) == 1
                 && x.Count(a => a.Coordinate == 2001 && a.Type == AlleleCategory.Reference) == 0
                 && x.Count(a => a.Coordinate == 2002 && a.Type == AlleleCategory.Snv) == 1
                 )),
                 Times.Once);
 
-            var variants = calledVariants.Values.SelectMany(v => v);
+            var variants = BaseCalledAlleles.Values.SelectMany(v => v);
             PrintResults(variants.ToList());
 
             Assert.True(variants.Any(v => MatchVariants(v, passingMnv, 10))); // Passing MNV should have additional support from big failed MNV
@@ -526,10 +594,16 @@ namespace Pisces.Logic.VariantCalling.Tests
                 MaxVariantQscore = 100,
                 EstimatedBaseCallQuality = 20,
                 IncludeReferenceCalls = true,
-                MinFrequency = 6f / 150
+                MinFrequency = 6f / 150,
+                ChrReference = new ChrReference
+                {
+                    Sequence = "ACGTACGT",
+                    Name = "Boo"
+                },
+                GenotypeCalculator = new SomaticGenotypeCalculator()
             };
 
-            var intervalSet = new ChrIntervalSet(new List<Region>() {new Region(1900, 1950)}, "chr1");
+            var intervalSet = new ChrIntervalSet(new List<Region>() { new Region(1900, 1950) }, "chr1");
             var variantCaller = new AlleleCaller(config, intervalSet);
 
             // -----------------------------------------------
@@ -567,20 +641,19 @@ namespace Pisces.Logic.VariantCalling.Tests
 
             var batch = new CandidateBatch(candidateVariants) { MaxClearedPosition = 2000 };
 
-            var calledVariants = variantCaller.Call(batch, mockStateManager.Object).Values.SelectMany(v => v);
-            PrintResults(calledVariants.ToList());
+            var BaseCalledAlleles = variantCaller.Call(batch, mockStateManager.Object).Values.SelectMany(v => v);
+            PrintResults(BaseCalledAlleles.ToList());
 
-            Assert.Equal(2, calledVariants.Count());
+            Assert.Equal(2, BaseCalledAlleles.Count());
         }
-
 
         [Fact]
         public void GetRefSupportFromGappedMnvs()
         {
-            var calledAlleles = new List<BaseCalledAllele>()
+            var calledAlleles = new List<CalledAllele>()
             {
                 //Ref gap at 13
-                new CalledVariant(AlleleCategory.Mnv)
+                new CalledAllele(AlleleCategory.Mnv)
                 {
                     Coordinate = 12,
                     Reference = "ATG",
@@ -589,7 +662,7 @@ namespace Pisces.Logic.VariantCalling.Tests
                 },
 
                 //Ref gap at 124
-                new CalledVariant(AlleleCategory.Mnv)
+                new CalledAllele(AlleleCategory.Mnv)
                 {
                     Coordinate = 123,
                     Reference = "ATG",
@@ -597,7 +670,7 @@ namespace Pisces.Logic.VariantCalling.Tests
                     AlleleSupport = 25
                 },
                 //Different allele with ref gap at 124
-                new CalledVariant(AlleleCategory.Mnv)
+                new CalledAllele(AlleleCategory.Mnv)
                 {
                     Coordinate = 121,
                     Reference = "ATATG",
@@ -605,7 +678,7 @@ namespace Pisces.Logic.VariantCalling.Tests
                     AlleleSupport = 11
                 },
                 //No ref gaps
-                new CalledVariant(AlleleCategory.Mnv)
+                new CalledAllele(AlleleCategory.Mnv)
                 {
                     Coordinate = 456,
                     Reference = "ACG",
@@ -613,7 +686,7 @@ namespace Pisces.Logic.VariantCalling.Tests
                     AlleleSupport = 25
                 },
                 //2 ref gaps at 78901 and 78903
-                new CalledVariant(AlleleCategory.Mnv)
+                new CalledAllele(AlleleCategory.Mnv)
                 {
                     Coordinate = 78900,
                     Reference = "ATGCA",
@@ -621,7 +694,7 @@ namespace Pisces.Logic.VariantCalling.Tests
                     AlleleSupport = 25
                 },
                 //Deletion shouldn't contribute
-                new CalledVariant(AlleleCategory.Deletion)
+                new CalledAllele(AlleleCategory.Deletion)
                 {
                     Coordinate = 91000,
                     Reference = "ATGC",
@@ -629,7 +702,7 @@ namespace Pisces.Logic.VariantCalling.Tests
                     AlleleSupport = 25
                 },
                 //Insertion shouldn't contribute
-                new CalledVariant(AlleleCategory.Insertion)
+                new CalledAllele(AlleleCategory.Insertion)
                 {
                     Coordinate = 92000,
                     Reference = "A",
@@ -637,7 +710,7 @@ namespace Pisces.Logic.VariantCalling.Tests
                     AlleleSupport = 25
                 },
                 //SNV shouldn't contribute
-                new CalledVariant(AlleleCategory.Snv)
+                new CalledAllele(AlleleCategory.Snv)
                 {
                     Coordinate = 93000,
                     Reference = "A",
@@ -658,7 +731,7 @@ namespace Pisces.Logic.VariantCalling.Tests
             Assert.False(takenRefSupport.ContainsKey(123));
             Assert.False(takenRefSupport.ContainsKey(125));
             Assert.True(takenRefSupport.ContainsKey(124));
-            Assert.Equal(36,takenRefSupport[124]);
+            Assert.Equal(36, takenRefSupport[124]);
 
             //No ref gaps at 456 or surrounding
             Assert.False(takenRefSupport.ContainsKey(456));
@@ -681,27 +754,28 @@ namespace Pisces.Logic.VariantCalling.Tests
 
         }
 
-        private static void PrintResults(List<BaseCalledAllele> calledAlleles)
+        private static void PrintResults(List<CalledAllele> calledAlleles)
         {
             Console.WriteLine("--------------------");
             foreach (var baseCalledAllele in calledAlleles)
             {
                 Console.WriteLine(baseCalledAllele.Coordinate + " " + baseCalledAllele.Reference + " > " + baseCalledAllele.Alternate + " : " +
-                                  baseCalledAllele.AlleleSupport +  " freq: "+baseCalledAllele.Frequency);
+                                  baseCalledAllele.AlleleSupport + " freq: " + baseCalledAllele.Frequency);
             }
         }
 
 
-        private bool MatchVariants(BaseCalledAllele calledVariant, CandidateAllele candidateVariant, int? expectedSupport=null, float? expectedFreq = null)
+        private bool MatchVariants(CalledAllele BaseCalledAllele, CandidateAllele candidateVariant, int? expectedSupport = null, float? expectedFreq = null)
         {
-            if (calledVariant.Chromosome == candidateVariant.Chromosome
-                && calledVariant.Coordinate == candidateVariant.Coordinate
-                && calledVariant.Reference == candidateVariant.Reference
-                && calledVariant.Alternate == candidateVariant.Alternate
-                && calledVariant.Type == candidateVariant.Type
-                && (expectedFreq==null || calledVariant.Frequency == expectedFreq)
-                && (expectedSupport==null || calledVariant.AlleleSupport == expectedSupport)
-                ) return true;
+            if (BaseCalledAllele.Chromosome == candidateVariant.Chromosome
+                && BaseCalledAllele.Coordinate == candidateVariant.Coordinate
+                && BaseCalledAllele.Reference == candidateVariant.Reference
+                && BaseCalledAllele.Alternate == candidateVariant.Alternate
+                && BaseCalledAllele.Type == candidateVariant.Type
+                && (expectedFreq == null || BaseCalledAllele.Frequency == expectedFreq)
+                && (expectedSupport == null || BaseCalledAllele.AlleleSupport == expectedSupport)
+                )
+                return true;
             return false;
         }
 

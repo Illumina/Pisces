@@ -1,0 +1,8 @@
+category,ID,R1 Position,R1 Cigar,R1 Direction,R2 Position,R2 Cigar,R2 Direction,ref input R1 Position,ref input R1 Cigar,ref input R1 Direction,ref input R2 Position,ref input R2 Cigar,ref input R2 Direction,Should Stitch,Output R1 Position,Output R1 Cigar,Output R1 Direction,Output R2 Position,Output R2 Cigar,Output R2Direction,Notes (optional)
+Softclipped MNVs,1,1,8M,F,5,2S5M,R,1,8M,F,3,7M,R,TRUE,1,9M,2F6S1R, , , ,
+Softclipped MNVs,2,1,8M,F,5,5M,R,1,8M,F,5,5M,R,TRUE,1,9M,2F6S1R, , , ,
+Softclipped MNVs,3,1,8M,F,5,1S5M,R,1,8M,F,4,6M,R,TRUE,1,9M,4F4S1R, , , ,
+Softclipped MNVs,4,1,4M2S,F,3,7M,R,1,6M,F,3,7M,R,TRUE,1,9M,4F4S1R, , , ,
+Softclipped MNVs,5,4,3S2M2S,F,4,1S2M4S,R,1,7M,F,3,7M,R,TRUE,1,2M,2S, , , ,
+Softclipped MNVs,6,1,3M2S,F,6,2S4M,R,1,5M,F,4,6M,R,FALSE,1,3M2S,F,6,2S4M,R,
+Softclipped MNVs,7,1,3M2S,F,7,2S3M,R,1,5M,F,5,5M,R,FALSE,1,3M2S,F,7,2S3M,R,

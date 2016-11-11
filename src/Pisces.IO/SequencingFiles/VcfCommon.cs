@@ -4,7 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 
-namespace SequencingFiles
+namespace Pisces.IO.Sequencing
 {
     public static class VcfCommon
     {

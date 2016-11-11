@@ -5,7 +5,9 @@ namespace Pisces.Interfaces
 {
     public interface IAlignmentSource
     {
-        AlignmentSet GetNextAlignmentSet();
+        Read GetNextRead();
         int? LastClearedPosition { get; }
+
+        bool SourceIsStitched { get; }
     }
 }

@@ -59,6 +59,8 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="BaseApplicationOptions.cs" />
+    <Compile Include="Logic\MultiProcessProcessorBase.cs" />
+    <Compile Include="Utility\ElapsedTimeLogger.cs" />
     <Compile Include="Utility\ExternalProcessJob.cs" />
     <Compile Include="Utility\JobManager.cs" />
     <Compile Include="Utility\Logger.cs" />
@@ -75,6 +77,18 @@
     <Compile Include="WorkFactory.cs" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\Alignment.Domain\Alignment.Domain.csproj">
+      <Project>{BE61B905-3AC0-49CA-9740-F1947D89423C}</Project>
+      <Name>Alignment.Domain</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Alignment.IO\Alignment.IO.csproj">
+      <Project>{9CA4468C-D80C-4C43-A57B-3F3C8C758E67}</Project>
+      <Name>Alignment.IO</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Common.IO\Common.IO.csproj">
+      <Project>{EAB3DF93-68A2-4545-A0CF-10173C955BEA}</Project>
+      <Name>Common.IO</Name>
+    </ProjectReference>
     <ProjectReference Include="..\Pisces.Domain\Pisces.Domain.csproj">
       <Project>{4717ddf8-91cd-41b7-a477-452c2ebdf627}</Project>
       <Name>Pisces.Domain</Name>

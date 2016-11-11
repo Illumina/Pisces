@@ -12,6 +12,7 @@ namespace Pisces.IO
         public ChrIntervalSet IntervalSet { get; private set; }
         private int _lastPaddedPosition;
         private int _lastClearedIntervalIndex = -1;
+        private int _noiseLevel = -1;
 
         /// <summary>
         /// Sole job is to pad empty reference calls when using intervals.  Assumes batch has already included reference calls (either empty or not) 
@@ -20,13 +21,14 @@ namespace Pisces.IO
         /// <param name="chrReference"></param>
         /// <param name="includeReferenceCalls"></param>
         /// <param name="intervals"></param>
-        public RegionMapper(ChrReference chrReference, ChrIntervalSet intervals)
+        public RegionMapper(ChrReference chrReference, ChrIntervalSet intervals, int noiseLevel)
         {
             _chrReference = chrReference;
             IntervalSet = intervals;
+            _noiseLevel = noiseLevel;
         }
 
-        public CalledReference GetNextEmptyCall(int startPosition, int? maxUpToPosition)
+        public CalledAllele GetNextEmptyCall(int startPosition, int? maxUpToPosition)
         {
             var nextActiveInterval = GetNextRegion(startPosition);  // get next region that is not clear of startPosition
 
@@ -47,7 +49,7 @@ namespace Pisces.IO
                 return null;
 
             _lastPaddedPosition = nextPosition;
-            return GetMissingReference(nextPosition);
+            return GetMissingReference(nextPosition, _noiseLevel);
         }
 
         private Region GetNextRegion(int minPosition)
@@ -64,16 +66,17 @@ namespace Pisces.IO
             return null; // no more intervals
         }
 
-        public CalledReference GetMissingReference(int position)
+        public CalledAllele GetMissingReference(int position, int noiseLevel)
         {
             var refBase = _chrReference.GetBase(position);
-            var allele = new CalledReference()
+            var allele = new CalledAllele()
             {
                 Chromosome = _chrReference.Name,
                 Reference = refBase,
                 Alternate = refBase,
                 Coordinate = position,
-                Genotype =  Genotype.RefLikeNoCall
+                Genotype =  Genotype.RefLikeNoCall,
+                NoiseLevelApplied = noiseLevel
             };
             allele.Filters.Add(FilterType.LowDepth);
 

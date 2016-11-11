@@ -2,10 +2,12 @@
 using System.Linq;
 using System.Collections.Generic;
 using TestUtilities;
+using Pisces.Calculators;
 using Pisces.Domain.Models;
 using Pisces.Domain.Models.Alleles;
 using Pisces.Domain.Types;
 using Pisces.IO;
+using Pisces.IO.Sequencing;
 using Pisces.IO.Tests;
 using Xunit;
 using System;
@@ -20,13 +22,13 @@ namespace Pisces.Tests.UnitTests
         private const int CHR19_LENGTH = 3119100;
         private const int CHR17_LENGTH = 7573100;
 
-        private readonly string _bamChr19 = Path.Combine(UnitTestPaths.TestDataDirectory, "SIM_DID_35_S1_UnitTests.bam");
-        private readonly string _bamChr17Chr19 = Path.Combine(UnitTestPaths.TestDataDirectory, "var123var35.bam");
+        private readonly string _bamChr19 = Path.Combine(UnitTestPaths.TestDataDirectory, "Chr19.bam");
+        private readonly string _bamChr17Chr19 = Path.Combine(UnitTestPaths.TestDataDirectory, "Chr17Chr19.bam");
 
         private readonly string _bamChr17Chr19Dup = Path.Combine(UnitTestPaths.TestDataDirectory,
-            "var123var35_removedSQlines.bam");
+            "Chr17Chr19_removedSQlines.bam");
 
-        private readonly string _intervalsChr19 = Path.Combine(UnitTestPaths.TestDataDirectory, "SIM_DID_35_S1_UnitTests.picard");
+        private readonly string _intervalsChr19 = Path.Combine(UnitTestPaths.TestDataDirectory, "Chr19.picard");
 
         private readonly string _intervalsChr17 = Path.Combine(UnitTestPaths.TestDataDirectory, "chr17only.picard");
         private readonly string _intervalsChr17Chr19 = Path.Combine(UnitTestPaths.TestDataDirectory, "chr17chr19.picard");
@@ -37,9 +39,9 @@ namespace Pisces.Tests.UnitTests
         private readonly string _genomeChr19 = Path.Combine(UnitTestPaths.TestGenomesDirectory, "chr19");
         private readonly string _genomeChr17Chr19 = Path.Combine(UnitTestPaths.TestGenomesDirectory, "chr17chr19");
         private readonly string _genomeChr1Chr19_fake = Path.Combine(UnitTestPaths.TestGenomesDirectory, "fakeChr1Chr19");
-        private readonly List<BaseCalledAllele> _defaultCandidates = new List<BaseCalledAllele>()
+        private readonly List<CalledAllele> _defaultCandidates = new List<CalledAllele>()
             {
-                new CalledVariant(AlleleCategory.Snv)
+                new CalledAllele(AlleleCategory.Snv)
                 {
                     Chromosome = "chr1",
                     Coordinate = 123,
@@ -50,7 +52,7 @@ namespace Pisces.Tests.UnitTests
                     FractionNoCalls = float.Parse("0.001"),
                     Filters = new List<FilterType>() {}
                 },
-                new CalledVariant(AlleleCategory.Mnv)
+                new CalledAllele(AlleleCategory.Mnv)
                 {
                     Chromosome = "chr1",
                     Coordinate = 234,
@@ -61,7 +63,7 @@ namespace Pisces.Tests.UnitTests
                     FractionNoCalls = float.Parse("0.001"),
                     Filters = new List<FilterType>() {}
                 },
-                new CalledReference()
+                new CalledAllele()
                 {
                     Chromosome = "chr1",
                     Coordinate = 456,
@@ -74,7 +76,7 @@ namespace Pisces.Tests.UnitTests
                     AlleleSupport = 155,
                     StrandBiasResults = new StrandBiasResults() {GATKBiasScore = float.Parse("0.25")}
                 },
-                new CalledReference()
+                new CalledAllele()
                 {
                     Chromosome = "chr1",
                     Coordinate = 567,
@@ -85,7 +87,7 @@ namespace Pisces.Tests.UnitTests
                     FractionNoCalls = float.Parse("0.001"),
                     Filters = new List<FilterType>() {FilterType.LowDepth, FilterType.LowVariantQscore, FilterType.StrandBias}
                 },
-                new CalledVariant(AlleleCategory.Snv)
+                new CalledAllele(AlleleCategory.Snv)
                 {
                     Chromosome = "chr1",
                     Coordinate = 678,
@@ -299,16 +301,18 @@ namespace Pisces.Tests.UnitTests
         {
             var appOptions = new ApplicationOptions
             {
-                BAMPaths = new[] {_bamChr19, _bamChr17Chr19, _bamChr17Chr19Dup},
-                IntervalPaths = new[] {_intervalsChr17, _intervalsChr19, null},
-                GenomePaths = new[] {_genomeChr17Chr19}
+                BAMPaths = new[] { _bamChr19, _bamChr17Chr19, _bamChr17Chr19Dup },
+                IntervalPaths = new[] { _intervalsChr17, _intervalsChr19, null },
+                GenomePaths = new[] { _genomeChr17Chr19 },
+                LowDepthFilter = 10,
+                MinimumDepth =10
             };
 
             var factory = new Factory(appOptions);
 
             var context = new VcfWriterInputContext
             {
-                CommandLine = "myCommandLine",
+                CommandLine = new [] { "myCommandLine"},
                 SampleName = "mySample",
                 ReferenceName = "myReference",
                 ContigsByChr = new List<Tuple<string, long>>
@@ -328,6 +332,12 @@ namespace Pisces.Tests.UnitTests
 
             Assert.True(File.Exists(outputFile));
             Assert.Equal(outputFile, Path.ChangeExtension(_bamChr19, ".vcf"));
+
+            var reader = new VcfReader(outputFile);
+            List<string> header = reader.HeaderLines;
+            Assert.Equal(header[6], "##FILTER=<ID=q30,Description=\"Quality score less than 30\">");
+            Assert.Equal(header[7], "##FILTER=<ID=SB,Description=\"Variant strand bias too high\">");
+            Assert.Equal(header[8], "##FILTER=<ID=R5x9,Description=\"Repeats of part or all of the variant allele (max repeat length 5) in the reference greater than or equal to 9\">");
         }
 
         // Verify default output files to same directory as BAM files by default with the genome.vcf extension.
@@ -348,7 +358,7 @@ namespace Pisces.Tests.UnitTests
 
             var context = new VcfWriterInputContext
             {
-                CommandLine = "myCommandLine",
+                CommandLine = new[] { "myCommandLine" },
                 SampleName = "mySample",
                 ReferenceName = "myReference",
                 ContigsByChr = new List<Tuple<string, long>>
@@ -389,7 +399,7 @@ namespace Pisces.Tests.UnitTests
 
             var context = new VcfWriterInputContext
             {
-                CommandLine = "myCommandLine",
+                CommandLine = new[] { "myCommandLine" },
                 SampleName = "mySample",
                 ReferenceName = "myReference",
                 ContigsByChr = new List<Tuple<string, long>>

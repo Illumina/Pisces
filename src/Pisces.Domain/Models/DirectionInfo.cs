@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using Pisces.Domain.Types;
 using Pisces.Domain.Utility;
 
@@ -30,12 +28,27 @@ namespace Pisces.Domain.Models
 
                     Directions.Add(new DirectionOp {Length = length, Direction = direction});
                 }
-                Validate();
+                
+                //Validate(); nope. wild west, now.
             }
             catch (Exception ex)
             {
-                throw new Exception(string.Format("Unable to parse direction string '{0}", directionString), ex);
+                throw new Exception(string.Format("Unable to parse direction string '{0}'", directionString), ex);
             }
+        }
+
+        public DirectionType[] ToDirectionMap()
+        {
+            var map = new List<DirectionType>();
+            foreach (var directionOp in Directions)
+            {
+                for (var i = 0; i < directionOp.Length; i++)
+                {
+                    map.Add(directionOp.Direction);
+                }    
+            }
+
+            return map.ToArray();
         }
 
         private void Validate()
@@ -59,10 +72,11 @@ namespace Pisces.Domain.Models
             }
         }
 
-        public string ToString()
+        public override string ToString()
         {
-            return string.Join(":", Directions.Select(d => d.Length + DirectionHelper.GetDirectionKey(d.Direction)));
+            return string.Join(_delimiter.ToString(), Directions.Select(d => d.Length + DirectionHelper.GetDirectionKey(d.Direction)));
         }
+
     }
 
     public struct DirectionOp

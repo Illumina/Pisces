@@ -45,18 +45,11 @@ namespace Pisces.Tests.UnitTests.Models
             Assert.Equal(1, chrs.Count());
             Assert.Equal("chr19", chrs[0]);
 
-            // test inclusion of invalid chr to process
+            // test gentle exclusion of invalid chr to process (this will later log a warning downstream)
             genome = new Genome(genomeDirectory, new List<string> { "chrY", "chr17" });
             chrs = genome.ChromosomesToProcess.ToList();
             Assert.Equal(1, chrs.Count());
             Assert.Equal("chr17", chrs[0]);
-
-            // test enforcing inputted chr oder
-            genome = new Genome(genomeDirectory, new List<string> { "chr19", "chr17" }, true);
-            chrs = genome.ChromosomesToProcess.ToList();
-            Assert.Equal(2, chrs.Count());
-            Assert.Equal("chr19", chrs[0]);
-            Assert.Equal("chr17", chrs[1]);            
 
         }
 

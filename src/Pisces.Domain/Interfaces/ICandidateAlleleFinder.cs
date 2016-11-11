@@ -6,6 +6,6 @@ namespace Pisces.Domain.Interfaces
 {
     public interface ICandidateVariantFinder
     {
-        IEnumerable<CandidateAllele> FindCandidates(AlignmentSet alignmentSet, string genome, string chromosomeName);
+        IEnumerable<CandidateAllele> FindCandidates(Read read, string genome, string chromosomeName);
     }
 }

@@ -1,0 +1,38 @@
+﻿##fileformat=VCFv4.1
+##fileDate=20160310
+##source=Pisces 1.0.0.0
+##Pisces_cmdline="-B \\ussd-prd-isi04\pisces\Bugs\Scylla_PerfomanceOnHighlyMutatedData_PICS-195\1221.bam -g \\ussd-prd-isi04\igenomes\Homo_sapiens\UCSC\hg19\Sequence\WholeGenomeFasta -f 0.01 -fo False -b 20 -q 100 -c 10 -s 0.5 -a 20 -F 20 -gVCF True -StitchPairedReads False -ReportNoCalls True -t 16 -Collapse True -v 0.026 -VariantQualityFilter 30 -RepeatFilter 8 -OutFolder \\ussd-prd-isi04\pisces\Bugs\Scylla_PerfomanceOnHighlyMutatedData_PICS-195\pisces -ChrFilter chr7"
+##reference=\\ussd-prd-isi04\igenomes\Homo_sapiens\UCSC\hg19\Sequence\WholeGenomeFasta
+##INFO=<ID=DP,Number=1,Type=Integer,Description="Total Depth">
+##FILTER=<ID=q30,Description="Quality score less than 30">
+##FILTER=<ID=LowDP,Description="Low coverage (DP tag), therefore no genotype called">
+##FILTER=<ID=SB,Description="Variant strand bias too high">
+##FILTER=<ID=LowVariantFreq,Description="Variant frequency less than 0.0260">
+##FILTER=<ID=R8,Description="Indel repeat greater than or equal to 8">
+##FILTER=<ID=R5x9,Description="Repeats of part or all of the variant allele (max repeat length 5) in the reference greater than or equal to 9">
+##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">
+##FORMAT=<ID=GQ,Number=1,Type=Integer,Description="Genotype Quality">
+##FORMAT=<ID=AD,Number=.,Type=Integer,Description="Allele Depth">
+##FORMAT=<ID=DP,Number=1,Type=Integer,Description="Total Depth Used For Variant Calling">
+##FORMAT=<ID=VF,Number=.,Type=Float,Description="Variant Frequency">
+##FORMAT=<ID=NL,Number=1,Type=Integer,Description="Applied BaseCall Noise Level">
+##FORMAT=<ID=SB,Number=1,Type=Float,Description="StrandBias Score">
+##FORMAT=<ID=NC,Number=1,Type=Float,Description="Fraction of bases which were uncalled or with basecall quality below the minimum threshold">
+##contig=<ID=chr2,length=159138663>
+##contig=<ID=chr7,length=159138663>
+#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	1221.bam
+chr1	16380046	.	T	.	100	PASS	DP=857	GT:GQ:AD:DP:VF:NL:SB:NC	0/0:100:854:857:0.0035:20:-100.0000:0.0305
+chr1	16380047	.	T	.	100	PASS	DP=849	GT:GQ:AD:DP:VF:NL:SB:NC	0/0:100:844:849:0.0059:20:-100.0000:0.0286
+chr2	16380046	.	T	.	100	PASS	DP=857	GT:GQ:AD:DP:VF:NL:SB:NC	0/0:100:854:857:0.0035:20:-100.0000:0.0305
+chr2	16380047	.	T	.	100	PASS	DP=849	GT:GQ:AD:DP:VF:NL:SB:NC	0/0:100:844:849:0.0059:20:-100.0000:0.0286
+chr2	116380048	.	T	.	100	PASS	DP=833	GT:GQ:AD:DP:VF:NL:SB:NC	0/0:100:825:833:0.0096:20:-100.0000:0.0381
+chr2	116380049	.	C	.	100	PASS	DP=847	GT:GQ:AD:DP:VF:NL:SB:NC	0/0:100:826:847:0.0248:20:-100.0000:0.0253
+chr7	116380050	.	T	.	100	PASS	DP=830	GT:GQ:AD:DP:VF:NL:SB:NC	0/0:100:810:830:0.0241:20:-100.0000:0.0338
+chr7	116380051	.	C	G	54	PASS	DP=805	GT:GQ:AD:DP:VF:NL:SB:NC	0/1:54:733,24:805:0.0298:20:-24.8826:0.0382
+chr7	116380051	.	C	T	100	PASS	DP=805	GT:GQ:AD:DP:VF:NL:SB:NC	0/1:100:733,40:805:0.0497:20:-74.6408:0.0382
+chr7	116380052	.	C	A	100	PASS	DP=783	GT:GQ:AD:DP:VF:NL:SB:NC	0/1:100:726,32:783:0.0409:20:-48.9474:0.0463
+chr7	116380052	.	C	G	29	q30;LowVariantFreq	DP=783	GT:GQ:AD:DP:VF:NL:SB:NC	0/1:29:726,18:783:0.0230:20:-5.9818:0.0463
+chr9	116380030	.	A	C	100	PASS	DP=743	GT:GQ:AD:DP:VF:NL:SB:NC	0/1:100:674,32:743:0.0431:20:-26.2163:0.0450
+chr9	116380032	.	A	T	100	PASS	DP=743	GT:GQ:AD:DP:VF:NL:SB:NC	0/1:100:674,32:743:0.0431:20:-45.9148:0.0450
+chr10	116380030	.	A	C	100	PASS	DP=743	GT:GQ:AD:DP:VF:NL:SB:NC	0/1:100:674,32:743:0.0431:20:-26.2163:0.0450
+chr10	116380032	.	A	T	100	PASS	DP=743	GT:GQ:AD:DP:VF:NL:SB:NC	0/1:100:674,32:743:0.0431:20:-45.9148:0.0450

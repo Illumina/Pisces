@@ -13,23 +13,6 @@
     <FileAlignment>512</FileAlignment>
     <TargetFrameworkProfile />
   </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
-    <DebugSymbols>true</DebugSymbols>
-    <DebugType>full</DebugType>
-    <Optimize>false</Optimize>
-    <OutputPath>bin\Debug\</OutputPath>
-    <DefineConstants>DEBUG;TRACE</DefineConstants>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
-  </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
-    <DebugType>pdbonly</DebugType>
-    <Optimize>true</Optimize>
-    <OutputPath>bin\Release\</OutputPath>
-    <DefineConstants>TRACE</DefineConstants>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
-  </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x64'">
     <DebugSymbols>true</DebugSymbols>
     <OutputPath>bin\x64\Debug\</OutputPath>
@@ -65,22 +48,31 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="CoverageCalculator.cs" />
+    <Compile Include="Genotyping\DiploidGenotypeCalculator.cs" />
     <Compile Include="ExactCoverageCalculator.cs" />
-    <Compile Include="GenotypeCalculator.cs" />
-    <Compile Include="GenotypeQualityCalculator.cs" />
+    <Compile Include="Genotyping\DiploidGenotypeQualityCalculator.cs" />
+    <Compile Include="Genotyping\SomaticGenotypeQualityCalculator.cs" />
     <Compile Include="ICoverageCalculator.cs" />
+    <Compile Include="Genotyping\IGenotypeCalculator.cs" />
     <Compile Include="MathOperations.cs" />
     <Compile Include="Poisson.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="RMxNCalculator.cs" />
+    <Compile Include="Genotyping\SomaticGenotypeCalculator.cs" />
     <Compile Include="VariantQualityCalculator.cs" />
     <Compile Include="StrandBiasCalculator.cs" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\Alignment.Domain\Alignment.Domain.csproj">
+      <Project>{BE61B905-3AC0-49CA-9740-F1947D89423C}</Project>
+      <Name>Alignment.Domain</Name>
+    </ProjectReference>
     <ProjectReference Include="..\Pisces.Domain\Pisces.Domain.csproj">
       <Project>{4717ddf8-91cd-41b7-a477-452c2ebdf627}</Project>
       <Name>Pisces.Domain</Name>
     </ProjectReference>
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

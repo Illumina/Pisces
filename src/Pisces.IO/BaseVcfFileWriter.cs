@@ -86,15 +86,26 @@ namespace Pisces.IO
             // do nothing by default
         }
 
-        public virtual void Write(IEnumerable<T> calledVariants, IRegionMapper mapper = null)
+        public virtual void Write(IEnumerable<T> BaseCalledAlleles, IRegionMapper mapper = null)
         {
             if (Writer == null)
                 throw new Exception("Stream already closed");
 
-            BufferList.AddRange(calledVariants);
+            BufferList.AddRange(BaseCalledAlleles);
 
             if (BufferList.Count >= BufferLimit)
                 FlushBuffer(mapper);
+        }
+
+        protected void OnException(Exception ex)
+        {
+            BufferList.Clear(); // dont care about list, clear now so we dont try to flush again later
+
+            Dispose();
+            File.Delete(OutputFilePath);
+
+            // throw again
+            throw ex;
         }
     }
 }

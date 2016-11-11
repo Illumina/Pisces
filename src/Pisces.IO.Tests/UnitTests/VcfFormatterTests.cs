@@ -15,9 +15,10 @@ namespace Pisces.IO.Tests.UnitTests
     public class VcfFormatterTests
     {
         VcfFormatter _formatter;
-        BaseCalledAllele _v1;
-        BaseCalledAllele _v2;
-        BaseCalledAllele _v3;
+        CalledAllele _v1;
+        CalledAllele _v2;
+        CalledAllele _v3;
+        int _estimatedBaseCallQuality = 23;
 
         public void Initialize()
         {
@@ -32,7 +33,7 @@ namespace Pisces.IO.Tests.UnitTests
                         ShouldOutputNoCallFraction = true,
                         ShouldOutputStrandBiasAndNoiseLevel = true,
                         ShouldFilterOnlyOneStrandCoverage = true,
-                        EstimatedBaseCallQuality = 23,
+                        EstimatedBaseCallQuality = _estimatedBaseCallQuality,
                         //AllowMultipleVcfLinesPerLoci = true
                     };
 
@@ -44,7 +45,7 @@ namespace Pisces.IO.Tests.UnitTests
         }
 
         [Fact]
-        [Trait("ReqID", "SDS-??")]
+        [Trait("ReqID", "SDS-VCF-9-FILTER")]
         public void FilterMerge()
         {
             Initialize();
@@ -53,7 +54,7 @@ namespace Pisces.IO.Tests.UnitTests
             _v2.Filters = new List<FilterType> {FilterType.MultiAllelicSite };
             _v3.Filters = new List<FilterType> {FilterType.LowDepth };
 
-            var mergedFilters = VcfFormatter.MergeFilters(new List<BaseCalledAllele> { _v1, _v2, _v3 });
+            var mergedFilters = VcfFormatter.MergeFilters(new List<CalledAllele> { _v1, _v2, _v3 });
             var expectedFilters = new List<FilterType> { FilterType.LowDepth, FilterType.LowVariantQscore, FilterType.MultiAllelicSite };
             Assert.Equal(expectedFilters, mergedFilters);
      
@@ -61,7 +62,7 @@ namespace Pisces.IO.Tests.UnitTests
 
 
         [Fact]
-        [Trait("ReqID", "SDS-??")]
+        [Trait("ReqID", "SDS-VCF-9-REF-and-ALT")]
         public void ReferenceMerge()
         {
             Initialize();
@@ -72,7 +73,7 @@ namespace Pisces.IO.Tests.UnitTests
             _v1.Alternate = "C";
             _v2.Alternate = "C";
 
-            string[] mergedRefAndAlt = _formatter.MergeReferenceAndAlt(new List<BaseCalledAllele> { _v1, _v2 });
+            string[] mergedRefAndAlt = _formatter.MergeReferenceAndAlt(new List<CalledAllele> { _v1, _v2 });
 
             string expectedReference = "CAA";
             string expectedAlt = "CA,C";
@@ -86,7 +87,7 @@ namespace Pisces.IO.Tests.UnitTests
             _v1.Alternate = "CA";
             _v2.Alternate = "C";
 
-            mergedRefAndAlt = _formatter.MergeReferenceAndAlt(new List<BaseCalledAllele> { _v1, _v2 });
+            mergedRefAndAlt = _formatter.MergeReferenceAndAlt(new List<CalledAllele> { _v1, _v2 });
 
             expectedReference = "CAA";
             expectedAlt = "CAAA,C";
@@ -100,7 +101,7 @@ namespace Pisces.IO.Tests.UnitTests
             _v1.Alternate = "CA";
             _v2.Alternate = "CAA";
 
-            mergedRefAndAlt = _formatter.MergeReferenceAndAlt(new List<BaseCalledAllele> { _v1, _v2 });
+            mergedRefAndAlt = _formatter.MergeReferenceAndAlt(new List<CalledAllele> { _v1, _v2 });
 
             expectedReference = "C";
             expectedAlt = "CA,CAA";
@@ -114,7 +115,7 @@ namespace Pisces.IO.Tests.UnitTests
             _v1.Alternate = ".";
             _v2.Alternate = "T";
 
-            mergedRefAndAlt = _formatter.MergeReferenceAndAlt(new List<BaseCalledAllele> { _v1, _v2 });
+            mergedRefAndAlt = _formatter.MergeReferenceAndAlt(new List<CalledAllele> { _v1, _v2 });
 
             expectedReference = "C";
             expectedAlt = ".,T";
@@ -128,7 +129,6 @@ namespace Pisces.IO.Tests.UnitTests
         public void MergeFromBug185()
         {
             Initialize();
-
             _v1.Reference = "A";
             _v2.Reference = "AC";
             _v3.Reference = "ACGTTT";
@@ -137,7 +137,8 @@ namespace Pisces.IO.Tests.UnitTests
             _v2.Alternate = "A";
             _v3.Alternate = "A";
 
-            string[] mergedRefAndAlt = _formatter.MergeReferenceAndAlt(new List<BaseCalledAllele> { _v1, _v2, _v3 });
+
+            string[] mergedRefAndAlt = _formatter.MergeReferenceAndAlt(new List<CalledAllele> { _v1, _v2, _v3 });
 
             string expectedReference = "ACGTTT";
             string expectedAlt = "CCGTTT,AGTTT,A";
@@ -145,6 +146,7 @@ namespace Pisces.IO.Tests.UnitTests
             Assert.Equal(expectedReference, mergedRefAndAlt[0]);
             Assert.Equal(expectedAlt, mergedRefAndAlt[1]);
         }
+
 
         [Fact]
         [Trait("ReqID", "SDS-??")]
@@ -160,7 +162,7 @@ namespace Pisces.IO.Tests.UnitTests
             _v2.Alternate = ".";
             _v3.Alternate = "ACGTTT";
 
-            string[] mergedRefAndAlt = _formatter.MergeReferenceAndAlt(new List<BaseCalledAllele> { _v1, _v2, _v3 });
+            string[] mergedRefAndAlt = _formatter.MergeReferenceAndAlt(new List<CalledAllele> { _v1, _v2, _v3 });
 
             //string expectedReference = "A,A,A";
             string expectedReference = "A";
@@ -170,9 +172,8 @@ namespace Pisces.IO.Tests.UnitTests
 
         }
 
-
         [Fact]
-        [Trait("ReqID", "SDS-??")]
+        [Trait("ReqID", "SDS-VCF-9-QUAL")]
         public void QMerge()
         {
             Initialize();
@@ -181,20 +182,20 @@ namespace Pisces.IO.Tests.UnitTests
             _v2.VariantQscore = 20;
             _v3.VariantQscore = 50;
 
-            int mergedQ = _formatter.MergeVariantQScores(new List<BaseCalledAllele> { _v1, _v2, _v3 });
+            int mergedQ = _formatter.MergeVariantQScores(new List<CalledAllele> { _v1, _v2, _v3 });
              Assert.Equal(20, mergedQ);
 
         }
 
         [Fact]
-        [Trait("ReqID", "SDS-??")]
+        [Trait("ReqID", "SDS-VCF-9-INFO-and-FORMAT")]
         public void InfoAndFormatMerge()
         {
             Initialize();
 
-            BaseCalledAllele _v0 = TestHelper.CreatePassingVariant(true);
-            _v0.GenotypeQscore = 42;
+            CalledAllele _v0 = TestHelper.CreatePassingVariant(true);
 
+            _v0.GenotypeQscore = 42;
             _v1.GenotypeQscore = 200;
             _v2.GenotypeQscore = 20;
             _v3.GenotypeQscore = 50;
@@ -207,22 +208,28 @@ namespace Pisces.IO.Tests.UnitTests
             _v2.TotalCoverage = 100;
             _v3.TotalCoverage = 100;
 
+            _v0.NoiseLevelApplied = _estimatedBaseCallQuality;
+            _v1.NoiseLevelApplied = _estimatedBaseCallQuality;
+            _v2.NoiseLevelApplied = _estimatedBaseCallQuality;
+            _v3.NoiseLevelApplied = _estimatedBaseCallQuality;
+
+
             _v1.Genotype = Genotype.HomozygousRef;
-            string[] oneVariantTest = _formatter.ConstructFormatAndSampleString(new List<BaseCalledAllele> { _v0, }, 490);
+            string[] oneVariantTest = _formatter.ConstructFormatAndSampleString(new List<CalledAllele> { _v0, }, 490);
 
             _v1.Genotype = Genotype.HeterozygousAltRef;
-            string[] twoVariantTestAltRef = _formatter.ConstructFormatAndSampleString(new List<BaseCalledAllele> { _v1 }, 63);
+            string[] twoVariantTestAltRef = _formatter.ConstructFormatAndSampleString(new List<CalledAllele> { _v1 }, 63);
 
             _v1.Genotype = Genotype.HeterozygousAlt1Alt2;
-            string[] twoVariantTestAlt1Alt2 = _formatter.ConstructFormatAndSampleString(new List<BaseCalledAllele> { _v1, _v2, }, 65);
+            string[] twoVariantTestAlt1Alt2 = _formatter.ConstructFormatAndSampleString(new List<CalledAllele> { _v1, _v2, }, 65);
             
-            string[] threeVariantTest = _formatter.ConstructFormatAndSampleString(new List<BaseCalledAllele> { _v1, _v2, _v3 }, 78);
+            string[] threeVariantTest = _formatter.ConstructFormatAndSampleString(new List<CalledAllele> { _v1, _v2, _v3 }, 78);
 
             string expectedFormat = "GT:GQ:AD:DP:VF:NL:SB:NC";
             string expectedRefSample = "0/0:42:490:490:0.0000:23:0.0000:0.0000";
             string expectedAltRefSample = "0/1:200:0,10:63:0.1000:23:0.0000:0.0000";
-            string expectedAlt1Alt2Sample = "1/2:20:10,20:65:0.1000,0.2000:23:0.0000:0.0000";
-            string expected3VarSample = "1/2:20:10,20,30:78:0.1000,0.2000,0.3000:23:0.0000:0.0000";
+            string expectedAlt1Alt2Sample = "1/2:20:10,20:65:0.3000:23:0.0000:0.0000";
+            string expected3VarSample = "1/2:20:10,20,30:78:0.6000:23:0.0000:0.0000";
 
             Assert.Equal(expectedFormat, oneVariantTest[0]);
             Assert.Equal(expectedRefSample, oneVariantTest[1]);

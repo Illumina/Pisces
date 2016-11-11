@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 
 namespace Pisces.Processing.Utility
@@ -16,13 +17,22 @@ namespace Pisces.Processing.Utility
         string Name { get; }
     }
 
+    public enum JobErrorHandlingMode
+    {
+        None, // do nothing to running jobs if one of them fails
+        Wait, // wait for running jobs to complete before returning
+        Terminate // terminate running jobs if one has an error
+    }
+
     public class JobManager : IJobManager
     {
         public int MaxThreads { get; private set; }
+        public JobErrorHandlingMode ErrorHandlingMode { get; private set; }
 
-        public JobManager(int maxThreads)
+        public JobManager(int maxThreads, JobErrorHandlingMode errorHandlingMode = JobErrorHandlingMode.None)
         {
             MaxThreads = maxThreads;
+            ErrorHandlingMode = errorHandlingMode;
         }
 
         public void Process(List<IJob> jobs)
@@ -37,7 +47,10 @@ namespace Pisces.Processing.Utility
             // run our jobs
             var jobPool = new Semaphore(MaxThreads, MaxThreads);
             var doneEvent = new ManualResetEvent(false);
+            var failures = 0L;
             var jobsRemaining = jobs.Count;
+            var exceptions = new List<Exception>();
+            var threads = ErrorHandlingMode == JobErrorHandlingMode.None ? null : new List<Thread>(jobs.Count);
 
             for (var jobIndex = 0; jobIndex < jobs.Count; ++jobIndex)
             {
@@ -51,16 +64,43 @@ namespace Pisces.Processing.Utility
                 }
 
                 var job = jobs[jobIndex];
-                var jobThread = new Thread(o => ExecuteJob(job, jobPool, doneEvent, ref jobsRemaining));
+                var jobThread = new Thread(o => ExecuteJob(job, jobPool, doneEvent, ref failures, ref jobsRemaining, exceptions));
                 if (!string.IsNullOrEmpty(job.Name))
                     jobThread.Name = job.Name;
                 jobThread.Start();
+                if (threads != null)
+                    threads.Add(jobThread);
             }
 
             doneEvent.WaitOne();
+            if (threads != null && Interlocked.Read(ref failures) > 0)
+            {
+                // copy the exceptions in case we are terminating jobs to prevent ThreadAbortExceptions ending up in there
+                if (ErrorHandlingMode == JobErrorHandlingMode.Terminate)
+                    exceptions = new List<Exception>(exceptions);
+
+                foreach (var thread in threads)
+                {
+                    if (thread.IsAlive)
+                    {
+                        try
+                        {
+                            if (ErrorHandlingMode == JobErrorHandlingMode.Terminate)
+                                thread.Abort();
+                            thread.Join();
+                        }
+                        catch
+                        {
+                            // eating errors on purpose
+                        }
+                    }
+                }
+            }
+            if (exceptions.Any())
+                throw exceptions[0];
         }
 
-        private void ExecuteJob(IJob job, Semaphore jobPool, ManualResetEvent doneEvent, ref int jobsRemaining)
+        private void ExecuteJob(IJob job, Semaphore jobPool, ManualResetEvent doneEvent, ref long failures, ref int jobsRemaining, List<Exception> exceptions)
         {
             try
             {
@@ -70,6 +110,11 @@ namespace Pisces.Processing.Utility
             catch (Exception ex)
             {
                 // todo log something?
+                lock (exceptions)
+                {
+                    exceptions.Add(ex);
+                }
+                Interlocked.Increment(ref failures);
                 doneEvent.Set(); // stop 
             }
             finally

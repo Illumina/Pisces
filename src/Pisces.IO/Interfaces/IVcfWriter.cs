@@ -7,7 +7,7 @@ namespace Pisces.IO
 {
     public interface IVcfWriter<T> 
     {
-        void Write(IEnumerable<T> calledVariants, IRegionMapper mapper = null);
+        void Write(IEnumerable<T> BaseCalledAlleles, IRegionMapper mapper = null);
         void WriteRemaining(IRegionMapper mapper = null);
     }
 

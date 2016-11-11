@@ -8,7 +8,7 @@ using Pisces.Logic;
 using Pisces.Logic.Alignment;
 using Pisces.Logic.VariantCalling;
 using Pisces.Types;
-using SequencingFiles;
+using Pisces.IO.Sequencing;
 using Pisces.Calculators;
 using Pisces.Domain.Interfaces;
 using Pisces.Domain.Logic;
@@ -21,6 +21,7 @@ using Pisces.Processing;
 using Pisces.Processing.Interfaces;
 using Pisces.Processing.RegionState;
 using Pisces.Processing.Utility;
+using StitchingLogic;
 
 namespace Pisces
 {
@@ -42,25 +43,33 @@ namespace Pisces
             UpdateKnownPriors();
         }
 
-        public string GetCommandLine()
+        public string[] GetCommandLine()
         {
             return _options.CommandLineArguments;
         }
 
-        protected virtual IAlignmentSource CreateAlignmentSource(ChrReference chrReference, string bamFilePath)
+        protected virtual IAlignmentSource CreateAlignmentSource(ChrReference chrReference, string bamFilePath, List<string> chrsToProcess = null)
         {
-            var mateFinder = _options.StitchReads ? new AlignmentMateFinder(_options.MaxFragmentSize) : null;
+            AlignmentMateFinder mateFinder = null;
             var alignmentExtractor = new BamFileAlignmentExtractor(bamFilePath, chrReference.Name, _bamIntervalLookup.ContainsKey(bamFilePath) && _options.SkipNonIntervalAlignments ? _bamIntervalLookup[bamFilePath] : null);
-            var stitcher = _options.StitchReads ? CreateStitcher() : null;
+
+            //Warn if the bam has sequences ordered differently to the reference genome.
+            //That would confuse us because we will not know how the user wants to order the output gvcf.
+            if (alignmentExtractor.SequenceOrderingIsNotConsistent(chrsToProcess))
+            {
+                Logger.WriteToLog("Warning:  Reference sequences in the bam do not match the order of the reference sequences in the genome. Check bam " + bamFilePath);
+                Logger.WriteToLog("Variants will be ordered according to the reference genome");
+            }
+
             var config = new AlignmentSourceConfig
             {
                 MinimumMapQuality = _options.MinimumMapQuality,
                 OnlyUseProperPairs = _options.OnlyUseProperPairs,
-                UnstitchableStrategy = _options.UnstitchableStrategy
             };
-            return new AlignmentSource(alignmentExtractor, mateFinder, stitcher, config);
+            return new AlignmentSource(alignmentExtractor, mateFinder, config);
         }
 
+   
         protected virtual ICandidateVariantFinder CreateVariantFinder()
         {
             return new CandidateVariantFinder(_options.MinimumBaseCallQuality, _options.MaxSizeMNV, _options.MaxGapBetweenMNV, _options.CallMNVs);
@@ -69,6 +78,8 @@ namespace Pisces
         protected virtual IAlleleCaller CreateVariantCaller(ChrReference chrReference, ChrIntervalSet intervalSet)
         {
             var coverageCalculator = CreateCoverageCalculator();
+            var genotypeCalculator = GenotypeCreator.CreateGenotypeCalculator(
+                _options.PloidyModel,_options.FilteredVariantFrequency,_options.MinimumDepth, _options.DiploidThresholdingParameters, _options.MinimumGenotypeQScore, _options.MaximumGenotypeQScore);
 
             return new AlleleCaller(new VariantCallerConfig
             {
@@ -77,23 +88,26 @@ namespace Pisces
                 MaxVariantQscore = _options.MaximumVariantQScore,
                 MinGenotypeQscore = _options.MinimumGenotypeQScore,
                 MaxGenotypeQscore = _options.MaximumGenotypeQScore,
-                VariantQscoreFilterThreshold = _options.FilteredVariantQScore > _options.MinimumVariantQScore ? _options.FilteredVariantQScore : (int?)null,
-                MinCoverage = _options.MinimumCoverage,
+                VariantQscoreFilterThreshold = _options.FilteredVariantQScore,
+                MinCoverage = _options.MinimumDepth,
                 MinFrequency = _options.MinimumFrequency,
                 EstimatedBaseCallQuality = GetEstimatedBaseCallQuality(),
                 StrandBiasModel = _options.StrandBiasModel,
                 StrandBiasFilterThreshold = _options.StrandBiasAcceptanceCriteria,
                 FilterSingleStrandVariants = _options.FilterOutVariantsPresentOnlyOneStrand,
-                GenotypeModel = _options.GTModel,
-                PloidyModel = _options.PloidyModel,
-                DiploidThresholdingParameters = _options.DiploidThresholdingParameters,
+                GenotypeCalculator = genotypeCalculator,
                 VariantFreqFilter = _options.FilteredVariantFrequency,
                 LowGTqFilter = _options.LowGenotypeQualityFilter,
                 IndelRepeatFilter = _options.IndelRepeatFilter,
                 LowDepthFilter = _options.LowDepthFilter,
                 ChrReference = chrReference,
-                RMxNFilterMaxLengthRepeat = _options.RMxNFilterMaxLengthRepeat,
-                RMxNFilterMinRepetitions = _options.RMxNFilterMinRepetitions
+                RMxNFilterSettings = new RMxNFilterSettings
+                {
+                    RMxNFilterMaxLengthRepeat = _options.RMxNFilterMaxLengthRepeat,
+                    RMxNFilterMinRepetitions = _options.RMxNFilterMinRepetitions,
+                    RMxNFilterFrequencyLimit = _options.RMxNFilterFrequencyLimit
+                },
+				NoiseModel = _options.NoiseModel				
             }, intervalSet, 
             CreateVariantCollapser(chrReference.Name, coverageCalculator),
             coverageCalculator);
@@ -113,9 +127,9 @@ namespace Pisces
                 : null;
         }
 
-        protected virtual IStateManager CreateStateManager(ChrIntervalSet intervalSet)
+        protected virtual IStateManager CreateStateManager(ChrIntervalSet intervalSet, bool expectStitchedReads=false)
         {
-            return new RegionStateManager(_options.OutputgVCFFiles, _options.MinimumBaseCallQuality, intervalSet,
+            return new RegionStateManager(_options.OutputgVCFFiles, _options.MinimumBaseCallQuality, expectStitchedReads, intervalSet, 
                 trackOpenEnded: _options.Collapse, blockSize: GlobalConstants.RegionSize, 
                 trackReadSummaries: _options.CoverageMethod == CoverageMethod.Exact);
         }
@@ -141,16 +155,18 @@ namespace Pisces
        protected virtual IRegionMapper CreateRegionPadder(ChrReference chrReference, ChrIntervalSet intervalSet, bool includeReference)
         {
             // padder is only required if there are intervals and we are including reference calls
-            return intervalSet == null || !_options.OutputgVCFFiles ? null : new RegionMapper(chrReference, intervalSet);
+            return intervalSet == null || !_options.OutputgVCFFiles ? null : new RegionMapper(chrReference, intervalSet, _options.MinimumBaseCallQuality);
         }
 
-        public virtual ISomaticVariantCaller CreateSomaticVariantCaller(ChrReference chrReference, string bamFilePath, IVcfWriter<BaseCalledAllele> vcfWriter, IStrandBiasFileWriter biasFileWriter = null, string intervalFilePath = null)
+        public virtual ISomaticVariantCaller CreateSomaticVariantCaller(
+            ChrReference chrReference, string bamFilePath, IVcfWriter<CalledAllele> vcfWriter, 
+            IStrandBiasFileWriter biasFileWriter = null, string intervalFilePath = null, List<string> chrToProcess = null)
         {
-            var alignmentSource = CreateAlignmentSource(chrReference, bamFilePath);
+            var alignmentSource = CreateAlignmentSource(chrReference, bamFilePath, chrToProcess);
             var variantFinder = CreateVariantFinder();
             var intervalSet = GetIntervalSet(chrReference.Name, bamFilePath);
             var alleleCaller = CreateVariantCaller(chrReference, intervalSet);
-            var stateManager = CreateStateManager(intervalSet);
+            var stateManager = CreateStateManager(intervalSet, alignmentSource.SourceIsStitched);
             var intervalPadder = CreateRegionPadder(chrReference, intervalSet, _options.OutputgVCFFiles);
 
             return new SomaticVariantCaller(alignmentSource, variantFinder, alleleCaller,
@@ -162,12 +178,12 @@ namespace Pisces
             return new VcfFileWriter(outputVcfPath,
                 new VcfWriterConfig
                 {
-                    DepthFilterThreshold = _options.MinimumCoverage > 0 ? _options.MinimumCoverage : (int?)null,
+                    DepthFilterThreshold = _options.OutputgVCFFiles ? _options.MinimumDepth : (_options.LowDepthFilter > _options.MinimumDepth)? _options.LowDepthFilter : (int?)null,
                     IndelRepeatFilterThreshold = _options.IndelRepeatFilter > 0 ? _options.IndelRepeatFilter : (int?)null,
-                    VariantQualityFilterThreshold = _options.FilteredVariantQScore > _options.MinimumVariantQScore ? _options.FilteredVariantQScore : (int?)null,
+                    VariantQualityFilterThreshold = _options.FilteredVariantQScore,
                     GenotypeQualityFilterThreshold = _options.LowGenotypeQualityFilter.HasValue && _options.LowGenotypeQualityFilter > _options.MinimumVariantQScore ? _options.LowGenotypeQualityFilter : null,
                     StrandBiasFilterThreshold = _options.StrandBiasAcceptanceCriteria < 1 ? _options.StrandBiasAcceptanceCriteria : (float?)null,
-                    FrequencyFilterThreshold = _options.FilteredVariantFrequency,
+                    FrequencyFilterThreshold = ( _options.FilteredVariantFrequency > _options.MinimumFrequency) ? _options.FilteredVariantFrequency : (float?)null,
                     MinFrequencyThreshold = _options.MinimumFrequency,
                     ShouldOutputNoCallFraction = _options.ReportNoCalls,
                     ShouldOutputStrandBiasAndNoiseLevel = _options.OutputNoiseLevelAndStrandBias(),
@@ -177,8 +193,10 @@ namespace Pisces
                     AllowMultipleVcfLinesPerLoci = _options.AllowMultipleVcfLinesPerLoci,
                     PloidyModel = _options.PloidyModel,
                     RMxNFilterMaxLengthRepeat = _options.RMxNFilterMaxLengthRepeat,
-                    RMxNFilterMinRepetitions = _options.RMxNFilterMinRepetitions
-                }, context);
+                    RMxNFilterMinRepetitions = _options.RMxNFilterMinRepetitions,
+                    RMxNFilterFrequencyLimit = _options.RMxNFilterFrequencyLimit,
+					NoiseModel = _options.NoiseModel
+    }, context);
         }
 
         public StrandBiasFileWriter CreateBiasFileWriter(string outputVcfPath)
@@ -213,15 +231,6 @@ namespace Pisces
         public Dictionary<string, List<Region>> GetIntervals(string inputBamPath)
         {
             return _bamIntervalLookup.ContainsKey(inputBamPath) ? _bamIntervalLookup[inputBamPath] : null;
-        }
-
-        private IAlignmentStitcher CreateStitcher()
-        {
-            if (_options.UseXCStitcher)
-            {
-                return new XCStitcher(_options.MinimumBaseCallQuality);
-            }
-            return new BasicStitcher(_options.MinimumBaseCallQuality, _options.NifyDisagreements);
         }
 
         /// <summary>

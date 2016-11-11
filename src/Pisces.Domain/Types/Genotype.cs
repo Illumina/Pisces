@@ -8,6 +8,8 @@
         HomozygousAlt, // 1/1
         HomozygousRef, // 0/0
         RefLikeNoCall, // ./.
-        AltLikeNoCall// ./.
+        AltLikeNoCall,// ./.
+        RefAndNoCall, // 0/.
+        AltAndNoCall,// 1/.
     }
 }

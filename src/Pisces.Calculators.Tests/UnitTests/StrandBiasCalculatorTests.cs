@@ -154,9 +154,9 @@ namespace Pisces.Tests.UnitTests.Logic.Calculators
                         origStitchedSupport,
                     };
 
-            var variant = new CalledVariant(AlleleCategory.Snv)
+            var variant = new CalledAllele(AlleleCategory.Snv)
             {
-                TotalCoverageByDirection = new int[]
+                EstimatedCoverageByDirection = new int[]
                         {
                             forwardStats.Item2, reverseStats.Item2, stitchedStats.Item2
                         }

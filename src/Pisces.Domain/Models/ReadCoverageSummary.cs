@@ -1,4 +1,4 @@
-﻿using SequencingFiles;
+﻿using Alignment.Domain.Sequencing;
 
 namespace Pisces.Domain.Models
 {

@@ -8,44 +8,44 @@ namespace Pisces.Domain.Tests.UnitTests.Models.Alleles
     public class AlleleTests
     {
         [Fact]
-        public void CalledVariant_Tests()
+        public void BaseCalledAllele_Tests()
         {
-            var calledVariant1 = new CalledVariant(AlleleCategory.Snv);
-            calledVariant1.TotalCoverage = 5;
-            calledVariant1.ReferenceSupport = 20;
+            var BaseCalledAllele1 = new CalledAllele(AlleleCategory.Snv);
+            BaseCalledAllele1.TotalCoverage = 5;
+            BaseCalledAllele1.ReferenceSupport = 20;
 
-            Assert.Equal(Genotype.HeterozygousAltRef, calledVariant1.Genotype);
-            Assert.Equal(1, calledVariant1.RefFrequency);
-            Assert.Equal(AlleleCategory.Snv ,calledVariant1.Type);
+            Assert.Equal(Genotype.HeterozygousAltRef, BaseCalledAllele1.Genotype);
+            Assert.Equal(1, BaseCalledAllele1.RefFrequency);
+            Assert.Equal(AlleleCategory.Snv ,BaseCalledAllele1.Type);
             
-            var calledVariant2 = new CalledVariant(AlleleCategory.Mnv);
-            calledVariant2.TotalCoverage = 20;
-            calledVariant2.ReferenceSupport = 5;
+            var BaseCalledAllele2 = new CalledAllele(AlleleCategory.Mnv);
+            BaseCalledAllele2.TotalCoverage = 20;
+            BaseCalledAllele2.ReferenceSupport = 5;
 
-            Assert.Equal(Genotype.HeterozygousAltRef, calledVariant2.Genotype);
-            Assert.Equal(0.25, calledVariant2.RefFrequency);
-            Assert.Equal(AlleleCategory.Mnv, calledVariant2.Type);
+            Assert.Equal(Genotype.HeterozygousAltRef, BaseCalledAllele2.Genotype);
+            Assert.Equal(0.25, BaseCalledAllele2.RefFrequency);
+            Assert.Equal(AlleleCategory.Mnv, BaseCalledAllele2.Type);
 
-            var calledVariant3 = new CalledVariant(AlleleCategory.Insertion);
+            var BaseCalledAllele3 = new CalledAllele(AlleleCategory.Insertion);
 
-            Assert.Equal(Genotype.HeterozygousAltRef, calledVariant3.Genotype);
-            Assert.Equal(0f, calledVariant3.RefFrequency);
-            Assert.Equal(AlleleCategory.Insertion, calledVariant3.Type);
+            Assert.Equal(Genotype.HeterozygousAltRef, BaseCalledAllele3.Genotype);
+            Assert.Equal(0f, BaseCalledAllele3.RefFrequency);
+            Assert.Equal(AlleleCategory.Insertion, BaseCalledAllele3.Type);
         }
 
         [Fact]
         public void CalledReference_Tests()
         {
-            var calledReference = new CalledReference();
-            Assert.Equal(Genotype.HomozygousRef, calledReference.Genotype);
-            Assert.Equal(AlleleCategory.Reference, calledReference.Type);
+            var alleleCall = new CalledAllele();
+            Assert.Equal(Genotype.HomozygousRef, alleleCall.Genotype);
+            Assert.Equal(AlleleCategory.Reference, alleleCall.Type);
         }
 
         [Fact]
-        public void BaseCalledAllele_Tests()
+        public void CalledVariant_Tests()
         {
-            var baseCalledAllele =  new BaseCalledAllele();
-            Assert.Equal(3, baseCalledAllele.TotalCoverageByDirection.Count());
+            var baseCalledAllele =  new CalledAllele();
+            Assert.Equal(3, baseCalledAllele.EstimatedCoverageByDirection.Count());
             Assert.Equal(3, baseCalledAllele.SupportByDirection.Count());
             Assert.Equal(0f, baseCalledAllele.Frequency);
 

@@ -20,6 +20,10 @@ namespace Pisces.Domain.Models.Alleles
         // RC counts - optionally used
         public int[] ReadCollapsedCounts { get; set; }
 
+        public override string ToString()
+        {
+            return (string.Join("\t", Chromosome, Coordinate, ".", Reference, Alternate));
+        }
         public int Length
         {
             get

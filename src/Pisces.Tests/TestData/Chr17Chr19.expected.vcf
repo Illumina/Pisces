@@ -1,0 +1,19 @@
+##fileformat=VCFv4.1
+##fileDate=20160727
+##source=Pisces 1.0.0.0
+##Pisces_cmdline=""
+##reference=C:\Projects_tdunn\git\Pisces5_Ent\Pisces5\src\Pisces.Tests\bin\x64\Release\TestData\Genomes\fourChrs
+##INFO=<ID=DP,Number=1,Type=Integer,Description="Total Depth">
+##FILTER=<ID=q30,Description="Quality score less than 30">
+##FILTER=<ID=SB,Description="Variant strand bias too high">
+##FILTER=<ID=R5x9,Description="Repeats of part or all of the variant allele (max repeat length 5) in the reference greater than or equal to 9">
+##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">
+##FORMAT=<ID=GQ,Number=1,Type=Integer,Description="Genotype Quality">
+##FORMAT=<ID=AD,Number=.,Type=Integer,Description="Allele Depth">
+##FORMAT=<ID=DP,Number=1,Type=Integer,Description="Total Depth Used For Variant Calling">
+##FORMAT=<ID=VF,Number=.,Type=Float,Description="Variant Frequency">
+##FORMAT=<ID=NL,Number=1,Type=Integer,Description="Applied BaseCall Noise Level">
+##FORMAT=<ID=SB,Number=1,Type=Float,Description="StrandBias Score">
+##contig=<ID=chr17,length=7573100>
+#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	Chr17Chr19.bam
+chr17	7572985	.	T	C	100	PASS	DP=1000	GT:GQ:AD:DP:VF:NL:SB	0/1:100:496,504:1000:0.504:20:-100.0000

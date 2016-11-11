@@ -7,7 +7,7 @@ using CallVariants.Logic.Processing;
 using Moq;
 using TestUtilities;
 using Pisces.Processing.Utility;
-using SequencingFiles;
+using Pisces.IO.Sequencing;
 using Xunit;
 
 namespace Pisces.Tests.UnitTests.Processing
@@ -29,22 +29,21 @@ namespace Pisces.Tests.UnitTests.Processing
 
         private void ExecuteChromosomeThreadingTest(int numberOfThreads, int expectedNumberOfThreads)
         {
-            var bamFilePath = Path.Combine(UnitTestPaths.TestDataDirectory, "var123var35.bam");
-            var vcfFilePath = Path.Combine(UnitTestPaths.TestDataDirectory, "var123var35.vcf");
+            var bamFilePath = Path.Combine(UnitTestPaths.TestDataDirectory, "Chr17Chr19.bam");
+            var vcfFilePath = Path.Combine(UnitTestPaths.TestDataDirectory, "Chr17Chr19.vcf");
             var genomePath = Path.Combine(UnitTestPaths.TestGenomesDirectory, "chr17chr19");
 
             var options = new ApplicationOptions
             {
                 BAMPaths = new[] { bamFilePath },
                 GenomePaths = new[] { genomePath },
-                StitchReads = false
             };
 
-            var logFile = Path.Combine(options.LogFolder, ApplicationOptions.LogFileName);
+            var logFile = Path.Combine(options.LogFolder, options.LogFileName);
             if (File.Exists(logFile))
                 File.Delete(logFile);
 
-            Logger.TryOpenLog(options.LogFolder, ApplicationOptions.LogFileName);
+            Logger.TryOpenLog(options.LogFolder, options.LogFileName);
 
             var factory = new MockFactoryWithDefaults(options);
             factory.MockSomaticVariantCaller = new Mock<ISomaticVariantCaller>();
@@ -94,8 +93,8 @@ namespace Pisces.Tests.UnitTests.Processing
             // test when one bam has intervals and the other is empty
             // ----------------------
 
-            var bamFilePath = Path.Combine(UnitTestPaths.TestDataDirectory, "var123var35.bam");
-            var bamFilePath2 = Path.Combine(UnitTestPaths.TestDataDirectory, "var123var35_removedSQlines.bam");
+            var bamFilePath = Path.Combine(UnitTestPaths.TestDataDirectory, "Chr17Chr19.bam");
+            var bamFilePath2 = Path.Combine(UnitTestPaths.TestDataDirectory, "Chr17Chr19_removedSQlines.bam");
             var genomePath = Path.Combine(UnitTestPaths.TestGenomesDirectory, "chr17chr19");
             var validIntervals = Path.Combine(UnitTestPaths.TestDataDirectory, "chr17only.picard");
             var emptyIntervals = Path.Combine(UnitTestPaths.TestDataDirectory, "empty.picard");
@@ -107,7 +106,6 @@ namespace Pisces.Tests.UnitTests.Processing
                 IntervalPaths = new [] { validIntervals, emptyIntervals },
                 GenomePaths = new[] { genomePath },
                 OutputFolder = outputFolder,
-                StitchReads = false,
                 OutputgVCFFiles = true
             };
 

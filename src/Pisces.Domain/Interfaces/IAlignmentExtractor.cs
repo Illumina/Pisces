@@ -11,5 +11,8 @@ namespace Pisces.Domain.Interfaces
         bool Jump(string chromosomeName, int position = 0);
 
         void Reset();
+        bool SourceIsStitched { get; }
+
+        List<string> SourceReferenceList { get; }
     }
 }

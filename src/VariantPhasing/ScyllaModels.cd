@@ -1,0 +1,302 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<ClassDiagram MajorVersion="1" MinorVersion="1">
+  <Class Name="Scylla.App" Collapsed="true">
+    <Position X="14" Y="9.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>gAAAAAAAAAAAACAAAAAAAAAAAAAEAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>App.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Scylla.CommandLineParameters" Collapsed="true">
+    <Position X="14" Y="9.25" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAACAQAAAAAAAAAQAAA=</HashCode>
+      <FileName>CommandLineParam.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Scylla.Agreement" BaseTypeListCollapsed="true">
+    <Position X="6" Y="3" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAIIAAAAgAAABAwAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>Items\Agreement.cs</FileName>
+    </TypeIdentifier>
+    <Lollipop Position="0.2" Collapsed="true" />
+  </Class>
+  <Class Name="Scylla.Allele">
+    <Position X="2.25" Y="0.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAgQAAQEAAACAAAAAAIAgAAAAAACAAnA=</HashCode>
+      <FileName>Items\Allele.cs</FileName>
+    </TypeIdentifier>
+    <Lollipop Position="0.2" />
+  </Class>
+  <Class Name="Scylla.VcfWritingParameters">
+    <Position X="13" Y="2.25" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>IAAIAAAAAAAAIAAAAAAAAAAAAAIAAgAAABAACAAAAAA=</HashCode>
+      <FileName>Items\ApplicationOptions.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Scylla.BamFilterParameters">
+    <Position X="13" Y="0.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAABAAAAIACAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>Items\ApplicationOptions.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Scylla.VariantFilterParameters">
+    <Position X="13" Y="7" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AOAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgAAAAAA=</HashCode>
+      <FileName>Items\ApplicationOptions.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Scylla.ClusteringParameters">
+    <Position X="13" Y="4.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AIAAAAAAAAAAAAAGAAEAAAgAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>Items\ApplicationOptions.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Scylla.ApplicationOptions" Collapsed="true">
+    <Position X="14" Y="9.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAABAAAAIAAAIAAAAAAAEAAAIAAAAAFAABEAAAABAA=</HashCode>
+      <FileName>Items\ApplicationOptions.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Scylla.CountsIncluster">
+    <Position X="7.75" Y="7.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAQAAAAAAAAAAAAAAAgAAAAEAAAAAAAAAAA=</HashCode>
+      <FileName>Items\Cluster.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Scylla.Cluster">
+    <Position X="7.75" Y="0.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AKMBAAggEEQgQIQAAAAABATBAAIAAAAACASAAAGDAAQ=</HashCode>
+      <FileName>Items\Cluster.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Scylla.SetOfClusters" BaseTypeListCollapsed="true">
+    <Position X="9.5" Y="0.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>QAIBAQAAAAAABJBBAAAAAAACAAAIAAAIAIAQAgIIIAA=</HashCode>
+      <FileName>Items\SetOfClusters.cs</FileName>
+    </TypeIdentifier>
+    <Lollipop Position="0.2" Collapsed="true" />
+  </Class>
+  <Class Name="Scylla.VariantSite">
+    <Position X="2.25" Y="4.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>GEAAQAkAAAAIAIAFKAQAFAAAAAQAAAAgAEQAhAAAAQI=</HashCode>
+      <FileName>Items\VariantSite.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Scylla.VcfNeighborhood">
+    <Position X="4.25" Y="0.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>ACIAAAAAAAAAQIAAAAgAJAAADBAAAAAAACBAAgAAAAI=</HashCode>
+      <FileName>Items\VcfNeighborhood.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Scylla.Vead">
+    <Position X="6" Y="0.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AACAAAAAAAAAAAAEAAAQAAQACAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>Items\Vead.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Scylla.VeadGroup" BaseTypeListCollapsed="true">
+    <Position X="6" Y="6" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAQEAAQQAAQAAAAAAAAAAATAAAAAAIU=</HashCode>
+      <FileName>Items\VeadGroup.cs</FileName>
+    </TypeIdentifier>
+    <Lollipop Position="0.2" Collapsed="true" />
+  </Class>
+  <Class Name="Scylla.BlockingQueue&lt;T&gt;" Collapsed="true">
+    <Position X="14" Y="9.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AQBAAAAAAAIEAAAAhAABMAYAAAAIBgAAAAAACABSAAA=</HashCode>
+      <FileName>Lib\BlockingQueue.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Scylla.BlockingQueueProcessor&lt;TItem&gt;" Collapsed="true">
+    <Position X="14" Y="9.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AEBgIIAAASkAAABAAAAAAAQAAAAAAAAQIAAgAAgAAAA=</HashCode>
+      <FileName>Lib\BlockingQueueProcessor.cs</FileName>
+    </TypeIdentifier>
+    <Lollipop Position="0.2" />
+  </Class>
+  <Class Name="Scylla.SomaticVariantInfo">
+    <Position X="0.5" Y="0.5" Width="1.5" />
+    <NestedTypes>
+      <Enum Name="Scylla.SomaticVariantInfo.GenotypeEnum" Collapsed="true">
+        <TypeIdentifier>
+          <NewMemberFileName>Lib\VarInfo.cs</NewMemberFileName>
+        </TypeIdentifier>
+      </Enum>
+      <Enum Name="Scylla.SomaticVariantInfo.SomaticVariantType" Collapsed="true">
+        <TypeIdentifier>
+          <NewMemberFileName>Lib\VarInfo.cs</NewMemberFileName>
+        </TypeIdentifier>
+      </Enum>
+    </NestedTypes>
+    <TypeIdentifier>
+      <HashCode>AAYAAACAAAAESCQEAIAAYkAEAAQAhABAAQAAgAIEAAA=</HashCode>
+      <FileName>Lib\VarInfo.cs</FileName>
+    </TypeIdentifier>
+    <Lollipop Position="0.2" />
+  </Class>
+  <Class Name="Scylla.VcfExtensions" Collapsed="true">
+    <Position X="14" Y="9.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AACAAAAAAAAAAAAAAAAAAAAAAAIAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>Lib\VcfExtensions.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Scylla.Logger" Collapsed="true">
+    <Position X="14" Y="9.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAIAAAAAAAAAAAAgAAAAAUACUAAAAAAVAgAEEIABQ=</HashCode>
+      <FileName>Logger.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Scylla.BamProcessor" Collapsed="true">
+    <Position X="14" Y="9.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAQAAAAAAAAAAAAAAAIAAAAAAAAAAAABAAAAAAAAAAA=</HashCode>
+      <FileName>Processors\BamProcessor.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Scylla.ClusterMaker" Collapsed="true">
+    <Position X="14" Y="9.25" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AEYAAAEAAIAJAIBAAAACAQAAEAAEAAAAAAAAAgAIAAA=</HashCode>
+      <FileName>Processors\ClusterMaker.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Scylla.JointProbabilityResult">
+    <Position X="11.25" Y="5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAEAAAAgAAAAAAAAAAIAAAAABAAAAAAAA=</HashCode>
+      <FileName>Processors\MICalculator.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Scylla.MarginalProbabilityResult">
+    <Position X="11.25" Y="0.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AgAAAAAAAAAAEAAAAgAAAAAAAAAAIAAAAAAAAAAAAAA=</HashCode>
+      <FileName>Processors\MICalculator.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Scylla.ProbabilityResult">
+    <Position X="11.25" Y="7.25" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAIAAAAABAAAAACAAAAAAAAAAIAAAAEAAAAAAAA=</HashCode>
+      <FileName>Processors\MICalculator.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Scylla.MIResult">
+    <Position X="11.25" Y="2.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAEAIAAAAAAAAABAAAAAAAAA=</HashCode>
+      <FileName>Processors\MICalculator.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Scylla.MICalculator" Collapsed="true">
+    <Position X="14" Y="9.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAIAAAAAAAAAAQAAAAAAAAAEAAAAAAAAAAAABAAAAA=</HashCode>
+      <FileName>Processors\MICalculator.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Scylla.MNVMaker" Collapsed="true">
+    <Position X="14" Y="9.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAgAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>Processors\MNVMaker.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Scylla.NeighborhoodHandler" Collapsed="true">
+    <Position X="14" Y="9.25" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAgAAAQAAAAAAAAAAAAAAAAAAAAAQAAAAAAAAAAA=</HashCode>
+      <FileName>Processors\NeighborhoodHandler.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Scylla.PhasedVcfWriter" Collapsed="true">
+    <Position X="14" Y="9.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAgAAAAAAAAAAAAAAAAAAAAAEAAgAAAABAAAAAA=</HashCode>
+      <FileName>Processors\PhasedVcfWriter.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Scylla.VariantPhasingResult">
+    <Position X="9.5" Y="6" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAQAAAAAAAATAAAAAAAACAIAAAAIQCAAAAAAAAA=</HashCode>
+      <FileName>Processors\VariantPhaser.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Scylla.VariantPhaser" Collapsed="true">
+    <Position X="14" Y="9.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACAAAAAAABAAA=</HashCode>
+      <FileName>Processors\VariantPhaser.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Scylla.VcfProcessor" Collapsed="true">
+    <Position X="14" Y="9.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAABAAAAIAAAAAAAAA=</HashCode>
+      <FileName>Processors\VcfProcessor.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Scylla.VeadGrouper" Collapsed="true">
+    <Position X="14" Y="9.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAQAAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>Processors\VeadGrouper.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Scylla.VeadMaker" Collapsed="true">
+    <Position X="14" Y="9.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAEAAAAACAUAAAAAAEAQAABAABAAACghQA=</HashCode>
+      <FileName>Processors\VeadMaker.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Scylla.Program" Collapsed="true">
+    <Position X="14" Y="9.25" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABAAAAAA=</HashCode>
+      <FileName>Program.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Scylla.AssemblyInfo" Collapsed="true">
+    <Position X="14" Y="9.25" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAIAAAAAAAAAAAAAIAAAAAAAAAAQAAAAAAAAAA=</HashCode>
+      <FileName>Properties\AssemblyInfo.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Interface Name="Scylla.IQueueProcessor" Collapsed="true">
+    <Position X="14" Y="9.25" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAgAAAAACAAAAAAAAAAAAAAAAAAAAAAIAAAAAgAAAA=</HashCode>
+      <FileName>Lib\BlockingQueueProcessor.cs</FileName>
+    </TypeIdentifier>
+  </Interface>
+  <Enum Name="Scylla.SomaticVariantType" Collapsed="true">
+    <Position X="14" Y="9.25" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>ACAAAAAAAAAAAAAAAAAAAAAACAAAIAAAAAAAAABAAAA=</HashCode>
+      <FileName>Processors\VeadMaker.cs</FileName>
+    </TypeIdentifier>
+  </Enum>
+  <Font Name="Segoe UI" Size="9" />
+</ClassDiagram>

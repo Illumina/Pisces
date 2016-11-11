@@ -1,0 +1,9 @@
+category,ID,`,var input R1 Cigar,var input R1 Direction,var input R2 Position,var input R2 Cigar,var input R2 Direction,ref input R1 Position,ref input R1 Cigar,ref input R1 Direction,ref input R2 Position,ref input R2 Cigar,ref input R2 Direction,Should Stitch var,Output R1 Position,Output R1 Cigar,Output R1 Direction,Output R2 Position,Output R2 Cigar,Output R2Direction,Should Stitch ref,Ref Output R1 Position,Ref Output R1 Cigar,Ref Output R1 Direction,Ref Output R2 Position,Ref Output R2 Cigar,Ref Output R2Direction,var loading,ref loading,candidate direction,frequency,bias?,Notes (optional)
+Gaps,1,2,1S3M,F,7,2M1S,R,2,1S3M,F,7,2M1S,R,FALSE,2,1S3M,F,7,2M1S,R,FALSE,2,1S3M,F,7,2M1S,R,3FF;8R,3FF;8R,F;R,"0.5,0.5",FALSE,
+Gaps,2,3,2S2M,F,5,4M1S,R,3,2S2M,F,5,4M1S,R,FALSE,3,2S2M,F,5,4M1S,R,FALSE,3,2S2M,F,5,4M1S,R,3FF;8R,2FF;8R,F;R,0.5;0.5,FALSE,
+Gaps,3,1,6M,F,3,3M2I1M,R,1,6M,F,2,6M,R,FALSE,1,6M,F,3,3M2I1M,R,TRUE,1,6M,1F4S1R, , , ,2F;3R,2SS,F;R,0.5;0.5,TRUE,
+Gaps,4,2,1S3M1S,F,3,2M2D1M2S,R,2,1S4M,F,6,4M2S,R,TRUE,2,1S3M2D1M2S,2F5S2R, , , ,FALSE,2,1S4M,F,6,4M2S,R,5RR,5F;6R,R,0.5,FALSE,
+Gaps,5,1,1M3I,F,2,5M,R,1,4M,F,2,5M,R,FALSE,1,1M3I,F,2,5M,R,TRUE,1,6M,1F4S1R, , , ,1F;2R,1FS,F,0.5,TRUE,
+Gaps,6,4,3S2M2S,F,6,3S2M2S,R,4,3S4M,F,3,5M2S,R,FALSE,4,3S2M2S,F,6,3S2M2S,R,TRUE,3,2S5M2S,1F4S1R, , , ,"5F,6R",5S,F,0.5,FN,
+Gaps,7,3,2S1M2S,F,6,2S2M2S,R,3,2S3M,F,4,4M2S,R,FALSE,3,2S1M2S,F,6,2S2M2S,R,TRUE,3,2S5M2S,3F2S4R, , , ,3F;6R,4SS,FN,0,FN,
+,8,2,1S2M2S,F,7,2S2M1S,R,2,1S4M,F,5,4M1S,R,FALSE,2,1S2M2S,F,7,2S2M1S,R,TRUE,2,1S7M1S,4F1S4R, , , ,3000,4FSR,FN,0,FN,

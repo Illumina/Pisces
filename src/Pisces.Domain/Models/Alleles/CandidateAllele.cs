@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Linq;
-using Pisces.Domain.Interfaces;
+using System.Collections.Generic;
 using Pisces.Domain.Types;
 
 namespace Pisces.Domain.Models.Alleles
@@ -51,12 +51,12 @@ namespace Pisces.Domain.Models.Alleles
         {
             var otherVariant = o as CandidateAllele;
 
-            return otherVariant != null 
-                   && otherVariant.Type == Type
-                   && otherVariant.Reference.Equals(Reference)
-                   && otherVariant.Alternate.Equals(Alternate)
+            return otherVariant != null
                    && otherVariant.Coordinate == Coordinate
-                   && otherVariant.Chromosome.Equals(Chromosome);
+                   && otherVariant.Alternate.Equals(Alternate)
+                   && otherVariant.Type == Type
+                   && otherVariant.Chromosome.Equals(Chromosome)
+                   && otherVariant.Reference.Equals(Reference);    
         }
 
         public void AddSupport(CandidateAllele fromAllele)

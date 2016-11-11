@@ -4,83 +4,117 @@ using System.IO;
 using System.Linq;
 using Pisces.Types;
 using TestUtilities;
+using Pisces.Calculators;
 using Pisces.Domain.Types;
 using Xunit;
-using Constants = SequencingFiles.Constants;
 
 namespace Pisces.Tests.ApplicationOptionsTests
 {
     public class ApplicationOptionsTests
     {
-        private string _existingBamPath = Path.Combine(UnitTestPaths.TestDataDirectory, "var123var35.bam");
-        private string _existingBamPath2 = Path.Combine(UnitTestPaths.TestDataDirectory, "var123var35_removedSQlines.bam");
+        private string _existingBamPath = Path.Combine(UnitTestPaths.TestDataDirectory, "Chr17Chr19.bam");
+        private string _existingBamPath2 = Path.Combine(UnitTestPaths.TestDataDirectory, "Chr17Chr19_removedSQlines.bam");
         private string _existingGenome = Path.Combine(UnitTestPaths.TestGenomesDirectory, "chr19");
         private string _existingInterval = Path.Combine(UnitTestPaths.TestDataDirectory, "chr17only.picard");
 
-        private Dictionary<string, Action<ApplicationOptions>> GetOptionsExpectations()
+
+        private Dictionary<string, Action<ApplicationOptions>> GetOriginalOptionsExpectations()
         {
             var optionsExpectationsDict = new Dictionary<string, Action<ApplicationOptions>>();
 
-            optionsExpectationsDict.Add("-a 40", (o) => Assert.Equal(40, o.MinimumVariantQScore));
-            optionsExpectationsDict.Add("-b 40", (o) => Assert.Equal(40, o.MinimumBaseCallQuality));
+            optionsExpectationsDict.Add("-minvq 40", (o) => Assert.Equal(40, o.MinimumVariantQScore));
+            optionsExpectationsDict.Add("-minbq 41", (o) => Assert.Equal(41, o.MinimumBaseCallQuality));
             optionsExpectationsDict.Add(@"-B C:\test.bam,C:\test2.bam", (o) => Assert.Equal(2, o.BAMPaths.Length));
-            optionsExpectationsDict.Add("-c 40", (o) => Assert.Equal(40, o.MinimumCoverage));
+            optionsExpectationsDict.Add("-c 4", (o) => Assert.Equal(4, o.MinimumDepth));
             optionsExpectationsDict.Add("-d true", (o) => Assert.True(o.DebugMode));
             optionsExpectationsDict.Add("-debug true", (o) => Assert.True(o.DebugMode));
-            optionsExpectationsDict.Add("-f 0.555", (o) => Assert.Equal(0.555f, o.MinimumFrequency));
-            optionsExpectationsDict.Add("-F 40", (o) => Assert.Equal(40, o.FilteredVariantQScore));
-            optionsExpectationsDict.Add("-fo true", (o) => Assert.True(o.FilterOutVariantsPresentOnlyOneStrand));
+            optionsExpectationsDict.Add("-minvf 0.555", (o) => Assert.Equal(0.555f, o.MinimumFrequency));
+            optionsExpectationsDict.Add("-vqfilter 45", (o) => Assert.Equal(45, o.FilteredVariantQScore));
+            optionsExpectationsDict.Add("-ssfilter true", (o) => Assert.True(o.FilterOutVariantsPresentOnlyOneStrand));
             optionsExpectationsDict.Add(@"-g C:\genome,C:\genome2", (o) => Assert.Equal(2, o.GenomePaths.Length));
             optionsExpectationsDict.Add("-NL 40", (o) => Assert.Equal(40, o.AppliedNoiseLevel));
             optionsExpectationsDict.Add("-gVCF true", (o) => Assert.True(o.OutputgVCFFiles));
             optionsExpectationsDict.Add("-CallMNVs true", (o) => Assert.True(o.CallMNVs));
-            optionsExpectationsDict.Add("-PhaseSNPs true", (o) => Assert.True(o.CallMNVs));
             optionsExpectationsDict.Add("-MaxMNVLength 40", (o) => Assert.Equal(40, o.MaxSizeMNV));
-            optionsExpectationsDict.Add("-MaxPhaseSNPLength 40", (o) => Assert.Equal(40, o.MaxSizeMNV));
             optionsExpectationsDict.Add("-MaxGapBetweenMNV 40", (o) => Assert.Equal(40, o.MaxGapBetweenMNV));
-            optionsExpectationsDict.Add("-MaxGapPhasedSNP 40", (o) => Assert.Equal(40, o.MaxGapBetweenMNV));
             optionsExpectationsDict.Add(@"-i C:\blah,C:\blah2", (o) => Assert.Equal(2, o.IntervalPaths.Length));
-            optionsExpectationsDict.Add("-m 40", (o) => Assert.Equal(40, o.MinimumMapQuality));
-            optionsExpectationsDict.Add("-GT threshold", (o) => Assert.Equal(GenotypeModel.Thresholding, o.GTModel));
+            optionsExpectationsDict.Add("-minmq 40", (o) => Assert.Equal(40, o.MinimumMapQuality));
             optionsExpectationsDict.Add("-SBModel poisson", (o) => Assert.Equal(StrandBiasModel.Poisson, o.StrandBiasModel));
-            optionsExpectationsDict.Add("-o true", (o) => Assert.True(o.OutputBiasFiles));
-            optionsExpectationsDict.Add("-p true", (o) => Assert.True(o.OnlyUseProperPairs));
-            optionsExpectationsDict.Add("-q 40", (o) => Assert.Equal(40, o.MaximumVariantQScore));
-            optionsExpectationsDict.Add("-s 0.7", (o) => Assert.Equal(0.7f, o.StrandBiasAcceptanceCriteria));
+            optionsExpectationsDict.Add("-outputsbfiles true", (o) => Assert.True(o.OutputBiasFiles));
+            optionsExpectationsDict.Add("-pp true", (o) => Assert.True(o.OnlyUseProperPairs));
+            optionsExpectationsDict.Add("-maxvq 400", (o) => Assert.Equal(400, o.MaximumVariantQScore));
+            optionsExpectationsDict.Add("-sbfilter 0.7", (o) => Assert.Equal(0.7f, o.StrandBiasAcceptanceCriteria));
             optionsExpectationsDict.Add("-t 40", (o) => Assert.Equal(40, o.MaxNumThreads));
-            optionsExpectationsDict.Add("-StitchPairedReads false", (o) => Assert.False(o.StitchReads));
             optionsExpectationsDict.Add("-ReportNoCalls true", (o) => Assert.True(o.ReportNoCalls));
             optionsExpectationsDict.Add(@"-OutFolder C:\out", (o) => Assert.Equal(@"C:\out", o.OutputFolder));
-            optionsExpectationsDict.Add("-NifyDisagreements true", (o) => Assert.Equal(true, o.NifyDisagreements));
             optionsExpectationsDict.Add("-ThreadByChr true", (o) => Assert.Equal(true, o.ThreadByChr));
-            optionsExpectationsDict.Add("-MultiProcess true", (o) => Assert.Equal(true, o.MultiProcess));
-            optionsExpectationsDict.Add("-InsideSubProcess true", (o) => Assert.Equal(true, o.InsideSubProcess));
             optionsExpectationsDict.Add("-Mono bleh", (o) => Assert.Equal("bleh", o.MonoPath));
-            optionsExpectationsDict.Add("-SkipNonIntervalAlignments true", (o) => Assert.Equal(true, o.SkipNonIntervalAlignments));
-
             return optionsExpectationsDict;
         }
-            
+
+        private Dictionary<string, Action<ApplicationOptions>> GetLongHandOptionsExpectations()
+        {
+            var optionsExpectationsDict = new Dictionary<string, Action<ApplicationOptions>>();
+
+            optionsExpectationsDict.Add("-MinVariantQScore 40", (o) => Assert.Equal(40, o.MinimumVariantQScore));
+            optionsExpectationsDict.Add("-MinBaseCallQuality 40", (o) => Assert.Equal(40, o.MinimumBaseCallQuality));
+            optionsExpectationsDict.Add(@"-BamPaths C:\test.bam,C:\test2.bam", (o) => Assert.Equal(2, o.BAMPaths.Length));
+            optionsExpectationsDict.Add("-MinDp 40", (o) => Assert.Equal(40, o.MinimumDepth));
+            optionsExpectationsDict.Add("-debug true", (o) => Assert.True(o.DebugMode));
+            optionsExpectationsDict.Add("-MinimumFrequency 0.555", (o) => Assert.Equal(0.555f, o.MinimumFrequency));
+            optionsExpectationsDict.Add("-VariantQualityFilter 40", (o) => Assert.Equal(40, o.FilteredVariantQScore));
+            optionsExpectationsDict.Add("-EnableSingleStrandFilter true", (o) => Assert.True(o.FilterOutVariantsPresentOnlyOneStrand));
+            optionsExpectationsDict.Add(@"-GenomePaths C:\genome,C:\genome2", (o) => Assert.Equal(2, o.GenomePaths.Length));
+            optionsExpectationsDict.Add("-NoiseLevelForQModel 40", (o) => Assert.Equal(40, o.AppliedNoiseLevel));
+            optionsExpectationsDict.Add("-gVCF true", (o) => Assert.True(o.OutputgVCFFiles));
+            optionsExpectationsDict.Add("-CallMNVs true", (o) => Assert.True(o.CallMNVs));
+            optionsExpectationsDict.Add("-MaxMNVLength 40", (o) => Assert.Equal(40, o.MaxSizeMNV));
+            optionsExpectationsDict.Add("-MaxGapBetweenMNV 40", (o) => Assert.Equal(40, o.MaxGapBetweenMNV));
+            optionsExpectationsDict.Add(@"-IntervalPaths C:\blah,C:\blah2", (o) => Assert.Equal(2, o.IntervalPaths.Length));
+            optionsExpectationsDict.Add("-MinMapQuality 40", (o) => Assert.Equal(40, o.MinimumMapQuality));
+            optionsExpectationsDict.Add("-SBModel poisson", (o) => Assert.Equal(StrandBiasModel.Poisson, o.StrandBiasModel));
+            optionsExpectationsDict.Add("-OutputSBFiles true", (o) => Assert.True(o.OutputBiasFiles));
+            optionsExpectationsDict.Add("-OnlyUseProperPairs true", (o) => Assert.True(o.OnlyUseProperPairs));
+            optionsExpectationsDict.Add("-MaxVariantQScore 1000", (o) => Assert.Equal(1000, o.MaximumVariantQScore));
+            optionsExpectationsDict.Add("-MaxAcceptableStrandBiasFilter 0.7", (o) => Assert.Equal(0.7f, o.StrandBiasAcceptanceCriteria));
+            optionsExpectationsDict.Add("-MaxNumThreads 10", (o) => Assert.Equal(10, o.MaxNumThreads));
+            optionsExpectationsDict.Add("-ReportNoCalls true", (o) => Assert.True(o.ReportNoCalls));
+            optionsExpectationsDict.Add(@"-OutFolder C:\out", (o) => Assert.Equal(@"C:\out", o.OutputFolder));
+            optionsExpectationsDict.Add("-ThreadByChr true", (o) => Assert.Equal(true, o.ThreadByChr));
+            optionsExpectationsDict.Add("-InsideSubProcess true", (o) => Assert.Equal(true, o.InsideSubProcess));
+            optionsExpectationsDict.Add("-Mono bleh", (o) => Assert.Equal("bleh", o.MonoPath));
+            return optionsExpectationsDict;
+        }
+
+
         [Fact]
         [Trait("ReqID","SDS-1")]
         public void CommandLineWhitespaceParse()
         {
-            var optionsExpectations = GetOptionsExpectations();
-            Action<ApplicationOptions> expectations = null;
-            foreach (var option in optionsExpectations.Values)
+            var shortHandOptionsExpectations = GetOriginalOptionsExpectations();
+            Action<ApplicationOptions> shortHandExpectations = null;
+            foreach (var option in shortHandOptionsExpectations.Values)
             {
-                expectations += option;
+                shortHandExpectations += option;
+            }
+
+            var longHandOptionsExpectations = GetLongHandOptionsExpectations();
+            Action<ApplicationOptions> longHandExpectations = null;
+            foreach (var option in longHandOptionsExpectations.Values)
+            {
+                longHandExpectations += option;
             }
 
             //Test with multiple options strung together by spaces.
-            ExecuteParsingTest(string.Join(" ", optionsExpectations.Keys), true, expectations);
+            ExecuteParsingTest(string.Join(" ", longHandOptionsExpectations.Keys), true, longHandExpectations);
+            ExecuteParsingTest(string.Join(" ", shortHandOptionsExpectations.Keys), true, shortHandExpectations);
            
             //Different separator shouldn't work
-            ExecuteParsingTest(string.Join(";", optionsExpectations.Keys), false, expectations);
+            ExecuteParsingTest(string.Join(";", longHandOptionsExpectations.Keys), false, longHandExpectations);
            
             //Order shouldn't matter
-            ExecuteParsingTest(string.Join(" ", optionsExpectations.Keys.OrderByDescending(o=>o)), true, expectations);
-            ExecuteParsingTest(string.Join(" ", optionsExpectations.Keys.OrderBy(o => o)), true, expectations);
+            ExecuteParsingTest(string.Join(" ", longHandOptionsExpectations.Keys.OrderByDescending(o=>o)), true, longHandExpectations);
+            ExecuteParsingTest(string.Join(" ", longHandOptionsExpectations.Keys.OrderBy(o => o)), true, longHandExpectations);
 
         }
 
@@ -92,47 +126,38 @@ namespace Pisces.Tests.ApplicationOptionsTests
 
             //TODO ensure that everything here is in line item in SDS-2 and vice versa
             // make sure arguments get mapped to the right fields
-            ExecuteParsingTest("-a 40", true, (o) => Assert.Equal(40, o.MinimumVariantQScore));
-            ExecuteParsingTest("-b 40", true, (o) => Assert.Equal(40, o.MinimumBaseCallQuality));
+            ExecuteParsingTest("-minvq 40", true, (o) => Assert.Equal(40, o.MinimumVariantQScore));
+            ExecuteParsingTest("-minbq 40", true, (o) => Assert.Equal(40, o.MinimumBaseCallQuality));
             ExecuteParsingTest(@"-B C:\test.bam,C:\test2.bam", true, (o) => Assert.Equal(2, o.BAMPaths.Length));
-            ExecuteParsingTest("-c 40", true, (o) => Assert.Equal(40, o.MinimumCoverage));
+            ExecuteParsingTest("-mindp 40", true, (o) => Assert.Equal(40, o.MinimumDepth));
             ExecuteParsingTest("-d true", true, (o) => Assert.True(o.DebugMode));
             ExecuteParsingTest("-debug true", true, (o) => Assert.True(o.DebugMode));
-            ExecuteParsingTest("-f 0.555", true, (o) => Assert.Equal(0.555f, o.MinimumFrequency));
-            ExecuteParsingTest("-F 40", true, (o) => Assert.Equal(40, o.FilteredVariantQScore));
-            ExecuteParsingTest("-fo true", true, (o) => Assert.True(o.FilterOutVariantsPresentOnlyOneStrand));
+            ExecuteParsingTest("-minvf 0.555", true, (o) => Assert.Equal(0.555f, o.MinimumFrequency));
+            ExecuteParsingTest("-vqfilter 40", true, (o) => Assert.Equal(40, o.FilteredVariantQScore));
+            ExecuteParsingTest("-ssfilter true", true, (o) => Assert.True(o.FilterOutVariantsPresentOnlyOneStrand));
             ExecuteParsingTest(@"-g C:\genome,C:\genome2", true, (o) => Assert.Equal(2, o.GenomePaths.Length));
             ExecuteParsingTest("-NL 40", true, (o) => Assert.Equal(40, o.AppliedNoiseLevel));
             ExecuteParsingTest("-gVCF true", true, (o) => Assert.True(o.OutputgVCFFiles));
-            ExecuteParsingTest("-CallMNVs true", true, (o) => Assert.True(o.CallMNVs));
-            ExecuteParsingTest("-PhaseSNPs true", true, (o) => Assert.True(o.CallMNVs));
+            ExecuteParsingTest("-CallMNVs true", true, (o) => Assert.True(o.CallMNVs));          
             ExecuteParsingTest("-MaxMNVLength 40", true, (o) => Assert.Equal(40, o.MaxSizeMNV));
-            ExecuteParsingTest("-MaxPhaseSNPLength 40", true, (o) => Assert.Equal(40, o.MaxSizeMNV));
             ExecuteParsingTest("-MaxGapBetweenMNV 40", true, (o) => Assert.Equal(40, o.MaxGapBetweenMNV));
-            ExecuteParsingTest("-MaxGapPhasedSNP 40", true, (o) => Assert.Equal(40, o.MaxGapBetweenMNV));
             ExecuteParsingTest(@"-i C:\blah,C:\blah2", true, (o) => Assert.Equal(2, o.IntervalPaths.Length));
-            ExecuteParsingTest("-m 40", true, (o) => Assert.Equal(40, o.MinimumMapQuality));
-            ExecuteParsingTest("-GT threshold", true, (o) => Assert.Equal(GenotypeModel.Thresholding, o.GTModel));
-            ExecuteParsingTest("-GT none", true, (o) => Assert.Equal(GenotypeModel.None, o.GTModel));
-            ExecuteParsingTest("-GT random", false);
+            ExecuteParsingTest("-minmq 40", true, (o) => Assert.Equal(40, o.MinimumMapQuality));
             ExecuteParsingTest("-SBModel poisson", true, (o) => Assert.Equal(StrandBiasModel.Poisson, o.StrandBiasModel));
             ExecuteParsingTest("-SBModel extended", true, (o) => Assert.Equal(StrandBiasModel.Extended, o.StrandBiasModel));
             ExecuteParsingTest("-SBModel random", false);
-            ExecuteParsingTest("-o true", true, (o) => Assert.True(o.OutputBiasFiles));
-            ExecuteParsingTest("-p true", true, (o) => Assert.True(o.OnlyUseProperPairs));
-            ExecuteParsingTest("-q 40", true, (o) => Assert.Equal(40, o.MaximumVariantQScore));
-            ExecuteParsingTest("-s 0.7", true, (o) => Assert.Equal(0.7f, o.StrandBiasAcceptanceCriteria));
+            ExecuteParsingTest("-outputsbfiles true", true, (o) => Assert.True(o.OutputBiasFiles));
+            ExecuteParsingTest("-pp true", true, (o) => Assert.True(o.OnlyUseProperPairs));
+            ExecuteParsingTest("-maxvq 40", true, (o) => Assert.Equal(40, o.MaximumVariantQScore));
+            ExecuteParsingTest("-sbfilter 0.7", true, (o) => Assert.Equal(0.7f, o.StrandBiasAcceptanceCriteria));
             ExecuteParsingTest("-t 40", true, (o) => Assert.Equal(40, o.MaxNumThreads));
-            ExecuteParsingTest("-StitchPairedReads false", true, (o) => Assert.False(o.StitchReads));
             ExecuteParsingTest("-ReportNoCalls true", true, (o) => Assert.True(o.ReportNoCalls));
             ExecuteParsingTest(@"-OutFolder C:\out", true, (o) => Assert.Equal(@"C:\out", o.OutputFolder));
             ExecuteParsingTest(@"-BAMFolder C:\bamfolder", true, (o) => Assert.Equal(@"C:\bamfolder", o.BAMFolder));
-            ExecuteParsingTest(@"-v 20.1", true, (o) => Assert.Equal(20.1f, o.FilteredVariantFrequency));
-            ExecuteParsingTest(@"-gtq 10", true, (o) => Assert.Equal(10, o.LowGenotypeQualityFilter));
+            ExecuteParsingTest(@"-vffilter 20.1", true, (o) => Assert.Equal(20.1f, o.FilteredVariantFrequency));
+            ExecuteParsingTest(@"-ploidy diploid", true, (o) => Assert.Equal(PloidyModel.Diploid, o.PloidyModel));
             ExecuteParsingTest(@"-RepeatFilter 5", true, (o) => Assert.Equal(5, o.IndelRepeatFilter));
-            ExecuteParsingTest(@"-ld 3", true, (o) => Assert.Equal(3, o.LowDepthFilter));
-            ExecuteParsingTest(@"-XcStitcher true", true, (o) => Assert.True(o.UseXCStitcher));
-            ExecuteParsingTest(@"-XcStitcher false", true, (o) => Assert.False(o.UseXCStitcher));
+            ExecuteParsingTest(@"-mindpfilter 3", true, (o) => Assert.Equal(3, o.LowDepthFilter));
             ExecuteParsingTest(@"-Collapse true", true, (o) => Assert.True(o.Collapse));
             ExecuteParsingTest(@"-Collapse false", true, (o) => Assert.False(o.Collapse));
             ExecuteParsingTest(@"  -PriorsPath C:\path", true, (o) => Assert.Equal(@"C:\path", o.PriorsPath));
@@ -150,21 +175,18 @@ namespace Pisces.Tests.ApplicationOptionsTests
             ExecuteParsingTest(@"-RMxNFilter 11,3", true, (o) => Assert.True(
                         (11 == o.RMxNFilterMaxLengthRepeat) &&
                         (3 == o.RMxNFilterMinRepetitions)));
-            ExecuteParsingTest(@"-RMxNFilter 11,3,5", false);
+            ExecuteParsingTest(@"-RMxNFilter 11,3,0.30", true, (o) => Assert.True(
+                (11 == o.RMxNFilterMaxLengthRepeat) &&
+                (3 == o.RMxNFilterMinRepetitions) &&
+                (0.3f == o.RMxNFilterFrequencyLimit)));
+            ExecuteParsingTest(@"-RMxNFilter 11,3,5,0.20", false);
             ExecuteParsingTest(@"-RMxNFilter 5", false);
             ExecuteParsingTest(@"-RMxNFilter yourmom", false);
             ExecuteParsingTest(@"-ThreadByChr true", true, (o) => Assert.True(o.ThreadByChr));
             ExecuteParsingTest(@"-ThreadByChr boo", false);
-            ExecuteParsingTest(@"-MultiProcess true", true, (o) => Assert.True(o.MultiProcess));
-            ExecuteParsingTest(@"-MultiProcess boo", false);
-            ExecuteParsingTest(@"-InsideSubProcess true", true, (o) => Assert.True(o.InsideSubProcess));
-            ExecuteParsingTest(@"-InsideSubProcess boo", false);
             ExecuteParsingTest(@"-Mono boo", true, (o) => Assert.Equal(@"boo", o.MonoPath));
             ExecuteParsingTest(@"-mono boo2", true, (o) => Assert.Equal(@"boo2", o.MonoPath));
-            ExecuteParsingTest(@"-SkipNonIntervalAlignments true", true, (o) => Assert.True(o.SkipNonIntervalAlignments));
-            ExecuteParsingTest(@"-SkipNonIntervalAlignments false", true, (o) => Assert.False(o.SkipNonIntervalAlignments));
             ExecuteParsingTest(@"-SkipNonIntervalAlignments meh", false);
-
         }
 
         [Fact]
@@ -180,7 +202,7 @@ namespace Pisces.Tests.ApplicationOptionsTests
             ExecuteParsingTest("-unknown", false);  
 
             // enum values
-            ExecuteParsingTest("-GT help", false);
+            ExecuteParsingTest("-ploid help", false);
             ExecuteParsingTest("-SBModel bogus", false);  
         }
 
@@ -242,7 +264,7 @@ namespace Pisces.Tests.ApplicationOptionsTests
             // ---------------------
             var option = GetBasicOptions();
             option.Validate();
-
+            
             // ---------------------
             // verify log folder
             // ---------------------
@@ -425,22 +447,32 @@ namespace Pisces.Tests.ApplicationOptionsTests
             ExecuteValidationTest((o) => { o.FilteredVariantFrequency = 1f; }, true);
             ExecuteValidationTest((o) => { o.FilteredVariantFrequency = -1; }, false);
             ExecuteValidationTest((o) => { o.FilteredVariantFrequency = 1.1f; }, false);
-            
-            //FilteredLowGenomeQuality Scenarios
-            ExecuteValidationTest((o) => { o.PloidyModel = PloidyModel.Diploid;
-                                           o.LowGenotypeQualityFilter = 0; }, true);
-            ExecuteValidationTest((o) => { o.PloidyModel = PloidyModel.Diploid; 
-                                           o.LowGenotypeQualityFilter = 100; }, true);
-            ExecuteValidationTest((o) => { o.PloidyModel = PloidyModel.Diploid; 
-                                           o.LowGenotypeQualityFilter = -1; }, false);
-            ExecuteValidationTest((o) => { o.PloidyModel = PloidyModel.Diploid; 
-                                           o.LowGenotypeQualityFilter = 101; }, true);
 
-            ExecuteValidationTest((o) => { o.LowGenotypeQualityFilter = 0; }, false);
-            ExecuteValidationTest((o) => { o.LowGenotypeQualityFilter = 100; }, false);
-            ExecuteValidationTest((o) => { o.LowGenotypeQualityFilter = -1; }, false);
-            ExecuteValidationTest((o) => { o.LowGenotypeQualityFilter = 101; }, false);
+          
+         //FilteredLowGenomeQuality Scenarios
+         ExecuteValidationTest((o) => {
+             o.PloidyModel = PloidyModel.Diploid;
+             o.LowGenotypeQualityFilter = 0;
+         }, true);
+         ExecuteValidationTest((o) => {
+             o.PloidyModel= PloidyModel.Diploid;
+             o.LowGenotypeQualityFilter = 100;
+         }, true);
+         ExecuteValidationTest((o) => {
+             o.PloidyModel = PloidyModel.Diploid;
+             o.LowGenotypeQualityFilter = -1;
+         }, false);
+         ExecuteValidationTest((o) => {
+             o.PloidyModel = PloidyModel.Diploid;
+             o.LowGenotypeQualityFilter = 101;
+         }, true);
 
+        
+         ExecuteValidationTest((o) => { o.LowGenotypeQualityFilter = 0; }, true);
+         ExecuteValidationTest((o) => { o.LowGenotypeQualityFilter = 100; }, true);
+         ExecuteValidationTest((o) => { o.LowGenotypeQualityFilter = -1; }, false);
+         ExecuteValidationTest((o) => { o.LowGenotypeQualityFilter = 101; }, true);
+        
             //FilteredIndelRepeats Scenarios
             ExecuteValidationTest((o) => { o.IndelRepeatFilter = 0; }, true);
             ExecuteValidationTest((o) => { o.IndelRepeatFilter = 10; }, true);
@@ -451,17 +483,17 @@ namespace Pisces.Tests.ApplicationOptionsTests
             ExecuteValidationTest(o =>
             {
                 o.LowDepthFilter = 0;
-                o.MinimumCoverage = 0;
+                o.MinimumDepth = 0;
             }, true);
             ExecuteValidationTest(o =>
             {
                 o.LowDepthFilter = 1;
-                o.MinimumCoverage = 0;
+                o.MinimumDepth = 0;
             }, true);
             ExecuteValidationTest(o =>
             {
                 o.LowDepthFilter = -1;
-                o.MinimumCoverage = 0;
+                o.MinimumDepth = 0;
             }, false);
 
             //Priors path
@@ -503,15 +535,15 @@ namespace Pisces.Tests.ApplicationOptionsTests
         public void MaxNumberThreads()
         {
             string bamFolder = UnitTestPaths.TestDataDirectory;
-            var commandLine1 = string.Format("-a 40 -b 40 -BAMFolder {0} -t 1000 -g {1} -F 40", bamFolder, _existingGenome);
+            var commandLine1 = string.Format("-minvq 40 -minbq 40 -BAMFolder {0} -t 1000 -g {1} -vqfilter 40", bamFolder, _existingGenome);
             var options1 = ApplicationOptions.ParseCommandLine(commandLine1.Split(' '));
             Assert.Equal(Environment.ProcessorCount, options1.MaxNumThreads);
 
-            var commandLine2 = string.Format("-a 40 -b 40 -BAMFolder {0} -g {1} -F 40", bamFolder, _existingGenome);
+            var commandLine2 = string.Format("-minvq 40 -minbq 40 -BAMFolder {0} -g {1} -vqfilter 40", bamFolder, _existingGenome);
             var options2 = ApplicationOptions.ParseCommandLine(commandLine2.Split(' '));
             Assert.Equal(Environment.ProcessorCount, options2.MaxNumThreads);
 
-            var commandLine3 = string.Format("-a 40 -b 40 -BAMFolder {0} -g {1} -F 40 -t 1", bamFolder, _existingGenome);
+            var commandLine3 = string.Format("-minvq 40 -minbq 40 -BAMFolder {0} -g {1} -vqfilter 40 -t 1", bamFolder, _existingGenome);
             var options3 = ApplicationOptions.ParseCommandLine(commandLine3.Split(' '));
             Assert.Equal(1, options3.MaxNumThreads);
         }
@@ -524,7 +556,7 @@ namespace Pisces.Tests.ApplicationOptionsTests
             var applicationOptionsFile = Path.Combine(UnitTestPaths.TestDataDirectory, "SomaticVariantCallerOptions.used.xml");
             if(File.Exists(applicationOptionsFile))
                 File.Delete(applicationOptionsFile);
-            var commandLine1 = string.Format("-a 40 -b 40 -BAMFolder {0} -t 1000 -g {1} -F 40", bamFolder, _existingGenome);
+            var commandLine1 = string.Format("-minvq 40 -minbq 40 -BAMFolder {0} -t 1000 -g {1} -vqfilter 40", bamFolder, _existingGenome);
             var options1 = ApplicationOptions.ParseCommandLine(commandLine1.Split(' '));
             options1.Save(applicationOptionsFile);
             Assert.True(File.Exists(applicationOptionsFile));

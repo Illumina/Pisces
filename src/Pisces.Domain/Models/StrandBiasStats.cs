@@ -11,11 +11,28 @@
 
         public StrandBiasStats(double support, double coverage)
         {
-            Frequency = support/coverage;
+            Frequency = support / coverage;
             Support = support;
             Coverage = coverage;
         }
+
+        public static StrandBiasStats DeepCopy(StrandBiasStats originalStats)
+        {
+            if (originalStats == null)
+                return null;
+
+            var newStats = new StrandBiasStats(originalStats.Support,originalStats.Coverage)
+            {
+                ChanceFalseNeg = originalStats.ChanceFalseNeg,
+                ChanceFalsePos = originalStats.ChanceFalsePos,
+                ChanceVarFreqGreaterThanZero = originalStats.ChanceVarFreqGreaterThanZero,
+                Frequency = originalStats.Frequency,
+            };
+
+            return newStats;
+        }
     }
+
 
     public class StrandBiasResults
     {
@@ -33,5 +50,29 @@
         public StrandBiasStats OverallStats { get; set; }
         public StrandBiasStats ReverseStats { get; set; }
         public StrandBiasStats StitchedStats { get; set; }
+
+        public static StrandBiasResults DeepCopy(StrandBiasResults originalSBresults)
+        {
+            if (originalSBresults == null)
+                return null;
+
+            var sb = new StrandBiasResults()
+            {
+                BiasAcceptable = originalSBresults.BiasAcceptable,
+                BiasScore = originalSBresults.BiasScore,
+                GATKBiasScore = originalSBresults.GATKBiasScore,
+                VarPresentOnBothStrands = originalSBresults.VarPresentOnBothStrands,
+                CovPresentOnBothStrands = originalSBresults.CovPresentOnBothStrands,
+                TestAcceptable = originalSBresults.TestAcceptable,
+                TestScore = originalSBresults.TestScore,
+                ForwardStats = StrandBiasStats.DeepCopy(originalSBresults.ForwardStats),
+                OverallStats = StrandBiasStats.DeepCopy(originalSBresults.OverallStats),
+                ReverseStats = StrandBiasStats.DeepCopy(originalSBresults.ReverseStats),
+                StitchedStats = StrandBiasStats.DeepCopy(originalSBresults.StitchedStats),
+            };
+
+            return sb;
+        }
     }
 }
+

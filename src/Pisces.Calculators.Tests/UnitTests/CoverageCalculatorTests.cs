@@ -21,7 +21,7 @@ namespace Pisces.Logic.Calculators.Tests
         [Trait("ReqID", "SDS-40")]
         public void ComputeCoverage_Point_HappyPath()
         {
-            var variant = new CalledVariant(AlleleCategory.Snv)
+            var variant = new CalledAllele(AlleleCategory.Snv)
             {
                 Coordinate = 1,
                 Reference = "A",
@@ -58,6 +58,7 @@ namespace Pisces.Logic.Calculators.Tests
                 113,
                 112   //Stitched coverage is not reallocated here in the point-mutation case,
             },
+            106+113+112,
             expectedSnvRef:3);
         }
 
@@ -66,7 +67,7 @@ namespace Pisces.Logic.Calculators.Tests
         [Trait("ReqID", "SDS-40")]
         public void ComputeCoverage_Point_WithGappedMnvTakingSupport()
         {
-            var variant = new CalledVariant(AlleleCategory.Snv)
+            var variant = new CalledAllele(AlleleCategory.Snv)
             {
                 Coordinate = 1,
                 Reference = "A",
@@ -97,6 +98,7 @@ namespace Pisces.Logic.Calculators.Tests
                     133,
                     111
                 },
+                121+133+111,
                 expectedSnvRef: 3, takenRefSupport: 50);
         }
 
@@ -108,7 +110,7 @@ namespace Pisces.Logic.Calculators.Tests
             // test again but with when allele count depth is less than "taken" support, make sure we cap at 0
             // this is possible when collapsing and gapped MNVs suck up
             // support from ref bases that are low quality (those ref bases were never added to allele count)
-            var refcall = new CalledReference()
+            var refAllele = new CalledAllele()
             {
                 Coordinate = 1,
                 Reference = "A",
@@ -116,7 +118,7 @@ namespace Pisces.Logic.Calculators.Tests
                 AlleleSupport = 10
             };
 
-            ComputeCoverageTest(refcall, new List<AlleleCount>()
+            ComputeCoverageTest(refAllele, new List<AlleleCount>()
             {
              new AlleleCount()
              {
@@ -138,10 +140,11 @@ namespace Pisces.Logic.Calculators.Tests
                 133,
                 111
             },
+             121+133+111,
             expectedSnvRef: 0, takenRefSupport: 150);
 
             // make sure snv is capped too
-            CalledVariant variant = new CalledVariant(AlleleCategory.Snv)
+            CalledAllele variant = new CalledAllele(AlleleCategory.Snv)
             {
                 Coordinate = 1,
                 Reference = "A",
@@ -171,6 +174,7 @@ namespace Pisces.Logic.Calculators.Tests
                 133,
                 111
             },
+            121+133+111,
             expectedSnvRef: 0, takenRefSupport: 150);
 
         }
@@ -180,7 +184,7 @@ namespace Pisces.Logic.Calculators.Tests
         [Trait("ReqID", "SDS-40")]
         public void ComputeCoverage_ZeroCoverage()
         {
-            var variant = new CalledVariant(AlleleCategory.Deletion)
+            var variant = new CalledAllele(AlleleCategory.Deletion)
             {
                 Coordinate = 1,
                 Reference = "ATCG",
@@ -204,7 +208,7 @@ namespace Pisces.Logic.Calculators.Tests
             new []
             {
                 0, 0, 0
-            }, false);
+            },0, false);
 
             test();
 
@@ -233,7 +237,7 @@ namespace Pisces.Logic.Calculators.Tests
         public void ComputeCoverage_SupportGreaterThanCoverage()
         {
             //This shouldn't happen but don't barf
-            var variant = new CalledVariant(AlleleCategory.Deletion)
+            var variant = new CalledAllele(AlleleCategory.Deletion)
             {
                 Coordinate = 1,
                 Reference = "ATCG",
@@ -256,7 +260,9 @@ namespace Pisces.Logic.Calculators.Tests
             new []
             {
                 8, 7, 0
-            }, false, 100);
+            }, 
+            8+7,
+            false, 100);
 
             //Reference support should be 0
             Assert.Equal(0, variant.ReferenceSupport);
@@ -267,7 +273,7 @@ namespace Pisces.Logic.Calculators.Tests
         [Trait("ReqID", "SDS-40")]
         public void ComputeCoverage_Spanning_HappyPath()
         {
-            var deletion = new CalledVariant(AlleleCategory.Deletion)
+            var deletion = new CalledAllele(AlleleCategory.Deletion)
             {
                 Coordinate = 1,
                 Reference = "ATCG",
@@ -275,24 +281,25 @@ namespace Pisces.Logic.Calculators.Tests
             };
 
             ComputeCoverageTest(deletion, new List<AlleleCount>()
-            {
+            { 
                 new AlleleCount()
                 {
                     Coordinate = 2,
-                    DirectionCoverage = new[] {10, 100, 20}  // redist = 100, 550, 0
+                    DirectionCoverage = new[] {10, 100, 20}
                 },
                 new AlleleCount()
                 {
                     Coordinate = 4,
-                    DirectionCoverage = new[] {30, 50, 200} // redist = 650, 750, 0
+                    DirectionCoverage = new[] {30, 50, 200}
                 }
-            },
+                },
                 new[] // expect internal average
                 {
                     375, 650, 0
-                });
+                },
+                375+650);
 
-            var insertion = new CalledVariant(AlleleCategory.Insertion)
+            var insertion = new CalledAllele(AlleleCategory.Insertion)
             {
                 Coordinate = 1,
                 Reference = "A",
@@ -304,20 +311,21 @@ namespace Pisces.Logic.Calculators.Tests
                 new AlleleCount()
                 {
                     Coordinate = 1,
-                    DirectionCoverage = new[] {10, 100, 20} // redist = 100, 550, 0
+                    DirectionCoverage = new[] {10, 100, 20} 
                 },
                 new AlleleCount()
                 {
                     Coordinate = 2,
-                    DirectionCoverage = new[] {30, 50, 200} // redist = 650, 750, 0
+                    DirectionCoverage = new[] {30, 50, 200} 
                 }
             },
                 new[] // expect min
                 {
                     100, 550, 0
-                });
+                },
+                100+550+0);
 
-            var mnv = new CalledVariant(AlleleCategory.Mnv)
+            var mnv = new CalledAllele(AlleleCategory.Mnv)
             {
                 Coordinate = 1,
                 Reference = "CATG",
@@ -330,51 +338,69 @@ namespace Pisces.Logic.Calculators.Tests
                 new AlleleCount()
                 {
                     Coordinate = 1,
-                    DirectionCoverage = new[] {10, 100, 20} // redist = 100, 550, 0
+                    DirectionCoverage = new[] {10, 100, 20} //-> 20*5,110*5,0 = 100,550,0
                 },
                 new AlleleCount()
                 {
                     Coordinate = 4,
-                    DirectionCoverage = new[] {30, 50, 200} // redist = 650, 750, 0
+                    DirectionCoverage = new[] {30, 50, 200} // -> 130*5,150*5,0 = 650,750,0
                 }
             },
-                new[] // expect internal average
+                new[] // expect internal average // - > (100 + 650)/2 , 550+750 /2 = 375,650,0 
                 {
                     375, 650, 0
-                });
+                },
+                375+650+0);
+
+            // For mnvs, take min of first and last datapoints.
+            ComputeCoverageTest(mnv, new List<AlleleCount>()
+            {
+                new AlleleCount()
+                {
+                    Coordinate = 1,
+                    DirectionCoverage = new[] {1, 1, 0} //-> 1*5,1*5,0 = 5,5,0
+                },
+                new AlleleCount()
+                {
+                    Coordinate = 4,
+                    DirectionCoverage = new[] {2, 2, 0} // -> 2*5,2*5,0 = 10,10,0
+                }
+            },
+                new[] // expect internal average // - > (5 + 10)/2 , 5+10 /2 = 15/2,15/2 =  7.5,7.5
+                {
+                    7, 7, 0   //problem here is that we now have total coverage of 14 when we started with 15!!
+                },
+                15  //7.5+7.5, sop we dont loose that fraction.) 
+                );
         }
 
-        private void ComputeCoverageTest(BaseCalledAllele variant, List<AlleleCount> stagedCounts,  
-            int[] expectedCoverageByDirection, bool checkAux = true, int alleleSupport = 5, int expectedSnvRef = 0, int takenRefSupport = 0)
+        private void ComputeCoverageTest(CalledAllele variant, List<AlleleCount> stagedCounts,  
+            int[] expectedClosestIntCoverageByDirection, int expectedCoverage, bool checkAux = true, int alleleSupport = 5, int expectedSnvRef = 0, int takenRefSupport = 0)
         {
             variant.AlleleSupport = alleleSupport;
 
             var mockStateManager = CreateMockStateManager(stagedCounts, takenRefSupport);
-
-            var expectedCoverage = expectedCoverageByDirection.Sum();
-
+            
             new CoverageCalculator().Compute(variant, mockStateManager);
-
             Assert.Equal(expectedCoverage, variant.TotalCoverage);
-
-            for( var i = 0; i < expectedCoverageByDirection.Length; i ++)
-                Assert.Equal(expectedCoverageByDirection[i], variant.TotalCoverageByDirection[i]);
+           
+            for ( var i = 0; i < expectedClosestIntCoverageByDirection.Length; i ++)
+                Assert.Equal(expectedClosestIntCoverageByDirection[i], variant.EstimatedCoverageByDirection[i]);
 
             if (checkAux)
             {
                 //"Reference" Support should be the coverage less the variant support, if we don't have an SNV
-                if (variant is CalledVariant)
+                if (variant.Type != AlleleCategory.Reference)
                 {
                     if (variant.Type != AlleleCategory.Snv && variant.Type != AlleleCategory.Reference)
-                        Assert.Equal(expectedCoverage - variant.AlleleSupport, ((CalledVariant)variant).ReferenceSupport);
+                        Assert.Equal(expectedCoverage - variant.AlleleSupport, variant.ReferenceSupport);
                     else
-                        Assert.Equal(expectedSnvRef, ((CalledVariant)variant).ReferenceSupport);
+                        Assert.Equal(expectedSnvRef, variant.ReferenceSupport);
 
                 }
                 else
                 {
-                    // Assert.Equal(expectedSnvRef, ((CalledVariant)variant).ReferenceSupport);
-                    Assert.Equal(expectedSnvRef, ((CalledReference)variant).AlleleSupport);
+                    Assert.Equal(expectedSnvRef, variant.AlleleSupport);
                 }
 
                 //Frequency should be support/coverage

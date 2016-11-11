@@ -66,9 +66,9 @@
     <Compile Include="Models\AlignmentSet.cs" />
     <Compile Include="Models\Alleles\BaseAllele.cs" />
     <Compile Include="Models\Alleles\CandidateAllele.cs" />
+    <Compile Include="Models\CigarDirection.cs" />
     <Compile Include="Models\DirectionInfo.cs" />
     <Compile Include="Models\ReadCoverageSummary.cs" />
-    <Compile Include="SequencingFiles\BamCommon.cs" />
     <Compile Include="Models\Read.cs" />
     <Compile Include="Models\StrandBiasStats.cs" />
     <Compile Include="Types\FilterType.cs" />
@@ -79,9 +79,7 @@
     <Compile Include="Interfaces\IAllele.cs" />
     <Compile Include="Interfaces\IAlleleSource.cs" />
     <Compile Include="Interfaces\IGenome.cs" />
-    <Compile Include="Models\Alleles\BaseCalledAllele.cs" />
-    <Compile Include="Models\Alleles\CalledReference.cs" />
-    <Compile Include="Models\Alleles\CalledVariant.cs" />
+    <Compile Include="Models\Alleles\CalledAllele.cs" />
     <Compile Include="Models\ChrReference.cs" />
     <Compile Include="Models\IntervalSet.cs" />
     <Compile Include="Models\Region.cs" />
@@ -92,7 +90,17 @@
     <Compile Include="Types\DirectionType.cs" />
     <Compile Include="Types\Genotype.cs" />
     <Compile Include="Utility\DirectionHelper.cs" />
+    <Compile Include="Utility\UsageInfoHelper.cs" />
     <Compile Include="Utility\ValidationHelper.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Alignment.Domain\Alignment.Domain.csproj">
+      <Project>{be61b905-3ac0-49ca-9740-f1947d89423c}</Project>
+      <Name>Alignment.Domain</Name>
+    </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="SequencingFiles\" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

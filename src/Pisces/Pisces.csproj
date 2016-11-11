@@ -14,27 +14,6 @@
     <TargetFrameworkProfile />
     <NuGetPackageImportStamp>61ec8fb1</NuGetPackageImportStamp>
   </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
-    <PlatformTarget>AnyCPU</PlatformTarget>
-    <DebugSymbols>true</DebugSymbols>
-    <DebugType>full</DebugType>
-    <Optimize>false</Optimize>
-    <OutputPath>bin\Debug\</OutputPath>
-    <DefineConstants>DEBUG;TRACE</DefineConstants>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
-    <Prefer32Bit>false</Prefer32Bit>
-  </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
-    <PlatformTarget>AnyCPU</PlatformTarget>
-    <DebugType>pdbonly</DebugType>
-    <Optimize>true</Optimize>
-    <OutputPath>bin\Release\</OutputPath>
-    <DefineConstants>TRACE</DefineConstants>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
-    <Prefer32Bit>false</Prefer32Bit>
-  </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x64'">
     <DebugSymbols>true</DebugSymbols>
     <OutputPath>bin\x64\Debug\</OutputPath>
@@ -69,8 +48,6 @@
     <Compile Include="ApplicationOptions.cs" />
     <Compile Include="Interfaces\ISomaticVariantCaller.cs" />
     <Compile Include="Interfaces\IVariantCollapser.cs" />
-    <Compile Include="Logic\Alignment\BasicStitcher.cs" />
-    <Compile Include="Logic\Alignment\XCStitcher.cs" />
     <Compile Include="Logic\Processing\GenomeProcessor.cs" />
     <Compile Include="Logic\Processing\MultiProcessProcessor.cs" />
     <Compile Include="Logic\StrandBiasFileWriter.cs">
@@ -82,7 +59,6 @@
     <Compile Include="Logic\VariantCalling\AlleleCaller.cs" />
     <Compile Include="Logic\Alignment\AlignmentsSource.cs" />
     <Compile Include="Interfaces\IAlignmentSource.cs" />
-    <Compile Include="Interfaces\IAlignmentStitcher.cs" />
     <Compile Include="Interfaces\IAlleleCaller.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
@@ -111,6 +87,10 @@
     <ProjectReference Include="..\Pisces.Processing\Pisces.Processing.csproj">
       <Project>{8dbb696e-bd43-4bbf-b1c5-f10b28108f4a}</Project>
       <Name>Pisces.Processing</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\StitchingLogic\StitchingLogic.csproj">
+      <Project>{88b6061c-a010-43d0-b7c0-3ef96fe39295}</Project>
+      <Name>StitchingLogic</Name>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>

@@ -17,7 +17,7 @@ namespace Pisces.Logic
         private readonly IAlignmentSource _alignmentSource;
         private readonly ICandidateVariantFinder _variantFinder;
         private readonly IAlleleCaller _alleleCaller;
-        private readonly IVcfWriter<BaseCalledAllele> _vcfWriter;
+        private readonly IVcfWriter<CalledAllele> _vcfWriter;
         private readonly IStateManager _stateManager;
         private readonly ChrReference _chrReference;
         private readonly IRegionMapper _regionMapper;
@@ -25,7 +25,7 @@ namespace Pisces.Logic
         private readonly ChrIntervalSet _intervalSet;
 
         public SomaticVariantCaller(IAlignmentSource alignmentSource, ICandidateVariantFinder variantFinder, IAlleleCaller alleleCaller, 
-            IVcfWriter<BaseCalledAllele> vcfWriter, IStateManager stateManager, ChrReference chrReference, IRegionMapper regionMapper, 
+            IVcfWriter<CalledAllele> vcfWriter, IStateManager stateManager, ChrReference chrReference, IRegionMapper regionMapper, 
             IStrandBiasFileWriter biasFileWriter, ChrIntervalSet intervalSet = null)
         {
             _alignmentSource = alignmentSource;
@@ -41,16 +41,20 @@ namespace Pisces.Logic
 
         public void Execute()
         {
-            AlignmentSet alignmentSet;
-            while ((alignmentSet = _alignmentSource.GetNextAlignmentSet()) != null)
+            Read read;
+
+            if (_alignmentSource.SourceIsStitched)
+                Logger.WriteToLog("Stitched reads detected");
+
+            while ((read = _alignmentSource.GetNextRead()) != null)
             {
                 // find candidate variants
-                var candidateVariants = _variantFinder.FindCandidates(alignmentSet, _chrReference.Sequence,
+                var candidateVariants = _variantFinder.FindCandidates(read, _chrReference.Sequence,
                     _chrReference.Name);
 
                 // track in state manager
                 _stateManager.AddCandidates(candidateVariants);
-                _stateManager.AddAlleleCounts(alignmentSet);
+                _stateManager.AddAlleleCounts(read);
 
                 // call anything possible to call
                 Call(_alignmentSource.LastClearedPosition);
@@ -75,16 +79,16 @@ namespace Pisces.Logic
             if (readyBatch.HasCandidates)
             {
                 // evaluate and call variants (including ref calls if producing gvcf)
-                var calledVariantsByPosition = _alleleCaller.Call(readyBatch, _stateManager);
+                var BaseCalledAllelesByPosition = _alleleCaller.Call(readyBatch, _stateManager);
 
-                var calledVariants = calledVariantsByPosition.Values.SelectMany(a => a).ToList();
+                var BaseCalledAlleles = BaseCalledAllelesByPosition.Values.SelectMany(a => a).ToList();
 
                 // write to vcf
-                _vcfWriter.Write(calledVariants, _regionMapper);
+                _vcfWriter.Write(BaseCalledAlleles, _regionMapper);
 
                 if (_biasFileWriter != null)
                 {
-                    _biasFileWriter.Write(calledVariants);
+                    _biasFileWriter.Write(BaseCalledAlleles);
                 }
             }
 

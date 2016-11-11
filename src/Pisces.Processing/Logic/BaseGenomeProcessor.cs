@@ -72,7 +72,13 @@ namespace Pisces.Processing.Logic
                 if (ShouldThrottle)
                     InitThrottleSignals(WorkRequests);
 
-                JobManager.Process(jobs); // process all jobs
+                if (maxThreads > 1)
+                    JobManager.Process(jobs); // process all jobs
+                else
+                {
+                    foreach (var job in jobs)
+                        job.Execute();
+                }
             }
             finally
             {

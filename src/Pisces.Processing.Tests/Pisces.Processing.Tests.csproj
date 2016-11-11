@@ -49,6 +49,10 @@
     <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="Moq, Version=4.2.1507.118, Culture=neutral, PublicKeyToken=69f491c39445e920, processorArchitecture=MSIL">
+      <HintPath>..\packages\Moq.4.2.1507.0118\lib\net40\Moq.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Xml.Linq" />
@@ -61,15 +65,22 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="UnitTests\BaseApplicationOptionsTests.cs" />
     <Compile Include="UnitTests\CandidateBatchTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="UnitTests\BaseGenomeProcessorTests.cs" />
+    <Compile Include="UnitTests\ExternalProcessJobTests.cs" />
+    <Compile Include="UnitTests\MultiProcessProcessorBaseTests.cs" />
     <Compile Include="UnitTests\RegionStateManagerTests.cs" />
     <Compile Include="UnitTests\RegionStateTests.cs" />
     <Compile Include="UnitTests\JobManagerTests.cs" />
     <Compile Include="UnitTests\LoggerTests.cs" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\Alignment.Domain\Alignment.Domain.csproj">
+      <Project>{BE61B905-3AC0-49CA-9740-F1947D89423C}</Project>
+      <Name>Alignment.Domain</Name>
+    </ProjectReference>
     <ProjectReference Include="..\TestUtilities\TestUtilities.csproj">
       <Project>{92c8d8de-617c-4f20-95b0-b1b4b1fcc110}</Project>
       <Name>TestUtilities</Name>

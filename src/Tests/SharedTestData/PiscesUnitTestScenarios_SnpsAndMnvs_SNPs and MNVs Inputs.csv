@@ -1,0 +1,5 @@
+category,ID,R1 Position,R1 Cigar,R1 Direction,R2 Position,R2 Cigar,R2 Direction,ref input R1 Position,ref input R1 Cigar,ref input R1 Direction,ref input R2 Position,ref input R2 Cigar,ref input R2 Direction,Should Stitch,Output R1 Position,Output R1 Cigar,Output R1 Direction,Output R2 Position,Output R2 Cigar,Output R2Direction,Should Stitch ref,Ref Output R1 Position,Ref Output R1 Cigar,Ref Output R1 Direction,Ref Output R2 Position,Ref Output R2 Cigar,Ref Output R2Direction,var loading,ref loading,candidate direction,frequency,bias?,Notes (optional)
+MNV,1,1,8M,F,3,7M,R,1,8M,F,3,7M,R,TRUE,1,9M,2F6S1R, , , ,TRUE,1,9M,2F6S1R, , , ,3SS,3SS,S,0.5,FALSE,
+MNV,2,1,8M,F,5,5M,R,1,8M,F,5,5M,R,TRUE,1,9M,4F4S1R, , , ,TRUE,1,9M,4F4S1R, , , ,3FF,3FF,F,0.5,FALSE,
+MNV,3,1,6M,F,4,6M,R,1,6M,F,4,6M,R,TRUE,1,9M,3F3S3R, , , ,TRUE,1,9M,3F3S3R, , , ,3FSSSR,3FSSSR,S,0.5,FALSE,
+MNV,4,1,8M,F,4,6M,R,1,8M,F,4,7M,R,TRUE,1,9M,3F5S1R, , , ,TRUE,1,9M,3F5S1R, , , ,3FS,3FS,S,0.5,FALSE,

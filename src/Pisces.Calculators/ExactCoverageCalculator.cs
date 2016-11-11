@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Linq;
-using SequencingFiles;
+using Pisces.Domain;
 using Pisces.Domain.Interfaces;
 using Pisces.Domain.Models;
 using Pisces.Domain.Models.Alleles;
@@ -14,41 +14,48 @@ namespace Pisces.Calculators
         private DirectionType[] _directionMap;
         private int[] _positionMap;
 
-        public override void Compute(BaseCalledAllele allele, IAlleleSource alleleCountSource)
+        public override void Compute(CalledAllele allele, IAlleleSource alleleCountSource)
         {
-            if (allele is CalledReference)
+            if (allele.Type== AlleleCategory.Reference)
                 CalculateSinglePoint(allele, alleleCountSource);
             else
             {
-                var variant = (CalledVariant)allele;
-                switch (variant.Type)
+                switch (allele.Type)
                 {
                     case AlleleCategory.Deletion:
-                        CalculateSpanning(variant, alleleCountSource, variant.Coordinate,
-                            variant.Coordinate + variant.Length + 1);
+                        CalculateSpanning(allele, alleleCountSource, allele.Coordinate,
+                            allele.Coordinate + allele.Length + 1);
                         break;
                     case AlleleCategory.Mnv:
-                        CalculateSpanning(variant, alleleCountSource, variant.Coordinate - 1,
-                            variant.Coordinate + variant.Length);
+                        CalculateSpanning(allele, alleleCountSource, allele.Coordinate - 1,
+                            allele.Coordinate + allele.Length);
                         break;
                     case AlleleCategory.Insertion:
-                        CalculateSpanning(variant, alleleCountSource, variant.Coordinate, variant.Coordinate + 1, true);
+                        CalculateSpanning(allele, alleleCountSource, allele.Coordinate, allele.Coordinate + 1, true);
                         break;
                     default:
-                        CalculateSinglePoint(variant, alleleCountSource);
+                        CalculateSinglePoint(allele, alleleCountSource);
                         break;
                 }
             }
         }
 
-        private void CalculateSpanning(CalledVariant variant, IAlleleSource alleleCountSource, int precedingPosition,
+        private void CalculateSpanning(CalledAllele variant, IAlleleSource alleleCountSource, int precedingPosition,
             int trailingPosition, bool isInsertion = false)
         {
             //reset
-            for (var i = 0; i < variant.TotalCoverageByDirection.Length; i ++)
-                variant.TotalCoverageByDirection[i] = 0;
+            for (var i = 0; i < variant.EstimatedCoverageByDirection.Length; i ++)
+                variant.EstimatedCoverageByDirection[i] = 0;
+			for (var directionIndex = 0; directionIndex < Constants.NumDirectionTypes; directionIndex++)
+			{
+				foreach (var alleleType in Constants.CoverageContributingAlleles)
+				{
+					variant.SumOfBaseQuality += alleleCountSource.GetSumOfAlleleBaseQualities(precedingPosition, alleleType, (DirectionType)directionIndex);
+					variant.SumOfBaseQuality += alleleCountSource.GetSumOfAlleleBaseQualities(trailingPosition, alleleType, (DirectionType)directionIndex);
+				}
+			}
 
-            var spanningReads = alleleCountSource.GetSpanningReadSummaries(precedingPosition, trailingPosition);
+			var spanningReads = alleleCountSource.GetSpanningReadSummaries(precedingPosition, trailingPosition);
 
             DirectionType[] directionMap = null;
             int[] positionMap = null;
@@ -69,7 +76,7 @@ namespace Pisces.Calculators
 
                 if (directionInfo.Directions.Count() == 1)
                 {
-                    variant.TotalCoverageByDirection[(int) directionInfo.Directions.First().Direction]++;
+                    variant.EstimatedCoverageByDirection[(int) directionInfo.Directions.First().Direction]++;
                 }
                 else
                 {
@@ -87,12 +94,12 @@ namespace Pisces.Calculators
                     var indexBoundaries = GetIndexBoundaries(precedingPosition, trailingPosition, _positionMap);
 
                     var direction = GetDirection(indexBoundaries.Item1, indexBoundaries.Item2, _directionMap);
-                    variant.TotalCoverageByDirection[(int) direction]++;
+                    variant.EstimatedCoverageByDirection[(int) direction]++;
                 }
             }
 
             // coverage should be total across the directions.  
-            variant.TotalCoverage = variant.TotalCoverageByDirection.Sum();
+            variant.TotalCoverage = variant.EstimatedCoverageByDirection.Sum();
             variant.ReferenceSupport = Math.Max(0, variant.TotalCoverage - variant.AlleleSupport);
         }
 

@@ -8,9 +8,9 @@ namespace TestUtilities
 {
     public class TestVariantsLoader
     {
-        public static List<BaseCalledAllele> LoadCalledVariantsFile(string filepath)
+        public static List<CalledAllele> LoadBaseCalledAllelesFile(string filepath)
         {
-            var variants = new List<BaseCalledAllele>();
+            var variants = new List<CalledAllele>();
             var columns = new string[0];
             
             using (var reader = new StreamReader(filepath))
@@ -24,13 +24,13 @@ namespace TestUtilities
                         columns = tokens;
                     else
                     {
-                        var variant = new CalledVariant(AlleleCategory.Snv); // note doesn't matter what the call type is, vcf writer doesnt care
+                        var variant = new CalledAllele(AlleleCategory.Snv); // note doesn't matter what the call type is, vcf writer doesnt care
                         for(var i = 0; i < columns.Length; i ++)
                         {
                             var column = columns[i];
                             var dataValue = tokens[i];
 
-                                var type = typeof(BaseCalledAllele);
+                                var type = typeof(CalledAllele);
                                 var property = type.GetProperty(column);
 
                             switch (column)
@@ -82,9 +82,9 @@ namespace TestUtilities
             return variants;
         }
 
-        public static List<BaseCalledAllele> LoadCalledVariantsArray(string[] candidates)
+        public static List<CalledAllele> LoadBaseCalledAllelesArray(string[] candidates)
         {
-            var variants = new List<BaseCalledAllele>();
+            var variants = new List<CalledAllele>();
             var columns = new string[0];
             foreach (var line in candidates) {
             {
@@ -94,13 +94,13 @@ namespace TestUtilities
                     columns = tokens;
                 else
                 {
-                    var variant = new CalledVariant(AlleleCategory.Snv); // note doesn't matter what the call type is, vcf writer doesnt care
+                    var variant = new CalledAllele(AlleleCategory.Snv); // note doesn't matter what the call type is, vcf writer doesnt care
                     for (var i = 0; i < columns.Length; i++)
                     {
                         var column = columns[i];
                         var dataValue = tokens[i];
 
-                        var type = typeof(BaseCalledAllele);
+                        var type = typeof(CalledAllele);
                         var property = type.GetProperty(column);
 
                         switch (column)
@@ -153,9 +153,9 @@ namespace TestUtilities
         }
 
 
-        private static CalledReference Map(BaseCalledAllele variant)
+        private static CalledAllele Map(CalledAllele variant)
         {
-            return new CalledReference()
+            return new CalledAllele()
             {
                 Chromosome = variant.Chromosome,
                 Coordinate = variant.Coordinate,

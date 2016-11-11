@@ -84,45 +84,67 @@ namespace Pisces.Processing.Tests.UnitTests
         [Fact]
         public void Error()
         {
-            var log = new List<int>();
-            var jobNumber = 1;
-            var jobManager = new JobManager(3);
-
-            var jobs = new List<IJob>();
-
-            for (var i = 0; i < 15; i++)
+            foreach (var mode in new[] { JobErrorHandlingMode.None,  JobErrorHandlingMode.Terminate, JobErrorHandlingMode.Wait})
             {
-                jobs.Add(new GenericJob(() =>
+                var log = new List<int>();
+                var jobNumber = 1;
+                var runningJobs = 0L;
+                var jobManager = new JobManager(3, mode);
+
+                var jobs = new List<IJob>();
+                
+                for (var i = 0; i < 15; i++)
                 {
-                    var myJobNumber = 0;
-
-                    // get job number
-                    lock (_sync)
+                    jobs.Add(new GenericJob(() =>
                     {
-                        myJobNumber = jobNumber;
-                        Interlocked.Increment(ref jobNumber);
+                        var myJobNumber = 0;
 
-                        log.Add(myJobNumber);
-                    }
+                        // get job number
+                        lock (_sync)
+                        {
+                            myJobNumber = jobNumber++;
+                            log.Add(myJobNumber);
+                        }
+                        Interlocked.Increment(ref runningJobs);
 
-                    if (myJobNumber == 2)
-                    {
-                        Thread.Sleep(1000);
-                        throw new Exception("Help");
-                    }
-                    Thread.Sleep(3000); // pretend to do some work
-                }));
+                        if (myJobNumber == 2)
+                        {
+                            Thread.Sleep(1000);
+                            Interlocked.Decrement(ref runningJobs);
+
+                            throw new Exception("Help");
+                        }
+                        Thread.Sleep(3000); // pretend to do some work
+                        Interlocked.Decrement(ref runningJobs);
+                    }));
+                }
+
+                var timeStarted = DateTime.Now;
+                Assert.Throws<Exception>(() => jobManager.Process(jobs));
+                var timeTaken = DateTime.Now - timeStarted;
+
+                // make sure no jobs after the initially launched jobs are executed
+                Assert.Equal(3, log.Count);
+                Assert.True(log.Contains(1));
+                Assert.True(log.Contains(2));
+                Assert.True(log.Contains(3));
+                switch (mode)
+                {
+                    case JobErrorHandlingMode.None:
+                        Assert.True(timeTaken.TotalSeconds < 3);
+                        Thread.Sleep(3000);
+                        break;
+                    case JobErrorHandlingMode.Wait:
+                        Assert.Equal(0, Interlocked.Read(ref runningJobs));
+                        Assert.True(timeTaken.TotalSeconds >= 3);
+                        break;
+                    case JobErrorHandlingMode.Terminate:
+                        Assert.Equal(2, Interlocked.Read(ref runningJobs));
+                        Assert.True(timeTaken.TotalSeconds < 3);
+                        break;
+
+                }
             }
-
-            jobManager.Process(jobs);
-
-            // make sure no jobs after the initially launched jobs are executed
-            Assert.Equal(3, log.Count);
-            Assert.True(log.Contains(1));
-            Assert.True(log.Contains(2));
-            Assert.True(log.Contains(3));
-
-            Thread.Sleep(3000); // wait for all threads to finish
         }
     }
 }

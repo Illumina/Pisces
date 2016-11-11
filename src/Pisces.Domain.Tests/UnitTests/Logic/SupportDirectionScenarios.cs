@@ -22,7 +22,7 @@ namespace Pisces.Domain.Tests.UnitTests.Logic
         public Read GetAlignmentWithCoverageDirections(int numForward, int numStitched, int numReverse, int deletionLength, bool isDuplex = false)
         {
             var read = DomainTestHelper.CreateRead("chr1", String.Concat(Enumerable.Repeat("A", numForward + numReverse + numStitched - deletionLength)), 1);
-            read.DirectionMap = GetCoverageDirections(numForward, numStitched, numReverse, deletionLength);
+            read.SequencedBaseDirectionMap = GetCoverageDirections(numForward, numStitched, numReverse, deletionLength);
             read.IsDuplex = isDuplex;
             return read;
         }

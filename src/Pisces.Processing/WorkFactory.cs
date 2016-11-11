@@ -1,11 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
-using System.Text;
-using SequencingFiles;
 using Pisces.IO;
 using Pisces.Processing.Logic;
+using Pisces.Processing.Utility;
+using Alignment.IO.Sequencing;
 
 namespace Pisces.Processing
 {
@@ -45,8 +44,20 @@ namespace Pisces.Processing
                 chromosomeNames.AddRange(filteredChromosomes);
             }
 
-            var genome = new Genome(genomePath, chromosomeNames.Distinct().ToList(), customOrderChromosomes: true);
+            var genome = new Genome(genomePath, chromosomeNames.Distinct().ToList());
 
+            if (genome.ChromosomesToProcess.Count() < chromosomeNames.Distinct().Count())
+            {
+                Logger.WriteToLog("Warning: Not all requested sequences were found in {0} to process.", genome.GetGenomeBuild());
+                Logger.WriteToLog("Check BAM file matches reference genome.");
+
+                if (string.IsNullOrEmpty(_baseOptions.ChromosomeFilter))
+                    Logger.WriteToLog("Requested sequences: {0}", (string.Join(",", chromosomeNames.Distinct().ToList())));
+                else
+                    Logger.WriteToLog("Requested sequences: {0}", _baseOptions.ChromosomeFilter);
+
+            }    
+            
             return genome;
         }
 

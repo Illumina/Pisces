@@ -1,9 +1,10 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
+using Alignment.Domain.Sequencing;
 using Pisces.Interfaces;
 using Pisces.Tests.MockBehaviors;
 using Moq;
-using SequencingFiles;
+using Pisces.IO.Sequencing;
 using Pisces.Domain.Models;
 using Pisces.Domain.Models.Alleles;
 using Pisces.Domain.Tests;
@@ -20,7 +21,7 @@ namespace Pisces.Tests.FunctionalTests
         [Fact]
         public void Fraction()
         {
-            var options = new ApplicationOptions() { MinimumCoverage = 0 };
+            var options = new ApplicationOptions() { MinimumDepth = 0 };
 
             var chrReference = new ChrReference()
             {
@@ -29,9 +30,9 @@ namespace Pisces.Tests.FunctionalTests
             };
 
             // no no-calls, 1 snp
-            var readSets = new List<AlignmentSet>();
-            AddAlignmentSet(readSets, 50, 1, "ACTCTA", 20, "ATCCCG");
-            AddAlignmentSet(readSets, 25, 1, "ACCCTA", 20, "ATCCCG");
+            var readSets = new List<Read>();
+            AddReads(readSets, 50, 1, "ACTCTA", 20, "ATCCCG");
+            AddReads(readSets, 25, 1, "ACCCTA", 20, "ATCCCG");
 
             var alleles = Call(readSets, chrReference, options);
 
@@ -41,7 +42,7 @@ namespace Pisces.Tests.FunctionalTests
             Assert.Equal(75, variant.TotalCoverage);
 
             // add no-calls at snp position
-            AddAlignmentSet(readSets, 10, 1, "ACNCTA", 20, "ATCCCG");
+            AddReads(readSets, 10, 1, "ACNCTA", 20, "ATCCCG");
             alleles = Call(readSets, chrReference, options);
 
             Assert.Equal(1, alleles.Count());
@@ -51,31 +52,31 @@ namespace Pisces.Tests.FunctionalTests
 
             // add no-calls at reference position
             options.OutputgVCFFiles = true;
-            AddAlignmentSet(readSets, 40, 1, "ACTCTN", 20, "ATCCCG");
+            AddReads(readSets, 40, 1, "ACTCTN", 20, "ATCCCG");
             alleles = Call(readSets, chrReference, options);
 
             Assert.Equal(12, alleles.Count());
-            Assert.Equal(1, alleles.Count(a => a is CalledVariant));
-            variant = alleles.First(a => a is CalledVariant);
+            Assert.Equal(1, alleles.Count(a => (a.Type != Domain.Types.AlleleCategory.Reference)));
+            variant = alleles.First(a => (a.Type != Domain.Types.AlleleCategory.Reference));
             Assert.Equal(115, variant.TotalCoverage);
             Assert.Equal(10f / 125f, variant.FractionNoCalls);
 
-            foreach (var reference in alleles.Where(a => a is CalledReference))
+            foreach (var reference in alleles.Where(a => (a.Type == Domain.Types.AlleleCategory.Reference)))
             {
                 Assert.Equal(reference.Coordinate == 6 ? 40f / 125f : 0f, reference.FractionNoCalls);
             }
         }
 
-        private List<BaseCalledAllele> Call(List<AlignmentSet> readSets, ChrReference chrReference, ApplicationOptions options)
+        private List<CalledAllele> Call(List<Read> readSets, ChrReference chrReference, ApplicationOptions options)
         {
-            var calledAlleles = new List<BaseCalledAllele>();
+            var calledAlleles = new List<CalledAllele>();
             var caller = GetMockFactory(options, readSets).CreateSomaticVariantCaller(chrReference, "fakeBamFilePath", GetMockWriter(calledAlleles));
             caller.Execute();
 
             return calledAlleles;
         }
 
-        private MockFactoryWithDefaults GetMockFactory(ApplicationOptions options, List<AlignmentSet> readSets)
+        private MockFactoryWithDefaults GetMockFactory(ApplicationOptions options, List<Read> readSets)
         {
             var currentReadIndex = -1;
 
@@ -83,7 +84,7 @@ namespace Pisces.Tests.FunctionalTests
 
             // alignment source
             var mockAlignmentSource = new Mock<IAlignmentSource>();
-            mockAlignmentSource.Setup(s => s.GetNextAlignmentSet()).Returns(() =>
+            mockAlignmentSource.Setup(s => s.GetNextRead()).Returns(() =>
             {
                 currentReadIndex ++;
                 return currentReadIndex < readSets.Count() ? readSets[currentReadIndex] : null;
@@ -94,22 +95,26 @@ namespace Pisces.Tests.FunctionalTests
             return factory;
         }
 
-        private IVcfFileWriter<BaseCalledAllele> GetMockWriter(List<BaseCalledAllele> calledAlleles)
+        private IVcfFileWriter<CalledAllele> GetMockWriter(List<CalledAllele> calledAlleles)
         {
-            var mockWriter = new Mock<IVcfFileWriter<BaseCalledAllele>>();
-            mockWriter.Setup(w => w.Write(It.IsAny<IEnumerable<BaseCalledAllele>>(), It.IsAny<IRegionMapper>())).
-                Callback((IEnumerable<BaseCalledAllele> alleles, IRegionMapper mapper) => calledAlleles.AddRange(alleles));
+            var mockWriter = new Mock<IVcfFileWriter<CalledAllele>>();
+            mockWriter.Setup(w => w.Write(It.IsAny<IEnumerable<CalledAllele>>(), It.IsAny<IRegionMapper>())).
+                Callback((IEnumerable<CalledAllele> alleles, IRegionMapper mapper) => calledAlleles.AddRange(alleles));
 
             return mockWriter.Object;
         }
 
-        private void AddAlignmentSet(List<AlignmentSet> readSets, int copies, int read1Position, string read1Sequence, int read2Position, string read2Sequence)
+        private void AddReads(List<Read> readSets, int copies, int read1Position, string read1Sequence,
+            int read2Position, string read2Sequence)
         {
             for (var i = 0; i < copies; i++)
-                readSets.Add(new AlignmentSet(
-                    DomainTestHelper.CreateRead(_chrName, read1Sequence, read1Position, new CigarAlignment("6M"), qualityForAll:30),
-                    DomainTestHelper.CreateRead(_chrName, read2Sequence, read2Position, new CigarAlignment("6M"), qualityForAll:30), 
-                    true));
+                readSets.AddRange(new List<Read>() { 
+            DomainTestHelper.CreateRead(_chrName, read1Sequence, read1Position, new CigarAlignment("6M"),
+                qualityForAll: 30),
+            DomainTestHelper.CreateRead(_chrName, read2Sequence, read2Position, new CigarAlignment("6M"),
+                qualityForAll: 30)
+                }
+                );
         }
     }
 }

@@ -8,10 +8,10 @@ namespace Pisces.Logic.VariantCalling
 {
     public static class MnvReallocator
     {
-        public static IEnumerable<BaseCalledAllele> ReallocateFailedMnvs(List<BaseCalledAllele> failedMnvs, List<BaseCalledAllele> callableAlleles, int? blockMaxPos= null)
+        public static IEnumerable<CalledAllele> ReallocateFailedMnvs(List<CalledAllele> failedMnvs, List<CalledAllele> callableAlleles, int? blockMaxPos= null)
         {
-            var outsideThisBlock = new List<BaseCalledAllele>();
-            foreach (var remainderAlleles in failedMnvs.Select(failedMnv => new List<BaseCalledAllele>() { failedMnv }))
+            var outsideThisBlock = new List<CalledAllele>();
+            foreach (var remainderAlleles in failedMnvs.Select(failedMnv => new List<CalledAllele>() { failedMnv }))
             {
                 while (remainderAlleles.Count > 0)
                 {
@@ -94,8 +94,8 @@ namespace Pisces.Logic.VariantCalling
             return outsideThisBlock;
         }
 
-        private static void ProcessOverlap(int? blockMaxPos, BaseCalledAllele overlap,
-            BaseCalledAllele alleleToReassign, List<BaseCalledAllele> remainderAlleles, List<BaseCalledAllele> outsideThisBlock)
+        private static void ProcessOverlap(int? blockMaxPos, CalledAllele overlap,
+            CalledAllele alleleToReassign, List<CalledAllele> remainderAlleles, List<CalledAllele> outsideThisBlock)
         {
             overlap.AlleleSupport += alleleToReassign.AlleleSupport;
 
@@ -133,9 +133,9 @@ namespace Pisces.Logic.VariantCalling
             }
         }
 
-        private static IEnumerable<BaseCalledAllele> BreakDownToSingleNucCalls(BaseCalledAllele alleleToReassign)
+        private static IEnumerable<CalledAllele> BreakDownToSingleNucCalls(CalledAllele alleleToReassign)
         {
-            var singleNucCalls = new List<BaseCalledAllele>();
+            var singleNucCalls = new List<CalledAllele>();
             for (var i = 0; i < alleleToReassign.Alternate.Length; i++)
             {
                 var alternate = alleleToReassign.Alternate.Substring(i, 1);
@@ -145,17 +145,17 @@ namespace Pisces.Logic.VariantCalling
                     alleleToReassign.AlleleSupport,
                     alternate, reference, alleleToReassign.SupportByDirection);
 
-                if (!(singleNucCall is CalledReference)) singleNucCalls.Add(singleNucCall);
+                if (!(singleNucCall.Type == AlleleCategory.Reference)) singleNucCalls.Add(singleNucCall);
             }
             return singleNucCalls;
         }
 
-        private static BaseCalledAllele CreateVariant(string chromosome, int coordinate, int alleleSupport,
+        private static CalledAllele CreateVariant(string chromosome, int coordinate, int alleleSupport,
             string alternate, string reference, int[] supportByDirection = null)
         {
             var calledAllele = alternate.Equals(reference, StringComparison.InvariantCultureIgnoreCase)
-             ? (BaseCalledAllele)new CalledReference()
-             : new CalledVariant(alternate.Length > 1 ? AlleleCategory.Mnv : AlleleCategory.Snv);
+             ? new CalledAllele()
+             : new CalledAllele(alternate.Length > 1 ? AlleleCategory.Mnv : AlleleCategory.Snv);
 
             calledAllele.Chromosome = chromosome;
             calledAllele.Coordinate = coordinate;
@@ -169,9 +169,9 @@ namespace Pisces.Logic.VariantCalling
 
         }
 
-        private static IEnumerable<BaseCalledAllele> CreateAllelesFromRemainder(BaseCalledAllele overlap, BaseCalledAllele alleleToReassign)
+        private static IEnumerable<CalledAllele> CreateAllelesFromRemainder(CalledAllele overlap, CalledAllele alleleToReassign)
         {
-            var remainders = new List<BaseCalledAllele>();
+            var remainders = new List<CalledAllele>();
             var overlapIndexInFailedMnv = overlap.Coordinate - alleleToReassign.Coordinate;
             var overlapAlleleLength = overlap.Alternate.Length;
             var rightSideOverlap = overlapIndexInFailedMnv + overlapAlleleLength;
@@ -185,7 +185,7 @@ namespace Pisces.Logic.VariantCalling
                     alleleToReassign.Reference.Substring(rightSideOverlap,
                         alleleToReassign.Alternate.Length - rightSideOverlap), alleleToReassign.SupportByDirection);
 
-                if (!(rightRemainder is CalledReference)) remainders.Add(rightRemainder);
+                if (!(rightRemainder.Type == AlleleCategory.Reference)) remainders.Add(rightRemainder);
             }
 
             if (overlapIndexInFailedMnv > 0)
@@ -196,12 +196,12 @@ namespace Pisces.Logic.VariantCalling
                     alleleToReassign.Reference.Substring(0, overlapIndexInFailedMnv),
                     alleleToReassign.SupportByDirection
                     );
-                if (!(leftRemainder is CalledReference)) remainders.Add(leftRemainder);
+                if (!(leftRemainder.Type == AlleleCategory.Reference)) remainders.Add(leftRemainder);
             }
 
             //if any remainders begin with ref, split those out into separate remainders.
 
-            var remaindersWithRefsBrokenOut = new List<BaseCalledAllele>();
+            var remaindersWithRefsBrokenOut = new List<CalledAllele>();
             foreach (var remainder in remainders)
             {
                 remaindersWithRefsBrokenOut.AddRange(BreakOffEdgeReferences(remainder));
@@ -209,9 +209,9 @@ namespace Pisces.Logic.VariantCalling
             return remaindersWithRefsBrokenOut;
         }
 
-        public static IEnumerable<BaseCalledAllele> BreakOffEdgeReferences(BaseCalledAllele allele)
+        public static IEnumerable<CalledAllele> BreakOffEdgeReferences(CalledAllele allele)
         {
-            var alleles = new List<BaseCalledAllele>();
+            var alleles = new List<CalledAllele>();
             if (allele.Type != AlleleCategory.Mnv)
             {
                 alleles.Add(allele);
@@ -242,14 +242,14 @@ namespace Pisces.Logic.VariantCalling
             return alleles;                
         } 
 
-        private static bool OverlapMatches(BaseCalledAllele overlap, BaseCalledAllele alleleToReassign)
+        private static bool OverlapMatches(CalledAllele overlap, CalledAllele alleleToReassign)
         {
             var overlapIndexInFailedMnv = overlap.Coordinate - alleleToReassign.Coordinate;
             var overlapAlleleLength = overlap.Alternate.Length;
             return overlap.Alternate.Equals(alleleToReassign.Alternate.Substring(overlapIndexInFailedMnv, overlapAlleleLength));
         }
 
-        private static bool IsPotentialOverlap(BaseCalledAllele callableAllele, BaseCalledAllele failedMnv)
+        private static bool IsPotentialOverlap(CalledAllele callableAllele, CalledAllele failedMnv)
         {
             return callableAllele.Coordinate >= failedMnv.Coordinate
                    && callableAllele.Chromosome == failedMnv.Chromosome

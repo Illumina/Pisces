@@ -7,7 +7,7 @@ namespace Pisces.Interfaces
 {
     public interface IAlleleCaller
     {
-        SortedList<int, List<BaseCalledAllele>> Call(ICandidateBatch batchToCall, IAlleleSource source);
+        SortedList<int, List<CalledAllele>> Call(ICandidateBatch batchToCall, IAlleleSource source);
         int TotalNumCollapsed { get; }
         int TotalNumCalled { get; }
     }

@@ -3,7 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using SequencingFiles;
+using Alignment.Domain.Sequencing;
+using Alignment.Domain.Sequencing;
 using Xunit;
 
 namespace Pisces.Domain.Tests.UnitTests.SequencingFiles

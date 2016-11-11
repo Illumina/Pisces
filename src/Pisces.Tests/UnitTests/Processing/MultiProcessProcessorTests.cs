@@ -7,7 +7,7 @@ using Pisces.Interfaces;
 using Pisces.Logic.Processing;
 using Pisces.Processing.Utility;
 using Pisces.Tests.MockBehaviors;
-using SequencingFiles;
+using Pisces.IO.Sequencing;
 using TestUtilities;
 using Xunit;
 
@@ -57,7 +57,7 @@ namespace Pisces.Tests.UnitTests.Processing
         // - vcf files have header and both chromosomes, output is where normally expected
         private void ExecuteTest(int numberOfThreads, string outputFolder = null)
         {
-            var sourcePath = Path.Combine(UnitTestPaths.TestDataDirectory, "var123var35.bam");
+            var sourcePath = Path.Combine(UnitTestPaths.TestDataDirectory, "Chr17Chr19.bam");
 
             var otherTestDirectory = Path.Combine(UnitTestPaths.TestDataDirectory, "MultiProcessIn");
             var bamFilePath1 = Stage(sourcePath, "In1", otherTestDirectory + "1");
@@ -70,7 +70,7 @@ namespace Pisces.Tests.UnitTests.Processing
                 BAMPaths = new[] { bamFilePath1, bamFilePath2 },
                 GenomePaths = new[] { genomePath },
                 OutputFolder = outputFolder,
-                CommandLineArguments = string.Format("-B {0},{1} -g {2}{3}", bamFilePath1, bamFilePath2, genomePath, string.IsNullOrEmpty(outputFolder) ? string.Empty : " -OutFolder " + outputFolder)
+                CommandLineArguments = string.Format("-B {0},{1} -g {2}{3}", bamFilePath1, bamFilePath2, genomePath, string.IsNullOrEmpty(outputFolder) ? string.Empty : " -OutFolder " + outputFolder).Split(' ')
             };
 
             var factory = new Factory(options);
@@ -81,8 +81,9 @@ namespace Pisces.Tests.UnitTests.Processing
             }
 
             var exePath = Path.Combine(UnitTestPaths.WorkingDirectory, "Pisces.exe");
+            
 
-            var processor = new MultiProcessProcessor(factory, factory.GetReferenceGenome(options.GenomePaths[0]), options.CommandLineArguments, options.OutputFolder, options.LogFolder, exePath: exePath);
+            var processor = new MultiProcessProcessor(factory, factory.GetReferenceGenome(options.GenomePaths[0]), new JobManager(1), options.CommandLineArguments, options.OutputFolder, options.LogFolder, exePath: exePath);
             processor.Execute(numberOfThreads);
 
             foreach (var workRequest in factory.WorkRequests)
@@ -98,8 +99,8 @@ namespace Pisces.Tests.UnitTests.Processing
                 }
             }
 
-            Assert.True(File.Exists(Path.Combine(options.LogFolder, "chr17_" + ApplicationOptions.LogFileName)));
-            Assert.True(File.Exists(Path.Combine(options.LogFolder, "chr19_" + ApplicationOptions.LogFileName)));
+            Assert.True(Directory.GetFiles(options.LogFolder, "chr17_*" + ApplicationOptions.LogFileNameBase).Any());
+            Assert.True(Directory.GetFiles(options.LogFolder, "chr19_*" + ApplicationOptions.LogFileNameBase).Any());
         }
     }
 }

@@ -14,43 +14,46 @@ namespace Pisces.IO
 
         public string GenotypeFormat = "GT";
         public string GenotypeQualityFormat = "GQ";
+        public string UmiStatsFormat = "US";
         public string AlleleDepthFormat = "AD";
         public string TotalDepthFormat = "DP";
         public string VariantFrequencyFormat = "VF";
         public string NoiseLevelFormat = "NL";
         public string StrandBiasFormat = "SB";
         public string FractionNoCallFormat = "NC";
+        public string DepthInfo = "DP";
         public string FrequencySigFigFormat;
         public const string PassFilter = "PASS";
-        public const string FilterSeparator = ";";
-        
+        public const char FilterSeparator = ';';
+        public const bool SumMultipleVF = true;
+
         public string FrequencyFilterThresholdString
         {
-            get { return _variantOutFileConfig.FrequencyFilterThreshold.HasValue ? _variantOutFileConfig.FrequencyFilterThreshold.Value.ToString(FrequencySigFigFormat) : string.Empty; }
+            get { return _config.FrequencyFilterThreshold.HasValue ? _config.FrequencyFilterThreshold.Value.ToString(FrequencySigFigFormat) : string.Empty; }
         }
 
         private const double MinStrandBiasScore = -100;
         private const double MaxStrandBiasScore = 0;
 
-        private VcfWriterConfig _variantOutFileConfig;
+        private VcfWriterConfig _config;
 
         public VcfFormatter() { }
 
         public VcfFormatter(VcfWriterConfig Config)
         {
-            _variantOutFileConfig = Config;
+            _config = Config;
             UpdateFrequencyFormat();
         }
 
         private void UpdateFrequencyFormat()
         {
             FrequencySigFigFormat = "0.";
-            var minFreqString = _variantOutFileConfig.MinFrequencyThreshold.ToString();
+            var minFreqString = _config.MinFrequencyThreshold.ToString();
 
             var freqSignificantDigits = GetNumSigDigits(minFreqString);
 
-            if (_variantOutFileConfig.FrequencyFilterThreshold.HasValue)
-                freqSignificantDigits = Math.Max(freqSignificantDigits, GetNumSigDigits(_variantOutFileConfig.FrequencyFilterThreshold.Value.ToString()));
+            if (_config.FrequencyFilterThreshold.HasValue)
+                freqSignificantDigits = Math.Max(freqSignificantDigits, GetNumSigDigits(_config.FrequencyFilterThreshold.Value.ToString()));
 
             for (var i = 0; i < freqSignificantDigits; i++)
                 FrequencySigFigFormat += "0";
@@ -63,10 +66,50 @@ namespace Pisces.IO
                 : inputValue.Length - 1;
         }
 
-        public string MapFilters(IEnumerable<BaseCalledAllele> variants)
+        public Dictionary<FilterType,string> GenerateFilterStringsByType()
+        {
+            var filterStringsForHeader = new Dictionary<FilterType, string>();
+
+            if (_config.VariantQualityFilterThreshold.HasValue)
+                filterStringsForHeader.Add(FilterType.LowVariantQscore,  string.Format("##FILTER=<ID=q{0},Description=\"Quality score less than {0}\">", _config.VariantQualityFilterThreshold.Value));
+
+            if (_config.DepthFilterThreshold.HasValue)
+                filterStringsForHeader.Add(FilterType.LowDepth, string.Format("##FILTER=<ID=LowDP,Description=\"Low coverage (DP tag), therefore no genotype called\">"));
+
+            if (_config.StrandBiasFilterThreshold.HasValue && _config.ShouldFilterOnlyOneStrandCoverage)
+            {
+                filterStringsForHeader.Add(FilterType.StrandBias, string.Format("##FILTER=<ID={0},Description=\"Variant strand bias too high or coverage on only one strand\">", StrandBiasFormat));
+            }
+            else if (_config.StrandBiasFilterThreshold.HasValue)
+            {
+                filterStringsForHeader.Add(FilterType.StrandBias, string.Format("##FILTER=<ID={0},Description=\"Variant strand bias too high\">", StrandBiasFormat));
+            }
+            else if (_config.ShouldFilterOnlyOneStrandCoverage)
+            {
+                filterStringsForHeader.Add(FilterType.StrandBias, string.Format("##FILTER=<ID={0},Description=\"Variant support on only one strand\">", StrandBiasFormat));
+            }
+
+            if (_config.FrequencyFilterThreshold.HasValue)
+                filterStringsForHeader.Add(FilterType.LowVariantFrequency, string.Format("##FILTER=<ID=LowVariantFreq,Description=\"Variant frequency less than {0}\">", FrequencyFilterThresholdString));
+
+            if (_config.GenotypeQualityFilterThreshold.HasValue)
+                filterStringsForHeader.Add(FilterType.LowGenotypeQuality, string.Format("##FILTER=<ID=LowGQ,Description=\"Genotype Quality less than {0}\">", _config.GenotypeQualityFilterThreshold.Value));
+
+            if (_config.IndelRepeatFilterThreshold.HasValue)
+                filterStringsForHeader.Add(FilterType.IndelRepeatLength, string.Format("##FILTER=<ID=R{0},Description=\"Indel repeat greater than or equal to {0}\">", _config.IndelRepeatFilterThreshold));
+
+            if (_config.PloidyModel == PloidyModel.Diploid)
+                filterStringsForHeader.Add(FilterType.MultiAllelicSite, string.Format("##FILTER=<ID=MultiAllelicSite,Description=\"Variant does not conform to diploid model\">"));
+
+            if (_config.RMxNFilterMaxLengthRepeat.HasValue && _config.RMxNFilterMinRepetitions.HasValue)
+                filterStringsForHeader.Add(FilterType.RMxN, string.Format("##FILTER=<ID=R{0}x{1},Description=\"Repeats of part or all of the variant allele (max repeat length {0}) in the reference greater than or equal to {1}\">", _config.RMxNFilterMaxLengthRepeat, _config.RMxNFilterMinRepetitions));
+
+            return filterStringsForHeader;
+        }
+        public string MapFilters(IEnumerable<CalledAllele> variants)
         {
             var filters = MergeFilters(variants);
-            var filterString = string.Join(FilterSeparator, filters.Select(MapFilter));
+            var filterString = string.Join(FilterSeparator.ToString(), filters.Select(MapFilter));
             return string.IsNullOrEmpty(filterString) ? PassFilter : filterString;
         }
 
@@ -75,9 +118,9 @@ namespace Pisces.IO
             switch (filter)
             {
                 case FilterType.LowVariantQscore:
-                    if (!_variantOutFileConfig.VariantQualityFilterThreshold.HasValue)
+                    if (!_config.VariantQualityFilterThreshold.HasValue)
                         throw new Exception("Variant has low qscore filter but threshold is not set.");
-                    return "q" + _variantOutFileConfig.VariantQualityFilterThreshold.Value;
+                    return "q" + _config.VariantQualityFilterThreshold.Value;
                 case FilterType.StrandBias:
                     return StrandBiasFormat;
                 case FilterType.LowDepth:
@@ -87,13 +130,13 @@ namespace Pisces.IO
                 case FilterType.LowGenotypeQuality:
                     return "LowGQ";
                 case FilterType.IndelRepeatLength:
-                    if (!_variantOutFileConfig.IndelRepeatFilterThreshold.HasValue)
+                    if (!_config.IndelRepeatFilterThreshold.HasValue)
                         throw new Exception("Variant has indel repeat filter but threshold is not set.");
-                    return "R" + _variantOutFileConfig.IndelRepeatFilterThreshold;
+                    return "R" + _config.IndelRepeatFilterThreshold;
                 case FilterType.RMxN:
-                    if (!_variantOutFileConfig.RMxNFilterMaxLengthRepeat.HasValue || !_variantOutFileConfig.RMxNFilterMinRepetitions.HasValue)
+                    if (!_config.RMxNFilterMaxLengthRepeat.HasValue || !_config.RMxNFilterMinRepetitions.HasValue)
                         throw new Exception("Variant has RMxN filter but M or N value is not set.");
-                    return "R" + _variantOutFileConfig.RMxNFilterMaxLengthRepeat + "x" + _variantOutFileConfig.RMxNFilterMinRepetitions;
+                    return "R" + _config.RMxNFilterMaxLengthRepeat + "x" + _config.RMxNFilterMinRepetitions;
                 case FilterType.MultiAllelicSite:
                     return "MultiAllelicSite";
                 default:
@@ -117,32 +160,38 @@ namespace Pisces.IO
                     return "./.";
                 case Genotype.AltLikeNoCall:
                     return "./.";
+                case Genotype.RefAndNoCall:
+                    return "0/.";
+                case Genotype.AltAndNoCall:
+                    return "1/.";
                 default:
                     return "./.";
             }
         }
 
-        public string[] ConstructFormatAndSampleString(IEnumerable<BaseCalledAllele> variants, int totalDepth)
+        public string[] ConstructFormatAndSampleString(IEnumerable<CalledAllele> variants, int totalDepth)
         {
-            BaseCalledAllele firstVariant = variants.First();
+            CalledAllele firstVariant = variants.First();
             var gtQuality = MergeGenotypeQScores(variants);
             var gtString = MapGenotype(firstVariant.Genotype);
-            var isReference = firstVariant is CalledReference;         
+            var isReference = (firstVariant.Type == AlleleCategory.Reference);
+
             var alleleCountString = GetAlleleCountString(variants, isReference);
             var frequencyString = GetFrequencyString(variants, isReference);
 
             var formatStringBuilder = new StringBuilder("GT:GQ:AD:DP:VF");
             var sampleStringBuilder = new StringBuilder(string.Format("{0}:{1}:{2}:{3}:{4}", gtString, gtQuality, alleleCountString, totalDepth, frequencyString));
 
-            if (_variantOutFileConfig.ShouldOutputStrandBiasAndNoiseLevel)
+            if (_config.ShouldOutputStrandBiasAndNoiseLevel)
             {
                 var biasScoreString = (Math.Min(Math.Max(MinStrandBiasScore, firstVariant.StrandBiasResults.GATKBiasScore), MaxStrandBiasScore)).ToString("0.0000");
 
                 formatStringBuilder.Append(":NL:SB");
-                sampleStringBuilder.Append(string.Format(":{0}:{1}", _variantOutFileConfig.EstimatedBaseCallQuality, biasScoreString));
+                sampleStringBuilder.Append(string.Format(":{0}:{1}", firstVariant.NoiseLevelApplied, biasScoreString));
+
             }
 
-            if (_variantOutFileConfig.ShouldOutputNoCallFraction)
+            if (_config.ShouldOutputNoCallFraction)
             {
                 var noCallFractionString = firstVariant.FractionNoCalls.ToString("0.0000");
 
@@ -150,7 +199,7 @@ namespace Pisces.IO
                 sampleStringBuilder.Append(string.Format(":{0}", noCallFractionString));
             }
 
-            if (_variantOutFileConfig.ShouldOutputRcCounts)
+            if (_config.ShouldOutputRcCounts)
             {
                 formatStringBuilder.Append(":US");
                 sampleStringBuilder.Append(string.Format(":{0},{1},{2},{3}",
@@ -167,19 +216,31 @@ namespace Pisces.IO
             };
         }
 
-        private string GetFrequencyString(IEnumerable<BaseCalledAllele> variants, bool isReference)
+        private string GetFrequencyString(IEnumerable<CalledAllele> variants, bool isReference)
         {
-            BaseCalledAllele firstVariant = variants.First();
+            CalledAllele firstVariant = variants.First();
 
             if (isReference)
-                return (1 - firstVariant.Frequency).ToString(FrequencySigFigFormat);
+            {
+                if (firstVariant.TotalCoverage==0)
+                    return (0).ToString(FrequencySigFigFormat);
+                else
+                    return (1 - firstVariant.Frequency).ToString(FrequencySigFigFormat);
+            }
             else
             {
-                Genotype gt = ((CalledVariant)firstVariant).Genotype;
+                Genotype gt = firstVariant.Genotype;
                 if ((gt == Genotype.HeterozygousAlt1Alt2) || (gt == Genotype.Alt12LikeNoCall))
                 {
-                    List<string> altAllelesFrequencies = (variants.Select(v => v.Frequency.ToString(FrequencySigFigFormat))).ToList();
-                    return (string.Join(",", altAllelesFrequencies));
+                    if (SumMultipleVF)
+                    {
+                        return variants.Select(v => v.Frequency).Sum().ToString(FrequencySigFigFormat);
+                    }
+                    else
+                    {
+                        var altAllelesFrequencies = (variants.Select(v => v.Frequency.ToString(FrequencySigFigFormat))).ToList();
+                        return (string.Join(",", altAllelesFrequencies));
+                    }
                 }
                 else
                     return (firstVariant.Frequency).ToString(FrequencySigFigFormat);
@@ -188,9 +249,9 @@ namespace Pisces.IO
 
         //this is not as obvious as it seems. What is the depth of a het-alt1-alt2, when you have two insertions of different length?
         //Least controversial is to take the maximum.
-        public int GetDepthCountInt(IEnumerable<BaseCalledAllele> variants)
+        public int GetDepthCountInt(IEnumerable<CalledAllele> variants)
         {
-            BaseCalledAllele firstVariant = variants.First();
+            CalledAllele firstVariant = variants.First();
             int totalDepth = 0;
             foreach (var variant in variants)
             {
@@ -199,29 +260,30 @@ namespace Pisces.IO
             return totalDepth;
         }
 
-        private static string GetAlleleCountString(IEnumerable<BaseCalledAllele> variants, bool isReference)
+        private static string GetAlleleCountString(IEnumerable<CalledAllele> variants, bool isReference)
         {
-            BaseCalledAllele firstVariant = variants.First();
+            CalledAllele firstVariant = variants.First();
 
             if (isReference)
                 return firstVariant.AlleleSupport.ToString();
+
             else
             {
-
-                Genotype gt = ((CalledVariant)firstVariant).Genotype;
+                Genotype gt = firstVariant.Genotype;
                 if ((gt == Genotype.HeterozygousAlt1Alt2) || (gt == Genotype.Alt12LikeNoCall))
                 {
                     List<string> altAllelesSupport = (variants.Select(v => v.AlleleSupport.ToString()).ToList());
                     return (string.Join(",", altAllelesSupport));
                 }
                 else
-                    return string.Format("{0},{1}", ((CalledVariant)variants.First()).ReferenceSupport, firstVariant.AlleleSupport);
+                {
+                    return string.Format("{0},{1}", variants.First().ReferenceSupport, firstVariant.AlleleSupport);
+                }
             }
-
         }
 
 
-        public static IEnumerable<FilterType> MergeFilters(IEnumerable<BaseCalledAllele> variants)
+        public static IEnumerable<FilterType> MergeFilters(IEnumerable<CalledAllele> variants)
         {
             List<FilterType> filters = new List<FilterType>();
             foreach (var allele in variants)
@@ -231,7 +293,7 @@ namespace Pisces.IO
             return filters.Distinct();
         }
 
-        public string[] MergeReferenceAndAlt(IEnumerable<BaseCalledAllele> variants)
+        public string[] MergeReferenceAndAlt(IEnumerable<CalledAllele> variants)
         {
 
             string refWithMaxLength = "";
@@ -265,22 +327,14 @@ namespace Pisces.IO
             return new string[] { refWithMaxLength, altString };
         }
 
-        private string MergeReference(IEnumerable<BaseCalledAllele> variants)
-        {
-            return (string.Join(",", variants.Select(v => v.Reference)));
-        }
+      
 
-        private string MergeAlternate(IEnumerable<BaseCalledAllele> variants)
-        {
-            return (string.Join(",", variants.Select(v => v.Alternate)));
-        }
-
-        public int MergeVariantQScores(IEnumerable<BaseCalledAllele> variants)
+        public int MergeVariantQScores(IEnumerable<CalledAllele> variants)
         {
             return (variants.Min(v => v.VariantQscore));
         }
 
-        public int MergeGenotypeQScores(IEnumerable<BaseCalledAllele> variants)
+        public int MergeGenotypeQScores(IEnumerable<CalledAllele> variants)
         {
             return (variants.Min(v => v.GenotypeQscore));
         }

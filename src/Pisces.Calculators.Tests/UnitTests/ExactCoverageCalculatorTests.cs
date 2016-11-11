@@ -8,7 +8,7 @@ using Pisces.Domain.Interfaces;
 using Pisces.Domain.Models;
 using Pisces.Domain.Models.Alleles;
 using Pisces.Domain.Types;
-using SequencingFiles;
+using Alignment.Domain.Sequencing;
 using Xunit;
 
 namespace Pisces.Calculators.Tests.UnitTests
@@ -383,7 +383,7 @@ namespace Pisces.Calculators.Tests.UnitTests
             int variantPosition = 10)
         {
             var calculator = new ExactCoverageCalculator();
-            var allele = new CalledVariant(variantType) {Coordinate = variantPosition};
+            var allele = new CalledAllele(variantType) {Coordinate = variantPosition};
 
             switch (allele.Type)
             {
@@ -406,8 +406,8 @@ namespace Pisces.Calculators.Tests.UnitTests
 
             calculator.Compute(allele, source.Object);
             
-            for(var i = 0; i < allele.TotalCoverageByDirection.Length; i ++)
-                Assert.Equal(expectedDirection.HasValue && i == (int)expectedDirection ? 1 : 0, allele.TotalCoverageByDirection[i]);
+            for(var i = 0; i < allele.EstimatedCoverageByDirection.Length; i ++)
+                Assert.Equal(expectedDirection.HasValue && i == (int)expectedDirection ? 1 : 0, allele.EstimatedCoverageByDirection[i]);
         }
     }
 }

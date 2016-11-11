@@ -8,18 +8,11 @@ namespace Pisces.Domain.Types
         Diploid 
     };
 
-    public enum GenotypeModel
-    {
-        None,
-        //Symmetrical, //tjd, currently not supported
-        Thresholding
-    };
-
     public enum NoiseModel  //tjd - might use this with new Q model.
     {
-        Window,
-        Flat
-    };
+        Flat,
+		Window
+	};
 
     public enum QualityModel
     {

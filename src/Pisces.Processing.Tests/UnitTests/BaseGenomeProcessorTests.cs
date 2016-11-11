@@ -28,10 +28,10 @@ namespace Pisces.Processing.Tests.UnitTests
 
         private void ExecuteTest(int numberOfThreads, int expectedNumberOfThreads)
         {
-            var bamFilePath = Path.Combine(UnitTestPaths.TestDataDirectory, "var123var35.bam");
-            var bamFilePath2 = Path.Combine(UnitTestPaths.TestDataDirectory, "var123var35_removedSQlines.bam");
-            var vcfFilePath = Path.Combine(UnitTestPaths.TestDataDirectory, "var123var35.vcf");
-            var vcfFilePath2 = Path.Combine(UnitTestPaths.TestDataDirectory, "var123var35_removedSQlines.vcf");
+            var bamFilePath = Path.Combine(UnitTestPaths.TestDataDirectory, "Chr17Chr19.bam");
+            var bamFilePath2 = Path.Combine(UnitTestPaths.TestDataDirectory, "Chr17Chr19_removedSQlines.bam");
+            var vcfFilePath = Path.Combine(UnitTestPaths.TestDataDirectory, "Chr17Chr19.vcf");
+            var vcfFilePath2 = Path.Combine(UnitTestPaths.TestDataDirectory, "Chr17Chr19_removedSQlines.vcf");
             var genomePath = Path.Combine(UnitTestPaths.TestGenomesDirectory, "chr17chr19");
 
             var logFile = "CurrentLog_" + DateTime.Now.ToString("yyyyMMddHHmmss") + ".txt";

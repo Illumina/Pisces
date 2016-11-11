@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
+using Pisces.Domain.Types;
 
 namespace Pisces.Domain.Models
 {
@@ -10,6 +12,11 @@ namespace Pisces.Domain.Models
 
         public List<Read> ReadsForProcessing { get; set; }
         public bool IsStitched { get; set; }
+        /// <summary>
+        /// Whether the AlignmentSet's PartnerRead1 (which represents the earlier-occurring read, when softclip adjusted) is the "actual" Read2.
+        /// For an AlignmentSet with non-null PartnerRead1 and PartnerRead2, if PartnerRead2 is in the forward direction, we set this to true.
+        /// </summary>
+        public bool IsOutie { get; private set; }
 
         //Maybe add something like this or other validation logic to make sure there aren't somehow more than 2 buddies that try to get in here
         public bool IsFullPair
@@ -34,7 +41,14 @@ namespace Pisces.Domain.Models
                 }
                 PartnerRead1 = read1;
                 PartnerRead2 = read2;
+
+                // Assumption is that exactly one read is Forward and one is Reverse
+                if (PartnerRead2.SequencedBaseDirectionMap.First() == DirectionType.Forward)
+                {
+                    IsOutie = true;
+                }
             }
+
 
             ReadsForProcessing = new List<Read>();
 

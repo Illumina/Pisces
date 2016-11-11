@@ -1,0 +1,11 @@
+category,ID,R1 Position,R1 Cigar,R1 Direction,R2 Position,R2 Cigar,R2 Direction,ref input R1 Position,ref input R1 Cigar,ref input R1 Direction,ref input R2 Position,ref input R2 Cigar,ref input R2 Direction,Should Stitch,Output R1 Position,Output R1 Cigar,Output R1 Direction,Output R2 Position,Output R2 Cigar,Output R2Direction,Should Stitch ref,Ref Output R1 Position,Ref Output R1 Cigar,Ref Output R1 Direction,Ref Output R2 Position,Ref Output R2 Cigar,Ref Output R2Direction,var loading,ref loading,candidate direction,frequency,bias?,Notes (optional)
+SoftclippedInsertion,1,1,2I4M,F,2,6M,R,1,6M,F,2,6M,R,TRUE,1,2I7M,3F3S3R, , , ,TRUE,1,7M,1F5S1R, , , ,1FS,1FS,FN,0,FN,
+SoftclippedInsertion,2,1,1M2I3M,F,2,1S5M,R,1,6M,F,1,6M,R,TRUE,1,1M2I5M,2F4S2R, , , ,TRUE,1,6M,6S, , , ,1FS,1SS,S,0.5,FALSE,
+SoftclippedInsertion,3,1,2M2I2M,F,3,1S1I4M,R,1,6M,F,1,6M,R,TRUE,1,2M2I4M,2F4S2R, , , ,TRUE,1,6M,6S, , , ,2FS,2SS,S,0.5,FALSE,
+SoftclippedInsertion,4,1,3M2I1M,F,4,2S4M,R,1,6M,F,2,6M,R,TRUE,1,3M2I4M,3F3S3R, , , ,TRUE,1,7M,1F5S1R, , , ,3FS,3SS,S,0.5,FALSE,
+SoftclippedInsertion,5,1,4M2S,F,3,1M2I3M,R,1,6M,F,2,6M,R,FALSE,1,4M2S,F,3,1M2I3M,R,TRUE,1,7M,1F5S1R, , , ,4SR,4SS,S,0.5,FALSE,
+SoftclippedInsertion,6,1,3M2S,F,4,2S4M,R,1,5M,F,2,6M,R,FALSE,1,3M2S,F,4,2S4M,R,TRUE,1,7M,1F4S2R, , , ,3SS,3SS,FN,0,FN,
+SoftclippedInsertion,7,1,2M2S,F,3,1S3M,R,1,4M,F,2,4M,R,FALSE,1,2M2S,F,3,1S3M,R,TRUE,1,5M,1F3S1R, , , ,2SS,2SS,FN,0,FN,
+SoftclippedInsertion,8,1,5M1S,F,4,2M2I2M,R,1,5M,F,2,6M,R,TRUE,1,5M2I2M,3F3S3R, , , ,TRUE,1,7M,1F4S2R, , , ,5SR,5SR,S,0.5,FALSE,
+SoftclippedInsertion,9,1,6M1S,F,4,3M2I1M,R,1,8M,F,2,6M,R,TRUE,1,6M2I1M,3F4S2R, , , ,TRUE,1,8M,1F6S1R, , , ,6SR,6SS,S,0.5,FALSE,
+SoftclippedInsertion,10,1,1M3S,F,2,5M,R,1,4M,F,2,5M,R,TRUE,1,6M,1F3S2R, , , ,TRUE,1,6M,1F4S1R, , , ,1F;2R,1RS,FN,0,FN,

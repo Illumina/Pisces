@@ -7,6 +7,6 @@ namespace Pisces.Interfaces
 {
     public interface ISomaticCallerFactory
     {
-        SomaticVariantCaller Get(ChrReference chrReference, string bamFilePath, IVcfWriter<BaseCalledAllele> vcfWriter);
+        SomaticVariantCaller Get(ChrReference chrReference, string bamFilePath, IVcfWriter<CalledAllele> vcfWriter);
     }
 }

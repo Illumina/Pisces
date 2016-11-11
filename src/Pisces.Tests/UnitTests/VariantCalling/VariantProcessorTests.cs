@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using Pisces.Calculators;
 using Pisces.Logic.VariantCalling;
 using Pisces.Domain.Models;
 using Pisces.Domain.Models.Alleles;
@@ -19,9 +20,8 @@ namespace Pisces.Tests.UnitTests.Pisces
         public void HappyPath()
         {
             var variant = TestHelper.CreatePassingVariant(false);
-            ((CalledVariant) variant).ReferenceSupport = 10;
-            AlleleProcessor.Process(variant, GenotypeModel.Thresholding, 0.01f, 100, 20, false, 0f, 10f, 0, null, null, new ChrReference());
-
+            variant.ReferenceSupport = 10;
+            AlleleProcessor.Process(variant, 0.01f, 100, 20, false, 0f, 10f, 0, null, new ChrReference());
             Assert.False(variant.Filters.Any());
             Assert.Equal(0.02f, variant.FractionNoCalls);
             Assert.Equal(Genotype.HeterozygousAltRef, variant.Genotype);
@@ -43,7 +43,8 @@ namespace Pisces.Tests.UnitTests.Pisces
             variant.NumNoCalls = numNoCalls;
             variant.TotalCoverage = totalCoverage;
 
-            AlleleProcessor.Process(variant, GenotypeModel.Thresholding, 0.01f, 100, 20, false, 10f, 10f, 8, null, null, new ChrReference());
+            AlleleProcessor.Process(variant, 0.01f, 100, 20, false, 10f, 10f, 8, null, new ChrReference());
+
             Assert.Equal(expectedFraction, variant.FractionNoCalls);
         }
 
@@ -60,7 +61,22 @@ namespace Pisces.Tests.UnitTests.Pisces
             ExecuteFilteringTest(500, 30, false, 500, 30, false, 0f, 50f, 0, new List<FilterType>() { }); //FilterType.LowGenotypeQuality not currently supported.
             ExecuteFilteringTest(500, 30, false, 500, 30, false, 0f, 0f, 2, new List<FilterType>() { FilterType.IndelRepeatLength });
             ExecuteFilteringTest(500, 30, false, null, 30, false, null, null, null, new List<FilterType>());
-            ExecuteFilteringTest(0, 0, true, 101, 20, false, 0f, 50f, 2, new List<FilterType>() { FilterType.StrandBias, FilterType.LowVariantQscore, FilterType.LowDepth, FilterType.IndelRepeatLength });//FilterType.LowGenotypeQuality not currently supported.
+            ExecuteFilteringTest(0, 0, true, 101, 20, false, 0f, 50f, 2, new List<FilterType>() { FilterType.StrandBias, FilterType.LowDepth, FilterType.IndelRepeatLength });//FilterType.LowGenotypeQuality not currently supported.
+            ExecuteFilteringTest(1, 0, true, 101, 20, false, 0f, 50f, 2, new List<FilterType>() { FilterType.StrandBias, FilterType.LowVariantQscore, FilterType.LowDepth, FilterType.IndelRepeatLength });//FilterType.LowGenotypeQuality not currently supported.
+
+
+            // Ref alleles should not have filters (except LowDP and q30) even if they would have qualified
+            ExecuteFilteringTest(500, 30, true, 500, 25, false, 0f, 0f, 0, new List<FilterType>() { }, true); // if non-ref, would have been flagged for SB
+            ExecuteFilteringTest(500, 30, false, 500, 30, true, 0f, 0f, 0, new List<FilterType>() { }, true); // if non-ref, would have been flagged for SB
+            ExecuteFilteringTest(500, 30, false, 500, 30, false, 1f, 0f, 0, new List<FilterType>() {}, true); // if non-ref, would have been flagged for low VF
+            ExecuteFilteringTest(500, 30, false, 500, 30, false, 0f, 0f, 2, new List<FilterType>() { }, true); // if non-ref, would have been flagged for R8
+            ExecuteFilteringTest(0, 0, true, 101, 20, false, 0f, 50f, 2, new List<FilterType>() { FilterType.LowDepth }, true); // if non-ref, would have been flagged for R8
+            ExecuteFilteringTest(1, 0, true, 101, 20, false, 0f, 50f, 2, new List<FilterType>() { FilterType.LowVariantQscore, FilterType.LowDepth }, true); // if non-ref, would have been flagged for R8
+
+            // Ref alleles should be allowed to have LowDP and q30 filters
+            ExecuteFilteringTest(499, 30, false, 500, 30, false, 0f, 0f, 0, new List<FilterType>() { FilterType.LowDepth }, true);
+            ExecuteFilteringTest(500, 24, false, 500, 25, false, 0f, 0f, 0, new List<FilterType>() { FilterType.LowVariantQscore }, true);
+
         }
 
         [Fact]
@@ -219,31 +235,45 @@ namespace Pisces.Tests.UnitTests.Pisces
                 altAllele = variantBases;
             }
 
-            var allele = new CalledVariant(category)
+            var allele = new CalledAllele(category)
             {
                 Reference = refAllele,
                 Alternate = altAllele,
                 Coordinate = alleleCoordinate
             };
 
+            RMxNFilterSettings rmxnFilterSettings = new RMxNFilterSettings();
+            rmxnFilterSettings.RMxNFilterFrequencyLimit = 1.1f;
+            rmxnFilterSettings.RMxNFilterMaxLengthRepeat = maxRepeatUnitLength;
+            rmxnFilterSettings.RMxNFilterMinRepetitions = expectedRepeatLength;
+
             // If expected repeats == N, flag
-            AlleleProcessor.Process(allele, GenotypeModel.Thresholding, 0.01f, 0, 0,
-                true, 0, 0, null, maxRepeatUnitLength, expectedRepeatLength, new ChrReference() { Sequence = cleanReferenceSequence });
+            AlleleProcessor.Process(allele, 0.01f, 0, 0,
+                true, 0, 0, null, rmxnFilterSettings, new ChrReference() { Sequence = cleanReferenceSequence });
             Assert.True(allele.Filters.Contains(FilterType.RMxN));
 
             // If expected repeats > N, flag
-            AlleleProcessor.Process(allele, GenotypeModel.Thresholding, 0.01f, 0, 0,
-                true, 0, 0, null, maxRepeatUnitLength, expectedRepeatLength - 1, new ChrReference() { Sequence = cleanReferenceSequence });
+            rmxnFilterSettings.RMxNFilterMinRepetitions = expectedRepeatLength-1;
+
+            AlleleProcessor.Process(allele, 0.01f, 0, 0,
+                true, 0, 0, null, rmxnFilterSettings, new ChrReference() { Sequence = cleanReferenceSequence });
+
             Assert.True(allele.Filters.Contains(FilterType.RMxN));
 
             // If expected repeats < N, flag
-            AlleleProcessor.Process(allele, GenotypeModel.Thresholding, 0.01f, 0, 0,
-                true, 0, 0, null, maxRepeatUnitLength, expectedRepeatLength + 1, new ChrReference() { Sequence = cleanReferenceSequence });
+            rmxnFilterSettings.RMxNFilterMinRepetitions = expectedRepeatLength + 1;
+
+            AlleleProcessor.Process(allele, 0.01f, 0, 0,
+                true, 0, 0, null, rmxnFilterSettings, new ChrReference() { Sequence = cleanReferenceSequence });
+
             Assert.False(allele.Filters.Contains(FilterType.RMxN));
 
             // RMxN isn't valid on reference calls
-            AlleleProcessor.Process(new CalledReference { }, GenotypeModel.Thresholding, 0.01f, 0, 0,
-                true, 0, 0, null, maxRepeatUnitLength, expectedRepeatLength + 1, new ChrReference() { Sequence = cleanReferenceSequence });
+            rmxnFilterSettings.RMxNFilterMinRepetitions = expectedRepeatLength + 1;
+
+            AlleleProcessor.Process(new CalledAllele() { },   0.01f, 0, 0,
+                true, 0, 0, null, rmxnFilterSettings, new ChrReference() { Sequence = cleanReferenceSequence });
+
             Assert.False(allele.Filters.Contains(FilterType.RMxN));
 
         }
@@ -261,20 +291,22 @@ namespace Pisces.Tests.UnitTests.Pisces
                 Sequence = CreateRepeat(repeatUnit, repeatsInReference, variant.Coordinate)
             };
 
-            AlleleProcessor.Process(variant, GenotypeModel.Thresholding, 0.01f, 0, 0,
-                true, 0, 0, repeatThreshold, null, null, chrReference);
+
+            AlleleProcessor.Process(variant,   0.01f, 0, 0,
+                true, 0, 0, repeatThreshold, null, chrReference);
+
             Assert.Equal(shouldBeFlagged, variant.Filters.Contains(FilterType.IndelRepeatLength));
 
             // Test with deletion
             variant = CreateRepeatVariant(variantBases, true);
             variant.Coordinate = offset + repeatUnit.Length;
 
-            AlleleProcessor.Process(variant, GenotypeModel.Thresholding, 0.01f, 0, 0,
-                true, 0, 0, repeatThreshold, null, null, chrReference);
+            AlleleProcessor.Process(variant,   0.01f, 0, 0,
+                true, 0, 0, repeatThreshold, null, chrReference);
             Assert.Equal(shouldBeFlagged, variant.Filters.Contains(FilterType.IndelRepeatLength));
         }
 
-        private BaseCalledAllele CreateRepeatVariant(string repeatUnit, bool isDeletion = false)
+        private CalledAllele CreateRepeatVariant(string repeatUnit, bool isDeletion = false)
         {
             var variant = TestHelper.CreatePassingVariant(false);
             variant.Coordinate = 5;
@@ -322,9 +354,9 @@ namespace Pisces.Tests.UnitTests.Pisces
 
         private void ExecuteFilteringTest(int totalCoverage, int qscore, bool strandBias, 
             int? lowDepthFilter, int minQscore, bool singleStrandVariant, float? variantFreq, 
-            float? lowGQ, int? indelRepeat, List<FilterType> expectedFilters)
+            float? lowGQ, int? indelRepeat, List<FilterType> expectedFilters, bool isRefAllele = false)
         {
-            var variant = TestHelper.CreatePassingVariant(false);
+            var variant = TestHelper.CreatePassingVariant(isRefAllele);
             variant.TotalCoverage = totalCoverage;
             variant.VariantQscore = qscore;
             variant.StrandBiasResults.BiasAcceptable = !strandBias;
@@ -335,11 +367,14 @@ namespace Pisces.Tests.UnitTests.Pisces
             {
                 variant.Alternate   = "AAAAAA";
                 chrRef.Sequence     = "AAAAAAAA";
-                variant.Type = AlleleCategory.Insertion;
+
+                if (!isRefAllele)
+                    variant.Type = AlleleCategory.Insertion;
             }
 
-            AlleleProcessor.Process(variant, GenotypeModel.Thresholding, 0.01f, lowDepthFilter, minQscore, 
-                true, variantFreq, lowGQ, indelRepeat, null, null, chrRef);
+
+            AlleleProcessor.Process(variant,   0.01f, lowDepthFilter, minQscore, 
+                true, variantFreq, lowGQ, indelRepeat, null, chrRef);
 
             Assert.Equal(variant.Filters.Count, expectedFilters.Count);
             foreach(var filter in variant.Filters)

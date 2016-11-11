@@ -50,12 +50,12 @@ namespace Pisces.IO.Tests.UnitTests
                 new Region(80, 80)
             };
 
-            var mapper = new RegionMapper(_chrReference, new ChrIntervalSet(intervals, "chr1"));
+            var mapper = new RegionMapper(_chrReference, new ChrIntervalSet(intervals, "chr1"), 20);
 
             // ------------------------------------
             // coverage starts after interval start - make sure beginning positions arent skipped
             // ------------------------------------
-            var expectedAlleles = new List<CalledReference>();
+            var expectedAlleles = new List<CalledAllele>();
             AddReferenceNoCallsByRange(expectedAlleles, new List<Tuple<int, int>>()
             {
                 new Tuple<int, int>(6, 10)
@@ -90,14 +90,14 @@ namespace Pisces.IO.Tests.UnitTests
             ExecuteTest(mapper, 71, null, expectedAlleles, true);
         }
 
-        private void AddReferenceNoCallsByRange(List<CalledReference> references, List<Tuple<int, int>> ranges)
+        private void AddReferenceNoCallsByRange(List<CalledAllele> references, List<Tuple<int, int>> ranges)
         {
             foreach (var range in ranges)
             {
                 for (var position = range.Item1; position <= range.Item2; position++)
                 {
                     var referenceAllele = GetReferenceAllele(position);
-                    var calledRef = new CalledReference()
+                    var calledRef = new CalledAllele()
                     {
                         Chromosome = _chr,
                         Coordinate = position,
@@ -113,11 +113,11 @@ namespace Pisces.IO.Tests.UnitTests
         }
 
         private void ExecuteTest(RegionMapper mapper, int startPosition, int? endPosition,
-            List<CalledReference> expectedAlleles, bool mapAll = false)
+            List<CalledAllele> expectedAlleles, bool mapAll = false)
         {
-            var noCalls = new List<CalledReference>();
+            var noCalls = new List<CalledAllele>();
 
-            CalledReference noCall;
+            CalledAllele noCall;
 
             while((noCall = mapper.GetNextEmptyCall(startPosition, endPosition)) != null)
             {

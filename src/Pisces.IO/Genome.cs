@@ -2,15 +2,15 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using SequencingFiles;
 using Pisces.Domain.Interfaces;
 using Pisces.Domain.Models;
+using Common.IO.Sequencing;
 
 namespace Pisces.IO
 {
     public class Genome : IGenome
     {
-        private readonly bool _customOrderChromosomes;
+
         private List<GenomeMetadata.SequenceMetadata> _chrToProcess = new List<GenomeMetadata.SequenceMetadata>();
         private readonly GenomeMetadata _genomeSource;
 
@@ -23,23 +23,12 @@ namespace Pisces.IO
             {
                 var inputList = value.ToList();
 
-                if (_customOrderChromosomes)
-                {
-                    // order by the input list
-                    _chrToProcess = new List<GenomeMetadata.SequenceMetadata>();
-                    foreach (var chromosome in inputList)
-                    {
-                        var sourceChromosomes = _genomeSource.Sequences.Where(x => x.Name == chromosome);
-                        _chrToProcess.AddRange(sourceChromosomes);
-                    }
-                }
-                else
-                {
-                    // filter from source to make sure these get added in the right order
-                    _chrToProcess = _genomeSource.Sequences.Where(
-                        s => inputList.Contains(s.Name))
-                        .ToList();
-                }
+                // filter from source to make sure these get added in the right order
+                _chrToProcess = _genomeSource.Sequences.Where(
+                    s => inputList.Contains(s.Name))
+                    .ToList();
+
+                //note that this glosses over the fact that _chrToProcess might be missing from _genomeSource.Sequences              
             }
         }
 
@@ -48,9 +37,8 @@ namespace Pisces.IO
             get { return _chrToProcess.Select(s => new Tuple<string, long>(s.Name, s.Length)); }
         }
 
-        public Genome(string directory, List<string> chrsToProcess, bool customOrderChromosomes = false)
+        public Genome(string directory, List<string> chrsToProcess)
         {
-            _customOrderChromosomes = customOrderChromosomes;
             Directory = directory;
 
             // import the genome metadata from the genome folder
@@ -82,6 +70,12 @@ namespace Pisces.IO
             }
 
             ChromosomesToProcess = chrsToProcess;
+        }
+
+
+        public string GetGenomeBuild()
+        {
+            return _genomeSource.Build;
         }
 
         public ChrReference GetChrReference(string chrName)

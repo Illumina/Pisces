@@ -21,7 +21,7 @@ namespace Pisces.Tests.UnitTests
     {
         private CandidateBatch _batch;
         private List<CandidateAllele> _candidateList;
-        private SortedList<int, List<BaseCalledAllele>> _calledList = new SortedList<int, List<BaseCalledAllele>>();
+        private SortedList<int, List<CalledAllele>> _calledList = new SortedList<int, List<CalledAllele>>();
 
         private readonly ChrReference _chrReference = new ChrReference{ Name = "testChr", Sequence = "TTTTTTTTTTTT" };
 
@@ -38,16 +38,16 @@ namespace Pisces.Tests.UnitTests
             factory.MockVariantCaller.Setup(s => s.Call(It.IsAny<CandidateBatch>(), factory.MockStateManager.Object))
                 .Returns(_calledList);
 
-            var mockWriter = new Mock<IVcfFileWriter<BaseCalledAllele>>();
+            var mockWriter = new Mock<IVcfFileWriter<CalledAllele>>();
             var caller = factory.CreateSomaticVariantCaller(_chrReference, "bamFilePath", mockWriter.Object, new Mock<IStrandBiasFileWriter>().Object);
             caller.Execute();
 
             // alignment operations 
-            factory.MockAlignmentSource.Verify(w => w.GetNextAlignmentSet(), Times.Exactly(numIterations + 1)); // extra time to determine we're done
+            factory.MockAlignmentSource.Verify(w => w.GetNextRead(), Times.Exactly(numIterations + 1)); // extra time to determine we're done
             factory.MockAlignmentSource.Verify(w => w.LastClearedPosition, Times.Exactly(numIterations));
-            factory.MockStateManager.Verify(s => s.AddAlleleCounts(It.IsAny<AlignmentSet>()), Times.Exactly(numIterations));
+            factory.MockStateManager.Verify(s => s.AddAlleleCounts(It.IsAny<Read>()), Times.Exactly(numIterations));
             factory.MockStateManager.Verify(s => s.AddCandidates(_candidateList), Times.Exactly(numIterations));
-            factory.MockVariantFinder.Verify(v => v.FindCandidates(It.IsAny<AlignmentSet>(), _chrReference.Sequence, _chrReference.Name), Times.Exactly(numIterations));
+            factory.MockVariantFinder.Verify(v => v.FindCandidates(It.IsAny<Read>(), _chrReference.Sequence, _chrReference.Name), Times.Exactly(numIterations));
 
             // calling operations 
             // should happen per iteration, plus once more for remainder
@@ -62,7 +62,7 @@ namespace Pisces.Tests.UnitTests
             factory.MockStateManager.Verify(s => s.DoneProcessing(It.IsAny<ICandidateBatch>()), Times.Exactly(numIterations + 1)); // total
 
             // writing operations
-            mockWriter.Verify(w => w.Write(It.IsAny<List<BaseCalledAllele>>(), It.IsAny<IRegionMapper>()), Times.Exactly(numIterations + 1));  // once per calling operation
+            mockWriter.Verify(w => w.Write(It.IsAny<List<CalledAllele>>(), It.IsAny<IRegionMapper>()), Times.Exactly(numIterations + 1));  // once per calling operation
             mockWriter.Verify(w => w.WriteRemaining(It.IsAny<IRegionMapper>()), Times.Exactly(1));  // final write
         }
 
@@ -74,8 +74,8 @@ namespace Pisces.Tests.UnitTests
 
             // alignment source
             var mockAlignmentSource = new Mock<IAlignmentSource>();
-            mockAlignmentSource.Setup(s => s.GetNextAlignmentSet()).Returns(() => 
-                currentIteration < numIterations ? new AlignmentSet(DomainTestHelper.CreateRead(_chrReference.Name, "AAA", 1 + currentIteration++), null) : null);
+            mockAlignmentSource.Setup(s => s.GetNextRead()).Returns(() => 
+                currentIteration < numIterations ? DomainTestHelper.CreateRead(_chrReference.Name, "AAA", 1 + currentIteration++) : null);
             mockAlignmentSource.Setup(s => s.LastClearedPosition).Returns(() => currentIteration );
             factory.MockAlignmentSource = mockAlignmentSource;
 
@@ -89,7 +89,7 @@ namespace Pisces.Tests.UnitTests
 
             // variant finder
             var mockVariantFinder = new Mock<ICandidateVariantFinder>();
-            mockVariantFinder.Setup(v => v.FindCandidates(It.IsAny<AlignmentSet>(), _chrReference.Sequence, _chrReference.Name)).Returns(_candidateList);
+            mockVariantFinder.Setup(v => v.FindCandidates(It.IsAny<Read>(), _chrReference.Sequence, _chrReference.Name)).Returns(_candidateList);
             factory.MockVariantFinder = mockVariantFinder;
 
             // variant caller

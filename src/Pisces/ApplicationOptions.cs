@@ -8,6 +8,7 @@ using Pisces.Domain.Types;
 using Pisces.Domain.Utility;
 using Pisces.Processing;
 using Pisces.Calculators;
+using System.Reflection;
 
 namespace Pisces
 {
@@ -19,13 +20,22 @@ namespace Pisces
     // ReSharper disable InconsistentNaming - prevents ReSharper from renaming serializeable members that are sensitive to being changed
     public class ApplicationOptions : BaseApplicationOptions
     {
-        private const char _delimiter = ',';
         public const string DefaultLogFolderName = "PiscesLogs";
-        public const string LogFileName = "PiscesLog.txt";
+        public const string LogFileNameBase = "PiscesLog.txt";
+
+        public string LogFileName
+        {
+            get
+            {
+                if (InsideSubProcess)
+                    return System.Diagnostics.Process.GetCurrentProcess().Id + "_" + LogFileNameBase;
+                return LogFileNameBase;
+            }
+        }
 
         #region Serializeable Types and Members
 
-        public string CommandLineArguments;
+        public string[] CommandLineArguments;
 
         public int AppliedNoiseLevel = -1;
         public int MinimumBaseCallQuality = 20;
@@ -34,7 +44,7 @@ namespace Pisces
         public int MaximumGenotypeQScore = 100;
         public int FilteredVariantQScore = 30;
         public int MinimumVariantQScore = 20; // We don't bother reporting variants with a lower Q-score.
-        public int MinimumCoverage = 10;
+        public int MinimumDepth = 10;
         public int MinimumMapQuality = 1;
         public float MinimumFrequency = 0.01f;
         public float StrandBiasAcceptanceCriteria = 0.5f; // Flag variants as filtered if they have greater strand bias than this
@@ -46,7 +56,6 @@ namespace Pisces
         public bool OutputBiasFiles = false;
         public bool OutputgVCFFiles = false;
         public bool OnlyUseProperPairs = false;
-        public int MaxNumThreads = 20;
         public int NoiseModelHalfWindow = 1;
         public bool DebugMode = false;
         public bool CallMNVs = false;
@@ -56,30 +65,26 @@ namespace Pisces
         public int MaxSizeMNV = 3;
         public int MaxGapBetweenMNV = 1;
         public bool UseMNVReallocation = true;
-        public bool StitchReads = false;
         public NoiseModel NoiseModel = NoiseModel.Flat;
-        public GenotypeModel GTModel = GenotypeModel.Thresholding; //possibly move to symmetrical when its implemented
         public StrandBiasModel StrandBiasModel = StrandBiasModel.Extended;
         public PloidyModel PloidyModel = PloidyModel.Somatic;
         public CoverageMethod CoverageMethod = CoverageMethod.Approximate;
-        public GenotypeCalculator.DiploidThresholdingParameters DiploidThresholdingParameters = new GenotypeCalculator.DiploidThresholdingParameters();
+        public DiploidThresholdingParameters DiploidThresholdingParameters = new DiploidThresholdingParameters();
         public string MonoPath; //only needed if running on Linux cluster, and we plan to spawn processes
-        public bool UseXCStitcher = false;
-        public bool NifyDisagreements = false;
-        public bool Collapse = false;
+        public bool Collapse = true;
         public string PriorsPath;
         public bool TrimMnvPriors;
-        public float? FilteredVariantFrequency;
+        public float FilteredVariantFrequency;
         public int? LowGenotypeQualityFilter;
         public int? IndelRepeatFilter;
         public int? LowDepthFilter;
         public int? RMxNFilterMaxLengthRepeat = 5;
         public int? RMxNFilterMinRepetitions = 9;
-        public bool InsideSubProcess;
-        public bool MultiProcess = true;
+        public float RMxNFilterFrequencyLimit = 0.20f; //this was recommended by Kristina K after empirical testing 
         public float CollapseFreqThreshold = 0f;
         public float CollapseFreqRatioThreshold = 0.5f;
-        public bool SkipNonIntervalAlignments = false;
+        public bool SkipNonIntervalAlignments = false;  //keep this off. it currently has bugs, speed issues, and no plan to fix it)
+
 
         public string LogFolder {
             get
@@ -90,72 +95,69 @@ namespace Pisces
                 return OutputFolder ?? Path.Combine(Path.GetDirectoryName(BAMPaths[0]), DefaultLogFolderName);
             }
         }
-
-        public UnstitchableStrategy UnstitchableStrategy = UnstitchableStrategy.TakeStrongerRead;
-
-        public int MaxFragmentSize = 1000;
-
+      
         #endregion
         // ReSharper restore InconsistentNaming
 
-        public static void PrintUsageInfo()
+        public static void PrintVersionToConsole()
         {
+            var currentAssembly = Assembly.GetExecutingAssembly().GetName();
+            Console.WriteLine(currentAssembly.Name + " " + currentAssembly.Version);
+            Console.WriteLine(UsageInfoHelper.GetWebsite());
+            Console.WriteLine();
+        }
+
+    public new static void PrintUsageInfo()
+        {
+            PrintVersionToConsole();
+
             Console.WriteLine("Options:");
-            Console.WriteLine(" -MinVariantQScore/-a : MinimumVariantQScore to report variant");
-            Console.WriteLine(" -MinBaseCallQuality/-b : MinimumBaseCallQuality to use a base of the read");
-            Console.WriteLine(" -BamPaths/-B : BAMPath(s), single value or comma delimited list");
-            Console.WriteLine(" -BAMFolder : BAM parent folder");
-            Console.WriteLine(" -MinCoverage/-c : MinimumCoverage to call a variant");
-            Console.WriteLine(" -MinimumFrequency/-f : MinimumFrequency to call a variant");
-            Console.WriteLine(" -EnableSingleStrandFilter/-fo : Flag variants as filtered if coverage limited to one strand");
-            Console.WriteLine(" -VariantQualityFilter/-F : FilteredVariantQScore to report variant as filtered");
-            Console.WriteLine(" -MinVariantFrequencyFilter/-v FilteredVariantFrequency to report variant as filtered");
-            Console.WriteLine(" -GTModel/-gtq LowGenotypeQualityFilter value, to report variant as filtered");
-            Console.WriteLine(" -RepeatFilter FilteredIndelRepeats to report variant as filtered");
-            Console.WriteLine(" -MinDepthFilter/-ld FilteredLowDepth to report variant as filtered");
-            Console.WriteLine(" -IntervalPaths/-i : IntervalPath(s), single value or comma delimited list corresponding to BAMPath(s). At most one value should be provided if BAM folder is specified");
-            Console.WriteLine(" -MinMapQuality/-m : MinimumMapQuality required to use a read");
-            Console.WriteLine(" -GenomePaths/-g : GenomePath(s), single value or comma delimited list corresponding to BAMPath(s). Must be single value if BAM folder is specified");
-            Console.WriteLine(" -OutputSBFiles/-o : Output strand bias files, 'true' or 'false'");
-            Console.WriteLine(" -OnlyUseProperPairs/-p : Only use proper pairs, 'true' or 'false'");
-            Console.WriteLine(" -MaxVariantQScore/-q : MaximumVariantQScore to cap output variant Qscores");
-            Console.WriteLine(" -MaxAcceptableStrandBiasFilter/-s : Strand bias cutoff");
-            Console.WriteLine(" -StitchPairedReads : Stitch overlapping region of paired reads, 'true' or 'false'. default, false");
+			Console.WriteLine(" -ver/-v : Print version.");
+			Console.WriteLine(" -MinVariantQScore/-MinVQ : MinimumVariantQScore to report variant");
+            Console.WriteLine(" -MinBaseCallQuality/-MinBQ : MinimumBaseCallQuality to use a base of the read");
+            Console.WriteLine(" -BamPaths/-Bam : BAMPath(s), single value or comma delimited list");
+            Console.WriteLine(" -MinDepth/-MinDP : Minimum depth to call a variant");
+            Console.WriteLine(" -MinimumFrequency/-MinVF : MinimumFrequency to call a variant");
+            Console.WriteLine(" -EnableSingleStrandFilter/-SSFilter : Flag variants as filtered if coverage limited to one strand");
+            Console.WriteLine(" -VariantQualityFilter/-VQFilter : FilteredVariantQScore to report variant as filtered");
+            Console.WriteLine(" -MinVariantFrequencyFilter/-VFFilter : FilteredVariantFrequency to report variant as filtered");
+            Console.WriteLine(" -RepeatFilter : FilteredIndelRepeats to report variant as filtered");
+            Console.WriteLine(" -MinDepthFilter/-MinDPFilter : FilteredLowDepth to report variant as filtered");
+            Console.WriteLine(" -IntervalPaths/-I : IntervalPath(s), single value or comma delimited list corresponding to BAMPath(s). At most one value should be provided if BAM folder is specified");
+            Console.WriteLine(" -MinMapQuality/-MinMQ : MinimumMapQuality required to use a read");
+            Console.WriteLine(" -GenomePaths/-G : GenomePath(s), single value or comma delimited list corresponding to BAMPath(s). Must be single value if BAM folder is specified");
+            Console.WriteLine(" -OutputSBFiles : Output strand bias files, 'true' or 'false'");
+            Console.WriteLine(" -OnlyUseProperPairs/-PP : Only use proper pairs, 'true' or 'false'");
+            Console.WriteLine(" -MaxVariantQScore/-MaxVQ : MaximumVariantQScore to cap output variant Qscores");
+            Console.WriteLine(" -MaxAcceptableStrandBiasFilter/-SBFilter : Strand bias cutoff");
             Console.WriteLine(" -MaxNumThreads/-t : ThreadCount");
             Console.WriteLine(" -ThreadByChr : Thread by chr. More memory intensive.  This will temporarily create output per chr.");
             Console.WriteLine(" -gVCF : Output gVCF files, 'true' or 'false'");
-            Console.WriteLine(" -CallMNVs or -PhaseSNPs : Call phased SNPs, 'true' or 'false'");
-            Console.WriteLine(" -MaxMNVLength or -MaxPhaseSNPLength : Max length phased SNPs that can be called");
-            Console.WriteLine(" -MaxGapBetweenMNV or -MaxGapPhasedSNP : Max allowed gap between phased SNPs that can be called");
-            Console.WriteLine(" -OutFolder : 'myoutpath'");
+            Console.WriteLine(" -CallMNVs : Call MNVs (a.k.a. phased SNPs) 'true' or 'false'");
+            Console.WriteLine(" -MaxMNVLength : Max length phased SNPs that can be called");
+            Console.WriteLine(" -MaxRefGapInMNV or -MaxGapBetweenMNV : Max allowed gap between phased SNPs that can be called");
             Console.WriteLine(" -ReportNoCalls : 'true' or 'false'. default, false");
-            Console.WriteLine(" -RequireXC : RequireXCTagToStitch 'true' or 'false'. default, false");
-            Console.WriteLine(" -XcStitcher : UseXCStitcher 'true' or 'false'. default, false");
             Console.WriteLine(" -Collapse : Whether or not to collapse variants together, 'true' or 'false'. default, false ");
             Console.WriteLine(" -PriorsPath : PriorsPath for vcf file containing known variants, used with -collapse to preferentially reconcile variants");
             Console.WriteLine(" -TrimMnvPriors : Whether or not to trim preceeding base from MNVs in priors file.  Note: COSMIC convention is to include preceeding base for MNV.  Default is false.");
-            Console.WriteLine(" -NifyDisagreements : When stitching is enabled, change any disagreeing bases in the overlap region to 'N', 'true' or 'false'. default, false");
-            Console.WriteLine(" -MaxFragmentSize : When stitching is enabled, this is the max fragment size allowed when pairing.  Reads without a mate found within this window are skipped.  Default is 1000");
-            Console.WriteLine(" -ChrFilter : Debug option to variant call just the specified chromosome.");
-            Console.WriteLine(" -UnstitchableStrategy : When stitching is enabled, the strategy for handling unstitchable reads, 'both' (process both reads separately), 'stronger' (take the read with higher quality), or 'none' (throw out the unstitchable pair). Default 'both'.");
             Console.WriteLine(" -ReportRcCounts : When BAM files contain X1 and X2 tags, output read counts for duplex-stitched, duplex-nonstitched, simplex-stitched, and simplex-nonstitched.  'true' or 'false'. default, false");
             Console.WriteLine(" -Ploidy : 'somatic' or 'diploid'. default, somatic.");
             Console.WriteLine(" -DiploidGenotypeParameters : A,B,C. default 0.20,0.70,0.80");
-            Console.WriteLine(" -RMxNFilter : M,N. Comma-separated pair of integers indicating max length of the repeat section we will look for (M) and minimum number of repetitions of that repeat (N). Default is R5x9.");
+            Console.WriteLine(" -RMxNFilter : M,N,F. Comma-separated list of integers indicating max length of the repeat section (M), the minimum number of repetitions of that repeat (N), to be applied if the variant frequency is less than (F). Default is R5x9,F=20.");
             Console.WriteLine(" -CoverageMethod : 'approximate' or 'exact'. Exact is more precise but requires more memory (minimum 8 GB).  Default approximate");
-            Console.WriteLine(" -MultiProcess : When threading by chr, launch separate processes to parallelize. Default true");
             Console.WriteLine(" -CollapseFreqThreshold : When collapsing, minimum frequency required for target variants. Default '0'");
             Console.WriteLine(" -CollapseFreqRatioThreshold : When collapsing, minimum ratio required of target variant frequency to collapsible variant frequency. Default '0.5f'");
-            Console.WriteLine(" -SkipNonIntervalAlignments : When using intervals, extract from the bam file only those alignments that could overlap with the intervals. Default false");
+			Console.WriteLine(" -NoiseModel : Window/Flat. Default Flat ");
+			BaseApplicationOptions.PrintUsageInfo();
             Console.WriteLine("");
-            Console.WriteLine("Note, where -option1/-option2 is specified, -option2 is to be depracated.");
+            Console.WriteLine("Note, all options are case insensitive.");
 
         }
 
         public static ApplicationOptions ParseCommandLine(string[] arguments)
         {
             var options = new ApplicationOptions();
-            options.UpdateOptions(arguments);
+	        if (options.UpdateOptions(arguments) == null) return null;
             options.Validate();
             if (!string.IsNullOrWhiteSpace(options.BAMFolder))
                 options.PopulateBAMPaths();
@@ -234,18 +236,18 @@ namespace Pisces
             ValidationHelper.VerifyRange(MinimumFrequency, 0f, 1f, "MinimumFrequency");
             ValidationHelper.VerifyRange(FilteredVariantQScore, MinimumVariantQScore, MaximumVariantQScore, "FilteredVariantQScore");
 
-            if (FilteredVariantFrequency != null)
-                ValidationHelper.VerifyRange((float)FilteredVariantFrequency, 0, 1f, "FilteredVariantFrequency");
+            ValidationHelper.VerifyRange((float)FilteredVariantFrequency, 0, 1f, "FilteredVariantFrequency");
+
             if (LowGenotypeQualityFilter != null)
                 ValidationHelper.VerifyRange((float)LowGenotypeQualityFilter, 0, int.MaxValue, "FilteredLowGenomeQuality");
             if (IndelRepeatFilter != null)
                 ValidationHelper.VerifyRange((int)IndelRepeatFilter, 0, 10, "FilteredIndelRepeats");
             if (LowDepthFilter != null)
-                ValidationHelper.VerifyRange((int)LowDepthFilter, MinimumCoverage, int.MaxValue, "FilteredLowDepth");
+                ValidationHelper.VerifyRange((int)LowDepthFilter, MinimumDepth, int.MaxValue, "FilteredLowDepth");
 
-            if ((LowDepthFilter == null) || (LowDepthFilter < MinimumCoverage))
+            if ((LowDepthFilter == null) || (LowDepthFilter < MinimumDepth))
             {
-                LowDepthFilter = MinimumCoverage;
+                LowDepthFilter = MinimumDepth;
             }
 
             if (AppliedNoiseLevel != -1)
@@ -267,14 +269,15 @@ namespace Pisces
                     throw new ArgumentException(string.Format("PriorsPath '{0}' does not exist.", PriorsPath));
             }
 
-            if ((LowGenotypeQualityFilter != null) && (PloidyModel == PloidyModel.Somatic))
-            {
-                throw new ArgumentException(string.Format("Genotype Quality Filter is never supported in conjunction with somatic calling."));       
-            }
-
             if (PloidyModel == PloidyModel.Diploid)
             {
                 MinimumFrequency = DiploidThresholdingParameters.MinorVF;
+            }
+
+
+            if (FilteredVariantFrequency < MinimumFrequency)
+            {
+                FilteredVariantFrequency = MinimumFrequency;
             }
 
             if (RMxNFilterMaxLengthRepeat != null || RMxNFilterMinRepetitions != null)
@@ -289,6 +292,27 @@ namespace Pisces
 
             if (ThreadByChr && !InsideSubProcess && !string.IsNullOrEmpty(ChromosomeFilter))
                 throw new ArgumentException("Cannot thread by chromosome when filtering on a particular chromosome.");
+
+            if (!string.IsNullOrEmpty(OutputFolder) && bamPathsSpecified && (BAMPaths.Length>1))
+            {
+                //make sure none of the input BAMS have the same name. Or else we will have an output collision.
+                for(int i=0;i<BAMPaths.Length;i++)
+                {
+                    for (int j = i + 1; j < BAMPaths.Length; j++)
+                    {
+                        if (i == j)
+                            continue;
+
+                        var fileA = Path.GetFileName(BAMPaths[i]);
+                        var fileB = Path.GetFileName(BAMPaths[j]);
+
+                        if (fileA == fileB)
+                        {
+                            throw new ArgumentException(string.Format( "VCF file name collision. Cannot process two different bams with the same name {0} into the same output folder {1}.", fileA, OutputFolder));
+                        }
+                    }
+                }
+            }
         }
 
         private float[] ParseStringToFloat(string[] stringArray)
@@ -328,101 +352,100 @@ namespace Pisces
                     string value = null;
                     if (argumentIndex < arguments.Length - 1) value = arguments[argumentIndex + 1].Trim();
 
-                    lastArgumentField = arguments[argumentIndex];
+                    lastArgumentField = arguments[argumentIndex].ToLower();
 
                     switch (lastArgumentField)
                     {
-                        case "-a":
-                        case "-MinVariantQScore":
+						case "-v":
+						case "-ver":
+							PrintVersionToConsole();
+							return null;
+                        //case "-a": depracated
+                        case "-minvq":
+                        case "-minvariantqscore":
                             MinimumVariantQScore = int.Parse(value);
                             break;
-                        case "-b":
-                        case "-MinBaseCallQuality":
+                        //case "-b": depracated
+                        case "-minbq": 
+                        case "-minbasecallquality":
                             MinimumBaseCallQuality = int.Parse(value);
                             break;
-                        case "-B":
-                        case "-BamPaths":
+                        case "-b":
+                        case "-bam":
                             BAMPaths = value.Split(_delimiter);
                             break;
-                        case "-BAMFolder":
-                            BAMFolder = value;
-                            break;
                         case "-c":
-                        case "-MinCoverage":
-                            MinimumCoverage = int.Parse(value);
+                        case "-mindp":
+                        case "-mindepth":
+                        case "-mincoverage": //last release this is available. trying to be nice for backwards compatibility with Isas.
+                            MinimumDepth = int.Parse(value);
                             break;
                         case "-d":
-                            DebugMode = bool.Parse(value);
-                            break;
                         case "-debug":
                             DebugMode = bool.Parse(value);
                             break;
-                        case "-f":
-                        case "-MinimumFrequency":
+                        case "-minvf":  //used to be "f"
+                        case "-minimumvariantfrequency":
                         case "-minimumfrequency":
                             MinimumFrequency = float.Parse(value);
                             break;
-                        case "-F":
+                        case "-vqfilter": //used to be "F"
                         case "-variantqualityfilter":
-                        case "-VariantQualityFilter":
                             FilteredVariantQScore = int.Parse(value);
                             break;
-                        case "-v":
-                        case "-MinVariantFrequencyFilter":
+                        case "-vffilter": //used to be "v"
+                        case "-minvariantfrequencyfilter":
                             FilteredVariantFrequency = float.Parse(value);
                             break;
-                        case "-gtq":
+                        case "-gqfilter":
                         case "-genotypequalityfilter":
-                        case "-GenotypeQualityFilter":
                             LowGenotypeQualityFilter = int.Parse(value);
                             break;
                         case "-repeatfilter":
-                        case "-RepeatFilter":
                             IndelRepeatFilter = int.Parse(value);
                             break;
-                        case "-ld":
-                        case "-MinDepthFilter ":
+                        case "-mindpfilter":
+                        case "-mindepthfilter":
                             LowDepthFilter = int.Parse(value);
                             break;
-                        case "-fo":
-                        case "-EnableSingleStrandFilter":
+                        case "-ssfilter": //used to be "fo"
+                        case "-enablesinglestrandfilter":
                             FilterOutVariantsPresentOnlyOneStrand = bool.Parse(value);
                             break;
                         case "-g":
-                        case "-GenomePaths":
+                        case "-genomepaths":
                             GenomePaths = value.Split(_delimiter);
                             break;
-                        case "-NL":
-                        case "-NoiseLevelForQModel":
+                        case "-nl":
+                        case "-noiselevelforqmodel":
                             AppliedNoiseLevel = int.Parse(value);
                             break;
-                        case "-gVCF":
+                        case "-gvcf":
                             OutputgVCFFiles = bool.Parse(value);
                             break;
-                        case "-CallMNVs":
-                        case "-PhaseSNPs":
+                        case "-callmnvs":
+                        //case "-phasesnps": obsolete
                             CallMNVs = bool.Parse(value);
                             break;
-                        case "-MaxMNVLength":
-                        case "-MaxPhaseSNPLength":
-                        case "-MaxPhasedSNPLength":
+                        case "-maxmnvlength":
+                            //case "-MaxPhaseSNPLength": obsolete
+                            //case "-MaxPhasedSNPLength": obsolete
                             MaxSizeMNV = int.Parse(value);
                             break;
-                        case "-MaxGapBetweenMNV":
-                        case "-MaxGapPhasedSNP":
-                        case "-MaxRefGapInMnv":
+                        case "-maxgapbetweenmnv":
+                        case "-maxrefgapinmnv":
+                            //case "-MaxGapPhasedSNP":: obsolete
                             MaxGapBetweenMNV = int.Parse(value);
                             break;
                         case "-i":
-                        case "-IntervalPaths":
+                        case "-intervalpaths":
                             IntervalPaths = value.Split(_delimiter);
                             break;
-                        case "-m":
-                        case "-MinMapQuality":
+                        case "-minmq": //used to be "m"
+                        case "-minmapquality":
                             MinimumMapQuality = int.Parse(value);
                             break;
                         case "-ploidy":
-                        case "-Ploidy":
                             if (value.ToLower().Contains("somatic"))
                                 PloidyModel = PloidyModel.Somatic;
                             else if (value.ToLower().Contains("diploid"))
@@ -430,30 +453,17 @@ namespace Pisces
                             else
                                 throw new ArgumentException(string.Format("Unknown ploidy model '{0}'", value));
                             break;
-                        case "-DiploidGenotypeParameters":
+                        case "-diploidgenotypeparameters":
                             var parameters = ParseStringToFloat(value.Split(_delimiter));
                             if (parameters.Length != 3)
                                 throw new ArgumentException(string.Format("DiploidGenotypeParamteers argument requires exactly three values."));
-                            DiploidThresholdingParameters = new GenotypeCalculator.DiploidThresholdingParameters(parameters);
-                            break;
-                        case "-gt":
-                        case "-GT":
-                        case "-GTModel":
-                            if (value.ToLower().Contains("none"))
-                                GTModel = GenotypeModel.None;
-                            else if (value.ToLower().Contains("threshold"))
-                                GTModel = GenotypeModel.Thresholding;
-                            else if (value.ToLower().Contains("symmetric"))
-                                throw new ArgumentException(string.Format("Temporarily depracated '{0}'", value));
-                            else
-                                throw new ArgumentException(string.Format("Unknown genotype model '{0}'", value));
-                            break;
-                        case "-CrushVcf":
+                            DiploidThresholdingParameters = new DiploidThresholdingParameters(parameters);
+                            break;                      
                         case "-crushvcf":
                             bool crushedallelestyle = bool.Parse(value);
                             AllowMultipleVcfLinesPerLoci = !(crushedallelestyle);
                             break;
-                        case "-SBModel":
+                        case "-sbmodel":
                             if (value.ToLower().Contains("poisson"))
                                 StrandBiasModel = StrandBiasModel.Poisson;
                             else if (value.ToLower().Contains("extended"))
@@ -461,82 +471,60 @@ namespace Pisces
                             else
                                 throw new ArgumentException(string.Format("Unknown strand bias model '{0}'", value));
                             break;
-                        case "-o":
-                        case "-OutputSBFiles":
+                        case "-outputsbfiles":
                             OutputBiasFiles = bool.Parse(value);
                             break;
-                        case "-p":
-                        case "-OnlyUseProperPairs":
+                        case "-pp":
+                        case "-onlyuseproperpairs":
                             OnlyUseProperPairs = bool.Parse(value);
                             break;
-                        case "-q":
-                        case "-MaxVariantQScore":
+                        case "-maxvq":
+                        case "-maxvariantqscore":
                             MaximumVariantQScore = int.Parse(value);
                             break;
-                        case "-MaxGenotypeQScore":
+                        case "-maxgq":
+                        case "-maxgenotypeqscore":
                             MaximumGenotypeQScore = int.Parse(value);
                             break;
-                        case "-MinGenotypeQScore":
+                        case "-mingq":
+                        case "-minqenotypeqscore":
                             MinimumGenotypeQScore = int.Parse(value);
                             break;
-                        case "-s":
-                        case "-MaxAcceptableStrandBiasFilter":
+                        case "-sbfilter":
+                        case "-maxacceptablestrandbiasfilter":
                             StrandBiasAcceptanceCriteria = float.Parse(value);
                             break;
-                        case "-StitchPairedReads":
-                            StitchReads = bool.Parse(value);
-                            break;
+                        case "-stitchpairedreads":
+                            throw new ArgumentException("StitchPairedReads option is obsolete.");
                         case "-t":
-                        case "-MaxNumThreads":
                             MaxNumThreads = int.Parse(value);
                             break;
-                        case "-ThreadByChr":
+                        case "-threadbychr":
                             ThreadByChr = bool.Parse(value);
                             break;
-                        case "-ReportNoCalls":
+                        case "-reportnocalls":
                             ReportNoCalls = bool.Parse(value);
                             break;
-                        case "-XcStitcher":
-                            UseXCStitcher = bool.Parse(value);
-                            break;
-                        case "-OutFolder":
-                            OutputFolder = value;
-                            break;
-                        case "-Collapse":
+                        case "-xcstitcher":
+                            throw new ArgumentException("XCStitcher option is obsolete.");
+                        case "-collapse":
                             Collapse = bool.Parse(value);
                             break;
-                        case "-CollapseFreqThreshold":
+                        case "-collapsefreqthreshold":
                             CollapseFreqThreshold = float.Parse(value);
                             break;
-                        case "-CollapseFreqRatioThreshold":
+                        case "-collapsefreqratiothreshold":
                             CollapseFreqRatioThreshold = float.Parse(value);
                             break;
-                        case "-PriorsPath":
+                        case "-priorspath":
                             PriorsPath = value;
                             break;
-                        case "-TrimMnvPriors":
+                        case "-trimmnvpriors":
                             TrimMnvPriors = bool.Parse(value);
                             break;
-                        case "-NifyDisagreements":
-                            NifyDisagreements = bool.Parse(value);
-                            break;
-                        case "-MaxFragmentSize":
-                            MaxFragmentSize = Int32.Parse(value);
-                            break;
-                        case "-ChrFilter":
-                            ChromosomeFilter = value;
-                            break;
-                        case "-UnstitchableStrategy":
-                            if (value.ToLower().Contains("both"))
-                                UnstitchableStrategy = UnstitchableStrategy.TakeBothReads;
-                            else if (value.ToLower().Contains("stronger"))
-                                UnstitchableStrategy = UnstitchableStrategy.TakeStrongerRead;
-                            else if (value.ToLower().Contains("none"))
-                                UnstitchableStrategy = UnstitchableStrategy.TakeNoReads;
-                            else
-                                throw new ArgumentException(string.Format("Unknown unstitchable strategy '{0}'", value));
-                            break;
-                        case "-CoverageMethod":
+                        case "-nifydisagreements":
+                            throw new ArgumentException("NifyDisagreements option is no longer valid: stitching within Pisces is obsolete.");
+                        case "-coverageMethod":
                             if (value.ToLower() == "approximate")
                                 CoverageMethod = CoverageMethod.Approximate;
                             else if (value.ToLower() == "exact")
@@ -544,20 +532,13 @@ namespace Pisces
                             else
                                 throw new ArgumentException(string.Format("Unknown coverage method '{0}'", value));
                             break;
-                        case "-ReportRcCounts":
+                        case "-reportrccounts":
                             ReportRcCounts = bool.Parse(value);
-                            break;
-                        case "-InsideSubProcess":
-                            InsideSubProcess = bool.Parse(value);
-                            break;
-                        case "-MultiProcess":
-                            MultiProcess = bool.Parse(value);
-                            break;
-                        case "-Mono":
+                        break;
                         case "-mono":
                             MonoPath = value;
                             break;
-                        case "-RMxNFilter":
+                        case "-rmxnfilter":
                             bool turnOn = true;
                             bool worked = (bool.TryParse(value, out turnOn));
                             if (worked)
@@ -576,21 +557,29 @@ namespace Pisces
                             }
                             //else, it wasnt a bool...
                             var rmxnThresholds = ParseStringToFloat(value.Split(_delimiter));
-                            if (rmxnThresholds.Length != 2)
-                                throw new ArgumentException(string.Format("RMxNFilter argument requires exactly two values."));
+                            if ((rmxnThresholds.Length <2) || (rmxnThresholds.Length > 3))
+                                throw new ArgumentException(string.Format("RMxNFilter argument requires two or three values."));
                             RMxNFilterMaxLengthRepeat = (int)rmxnThresholds[0];
                             RMxNFilterMinRepetitions = (int)rmxnThresholds[1];
+
+                            if (rmxnThresholds.Length > 2)
+                                RMxNFilterFrequencyLimit = (float)rmxnThresholds[2];
                             break;
-                        case "-SkipNonIntervalAlignments":
-                            SkipNonIntervalAlignments = bool.Parse(value);
-                            break;
+						case "-noisemodel":
+							NoiseModel = value.ToLower() == "window" ? NoiseModel.Window : NoiseModel.Flat;
+							break;
+						case "-skipnonintervalalignments":
+                            throw new Exception(string.Format("'SkipNonIntervalAlignments' option has been depracated until further notice. ", arguments[argumentIndex]));
+                            //(it has bugs, speed issues, and no plan to fix it)
                         default:
-                            throw new Exception(string.Format("Unknown argument '{0}'", arguments[argumentIndex]));
+                            if (!base.UpdateOptions(lastArgumentField, value))
+                                throw new Exception(string.Format("Unknown argument '{0}'", arguments[argumentIndex]));
+                            break;
                     }
                     argumentIndex += 2;
                 }
 
-                CommandLineArguments = string.Join(" ", arguments);
+                CommandLineArguments = arguments;
 
                 return this;
             }

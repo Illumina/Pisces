@@ -119,7 +119,8 @@ namespace CallVariants.Logic.Processing
             var writerKey = GetChrOutputPath(workRequest, chrReference.Name);
 
             var caller = _factory.CreateSomaticVariantCaller(chrReference, workRequest.BamFilePath,
-                _writerByChrLookup[writerKey], _biasWriterByChrLookup[writerKey]);
+                _writerByChrLookup[writerKey], _biasWriterByChrLookup[writerKey], null, Genome.ChromosomesToProcess);
+            
             caller.Execute();
         }
 

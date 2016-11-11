@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.IO;
-using SequencingFiles;
+using Alignment.Domain.Sequencing;
 using Pisces.Domain.Models;
 using Pisces.Domain.Models.Alleles;
 using Pisces.Domain.Types;
@@ -18,20 +18,30 @@ namespace TestUtilities
                     set.PartnerRead2.Qualities[i] = (byte)quality;
         }
 
-        public static AlignmentSet CreateTestSet(Read read1, int quality = 30)
+        public static void SetQualities(IEnumerable<Read> reads, int quality)
         {
-            var alignmentSet = new AlignmentSet(read1, null, true);
-            SetQualities(alignmentSet, quality);
-
-            return alignmentSet;
+            foreach (var read in reads)
+            {
+                for (var i = 0; i < read.Qualities.Length; i++)
+                    read.Qualities[i] = (byte)quality;
+            }
         }
 
-        public static AlignmentSet CreateTestSet(Read read1, Read read2, int quality = 30)
-        {
-            var alignmentSet = new AlignmentSet(read1, read2, true);
-            SetQualities(alignmentSet, quality);
 
-            return alignmentSet;
+        public static List<Read> CreateTestReads(Read read1, int quality = 30)
+        {
+            var reads = new List<Read>() {read1};
+            SetQualities(reads, quality);
+
+            return reads;
+        }
+
+        public static List<Read> CreateTestReads(Read read1, Read read2, int quality = 30)
+        {
+            var reads = new List<Read>() { read1, read2 };
+            SetQualities(reads, quality);
+
+            return reads;
         }
 
         public static CigarAlignment GetReadCigarFromStitched(string stitchedCigar, int readLength, bool reverse)
@@ -74,10 +84,10 @@ namespace TestUtilities
 
 
 
-        public static BaseCalledAllele CreatePassingVariant(bool isReference)
+        public static CalledAllele CreatePassingVariant(bool isReference)
         {
-            var calledAllele = isReference ? (BaseCalledAllele)new CalledReference() :
-                new CalledVariant(AlleleCategory.Snv);
+            var calledAllele = isReference ? new CalledAllele() :
+                new CalledAllele(AlleleCategory.Snv);
 
             calledAllele.Coordinate = 1;
             calledAllele.Alternate = "C";

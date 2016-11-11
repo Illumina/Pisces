@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using SequencingFiles;
+using Alignment.Domain.Sequencing;
 using Pisces.Domain.Logic;
 using Pisces.Domain.Models;
 using Pisces.Domain.Models.Alleles;
@@ -1004,17 +1004,17 @@ new CandidateVariantsTest(_readStartPos, "TTT" + "TTTT" + "TTT", cigarString, "A
         }
     }
 
-    public class PiscesVariantFromCigarSuite : VariantFromCigarSuite<AlignmentSet, CandidateAllele, IEnumerable<CandidateAllele>>
+    public class PiscesVariantFromCigarSuite : VariantFromCigarSuite<Read, CandidateAllele, IEnumerable<CandidateAllele>>
     {
-        public override AlignmentSet BuildReadsToCheckForVariants(CandidateVariantsTest test)
+        public override Read BuildReadsToCheckForVariants(CandidateVariantsTest test)
         {
-            return CandidateFinderTestHelpers.CreateAlignmentSet(test.CigarString, test.ReadBases, test.ReadQualities, _readStartPos);
+            return CandidateFinderTestHelpers.CreateRead(test.CigarString, test.ReadBases, test.ReadQualities, _readStartPos);
         }
 
-        public override IEnumerable<CandidateAllele> GetVariants(CandidateVariantsTest test, AlignmentSet reads)
+        public override IEnumerable<CandidateAllele> GetVariants(CandidateVariantsTest test, Read read)
         {
             var vf = new CandidateVariantFinder(_qualityCutoff,test.MaxLengthMnv,test.MaxLengthInterveningRef,true);
-            var candidates = vf.FindCandidates(reads, test.RefChromosome, _chromName);
+            var candidates = vf.FindCandidates(read, test.RefChromosome, _chromName);
             return candidates;
         }
 
@@ -1336,13 +1336,13 @@ new CandidateVariantsTest(_readStartPos, "TTT" + "TTTT" + "TTT", cigarString, "A
         {
             var variantFinder = new CandidateVariantFinder(0, 3, 0, true);
 
-            var candidates = variantFinder.FindCandidates(new AlignmentSet(new Read("chr1", new BamAlignment()
+            var candidates = variantFinder.FindCandidates(new Read("chr1", new BamAlignment()
             {
                 Position = 1,
                 Bases = readSequence,
                 CigarData = new CigarAlignment(cigar),
                 Qualities = new byte[readSequence.Length]
-            }), null, true), chrReference, "chr1").ToList();
+            }), chrReference, "chr1").ToList();
 
             Assert.Equal(openEnded, candidates.First().OpenOnLeft);
             Assert.Equal(openEnded, candidates.Last().OpenOnRight);

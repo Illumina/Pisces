@@ -96,6 +96,14 @@ namespace Pisces.Processing.Utility
             }
         }
 
+        public static void AppendRaw(string line)
+        {
+            lock (typeof (Logger))
+            {
+                _sw.WriteLine(line);
+            }
+        }
+
         // /////////////////////////////////////////////////////////////////
         private static bool Write(string message, StreamWriter sw, ref bool ready)
         {

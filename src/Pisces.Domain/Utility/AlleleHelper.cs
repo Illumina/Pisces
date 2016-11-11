@@ -31,7 +31,7 @@ namespace Pisces.Domain.Utility
             }
         }
 
-        public static CandidateAllele Map(BaseCalledAllele called)
+        public static CandidateAllele Map(CalledAllele called)
         {
             var candidateAllele = new CandidateAllele(called.Chromosome, called.Coordinate, called.Reference,
                 called.Alternate, called.Type);
@@ -47,11 +47,15 @@ namespace Pisces.Domain.Utility
             return candidateAllele;
         }
 
-        public static BaseCalledAllele Map(CandidateAllele candidate)
+        public static CalledAllele Map(CandidateAllele candidate)
         {
+            /*
             var calledAllele = candidate.Type == AlleleCategory.Reference
-                ? (BaseCalledAllele)new CalledReference()
-                : new CalledVariant(candidate.Type);
+                ? (BaseCalledAllele)new BaseCalledAllele()
+                : new BaseCalledAllele(candidate.Type);
+                */
+
+            var calledAllele = new CalledAllele(candidate.Type);
 
             calledAllele.Alternate = candidate.Alternate;
             calledAllele.Reference = candidate.Reference;

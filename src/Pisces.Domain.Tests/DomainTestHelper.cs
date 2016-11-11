@@ -1,6 +1,7 @@
 ﻿using System.Linq;
-using SequencingFiles;
+using Alignment.Domain.Sequencing;
 using Pisces.Domain.Models;
+using Alignment.Domain.Sequencing;
 using Xunit;
 
 namespace Pisces.Domain.Tests
@@ -40,7 +41,7 @@ namespace Pisces.Domain.Tests
                             ((Read)read2).CigarData == null ? null : ((Read)read2).CigarData.ToString());
 
             VerifyArray(read1.PositionMap, read2.PositionMap);
-            VerifyArray(read1.DirectionMap, read2.DirectionMap);
+            VerifyArray(read1.SequencedBaseDirectionMap, read2.SequencedBaseDirectionMap);
             VerifyArray(read1.Qualities, read2.Qualities);
         }
 

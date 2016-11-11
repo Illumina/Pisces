@@ -72,6 +72,7 @@
     <Compile Include="UnitTests\Models\IntervalSetTests.cs" />
     <Compile Include="UnitTests\Models\ReadTests.cs" />
     <Compile Include="UnitTests\Models\RegionTests.cs" />
+    <Compile Include="UnitTests\Models\CigarDirectionTests.cs" />
     <Compile Include="UnitTests\Models\StrandBiasStatsTests.cs" />
     <Compile Include="UnitTests\Logic\SupportDirectionScenarios.cs" />
     <Compile Include="UnitTests\Logic\VariantFinderTests.cs" />
@@ -84,6 +85,10 @@
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\Alignment.Domain\Alignment.Domain.csproj">
+      <Project>{BE61B905-3AC0-49CA-9740-F1947D89423C}</Project>
+      <Name>Alignment.Domain</Name>
+    </ProjectReference>
     <ProjectReference Include="..\Pisces.Domain\Pisces.Domain.csproj">
       <Project>{4717ddf8-91cd-41b7-a477-452c2ebdf627}</Project>
       <Name>Pisces.Domain</Name>

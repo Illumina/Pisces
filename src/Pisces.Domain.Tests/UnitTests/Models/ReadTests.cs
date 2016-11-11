@@ -1,5 +1,5 @@
 ﻿using System;
-using SequencingFiles;
+using Alignment.Domain.Sequencing;
 using Pisces.Domain.Models;
 using Pisces.Domain.Types;
 using Xunit;
@@ -15,7 +15,7 @@ namespace Pisces.Domain.Tests.UnitTests.Models
             var sequence = "ACTCTAAAAA";
             var position = 134345;
 
-            var read = new Read(chr, new BamAlignment() { Bases = sequence, Position = position});
+            var read = new Read(chr, new BamAlignment() { Bases = sequence, Position = position });
 
             Assert.Equal(chr, read.Chromosome);
             Assert.Equal(sequence, read.Sequence);
@@ -23,7 +23,7 @@ namespace Pisces.Domain.Tests.UnitTests.Models
             Assert.Equal(10, read.ReadLength);
             Assert.Equal(read.PositionMap.Length, read.ReadLength);
 
-            for (var i = 0; i < read.PositionMap.Length; i ++)
+            for (var i = 0; i < read.PositionMap.Length; i++)
             {
                 Assert.Equal(-1, read.PositionMap[i]);  // default for no cigar is -1
             }
@@ -66,7 +66,7 @@ namespace Pisces.Domain.Tests.UnitTests.Models
             Assert.Equal(read.IsPrimaryAlignment, alignment.IsPrimaryAlignment());
             Assert.Equal(read.IsPcrDuplicate, alignment.IsDuplicate());
 
-            foreach (var direction in read.DirectionMap)
+            foreach (var direction in read.SequencedBaseDirectionMap)
                 Assert.Equal(direction, DirectionType.Forward);
 
             for (var i = 0; i < read.Qualities.Length; i++)
@@ -82,17 +82,17 @@ namespace Pisces.Domain.Tests.UnitTests.Models
                 Position = 5,
                 MapQuality = 343,
                 MatePosition = 12312,
-                Qualities = new[] {(byte) 20, (byte) 21, (byte) 30, (byte) 40},
+                Qualities = new[] { (byte)20, (byte)21, (byte)30, (byte)40 },
                 CigarData = new CigarAlignment("1S3M")
             };
             alignment.SetIsUnmapped(false);
             alignment.SetIsSecondaryAlignment(false);
             alignment.SetIsDuplicate(true);
             alignment.SetIsProperPair(true);
-                
+
             var read = new Read("chr1", alignment);
             read.StitchedCigar = new CigarAlignment("7M");
-            read.DirectionMap = new[] {DirectionType.Forward, DirectionType.Reverse, DirectionType.Stitched, DirectionType.Reverse};
+            read.SequencedBaseDirectionMap = new[] { DirectionType.Forward, DirectionType.Reverse, DirectionType.Stitched, DirectionType.Reverse };
             var clonedRead = read.DeepCopy();
 
             DomainTestHelper.CompareReads(read, clonedRead);
@@ -100,8 +100,8 @@ namespace Pisces.Domain.Tests.UnitTests.Models
             // verify the arrays are deep copies
             read.PositionMap[0] = 1000;
             Assert.False(clonedRead.PositionMap[0] == 1000);
-            read.DirectionMap[0] = DirectionType.Stitched;
-            Assert.False(clonedRead.DirectionMap[0] == DirectionType.Stitched);
+            read.SequencedBaseDirectionMap[0] = DirectionType.Stitched;
+            Assert.False(clonedRead.SequencedBaseDirectionMap[0] == DirectionType.Stitched);
             read.Qualities[0] = 11;
             Assert.False(clonedRead.Qualities[0] == 11);
 
@@ -128,8 +128,8 @@ namespace Pisces.Domain.Tests.UnitTests.Models
 
             var read = new Read("chr1", alignment);
             read.StitchedCigar = new CigarAlignment("7M");
-            read.DirectionMap = new[] { DirectionType.Forward, DirectionType.Reverse, DirectionType.Stitched, DirectionType.Reverse };
-            
+            read.SequencedBaseDirectionMap = new[] { DirectionType.Forward, DirectionType.Reverse, DirectionType.Stitched, DirectionType.Reverse };
+
             alignment.SetIsDuplicate(false);
             alignment.MatePosition = 555;
 
@@ -157,12 +157,12 @@ namespace Pisces.Domain.Tests.UnitTests.Models
                 Position = 5,
                 MapQuality = 343,
                 MatePosition = 12312,
-                Qualities = new[] {(byte) 20, (byte) 21, (byte) 30, (byte) 40},
+                Qualities = new[] { (byte)20, (byte)21, (byte)30, (byte)40 },
                 CigarData = new CigarAlignment("1S3M")
             };
 
             alignment.TagData = DomainTestHelper.GetReadCountsTagData(5, 10);
-            var read = new Read("chr1", alignment);  
+            var read = new Read("chr1", alignment);
 
             Assert.True(read.IsDuplex);
 
@@ -207,7 +207,7 @@ namespace Pisces.Domain.Tests.UnitTests.Models
                 Assert.Equal(read.PositionMap[i], read.Position + i);
 
             read = DomainTestHelper.CreateRead("chr1", "ACTTCCCAAAAT", 100, new CigarAlignment("2S5M4I10D1M"));
-            Verify(new []
+            Verify(new[]
             {
                 -1, -1, 100, 101, 102, 103, 104, -1, -1, -1, -1, 115
             }, read.PositionMap);
@@ -223,7 +223,7 @@ namespace Pisces.Domain.Tests.UnitTests.Models
             var position = 134345;
             var cigar = "10M";
 
-            var read = new Read(chr, new BamAlignment() { Bases = sequence, Position = position - 1, CigarData = new CigarAlignment(cigar)});
+            var read = new Read(chr, new BamAlignment() { Bases = sequence, Position = position - 1, CigarData = new CigarAlignment(cigar) });
 
             // happy path
             var readSummary = read.GetCoverageSummary();
@@ -241,18 +241,18 @@ namespace Pisces.Domain.Tests.UnitTests.Models
             Assert.Equal(cigar, readSummary.CigarString);
 
             // direction string
-            for(var i = 0; i < read.DirectionMap.Length; i ++)
-                read.DirectionMap[i] = DirectionType.Reverse;
+            for (var i = 0; i < read.SequencedBaseDirectionMap.Length; i++)
+                read.SequencedBaseDirectionMap[i] = DirectionType.Reverse;
             Assert.Equal("10R", read.GetCoverageSummary().DirectionString);
-            for (var i = 0; i < read.DirectionMap.Length; i++)
-                read.DirectionMap[i] = DirectionType.Stitched;
+            for (var i = 0; i < read.SequencedBaseDirectionMap.Length; i++)
+                read.SequencedBaseDirectionMap[i] = DirectionType.Stitched;
             Assert.Equal("10S", read.GetCoverageSummary().DirectionString);
 
             // combo
-            read.DirectionMap = new []
+            read.SequencedBaseDirectionMap = new[]
             {
-                DirectionType.Reverse, DirectionType.Reverse, 
-                DirectionType.Stitched, DirectionType.Stitched, DirectionType.Stitched, DirectionType.Stitched, 
+                DirectionType.Reverse, DirectionType.Reverse,
+                DirectionType.Stitched, DirectionType.Stitched, DirectionType.Stitched, DirectionType.Stitched,
                 DirectionType.Forward, DirectionType.Forward, DirectionType.Forward, DirectionType.Forward
             };
             Assert.Equal("2R:4S:4F", read.GetCoverageSummary().DirectionString);
@@ -267,5 +267,67 @@ namespace Pisces.Domain.Tests.UnitTests.Models
                 Assert.Equal(expectedPositions[i], actualPositions[i]);
             }
         }
+
+
+
+        [Fact]
+        public void SequencedBaseDirectionMapTest()
+        {
+            //easy cases:
+            CheckSequencedBaseDirectionMap("6F", "5M1S", "ATCTTA",
+                new DirectionType[] { DirectionType.Forward, DirectionType.Forward, DirectionType.Forward, DirectionType.Forward, DirectionType.Forward, DirectionType.Forward });
+
+            CheckSequencedBaseDirectionMap("6S", "2S3M1S", "ATCTTA",
+                      new DirectionType[] { DirectionType.Stitched, DirectionType.Stitched, DirectionType.Stitched, DirectionType.Stitched, DirectionType.Stitched, DirectionType.Stitched });
+
+            CheckSequencedBaseDirectionMap("6R", "2M3I1S", "ATCTTA",
+                new DirectionType[] { DirectionType.Reverse, DirectionType.Reverse, DirectionType.Reverse, DirectionType.Reverse, DirectionType.Reverse, DirectionType.Reverse });
+
+            CheckSequencedBaseDirectionMap("6R", "2M3D1S", "ATA",
+                new DirectionType[] { DirectionType.Reverse, DirectionType.Reverse,
+                    DirectionType.Reverse });
+
+            //more complex cases
+            CheckSequencedBaseDirectionMap("2F3S1R", "5M1S", "ATCTTA",
+                new DirectionType[] { DirectionType.Forward, DirectionType.Forward, DirectionType.Stitched, DirectionType.Stitched, DirectionType.Stitched, DirectionType.Reverse });
+
+            CheckSequencedBaseDirectionMap("1R2F3S", "2S3M1S", "ATCTTA",
+                      new DirectionType[] { DirectionType.Reverse, DirectionType.Forward, DirectionType.Forward, DirectionType.Stitched, DirectionType.Stitched, DirectionType.Stitched });
+
+            CheckSequencedBaseDirectionMap("1R1F1S1R1F1S", "2M3I1S", "ATCTTA",
+                new DirectionType[] { DirectionType.Reverse, DirectionType.Forward, DirectionType.Stitched, DirectionType.Reverse, DirectionType.Forward, DirectionType.Stitched });
+
+            CheckSequencedBaseDirectionMap("1R1F1S1R1F1S", "2M3D1S", "ATA",
+             new DirectionType[] { DirectionType.Reverse, DirectionType.Forward,
+                 DirectionType.Stitched });
+
+        }
+
+        private static void CheckSequencedBaseDirectionMap(string inputXDtag, string inputCigarString, string sequence,
+            DirectionType[] expectedDirectionMap)
+        {
+            var tagUtils = new TagUtils();
+            tagUtils.AddStringTag("XD", inputXDtag);
+
+            var alignment = new BamAlignment
+            {
+                Bases = sequence,
+                Position = 100,
+                MatePosition = 500,
+                Name = "test",
+                CigarData = new CigarAlignment(inputCigarString),
+                MapQuality = 10,
+                TagData = tagUtils.ToBytes(),
+                Qualities = new[] { (byte)10, (byte)20, (byte)30 }
+            };
+
+            var read = new Read("chr7", alignment);
+            var directionMap = read.SequencedBaseDirectionMap;
+            Assert.Equal(expectedDirectionMap, directionMap);
+
+            var directTestMap = Read.CreateSequencedBaseDirectionMap(read.CigarDirections,read.CigarData);
+            Assert.Equal(expectedDirectionMap, directTestMap);
+        }
     }
 }
+  

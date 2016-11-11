@@ -1,13 +1,15 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using Moq;
+using Alignment.Domain.Sequencing;
 using Pisces.Interfaces;
 using Pisces.Logic.Alignment;
-using SequencingFiles;
+using Pisces.IO.Sequencing;
 using TestUtilities.MockBehaviors;
 using Pisces.Domain.Interfaces;
 using Pisces.Domain.Models;
 using Pisces.Domain.Tests;
+using StitchingLogic;
 using Xunit;
 
 namespace Pisces.Tests.UnitTests.Alignment
@@ -21,45 +23,24 @@ namespace Pisces.Tests.UnitTests.Alignment
             reads.Add(CreateRead("chr1", "ACGT", 10, "read1", matePosition: 10));
             reads.Add(CreateRead("chr1", "ACGT", 10, "read2", matePosition: 10));
             reads.Add(CreateRead("chr1", "ACGT", 10, "read1", read2: true, matePosition: 10)); // mate
-            reads.Add(CreateRead("chr1", "ACGT", 10, "read3", isMapped: false, isProperPair: false, matePosition: 10));
+            reads.Add(CreateRead("chr1", "ACGT", 10, "read_notmapped", isMapped: false, isProperPair: false, matePosition: 10));
             reads.Add(CreateRead("chr1", "ACGT", 10, "read3", isProperPair: false, read2: true, matePosition: 10));  // mate
             reads.Add(CreateRead("chr1", "ACGT", 10, "read2", read2: true, matePosition: 10));
 
             var extractor = new MockAlignmentExtractor(reads);
-
-            var mateFinder = new Mock<IAlignmentMateFinder>();
-            mateFinder.Setup(f => f.GetMate(It.IsAny<Read>())).Returns(
-                (Read r) =>
-                    !r.BamAlignment.IsFirstMate()
-                    ? reads.FirstOrDefault(o => o.Name == r.Name && o.BamAlignment.IsFirstMate())
-                    : null);
-
-            var stitcher = new Mock<IAlignmentStitcher>();
-            stitcher.Setup(s => s.TryStitch(It.IsAny<AlignmentSet>())).Callback((AlignmentSet s) => s.IsStitched = true);
         
             var config = new AlignmentSourceConfig { MinimumMapQuality = 10, OnlyUseProperPairs = false };
-            var source = new AlignmentSource(extractor, mateFinder.Object, stitcher.Object, config);
+            var source = new AlignmentSource(extractor, null,  config);
 
-            AlignmentSet set;
+            Read read;
             var numSets = 0;
-            while ((set = source.GetNextAlignmentSet()) != null)
+            while ((read = source.GetNextRead()) != null)
             {
                 numSets++;
-                if (!set.IsFullPair)
-                {
-                    Assert.True(set.PartnerRead1.Name.Equals("read3"));
-                    Assert.True(set.PartnerRead2 == null);
-                    Assert.False(set.IsStitched);
-                }
-                else
-                {
-                    Assert.True(set.PartnerRead2.Name.Equals(set.PartnerRead1.Name));
-                    Assert.False(set.PartnerRead2.BamAlignment.IsFirstMate() == set.PartnerRead1.BamAlignment.IsFirstMate());
-                    Assert.True(set.IsStitched);
-                }
+                Assert.False(read.Name == "read_notmapped");
             }
 
-            Assert.Equal(numSets, 3);
+            Assert.Equal(numSets, 5);
         }
 
         [Fact]
@@ -83,27 +64,11 @@ namespace Pisces.Tests.UnitTests.Alignment
             var stitcher = new Mock<IAlignmentStitcher>();
 
             var config = new AlignmentSourceConfig { MinimumMapQuality = 10, OnlyUseProperPairs = false };
-            var source = new AlignmentSource(extractor, doMate ? mateFinder.Object : null, doStitch ? stitcher.Object : null, config);
+            var source = new AlignmentSource(extractor, doMate ? mateFinder.Object : null, config);
 
-            var alignmentSet = source.GetNextAlignmentSet();
+            var alignmentSet = source.GetNextRead();
 
-            // verify stitching relies on pairing
-            stitcher.Verify(s => s.TryStitch(It.IsAny<AlignmentSet>()), Times.Never);
-            if (!doMate)
-            {
-                DomainTestHelper.CompareReads(read, alignmentSet.PartnerRead1);
-                Assert.Equal(null, alignmentSet.PartnerRead2);
-                Assert.Equal(1, alignmentSet.ReadsForProcessing.Count);
-                DomainTestHelper.CompareReads(read, alignmentSet.ReadsForProcessing.First());
-            }
-            else
-            {
-                DomainTestHelper.CompareReads(read, alignmentSet.PartnerRead1);
-                DomainTestHelper.CompareReads(readMate, alignmentSet.PartnerRead2);
-                Assert.Equal(2, alignmentSet.ReadsForProcessing.Count);
-                DomainTestHelper.CompareReads(read, alignmentSet.ReadsForProcessing.First());
-                DomainTestHelper.CompareReads(readMate, alignmentSet.ReadsForProcessing.Last());
-            }
+            // TODO what do we really want to test here now that we're not pairing?
         }
 
         [Fact]
@@ -124,14 +89,14 @@ namespace Pisces.Tests.UnitTests.Alignment
 
             var config = new AlignmentSourceConfig { MinimumMapQuality = 10, OnlyUseProperPairs = true };
 
-            var source = new AlignmentSource(extractor, null, null, config);
+            var source = new AlignmentSource(extractor, null, config);
 
-            AlignmentSet set;
+            Read read;
             var fetchedCount = 0;
-            while ((set = source.GetNextAlignmentSet()) != null)
+            while ((read = source.GetNextRead()) != null)
             {
                 fetchedCount ++;
-                Assert.Equal(set.PartnerRead1.Name, "yay");
+                Assert.Equal(read.Name, "yay");
 
             }
 
@@ -143,13 +108,13 @@ namespace Pisces.Tests.UnitTests.Alignment
             fetchedCount = 0;
             extractor.Reset();
 
-            source = new AlignmentSource(extractor, null, null, config);
+            source = new AlignmentSource(extractor, null, config);
 
-            while ((set = source.GetNextAlignmentSet()) != null)
+            while ((read = source.GetNextRead()) != null)
             {
                 fetchedCount ++;
 
-                Assert.Equal(set.PartnerRead1.Name, 
+                Assert.Equal(read.Name, 
                     fetchedCount == 1 ? "filtered_properpair" : "yay");
             }
 
@@ -163,13 +128,13 @@ namespace Pisces.Tests.UnitTests.Alignment
 
             extractor.Reset();
 
-            source = new AlignmentSource(extractor, null, null, config);
+            source = new AlignmentSource(extractor, null, config);
 
-            while ((set = source.GetNextAlignmentSet()) != null)
+            while ((read = source.GetNextRead()) != null)
             {
                 fetchedCount++;
 
-                Assert.Equal(set.PartnerRead1.Name,
+                Assert.Equal(read.Name,
                     fetchedCount == 1 ? "filtered_quality" : "yay");
             }
 

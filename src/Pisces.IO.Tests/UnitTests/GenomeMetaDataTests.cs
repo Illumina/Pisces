@@ -4,10 +4,10 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using SequencingFiles;
+using Alignment.IO.Sequencing;
 using Xunit;
 using Pisces.IO;
-
+using Common.IO.Sequencing;
 
 namespace Pisces.IO.Tests.UnitTests
 {

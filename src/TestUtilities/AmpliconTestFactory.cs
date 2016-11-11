@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Linq;
-using SequencingFiles;
 using TestUtilities.MockBehaviors;
+using Alignment.Domain.Sequencing;
 using Pisces.Domain.Models;
 using Pisces.Domain.Tests;
 
@@ -11,10 +11,10 @@ namespace TestUtilities
     {
         public int ChrOffset { get; set; }
         private string _referenceSequence;
-        public MockAlignmentExtractor _MAE { get; set; }
+        public MockAlignmentExtractor AlignmentExtractor { get; set; }
         public ChrReference ChrInfo { get; set; }
 
-        public AmpliconTestFactory(string referenceSequence)
+        public AmpliconTestFactory(string referenceSequence, bool sourceIsStitched = false)
         {
             _referenceSequence = referenceSequence;
 
@@ -24,7 +24,14 @@ namespace TestUtilities
                 Sequence = _referenceSequence
             };
 
-            _MAE = new MockAlignmentExtractor(ChrInfo);
+            AlignmentExtractor = new MockAlignmentExtractor(ChrInfo, sourceIsStitched);
+        }
+
+        public void StageStitchedVariant(BamAlignment variantRead, int variantDepth,
+            BamAlignment referenceRead, int referenceDepth)
+        {
+            AlignmentExtractor.StageAlignment(variantRead, variantDepth);
+            AlignmentExtractor.StageAlignment(referenceRead, referenceDepth);
         }
 
         public void StageInsertion(int readLength, string insertion, int variantPosition, int variantDepth, int referenceDepth)
@@ -32,8 +39,9 @@ namespace TestUtilities
             var variantReads = GetInsertionReads(insertion, variantPosition, readLength);
             var referenceReads = GetReferenceReads(readLength);
 
-            _MAE.StageAlignment(variantReads.Item1, variantReads.Item2, variantDepth);
-            _MAE.StageAlignment(referenceReads.Item1, referenceReads.Item2, referenceDepth);
+            AlignmentExtractor.StageAlignment(variantReads.Item1, variantReads.Item2, variantDepth);
+            AlignmentExtractor.StageAlignment(referenceReads.Item1, referenceReads.Item2, referenceDepth);
+
         }
 
         public void StageDeletion(int readLength, int numberDeletedBases, int variantPosition, int variantDepth, int referenceDepth)
@@ -41,8 +49,8 @@ namespace TestUtilities
             var variantReads = GetDeletionReads(numberDeletedBases, variantPosition, readLength);
             var referenceReads = GetReferenceReads(readLength);
 
-            _MAE.StageAlignment(variantReads.Item1, variantReads.Item2, variantDepth, "del");
-            _MAE.StageAlignment(referenceReads.Item1, referenceReads.Item2, referenceDepth, "ref");
+            AlignmentExtractor.StageAlignment(variantReads.Item1, variantReads.Item2, variantDepth, "del");
+            AlignmentExtractor.StageAlignment(referenceReads.Item1, referenceReads.Item2, referenceDepth, "ref");
         }
 
         public void StageMnv(int readLength, string changedSequence, int variantPosition, int variantDepth, int referenceDepth)
@@ -50,8 +58,8 @@ namespace TestUtilities
             var variantReads = GetMnvReads(changedSequence, variantPosition, readLength);
             var referenceReads = GetReferenceReads(readLength);
 
-            _MAE.StageAlignment(variantReads.Item1, variantReads.Item2, variantDepth);
-            _MAE.StageAlignment(referenceReads.Item1, referenceReads.Item2, referenceDepth);
+            AlignmentExtractor.StageAlignment(variantReads.Item1, variantReads.Item2, variantDepth);
+            AlignmentExtractor.StageAlignment(referenceReads.Item1, referenceReads.Item2, referenceDepth);
         }
 
         public Tuple<BamAlignment, BamAlignment> GetReferenceReads(int readLength)

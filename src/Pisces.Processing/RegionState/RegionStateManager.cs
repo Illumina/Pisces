@@ -21,11 +21,21 @@ namespace Pisces.Processing.RegionState
         protected int _lastUpToBlockKey;
         private bool _includeRefAlleles;
         private ChrIntervalSet _intervalSet;
+        private bool _expectStitchedReads;
         private bool _trackOpenEnded;
         private bool _trackReadSummaries;
         private int? _readLength;
 
-        public RegionStateManager(bool includeRefAlleles = false, int minBasecallQuality = 20, 
+      
+        public bool ExpectStitchedReads
+        {
+            get
+            {
+                return _expectStitchedReads;
+            }
+        }
+
+        public RegionStateManager(bool includeRefAlleles = false, int minBasecallQuality = 20, bool expectStitchedReads = false,
             ChrIntervalSet intervalSet = null, int blockSize = 1000,
             bool trackOpenEnded = false, bool trackReadSummaries = false)
         {
@@ -35,6 +45,7 @@ namespace Pisces.Processing.RegionState
             _intervalSet = intervalSet;
             _trackOpenEnded = trackOpenEnded;
             _trackReadSummaries = trackReadSummaries;
+            _expectStitchedReads = expectStitchedReads;
         }
 
         public void AddCandidates(IEnumerable<CandidateAllele> candidateVariants)
@@ -46,20 +57,18 @@ namespace Pisces.Processing.RegionState
             }
         }
 
-        public void AddGappedMnvRefCount(Dictionary<int, int> supportLookup)
+	    public double GetSumOfAlleleBaseQualities(int position, AlleleType alleleType, DirectionType directionType)
+	    {
+			var region = GetBlock(position, false);
+          return region?.GetSumOfAlleleBaseQualites(position, alleleType, directionType) ?? 0;
+		}
+
+	    public void AddGappedMnvRefCount(Dictionary<int, int> supportLookup)
         {
             foreach (var position in supportLookup.Keys)
             {
                 var block = GetBlock(position);
                 block.AddGappedMnvRefCount(position, supportLookup[position]);
-            }
-        }
-
-        public void AddAlleleCounts(AlignmentSet alignmentSet)
-        {
-            foreach (var alignment in alignmentSet.ReadsForProcessing)
-            {
-                AddAlleleCounts(alignment);
             }
         }
 
@@ -90,7 +99,7 @@ namespace Pisces.Processing.RegionState
                 {
                     for (var j = 1; j < deletionLength + 1; j++) // add any terminal deletion counts
                     {
-                        AddAlleleCount(j + lastPosition, AlleleType.Deletion, alignment.DirectionMap[i]);
+                        AddAlleleCount(j + lastPosition, AlleleType.Deletion, alignment.SequencedBaseDirectionMap[i]);
                     }                                        
                 }
 
@@ -102,7 +111,7 @@ namespace Pisces.Processing.RegionState
 
                 for (var j = lastPosition + 1; j < position; j++) // add any deletion counts
                 {
-                    AddAlleleCount(j, AlleleType.Deletion, alignment.DirectionMap[i]);
+                    AddAlleleCount(j, AlleleType.Deletion, alignment.SequencedBaseDirectionMap[i]);
                 }                    
 
                 var alleleType = AlleleHelper.GetAlleleType(alignment.Sequence[i]);
@@ -110,16 +119,17 @@ namespace Pisces.Processing.RegionState
                 if (alignment.Qualities[i] < _minBasecallQuality)
                     alleleType = AlleleType.N; // record this event as a no call
 
-                AddAlleleCount(position, alleleType, alignment.DirectionMap[i]);
+                AddAlleleCount(position, alleleType, alignment.SequencedBaseDirectionMap[i]);
+				AddAlleleBaseQuality(position, alleleType, alignment.SequencedBaseDirectionMap[i], Math.Pow(10, -1 * (int)alignment.Qualities[i] / 10f));
 
-                lastPosition = position;
+				lastPosition = position;
             }
 
             if (endsInDeletion)
             {
                 for (var j = 1; j < deletionLength + 1; j++) // add any terminal deletion counts
                 {
-                    AddAlleleCount(j + lastPosition, AlleleType.Deletion, alignment.DirectionMap[alignment.DirectionMap.Length-1]);
+                    AddAlleleCount(j + lastPosition, AlleleType.Deletion, alignment.SequencedBaseDirectionMap[alignment.SequencedBaseDirectionMap.Length-1]);
                 }
             }
 
@@ -139,7 +149,13 @@ namespace Pisces.Processing.RegionState
             block.AddAlleleCount(position, alleleType, directionType);
         }
 
-        public int GetAlleleCount(int position, AlleleType alleleType, DirectionType directionType)
+		private void AddAlleleBaseQuality(int position, AlleleType alleleType, DirectionType directionType, double baseQuality)
+		{
+			var block = GetBlock(position);
+			block.AddBaseQualites(position, alleleType, directionType, baseQuality);
+		}
+
+		public int GetAlleleCount(int position, AlleleType alleleType, DirectionType directionType)
         {
             var region = GetBlock(position, false);
 

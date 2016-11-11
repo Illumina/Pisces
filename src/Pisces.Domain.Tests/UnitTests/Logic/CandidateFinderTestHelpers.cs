@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
-using SequencingFiles;
+using Alignment.Domain.Sequencing;
 using Pisces.Domain.Models;
 
 namespace Pisces.Domain.Tests.UnitTests.Logic
@@ -20,16 +20,11 @@ namespace Pisces.Domain.Tests.UnitTests.Logic
             return baseQualities;
         }
 
-        public static AlignmentSet CreateAlignmentSet(string cigarString, string bases, byte[] readQualities, int readStartPos)
+        public static Read CreateRead(string cigarString, string bases, byte[] readQualities, int readStartPos)
         {
             var read = DomainTestHelper.CreateRead("chr1", bases, readStartPos, new CigarAlignment(cigarString), readQualities);
 
-            var alignmentSet = new AlignmentSet(read, null)
-            {
-                ReadsForProcessing = new List<Read> { read }
-            };
-
-            return alignmentSet;
+            return read;
         }
 
     }

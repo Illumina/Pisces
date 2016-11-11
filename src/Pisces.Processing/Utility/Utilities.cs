@@ -16,28 +16,22 @@ namespace Pisces.Processing.Utility
 
         public static string GetMonoPath()
         {
-            // We no longer package mono in the workflow directories
-            // Assume it's already in the user's path
-            return FindExePath("mono");
-        }
-
-        public static string FindExePath(string exe)
-        {
-            exe = Environment.ExpandEnvironmentVariables(exe);
-            if (!File.Exists(exe))
+            var runtime = string.Empty;
+            try
             {
-                if (Path.GetDirectoryName(exe) == String.Empty)
-                {
-                    foreach (string test in (Environment.GetEnvironmentVariable("PATH") ?? "").Split(':'))
-                    {
-                        string path = test.Trim();
-                        if (!String.IsNullOrEmpty(path) && File.Exists(path = Path.Combine(path, exe)))
-                            return Path.GetFullPath(path);
-                    }
-                }
-                throw new FileNotFoundException(new FileNotFoundException().Message, exe);
+                // runtime location should be like: {monoDir}/lib/mono/4.5/mscorlib.dll
+                runtime = Type.GetType("Mono.Runtime").Assembly.Location;
+
+                // we need {monoDir}/bin/mono
+                var monoRootDir =
+                    Path.GetDirectoryName(Path.GetDirectoryName(Path.GetDirectoryName(Path.GetDirectoryName(runtime))));
+
+                return Path.Combine(monoRootDir, "bin", "mono");
             }
-            return Path.GetFullPath(exe);
+            catch (Exception ex)
+            {
+                throw new Exception("Unable to get mono path from run time location: " + runtime, ex);
+            }
         }
     }
 }

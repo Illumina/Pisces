@@ -1,3 +1,4 @@
+
 using Pisces.Domain.Types;
 
 namespace Pisces.Domain.Interfaces

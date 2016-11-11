@@ -17,11 +17,11 @@ namespace Pisces.Tests.MockBehaviors
                 .Returns((IEnumerable<CandidateAllele> c, IAlleleSource s) => CreateCalledSomaticVariants(c));
         }
 
-        private SortedList<int, List<BaseCalledAllele>> CreateCalledSomaticVariants(
+        private SortedList<int, List<CalledAllele>> CreateCalledSomaticVariants(
             IEnumerable<CandidateAllele> candidates)
         {
-            var lookup = new SortedList<int, List<BaseCalledAllele>>();
-            var calledVars = candidates.Select(x => new BaseCalledAllele
+            var lookup = new SortedList<int, List<CalledAllele>>();
+            var calledVars = candidates.Select(x => new CalledAllele
             {
                 Alternate = x.Alternate,
                 Reference = x.Reference,
@@ -39,7 +39,7 @@ namespace Pisces.Tests.MockBehaviors
                 if (lookup.ContainsKey(variant.Coordinate))
                     lookup[variant.Coordinate].Add(variant);
                 else
-                    lookup.Add(variant.Coordinate, new List<BaseCalledAllele>() {variant});
+                    lookup.Add(variant.Coordinate, new List<CalledAllele>() {variant});
             }
             return lookup;
         }

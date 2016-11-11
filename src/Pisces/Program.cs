@@ -21,7 +21,7 @@ namespace Pisces
                 return;
             }
 
-            try
+			try
             {
                 var application = new Program(args);
                 application.Execute();
@@ -41,23 +41,24 @@ namespace Pisces
 
         public Program(string[] args)
         {
-            _options = ApplicationOptions.ParseCommandLine(args);
+            _options = ApplicationOptions.ParseCommandLine(args);   
+			if(_options == null) return;     
             Init();
         }
 
         private void Init()
         {
-            Logger.TryOpenLog(_options.LogFolder, ApplicationOptions.LogFileName);
+            Logger.TryOpenLog(_options.LogFolder, _options.LogFileName);
             Logger.WriteToLog("Command-line arguments: ");
-            Logger.WriteToLog(_options.CommandLineArguments);
+            Logger.WriteToLog(string.Join(" ", _options.CommandLineArguments));
 
-            if (_options.DebugMode)
-                _options.Save(Path.Combine(_options.LogFolder, "SomaticVariantCallerOptions.used.xml"));
+            _options.Save(Path.Combine(_options.LogFolder, "PiscesOptions.used.xml"));
         }
 
         public void Execute()
         {
-            var factory = new Factory(_options);
+			if(_options == null) return;
+			var factory = new Factory(_options);
 
             var distinctGenomeDirectories = _options.GenomePaths.Distinct();
 
@@ -65,7 +66,7 @@ namespace Pisces
             {
                 var genome = factory.GetReferenceGenome(genomeDirectory);
                 var processor = (_options.ThreadByChr && _options.MultiProcess && !_options.InsideSubProcess)
-                    ? new MultiProcessProcessor(factory, genome, _options.CommandLineArguments, _options.OutputFolder, _options.LogFolder, _options.MonoPath)
+                    ? new MultiProcessProcessor(factory, genome, new JobManager(_options.MaxNumThreads), _options.CommandLineArguments, _options.OutputFolder, _options.LogFolder, _options.MonoPath)
                     : (BaseProcessor)new GenomeProcessor(factory, genome, !_options.ThreadByChr || _options.InsideSubProcess, !_options.InsideSubProcess);
                 processor.Execute(_options.MaxNumThreads);
             }

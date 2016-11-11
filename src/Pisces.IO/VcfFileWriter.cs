@@ -10,20 +10,19 @@ using Pisces.IO.Interfaces;
 
 namespace Pisces.IO
 {
-    public class VcfFileWriter : BaseVcfFileWriter<BaseCalledAllele>
+    public class VcfFileWriter : BaseVcfFileWriter<CalledAllele>
     {
         private const string VcfVersion = "VCFv4.1";
         private const string MissingValue = ".";
-        private const string DepthInfo = "DP";
-     
+
         // just so we dont have to write negative infinities into vcfs and then they get tagged as "poorly formed"  
         private const double MinStrandBiasScore = -100;
         private const double MaxStrandBiasScore = 0;
 
-        private VcfWriterInputContext _context;
-        private VcfWriterConfig _config;
-        private VcfFormatter _formatter;
-        private int _lastVariantPositionWritten;
+        protected VcfWriterInputContext _context;
+        protected VcfWriterConfig _config;
+        protected VcfFormatter _formatter;
+        protected int _lastVariantPositionWritten;
 
         public VcfFileWriter(string outputFilePath, VcfWriterConfig config, VcfWriterInputContext context, int bufferLimit = 2000)
             : base(outputFilePath, bufferLimit)
@@ -47,46 +46,49 @@ namespace Pisces.IO
             Writer.WriteLine("##fileformat=" + VcfVersion);
             Writer.WriteLine("##fileDate=" + string.Format("{0:yyyyMMdd}", DateTime.Now));
             Writer.WriteLine("##source=" + currentAssembly.Name + " " + currentAssembly.Version);
-            Writer.WriteLine("##" + currentAssembly.Name + "_cmdline=\"" + _context.CommandLine + "\"");
+            Writer.WriteLine("##" + currentAssembly.Name + "_cmdline=\"" + (_context.CommandLine == null? "" : string.Join(" ",_context.CommandLine)) + "\"");
             Writer.WriteLine("##reference=" + _context.ReferenceName);
 
             // info fields
-            Writer.WriteLine("##INFO=<ID=" + DepthInfo + ",Number=1,Type=Integer,Description=\"Total Depth\">");
+            Writer.WriteLine("##INFO=<ID=" + _formatter.DepthInfo + ",Number=1,Type=Integer,Description=\"Total Depth\">");
 
             // filter fields
+            var filterStringsForHeader = _formatter.GenerateFilterStringsByType();
+            
+            // filter fields
             if (_config.VariantQualityFilterThreshold.HasValue)
-                Writer.WriteLine("##FILTER=<ID=q{0},Description=\"Variant quality score less than {0}\">", _config.VariantQualityFilterThreshold.Value);
-
+                Writer.WriteLine(filterStringsForHeader[FilterType.LowVariantQscore]);
+                
             if (_config.DepthFilterThreshold.HasValue)
-                Writer.WriteLine("##FILTER=<ID=LowDP,Description=\"Low coverage (DP tag), therefore no genotype called\">");
-
+                Writer.WriteLine(filterStringsForHeader[FilterType.LowDepth]);
+            
             if (_config.StrandBiasFilterThreshold.HasValue && _config.ShouldFilterOnlyOneStrandCoverage)
             {
-                Writer.WriteLine("##FILTER=<ID={0},Description=\"Variant strand bias too high or coverage on only one strand\">", _formatter.StrandBiasFormat);
+                Writer.WriteLine(filterStringsForHeader[FilterType.StrandBias]);
             }
             else if (_config.StrandBiasFilterThreshold.HasValue)
             {
-                Writer.WriteLine("##FILTER=<ID={0},Description=\"Variant strand bias too high\">", _formatter.StrandBiasFormat);
+                Writer.WriteLine(filterStringsForHeader[FilterType.StrandBias]);
             }
             else if (_config.ShouldFilterOnlyOneStrandCoverage)
             {
-                Writer.WriteLine("##FILTER=<ID={0},Description=\"Variant support on only one strand\">", _formatter.StrandBiasFormat);
+                Writer.WriteLine(filterStringsForHeader[FilterType.StrandBias]);
             }
 
             if (_config.FrequencyFilterThreshold.HasValue)
-                Writer.WriteLine("##FILTER=<ID=LowVariantFreq,Description=\"Variant frequency less than {0}\">", _formatter.FrequencyFilterThresholdString);
-
+                Writer.WriteLine(filterStringsForHeader[FilterType.LowVariantFrequency]);
+           
             if (_config.GenotypeQualityFilterThreshold.HasValue)
-                Writer.WriteLine("##FILTER=<ID=LowGQ,Description=\"Genotype Quality less than {0}\">", _config.GenotypeQualityFilterThreshold.Value);
-
+                Writer.WriteLine(filterStringsForHeader[FilterType.LowGenotypeQuality]);
+            
             if (_config.IndelRepeatFilterThreshold.HasValue)
-                Writer.WriteLine("##FILTER=<ID=R{0},Description=\"Indel repeat greater than or equal to {0}\">", _config.IndelRepeatFilterThreshold);
-
+                Writer.WriteLine(filterStringsForHeader[FilterType.IndelRepeatLength]);
+           
             if (_config.PloidyModel == PloidyModel.Diploid)
-                Writer.WriteLine("##FILTER=<ID=MultiAllelicSite,Description=\"Variant does not conform to diploid model\">");
-
+                Writer.WriteLine(filterStringsForHeader[FilterType.MultiAllelicSite]);
+            
             if (_config.RMxNFilterMaxLengthRepeat.HasValue && _config.RMxNFilterMinRepetitions.HasValue)
-                Writer.WriteLine("##FILTER=<ID=R{0}x{1},Description=\"Repeats of part or all of the variant allele (max repeat length {0}) in the reference greater than or equal to {1}\">", _config.RMxNFilterMaxLengthRepeat, _config.RMxNFilterMinRepetitions);
+                Writer.WriteLine(filterStringsForHeader[FilterType.RMxN]);        
 
             // format fields
             Writer.WriteLine("##FORMAT=<ID={0},Number=1,Type=String,Description=\"Genotype\">", _formatter.GenotypeFormat);
@@ -103,6 +105,9 @@ namespace Pisces.IO
 
             if (_config.ShouldOutputNoCallFraction)
                 Writer.WriteLine("##FORMAT=<ID={0},Number=1,Type=Float,Description=\"Fraction of bases which were uncalled or with basecall quality below the minimum threshold\">", _formatter.FractionNoCallFormat);
+
+            if (_config.ShouldOutputRcCounts)
+                Writer.WriteLine("##FORMAT=<ID={0},Number=.,Type=Integer,Description=\"Supporting read type counts\">", _formatter.UmiStatsFormat);
 
             WriteContigs(Writer);
             WriteColHeaders(Writer);
@@ -130,8 +135,8 @@ namespace Pisces.IO
             if (mapper != null &&
                 (_lastVariantPositionWritten == 0 || _lastVariantPositionWritten + 1 < position))
             {
-                CalledReference nocall;
-                var alleleList = new List<BaseCalledAllele>(); // reuse the list
+                CalledAllele nocall;
+                var alleleList = new List<CalledAllele>(); // reuse the list
                 while ((nocall = mapper.GetNextEmptyCall(_lastVariantPositionWritten + 1, position - 1)) !=
                        null)
                 {
@@ -142,12 +147,12 @@ namespace Pisces.IO
             }
         }
 
-        protected override void WriteSingleAllele(StreamWriter writer, BaseCalledAllele variant, IRegionMapper mapper = null)
+        protected override void WriteSingleAllele(StreamWriter writer, CalledAllele variant, IRegionMapper mapper = null)
         {
             // Pad intervals if necessary
             PadIfNeeded(writer, variant.Coordinate, mapper);
 
-            WriteListOfAlleles(writer, new List<BaseCalledAllele> { variant });
+            WriteListOfAlleles(writer, new List<CalledAllele> { variant });
         }
 
         public override void WriteRemaining(IRegionMapper mapper = null)
@@ -159,8 +164,8 @@ namespace Pisces.IO
             {
                 FlushBuffer(mapper);  // flush real alleles that are hanging out
 
-                CalledReference nocall;
-                var alleleList = new List<BaseCalledAllele>(); // reuse list
+                CalledAllele nocall;
+                var alleleList = new List<CalledAllele>(); // reuse list
                 while ((nocall = mapper.GetNextEmptyCall(_lastVariantPositionWritten + 1, null)) != null)
                 {
                     alleleList.Clear();
@@ -172,14 +177,15 @@ namespace Pisces.IO
             }
         }
 
-        protected override void GroupsAllelesThenWrite(StreamWriter writer, List<BaseCalledAllele> variants, IRegionMapper mapper = null)
+        protected override void GroupsAllelesThenWrite(StreamWriter writer, List<CalledAllele> variants, IRegionMapper mapper = null)
         {
             // variant list is already sorted properly, group as we go.
-            var variantsAtSamePosition = new List<BaseCalledAllele>();
+            var variantsAtSamePosition = new List<CalledAllele>();
 
             foreach (var variant in variants)
             {
-                if (!variantsAtSamePosition.Any() || variant.Coordinate == variantsAtSamePosition[0].Coordinate)
+                if (!variantsAtSamePosition.Any() ||
+                    ((variant.Coordinate == variantsAtSamePosition[0].Coordinate) && (variant.Chromosome== variantsAtSamePosition[0].Chromosome)))
                     variantsAtSamePosition.Add(variant);
                 else
                 {
@@ -200,7 +206,7 @@ namespace Pisces.IO
             }
         }
 
-        protected void WriteListOfAlleles(StreamWriter writer, List<BaseCalledAllele> variants)
+        protected void WriteListOfAlleles(StreamWriter writer, List<CalledAllele> variants)
         {
             if (!variants.Any())
                 return;
@@ -227,7 +233,8 @@ namespace Pisces.IO
                 writer.Write(refAndAltString[0] + "\t");
                 //ALT
                 if ((firstVariant.Genotype == Genotype.HomozygousRef)
-                    || (firstVariant.Genotype == Genotype.RefLikeNoCall))
+                    || (firstVariant.Genotype == Genotype.RefLikeNoCall)
+                     || (firstVariant.Genotype == Genotype.RefAndNoCall))
                     //note, nocall is only used for low-depth regions where we do not try to var-call.
                     writer.Write("." + "\t");
                 else
@@ -239,7 +246,7 @@ namespace Pisces.IO
                 //FILTER
                 writer.Write(_formatter.MapFilters(variants) + "\t");
                 //INFO
-                writer.Write(DepthInfo + "=" + totalDepth + "\t");
+                writer.Write(_formatter.DepthInfo + "=" + totalDepth + "\t");
                 //FORMAT
                 writer.Write(formatAndSampleString[0] + "\t");
                 //SAMPLE
@@ -249,17 +256,6 @@ namespace Pisces.IO
             {
                 OnException(ex);
             }
-        }
-    
-        private void OnException(Exception ex)
-        {
-            BufferList.Clear(); // dont care about list, clear now so we dont try to flush again later
-
-            Dispose();
-            File.Delete(OutputFilePath);
-
-            // throw again
-            throw ex;
         }
 
     }
@@ -271,7 +267,7 @@ namespace Pisces.IO
         public bool ShouldFilterOnlyOneStrandCoverage { get; set; }
         public bool ShouldOutputRcCounts { get; set; }
         public bool AllowMultipleVcfLinesPerLoci { get; set; }
-
+        public PloidyModel PloidyModel { get; set; }
         public int? VariantQualityFilterThreshold { get; set; }
         public int? GenotypeQualityFilterThreshold { get; set; }
         public int? DepthFilterThreshold { get; set; }
@@ -279,18 +275,19 @@ namespace Pisces.IO
         public float? StrandBiasFilterThreshold { get; set; }
         public float MinFrequencyThreshold { get; set; }
         public float? FrequencyFilterThreshold { get; set; }
-        public PloidyModel PloidyModel { get; set; }
-
         public int EstimatedBaseCallQuality { get; set; }
         public int? RMxNFilterMaxLengthRepeat { get; set; }
         public int? RMxNFilterMinRepetitions { get; set; }
+        public float? RMxNFilterFrequencyLimit { get; set; }
+		public NoiseModel NoiseModel { get; set; }
+
     }
 
     public struct VcfWriterInputContext
     {
         public string ReferenceName { get; set; }
         public string SampleName { get; set; }
-        public string CommandLine { get; set; }
+        public string[] CommandLine { get; set; }
         public IEnumerable<Tuple<string, long>> ContigsByChr { get; set; }
     }
 }

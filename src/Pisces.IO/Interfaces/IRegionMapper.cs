@@ -5,6 +5,6 @@ namespace Pisces.IO.Interfaces
 {
     public interface IRegionMapper
     {
-        CalledReference GetNextEmptyCall(int startPosition, int? maxUpToPosition);
+        CalledAllele GetNextEmptyCall(int startPosition, int? maxUpToPosition);
     }
 }

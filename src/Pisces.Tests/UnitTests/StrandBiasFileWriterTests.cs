@@ -5,7 +5,7 @@ using System.Linq;
 using Pisces.Logic;
 using Pisces.Tests.MockBehaviors;
 using CallVariants.Logic.Processing;
-using SequencingFiles;
+using Pisces.IO.Sequencing;
 using TestUtilities;
 using Pisces.Calculators;
 using Pisces.Domain.Models;
@@ -30,8 +30,8 @@ namespace Pisces.Tests.UnitTests
             var alternate = "T";
             var position = 123;
 
-            var calledVariants = new List<BaseCalledAllele>();
-            var variant = new CalledVariant(AlleleCategory.Deletion)
+            var BaseCalledAlleles = new List<CalledAllele>();
+            var variant = new CalledAllele(AlleleCategory.Deletion)
             {
                 Chromosome = chromosome,
                 Reference = reference,
@@ -52,11 +52,11 @@ namespace Pisces.Tests.UnitTests
                     VarPresentOnBothStrands = true,
                 }
             };
-            calledVariants.Add(variant);
+            BaseCalledAlleles.Add(variant);
             var writer = new StrandBiasFileWriter(outputFile);
 
             writer.WriteHeader();
-            writer.Write(calledVariants);
+            writer.Write(BaseCalledAlleles);
             writer.Dispose();
 
             var biasFileContents = File.ReadAllLines(outputFile);
@@ -95,21 +95,21 @@ namespace Pisces.Tests.UnitTests
 
 
             Assert.Throws<Exception>(() => writer.WriteHeader());
-            Assert.Throws<Exception>(() => writer.Write(calledVariants));
+            Assert.Throws<Exception>(() => writer.Write(BaseCalledAlleles));
             writer.Dispose();
 
         }
 
         private void Write_InFlow(bool threadByChr)
         {
-            var bamFilePath = Path.Combine(UnitTestPaths.R1TestDirectory, "SBWriter_SIM_DID_35_S1.bam");
+            var bamFilePath = Path.Combine(UnitTestPaths.TestDataDirectory, "SBWriter_Sample_S1.bam");
 
-            var vcfFilePath = Path.Combine(UnitTestPaths.R1TestDirectory, "SBWriter_SIM_DID_35_S1.genome.vcf");
-            var biasFilePath = Path.Combine(UnitTestPaths.R1TestDirectory, "SBWriter_SIM_DID_35_S1.genome.ReadStrandBias.txt");
+            var vcfFilePath = Path.Combine(UnitTestPaths.TestDataDirectory, "SBWriter_Sample_S1.genome.vcf");
+            var biasFilePath = Path.Combine(UnitTestPaths.TestDataDirectory, "SBWriter_Sample_S1.genome.ReadStrandBias.txt");
 
             if (threadByChr) biasFilePath = biasFilePath + "_chr19"; //Currently when threading by chrom we are outputting one bias file per chromsome. This is not a customer-facing deliverable and is a low-priority feature.
 
-            var expectedBiasResultsPath = Path.Combine(UnitTestPaths.R1TestDirectory, "Expected_SIM_DID_35_S1.ReadStrandBias.txt");
+            var expectedBiasResultsPath = Path.Combine(UnitTestPaths.TestDataDirectory, "Expected_Sample_S1.ReadStrandBias.txt");
 
             var genomeDirectory = Path.Combine(UnitTestPaths.TestGenomesDirectory, "chr19");
 
@@ -121,8 +121,6 @@ namespace Pisces.Tests.UnitTests
                 OutputBiasFiles = true,
                 DebugMode = true,
                 OutputgVCFFiles = true,
-                StitchReads = true,
-                UseXCStitcher = true
             };
 
             // Using GenomeProcessor
@@ -182,7 +180,10 @@ namespace Pisces.Tests.UnitTests
             }
         }
 
-        
-     
+        [Fact]
+        public void Write_GenomeProcessor()
+        {
+            Write_InFlow(false);
+        }
     }
 }

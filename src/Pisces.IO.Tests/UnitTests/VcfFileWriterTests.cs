@@ -8,16 +8,18 @@ using TestUtilities;
 using Pisces.Domain.Models;
 using Pisces.Domain.Models.Alleles;
 using Pisces.Domain.Types;
-using SequencingFiles;
+using Pisces.IO.Sequencing;
 using Xunit;
 
 namespace Pisces.IO.Tests
 {
     public class VcfFileWriterTests
     {
-        private readonly List<BaseCalledAllele> _defaultCandidates = new List<BaseCalledAllele>()
+        static int _estimatedBaseCallQuality = 23;
+
+        private readonly List<CalledAllele> _defaultCandidates = new List<CalledAllele>()
         {
-            new CalledVariant(AlleleCategory.Snv)
+            new CalledAllele(AlleleCategory.Snv)
             {
                 Chromosome = "chr1",
                 Coordinate = 123,
@@ -27,9 +29,10 @@ namespace Pisces.IO.Tests
                 GenotypeQscore = 25,
                 Genotype = Genotype.HeterozygousAltRef,
                 FractionNoCalls = float.Parse("0.001"),
-                Filters = new List<FilterType>() {}
+                Filters = new List<FilterType>() {},
+                NoiseLevelApplied = _estimatedBaseCallQuality
             },
-            new CalledReference()
+            new CalledAllele()
             {
                 Chromosome = "chr1",
                 Coordinate = 567,
@@ -39,9 +42,10 @@ namespace Pisces.IO.Tests
                 GenotypeQscore = 20,
                 Genotype = Genotype.HeterozygousAltRef,
                 FractionNoCalls = float.Parse("0.001"),
-                Filters = new List<FilterType>() {FilterType.LowDepth, FilterType.LowVariantQscore, FilterType.StrandBias}
+                Filters = new List<FilterType>() {FilterType.LowDepth, FilterType.LowVariantQscore, FilterType.StrandBias},
+                NoiseLevelApplied = _estimatedBaseCallQuality
             },
-            new CalledVariant(AlleleCategory.Mnv)
+            new CalledAllele(AlleleCategory.Mnv)
             {
                 Chromosome = "chr1",
                 Coordinate = 234,
@@ -51,9 +55,10 @@ namespace Pisces.IO.Tests
                 GenotypeQscore = 25,
                 Genotype = Genotype.HeterozygousAltRef,
                 FractionNoCalls = float.Parse("0.001"),
-                Filters = new List<FilterType>() {}
+                Filters = new List<FilterType>() {},
+                NoiseLevelApplied = _estimatedBaseCallQuality
             },
-            new CalledReference()
+            new CalledAllele()
             {
                 Chromosome = "chr1",
                 Coordinate = 456,
@@ -65,9 +70,10 @@ namespace Pisces.IO.Tests
                 FractionNoCalls = float.Parse("0.0124"),
                 TotalCoverage = 99,
                 AlleleSupport = 155,
-                StrandBiasResults = new StrandBiasResults() {GATKBiasScore = float.Parse("0.25")}
+                StrandBiasResults = new StrandBiasResults() {GATKBiasScore = float.Parse("0.25")},
+                NoiseLevelApplied = _estimatedBaseCallQuality
             },
-            new CalledVariant(AlleleCategory.Snv)
+            new CalledAllele(AlleleCategory.Snv)
             {
                 Chromosome = "chr1",
                 Coordinate = 678,
@@ -77,7 +83,8 @@ namespace Pisces.IO.Tests
                 GenotypeQscore = 25,
                 Genotype = Genotype.HeterozygousAltRef,
                 FractionNoCalls = float.Parse("0.001"),
-                Filters = new List<FilterType>() {FilterType.LowDepth}
+                Filters = new List<FilterType>() {FilterType.LowDepth},
+                NoiseLevelApplied = _estimatedBaseCallQuality
             }
         };
 
@@ -86,16 +93,15 @@ namespace Pisces.IO.Tests
             _defaultCandidates = _defaultCandidates.OrderBy(c => c.Coordinate).ThenBy(c => c.Reference).ThenBy(c => c.Alternate).ToList();
         }
 
-        // When the -OutFolder is included the output files must go to the specified folder, and create it if it does not exist.
         [Fact]
-        public void TestWithVariants()
+        public void TestSomaticStyleWithVariants()
         {
             var outputFile = Path.Combine(UnitTestPaths.TestDataDirectory, "VcfFileWriterTests_AdHoc.vcf");
             File.Delete(outputFile);
 
             var context = new VcfWriterInputContext
             {
-                CommandLine = "myCommandLine",
+                CommandLine = new[] { "myCommandLine" },
                 SampleName = "mySample",
                 ReferenceName = "myReference",
                 ContigsByChr = new List<Tuple<string, long>>
@@ -117,13 +123,13 @@ namespace Pisces.IO.Tests
                     ShouldOutputStrandBiasAndNoiseLevel = true,
                     ShouldFilterOnlyOneStrandCoverage = true,
                     EstimatedBaseCallQuality = 23,
-                    AllowMultipleVcfLinesPerLoci = true
+                    AllowMultipleVcfLinesPerLoci = true,          
                 },
                 context);
-
-            var candidates = new List<BaseCalledAllele>()
+            
+            var candidates = new List<CalledAllele>()
             {
-                new CalledVariant(AlleleCategory.Snv)
+                new CalledAllele(AlleleCategory.Snv)
                 {
                     AlleleSupport = 5387,
                     TotalCoverage = 5394,
@@ -135,7 +141,8 @@ namespace Pisces.IO.Tests
                     FractionNoCalls = 0,
                     Genotype = Genotype.HomozygousAlt,
                     NumNoCalls = 0,
-                    ReferenceSupport = 7
+                    ReferenceSupport = 7,
+                    NoiseLevelApplied =_estimatedBaseCallQuality
                 }
             };
 
@@ -153,6 +160,206 @@ namespace Pisces.IO.Tests
         }
 
         [Fact]
+        public void TestDiploidStyleWithVariantsAndPadding()
+        {
+            var outputFile = Path.Combine(UnitTestPaths.TestDataDirectory, "VcfFileWriterTests_Crushed_Padded.vcf");
+            File.Delete(outputFile);
+
+            var context = new VcfWriterInputContext
+            {
+                CommandLine = new [] { "myCommandLine"},
+                SampleName = "mySample",
+                ReferenceName = "myReference",
+                ContigsByChr = new List<Tuple<string, long>>
+                {
+                    new Tuple<string, long>("chr1", 10001),
+                    new Tuple<string, long>("chrX", 500)
+                }
+            };
+
+            var writer = new VcfFileWriter(outputFile,
+                new VcfWriterConfig
+                {
+                    DepthFilterThreshold = 500,
+                    VariantQualityFilterThreshold = 20,
+                    StrandBiasFilterThreshold = 0.5f,
+                    FrequencyFilterThreshold = 0.007f,
+                    MinFrequencyThreshold = 0.007f,
+                    ShouldOutputNoCallFraction = true,
+                    ShouldOutputStrandBiasAndNoiseLevel = true,
+                    ShouldFilterOnlyOneStrandCoverage = true,
+                    EstimatedBaseCallQuality = 23,
+                    AllowMultipleVcfLinesPerLoci = false,
+                },
+                context);
+
+            var candidates = new List<CalledAllele>()
+            {
+                new CalledAllele(AlleleCategory.Snv)
+                {
+                    AlleleSupport = 2387,
+                    TotalCoverage = 5394,
+                    Chromosome = "chr4",
+                    Coordinate = 7,
+                    Reference = "C",
+                    Alternate = "A",
+                    Filters = new List<FilterType>() {},
+                    FractionNoCalls = 0,
+                    Genotype = Genotype.HomozygousAlt,
+                    NumNoCalls = 0,
+                    ReferenceSupport = 7,
+                    NoiseLevelApplied = _estimatedBaseCallQuality
+                },
+
+                new CalledAllele(AlleleCategory.Snv)
+                {
+                    AlleleSupport = 2387,
+                    TotalCoverage = 5394,
+                    Chromosome = "chr4",
+                    Coordinate = 10,
+                    Reference = "A",
+                    Alternate = "G",
+                    Filters = new List<FilterType>() {},
+                    FractionNoCalls = 0,
+                    Genotype = Genotype.HeterozygousAlt1Alt2,
+                    NumNoCalls = 0,
+                    ReferenceSupport = 7,
+                    NoiseLevelApplied = _estimatedBaseCallQuality
+                },
+
+                new CalledAllele(AlleleCategory.Deletion)
+                {
+                    AlleleSupport = 2000,
+                    TotalCoverage = 5394,
+                    Chromosome = "chr4",
+                    Coordinate = 10,
+                    Reference = "AA",
+                    Alternate = "G",
+                    Filters = new List<FilterType>() {},
+                    FractionNoCalls = 0,
+                    Genotype = Genotype.HeterozygousAlt1Alt2,
+                    NumNoCalls = 0,
+                    ReferenceSupport = 7,
+                    NoiseLevelApplied = _estimatedBaseCallQuality
+                }
+            };
+
+            var chr4Intervals = new List<Region>()
+            {
+                new Region(2, 3),
+                new Region(6, 8),
+                new Region(10, 11)
+            };
+
+
+            var referenceSeq = string.Join(string.Empty, Enumerable.Repeat("C", 15));
+          
+            writer.WriteHeader();
+
+            // write chr4 in increments
+            var chr4Name = "chr4";
+            var chr4Mapper = new RegionMapper(new ChrReference() { Name = chr4Name, Sequence = referenceSeq },
+                new ChrIntervalSet(chr4Intervals, chr4Name), 23);
+            writer.Write(candidates.Where(v => v.Chromosome == chr4Name && v.Coordinate == 7), chr4Mapper);
+            writer.Write(candidates.Where(v => v.Chromosome == chr4Name && v.Coordinate == 10), chr4Mapper);
+            writer.WriteRemaining(chr4Mapper);
+
+            writer.Dispose();
+
+            Assert.Throws<Exception>(() => writer.WriteHeader());
+            Assert.Throws<Exception>(() => writer.Write(candidates));
+            writer.Dispose();
+
+            Compare(outputFile, outputFile.Replace(".vcf", "_expected.vcf"));
+
+        }
+
+
+
+        [Fact]
+        public void TestDiploidStyleWithVariants()
+        {
+            var outputFile = Path.Combine(UnitTestPaths.TestDataDirectory, "VcfFileWriterTests_Crushed.vcf");
+            File.Delete(outputFile);
+
+            var context = new VcfWriterInputContext
+            {
+                CommandLine = new [] { "myCommandLine"},
+                SampleName = "mySample",
+                ReferenceName = "myReference",
+                ContigsByChr = new List<Tuple<string, long>>
+                {
+                    new Tuple<string, long>("chr1", 10001),
+                    new Tuple<string, long>("chrX", 500)
+                }
+            };
+
+            var writer = new VcfFileWriter(outputFile,
+                new VcfWriterConfig
+                {
+                    DepthFilterThreshold = 500,
+                    VariantQualityFilterThreshold = 20,
+                    StrandBiasFilterThreshold = 0.5f,
+                    FrequencyFilterThreshold = 0.007f,
+                    MinFrequencyThreshold = 0.007f,
+                    ShouldOutputNoCallFraction = true,
+                    ShouldOutputStrandBiasAndNoiseLevel = true,
+                    ShouldFilterOnlyOneStrandCoverage = true,
+                    EstimatedBaseCallQuality = 23,
+                    AllowMultipleVcfLinesPerLoci = false,
+                },
+                context);
+
+            var candidates = new List<CalledAllele>()
+            {
+                new CalledAllele(AlleleCategory.Snv)
+                {
+                    AlleleSupport = 2387,
+                    TotalCoverage = 5394,
+                    Chromosome = "chr4",
+                    Coordinate = 55141055,
+                    Reference = "A",
+                    Alternate = "G",
+                    Filters = new List<FilterType>() {},
+                    FractionNoCalls = 0,
+                    Genotype = Genotype.HeterozygousAlt1Alt2,
+                    NumNoCalls = 0,
+                    ReferenceSupport = 7,
+                    NoiseLevelApplied = 23
+                },
+
+                new CalledAllele(AlleleCategory.Deletion)
+                {
+                    AlleleSupport = 2000,
+                    TotalCoverage = 5394,
+                    Chromosome = "chr4",
+                    Coordinate = 55141055,
+                    Reference = "AA",
+                    Alternate = "G",
+                    Filters = new List<FilterType>() {},
+                    FractionNoCalls = 0,
+                    Genotype = Genotype.HeterozygousAlt1Alt2,
+                    NumNoCalls = 0,
+                    ReferenceSupport = 7,
+                    NoiseLevelApplied = 23
+                }
+            };
+
+            writer.WriteHeader();
+            writer.Write(candidates);
+            writer.Dispose();
+
+            Assert.Throws<Exception>(() => writer.WriteHeader());
+            Assert.Throws<Exception>(() => writer.Write(candidates));
+            writer.Dispose();
+
+            var variantLine = @"chr4	55141055	.	AA	GA,G	0	PASS	DP=5394	GT:GQ:AD:DP:VF:NL:SB:NC	1/2:0:2387,2000:5394:0.8133:23:0.0000:0.0000";
+            var fileLines = File.ReadAllLines(outputFile);
+            Assert.True(fileLines.Contains(variantLine));
+        }
+
+
+        [Fact]
         [Trait("ReqID", "SDS-14")]
         public void ConfiguredVCFOutput()
         {
@@ -165,7 +372,7 @@ namespace Pisces.IO.Tests
             // Test -OutFolder works for pre-existing folders.
             var context = new VcfWriterInputContext
             {
-                CommandLine = "myCommandLine",
+                CommandLine = new [] { "myCommandLine"},
                 SampleName = "mySample",
                 ReferenceName = "myReference",
                 ContigsByChr = new List<Tuple<string, long>>
@@ -198,7 +405,7 @@ namespace Pisces.IO.Tests
             // Test -OutFolder for entirely new directories.
             context = new VcfWriterInputContext
             {
-                CommandLine = "myCommandLine",
+                CommandLine = new [] { "myCommandLine"},
                 SampleName = "mySample",
                 ReferenceName = "myReference",
                 ContigsByChr = new List<Tuple<string, long>>
@@ -225,7 +432,7 @@ namespace Pisces.IO.Tests
 
             var context = new VcfWriterInputContext
             {
-                CommandLine = "myCommandLine",
+                CommandLine = new [] { "myCommandLine"},
                 SampleName = "mySample",
                 ReferenceName = "myReference",
                 ContigsByChr = new List<Tuple<string, long>>
@@ -269,7 +476,7 @@ namespace Pisces.IO.Tests
 
             var context = new VcfWriterInputContext
             {
-                CommandLine = "myCommandLine",
+                CommandLine = new [] { "myCommandLine"},
                 SampleName = "mySample",
                 ReferenceName = "myReference",
                 ContigsByChr = new List<Tuple<string, long>>
@@ -307,7 +514,7 @@ namespace Pisces.IO.Tests
                     {
                         case "##INFO=<ID=DP":
                             Assert.True(Regex.IsMatch(x, "^##INFO=<ID=DP,Number=1,Type=Integer,Description=\"Total Depth\">$"));
-                            break;                       
+                            break;
                         default:
                             Assert.True(false, "An info is listed which does not match any from the req.`");
                             break;
@@ -377,7 +584,7 @@ namespace Pisces.IO.Tests
 
             var context = new VcfWriterInputContext
             {
-                CommandLine = "myCommandLine",
+                CommandLine = new [] { "myCommandLine"},
                 SampleName = "mySample",
                 ReferenceName = "myReference",
                 ContigsByChr = new List<Tuple<string, long>>
@@ -416,13 +623,11 @@ namespace Pisces.IO.Tests
             // filters not enabled
             config = new VcfWriterConfig
             {
-                DepthFilterThreshold = 500,
                 VariantQualityFilterThreshold = 20,
                 FrequencyFilterThreshold = 0.007f,
                 EstimatedBaseCallQuality = 23,
                 PloidyModel = PloidyModel.Somatic,
             };
-
             writer = new VcfFileWriter(outputFilePath, config, context);
 
             writer.WriteHeader();
@@ -442,7 +647,7 @@ namespace Pisces.IO.Tests
 
             var context = new VcfWriterInputContext
             {
-                CommandLine = "myCommandLine",
+                CommandLine = new [] { "myCommandLine"},
                 SampleName = "mySample",
                 ReferenceName = "myReference",
                 ContigsByChr = new List<Tuple<string, long>>
@@ -495,7 +700,7 @@ namespace Pisces.IO.Tests
 
             var context = new VcfWriterInputContext
             {
-                CommandLine = "myCommandLine",
+                CommandLine = new [] { "myCommandLine"},
                 SampleName = "mySample",
                 ReferenceName = "myReference",
                 ContigsByChr = new List<Tuple<string, long>>
@@ -541,7 +746,7 @@ namespace Pisces.IO.Tests
 
             var context = new VcfWriterInputContext
             {
-                CommandLine = "myCommandLine",
+                CommandLine = new [] { "myCommandLine"},
                 SampleName = "mySample",
                 ReferenceName = "myReference",
                 ContigsByChr = new List<Tuple<string, long>>
@@ -615,7 +820,7 @@ namespace Pisces.IO.Tests
 
             var context = new VcfWriterInputContext
             {
-                CommandLine = "myCommandLine",
+                CommandLine = new [] { "myCommandLine"},
                 SampleName = "mySample",
                 ReferenceName = "myReference",
                 ContigsByChr = new List<Tuple<string, long>>
@@ -705,7 +910,7 @@ namespace Pisces.IO.Tests
             File.Delete(outputFilePath);
             var context = new VcfWriterInputContext
             {
-                CommandLine = "myCommandLine",
+                CommandLine = new [] { "myCommandLine"},
                 SampleName = "mySample",
                 ReferenceName = "myReference",
                 ContigsByChr = new List<Tuple<string, long>>
@@ -747,7 +952,7 @@ namespace Pisces.IO.Tests
 
             var context = new VcfWriterInputContext
             {
-                CommandLine = "myCommandLine",
+                CommandLine = new [] { "myCommandLine"},
                 SampleName = "mySample",
                 ReferenceName = "myReference",
                 ContigsByChr = new List<Tuple<string, long>>
@@ -763,6 +968,7 @@ namespace Pisces.IO.Tests
                 {
                     DepthFilterThreshold = 500,
                     VariantQualityFilterThreshold = 20,
+                    GenotypeQualityFilterThreshold = 26,
                     StrandBiasFilterThreshold = 0.5f,
                     FrequencyFilterThreshold = 0.007f,
                     MinFrequencyThreshold = 0.05f,
@@ -789,7 +995,7 @@ namespace Pisces.IO.Tests
 
             var context = new VcfWriterInputContext
             {
-                CommandLine = "myCommandLine",
+                CommandLine = new [] { "myCommandLine"},
                 SampleName = "mySample",
                 ReferenceName = "myReference",
                 ContigsByChr = new List<Tuple<string, long>>
@@ -821,7 +1027,7 @@ namespace Pisces.IO.Tests
 
             var context = new VcfWriterInputContext
             {
-                CommandLine = "myCommandLine",
+                CommandLine = new [] { "myCommandLine"},
                 SampleName = "mySample",
                 ReferenceName = "myReference"
             };
@@ -853,7 +1059,7 @@ namespace Pisces.IO.Tests
 
             var context = new VcfWriterInputContext
             {
-                CommandLine = "myCommandLine",
+                CommandLine = new [] { "myCommandLine"},
                 SampleName = "mySample",
                 ReferenceName = "myReference"
             };
@@ -933,7 +1139,7 @@ namespace Pisces.IO.Tests
                     default:
                         if (Regex.IsMatch(x, string.Format("##FILTER=<ID=q{0}", config.VariantQualityFilterThreshold)))
                         {
-                            Assert.True(Regex.IsMatch(x, string.Format("^##FILTER=<ID=q{0},Description=\"Variant quality score less than {0}\">$", config.VariantQualityFilterThreshold)));
+                            Assert.True(Regex.IsMatch(x, string.Format("^##FILTER=<ID=q{0},Description=\"Quality score less than {0}\">$", config.VariantQualityFilterThreshold)));
                             formatQ = true;
                         }
                         else if (Regex.IsMatch(x, string.Format("##FILTER=<ID=R{0}x{1}", config.RMxNFilterMaxLengthRepeat ?? 0, config.RMxNFilterMinRepetitions ?? 0)))
@@ -1082,7 +1288,7 @@ namespace Pisces.IO.Tests
 
             var referenceSeq = string.Join(string.Empty, Enumerable.Repeat("C", 15));
 
-            var variants = new List<CalledVariant>
+            var variants = new List<CalledAllele>
             {
                 GetBasicVariantAtPosition("chr1", 7),
                 GetBasicVariantAtPosition("chr1", 10),
@@ -1114,7 +1320,7 @@ namespace Pisces.IO.Tests
 
             Action<string, List<Region>> writeChr = (chrName, intervals) =>
             {
-                var mapper = new RegionMapper(new ChrReference() { Name = chrName, Sequence = referenceSeq }, new ChrIntervalSet(intervals, chrName));
+                var mapper = new RegionMapper(new ChrReference() { Name = chrName, Sequence = referenceSeq }, new ChrIntervalSet(intervals, chrName), 20);
                 writer.Write(variants.Where(v => v.Chromosome == chrName), mapper);
                 writer.WriteRemaining(mapper);
             };
@@ -1123,7 +1329,7 @@ namespace Pisces.IO.Tests
 
             // write chr1 in increments
             var chr1Name = "chr1";
-            var chr1Mapper = new RegionMapper(new ChrReference() { Name = chr1Name, Sequence = referenceSeq }, new ChrIntervalSet(chr1Intervals, chr1Name));
+            var chr1Mapper = new RegionMapper(new ChrReference() { Name = chr1Name, Sequence = referenceSeq }, new ChrIntervalSet(chr1Intervals, chr1Name), 20);
             writer.Write(variants.Where(v => v.Chromosome == chr1Name && v.Coordinate == 7), chr1Mapper);
             writer.Write(variants.Where(v => v.Chromosome == chr1Name && v.Coordinate == 10), chr1Mapper);
             writer.WriteRemaining(chr1Mapper);
@@ -1173,9 +1379,9 @@ namespace Pisces.IO.Tests
             }
         }
 
-        private CalledVariant GetBasicVariantAtPosition(string chrName, int position)
+        private CalledAllele GetBasicVariantAtPosition(string chrName, int position)
         {
-            return new CalledVariant(AlleleCategory.Snv)
+            return new CalledAllele(AlleleCategory.Snv)
             {
                 Chromosome =chrName,
                 Coordinate = position,

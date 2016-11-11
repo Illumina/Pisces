@@ -10,6 +10,6 @@ namespace Pisces.Calculators
 {
     public interface ICoverageCalculator
     {
-        void Compute(BaseCalledAllele allele, IAlleleSource alleleCountSource);
+        void Compute(CalledAllele allele, IAlleleSource alleleCountSource);
     }
 }

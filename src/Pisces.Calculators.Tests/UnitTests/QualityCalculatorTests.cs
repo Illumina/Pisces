@@ -68,12 +68,15 @@ namespace Pisces.Logic.Calculators.Tests
             new int[]{100,5, 24},
             new int[]{200,10, 43},
             new int[]{500,25, 98},
-            new int[]{5000,250, 100},
+            new int[]{5000,250, 890 },
+            new int[]{10000,250, 356},
+            new int[]{10000,500, 1770},
+            new int[]{10000,9995, 156912}, //ok, this is a silly number. but we are checking the range..
             };
 
             foreach (int[] item in SampleValues_ExpectedQScore)
             {
-                var variant = new CalledVariant(AlleleCategory.Snv)
+                var variant = new CalledAllele(AlleleCategory.Snv)
                 {
                     Coordinate = 1,
                     Reference = "A",
@@ -82,9 +85,12 @@ namespace Pisces.Logic.Calculators.Tests
                     AlleleSupport = item[1],
                 };
 
-                VariantQualityCalculator.Compute(variant, 100, 20);
-
+                VariantQualityCalculator.Compute(variant, int.MaxValue, 20);
                 Assert.Equal(item[2],variant.VariantQscore);
+
+                //check upped bd works:
+                VariantQualityCalculator.Compute(variant, 100, 20);
+                Assert.Equal(Math.Min(100,item[2]), variant.VariantQscore);
             }
         }
 

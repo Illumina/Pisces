@@ -7,10 +7,10 @@ namespace Pisces.Calculators
 {
     public static class StrandBiasCalculator
     {
-        public static void Compute(BaseCalledAllele variant, int[] supportByDirection, int qNoise, double acceptanceCriteria,
+        public static void Compute(CalledAllele variant, int[] supportByDirection, int qNoise, double acceptanceCriteria,
             StrandBiasModel strandBiasModel)
         {
-            variant.StrandBiasResults = CalculateStrandBiasResults(variant.TotalCoverageByDirection, supportByDirection, qNoise, acceptanceCriteria, strandBiasModel);
+            variant.StrandBiasResults = CalculateStrandBiasResults(variant.EstimatedCoverageByDirection, supportByDirection, qNoise, acceptanceCriteria, strandBiasModel);
         }
 
         /// <summary>

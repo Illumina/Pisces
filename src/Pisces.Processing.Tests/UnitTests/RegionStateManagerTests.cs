@@ -1,8 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using SequencingFiles;
+using Pisces.IO.Sequencing;
 using TestUtilities;
+using Alignment.Domain.Sequencing;
 using Pisces.Domain.Models;
 using Pisces.Domain.Models.Alleles;
 using Pisces.Domain.Tests;
@@ -31,7 +32,7 @@ namespace Pisces.Processing.Tests.UnitTests
 
         private void ExecuteAddAndGetCandidates(bool trackOpenEnded)
         {
-            var stateManager = new RegionStateManager(trackOpenEnded: trackOpenEnded);
+            var stateManager = new RegionStateManager(false, trackOpenEnded: trackOpenEnded);
             var candidates = new List<CandidateAllele>();
 
             // block 1-1000
@@ -134,7 +135,7 @@ namespace Pisces.Processing.Tests.UnitTests
         [Fact]
         public void AddAndGetGappedMnvRefCount()
         {
-            var stateManager = new RegionStateManager();
+            var stateManager = new RegionStateManager(false);
 
             // -----------------------------------------------
             // happy path - add a couple of counts in different blocks, 
@@ -175,22 +176,32 @@ namespace Pisces.Processing.Tests.UnitTests
 
             var stateManager = new RegionStateManager(false, minQuality);
 
-            var alignmentSet = TestHelper.CreateTestSet(
+            var reads = TestHelper.CreateTestReads(
                 DomainTestHelper.CreateRead("chr1", "ACTGGCATC", 1001),
-                DomainTestHelper.CreateRead("chr1", "TCTGCCACT", 1005), minQuality);
+                DomainTestHelper.CreateRead("chr1", "TCTGCCACT", 1005), minQuality).ToList();
+            var read1 = reads[0];
+            var read2 = reads[1];
 
-            for (var i = 0; i < alignmentSet.PartnerRead2.DirectionMap.Length; i ++)
-                alignmentSet.PartnerRead2.DirectionMap[i] = DirectionType.Reverse;
-            alignmentSet.PartnerRead2.PositionMap[7] = -1;
+            for (var i = 0; i < read2.SequencedBaseDirectionMap.Length; i ++)
+                read2.SequencedBaseDirectionMap[i] = DirectionType.Reverse;
+            read2.PositionMap[7] = -1;
 
-            var alignmentSet2 = TestHelper.CreateTestSet(
-                DomainTestHelper.CreateRead("chr1", "ACAC", 999), DomainTestHelper.CreateRead("chr1", "ACAC", 999), minQuality);
+            var reads2 = TestHelper.CreateTestReads(
+                DomainTestHelper.CreateRead("chr1", "ACAC", 999), DomainTestHelper.CreateRead("chr1", "ACAC", 999), minQuality).ToList();
+            var secondRead1 = reads2[0];
+            var secondRead2 = reads2[1];
 
-            for (var i = 0; i < alignmentSet2.PartnerRead1.DirectionMap.Length; i++)
-                alignmentSet2.PartnerRead1.DirectionMap[i] = DirectionType.Stitched;
+            for (var i = 0; i < secondRead1.SequencedBaseDirectionMap.Length; i++)
+                secondRead1.SequencedBaseDirectionMap[i] = DirectionType.Stitched;
 
-            stateManager.AddAlleleCounts(alignmentSet);
-            stateManager.AddAlleleCounts(alignmentSet2);
+            foreach (var read in reads)
+            {
+                stateManager.AddAlleleCounts(read);
+            }
+            foreach (var read in reads2)
+            {
+                stateManager.AddAlleleCounts(read);
+            }
 
             Assert.Equal(stateManager.GetAlleleCount(1004, AlleleType.G, DirectionType.Forward), 1);
             Assert.Equal(stateManager.GetAlleleCount(1005, AlleleType.G, DirectionType.Forward), 1);
@@ -217,17 +228,20 @@ namespace Pisces.Processing.Tests.UnitTests
             Assert.Throws<ArgumentException>(() => stateManager.GetAlleleCount(0, AlleleType.A, DirectionType.Forward));
 
             //allow some funky ref bases. just treat as N
-            //var badAlignmentSet = TestHelper.CreateTestSet(DomainTestHelper.CreateRead("chr1", "ACE", 999), minQuality);
+            //var badAlignmentSet = TestHelper.CreateTestReads(DomainTestHelper.CreateRead("chr1", "ACE", 999), minQuality);
             //Assert.Throws<ArgumentException>(() => stateManager.AddAlleleCounts(badAlignmentSet));
 
             // ---------------------------------------
             // no calls and low quality bases should map to allele type N
             // ---------------------------------------
-            var noCallAlignment = TestHelper.CreateTestSet(DomainTestHelper.CreateRead("chr1", "NNAC", 999), minQuality);
-            noCallAlignment.PartnerRead1.Qualities[2] = (byte)(minQuality - 1);
-            noCallAlignment.PartnerRead1.Qualities[3] = (byte)(minQuality - 1);
+            var noCallAlignment = TestHelper.CreateTestReads(DomainTestHelper.CreateRead("chr1", "NNAC", 999), minQuality);
+            noCallAlignment[0].Qualities[2] = (byte)(minQuality - 1);
+            noCallAlignment[0].Qualities[3] = (byte)(minQuality - 1);
 
-            stateManager.AddAlleleCounts(noCallAlignment);
+            foreach (var read in noCallAlignment)
+            {
+                stateManager.AddAlleleCounts(read);
+            }
 
             // make sure no calls logged
             Assert.Equal(stateManager.GetAlleleCount(999, AlleleType.N, DirectionType.Forward), 1);
@@ -250,14 +264,20 @@ namespace Pisces.Processing.Tests.UnitTests
 
             var stateManager = new RegionStateManager(false, minQuality);
 
-            var alignmentSet = TestHelper.CreateTestSet(
+            var alignmentSet = TestHelper.CreateTestReads(
                 DomainTestHelper.CreateRead("chr1", "TTTTTTTTT", 1001, new CigarAlignment("5M4D4M")),   // forward counts for 1001 - 1013
                 DomainTestHelper.CreateRead("chr1", "AAAAAAAAA", 1005, new CigarAlignment("1M2D8M")), minQuality); // reverse counts for 1005 - 1115
 
-            for (var i = 0; i < alignmentSet.PartnerRead2.DirectionMap.Length; i++)
-                alignmentSet.PartnerRead2.DirectionMap[i] = DirectionType.Reverse;
+            var read1 = alignmentSet[0];
+            var read2 = alignmentSet[1];
 
-            stateManager.AddAlleleCounts(alignmentSet);
+            for (var i = 0; i < read2.SequencedBaseDirectionMap.Length; i++)
+                read2.SequencedBaseDirectionMap[i] = DirectionType.Reverse;
+
+            foreach (var read in alignmentSet)
+            {
+                stateManager.AddAlleleCounts(read);
+            }
 
             // check T counts
             Assert.Equal(stateManager.GetAlleleCount(1000, AlleleType.T, DirectionType.Forward), 0);
@@ -280,17 +300,21 @@ namespace Pisces.Processing.Tests.UnitTests
             // ---------------------------------------
             // Read beginning with deletion
             // ---------------------------------------
-            var alignmentSet_frontEdge = TestHelper.CreateTestSet(
+            var alignmentSet_frontEdge = TestHelper.CreateTestReads(
                 DomainTestHelper.CreateRead("chr1", "NNNNNTTTT", 1001, new CigarAlignment("5S2D4M")),
                 DomainTestHelper.CreateRead("chr1", "AAAAAAAAA", 1005, new CigarAlignment("9M")), minQuality);
        
             stateManager = new RegionStateManager(false, minQuality);
-
-            stateManager.AddAlleleCounts(alignmentSet_frontEdge);
+            var frontRead1 = alignmentSet_frontEdge[0];
+            var frontRead2 = alignmentSet_frontEdge[1];
+            foreach (var read in alignmentSet_frontEdge)
+            {
+                stateManager.AddAlleleCounts(read);
+            }
 
             // check T counts
             Assert.Equal(stateManager.GetAlleleCount(1000, AlleleType.T, DirectionType.Forward), 0);
-            var lengthRef = ((Read)alignmentSet_frontEdge.PartnerRead1).CigarData.GetReferenceSpan();
+            var lengthRef = ((Read)frontRead1).CigarData.GetReferenceSpan();
             for (int i = 1001; i < 1001 + lengthRef -1; i++)
             {
                 var alleleType = i >= 1001 && i <= 1002 ? AlleleType.Deletion : AlleleType.T;
@@ -301,20 +325,26 @@ namespace Pisces.Processing.Tests.UnitTests
             // ---------------------------------------
             // Terminal deletions
             // ---------------------------------------
-            var alignmentSet_tailEdge = TestHelper.CreateTestSet(
+            var alignmentSet_tailEdge = TestHelper.CreateTestReads(
                 DomainTestHelper.CreateRead("chr1", "TTTTNNNNN", 1001, new CigarAlignment("4M2D5S")),   
                 DomainTestHelper.CreateRead("chr1", "AAAAAAAAA", 1015, new CigarAlignment("9M2D")), minQuality);
 
+            var tailRead1 = alignmentSet_tailEdge[0];
+            var tailRead2 = alignmentSet_tailEdge[1];
+
             stateManager = new RegionStateManager(false, minQuality);
 
-            for (var i = 0; i < alignmentSet_tailEdge.PartnerRead2.DirectionMap.Length; i++)
-                alignmentSet_tailEdge.PartnerRead2.DirectionMap[i] = DirectionType.Reverse;
+            for (var i = 0; i < tailRead2.SequencedBaseDirectionMap.Length; i++)
+                tailRead2.SequencedBaseDirectionMap[i] = DirectionType.Reverse;
 
-            stateManager.AddAlleleCounts(alignmentSet_tailEdge);
+            foreach (var read in alignmentSet_tailEdge)
+            {
+                stateManager.AddAlleleCounts(read);
+            }
 
             // check T counts
             Assert.Equal(stateManager.GetAlleleCount(1000, AlleleType.T, DirectionType.Forward), 0);
-            lengthRef = ((Read)alignmentSet_tailEdge.PartnerRead1).CigarData.GetReferenceSpan();
+            lengthRef = ((Read)tailRead1).CigarData.GetReferenceSpan();
             var lastPos = 1001 + lengthRef - 1;
             for (int i = 1001; i <= lastPos; i++)
             {
@@ -325,7 +355,7 @@ namespace Pisces.Processing.Tests.UnitTests
 
             // check A counts
             Assert.Equal(stateManager.GetAlleleCount(1014, AlleleType.A, DirectionType.Reverse), 0);
-            lengthRef = ((Read)alignmentSet_tailEdge.PartnerRead2).CigarData.GetReferenceSpan();
+            lengthRef = ((Read)tailRead2).CigarData.GetReferenceSpan();
             lastPos = 1015 + lengthRef - 1;
             for (int i = 1015; i <= lastPos; i++)
             {
@@ -340,19 +370,22 @@ namespace Pisces.Processing.Tests.UnitTests
         public void DoneProcessing()
         {
             var stateManager = new RegionStateManager();
-            var alignments = new List<AlignmentSet>
+            var readLists = new List<List<Read>>
             {
-                TestHelper.CreateTestSet(DomainTestHelper.CreateRead("chr1", "A", 1)), // 1-1000
-                TestHelper.CreateTestSet(DomainTestHelper.CreateRead("chr1", "A", 1001)), // 1001-2000
-                TestHelper.CreateTestSet(DomainTestHelper.CreateRead("chr1", "A", 2001)), // 2001-3000
-                TestHelper.CreateTestSet(DomainTestHelper.CreateRead("chr1", "A", 3001)), // 2001-3000
-                TestHelper.CreateTestSet(DomainTestHelper.CreateRead("chr1", "A", 5001)), // 5001-6000
-                TestHelper.CreateTestSet(DomainTestHelper.CreateRead("chr1", "A", 7001)) // 7001-8000
+                TestHelper.CreateTestReads(DomainTestHelper.CreateRead("chr1", "A", 1)), // 1-1000
+                TestHelper.CreateTestReads(DomainTestHelper.CreateRead("chr1", "A", 1001)), // 1001-2000
+                TestHelper.CreateTestReads(DomainTestHelper.CreateRead("chr1", "A", 2001)), // 2001-3000
+                TestHelper.CreateTestReads(DomainTestHelper.CreateRead("chr1", "A", 3001)), // 2001-3000
+                TestHelper.CreateTestReads(DomainTestHelper.CreateRead("chr1", "A", 5001)), // 5001-6000
+                TestHelper.CreateTestReads(DomainTestHelper.CreateRead("chr1", "A", 7001)) // 7001-8000
             };
 
-            foreach (var alignment in alignments)
+            foreach (var readList in readLists)
             {
-                stateManager.AddAlleleCounts(alignment);
+                foreach (var read in readList)
+                {
+                    stateManager.AddAlleleCounts(read);
+                }
             }
 
             // blocks should all be in memory

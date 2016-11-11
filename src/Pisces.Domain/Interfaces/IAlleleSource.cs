@@ -10,11 +10,13 @@ namespace Pisces.Domain.Interfaces
         void AddCandidates(IEnumerable<CandidateAllele> candidateVariants);
 
         int GetAlleleCount(int position, AlleleType alleleType, DirectionType directionType);
-
-        void AddGappedMnvRefCount(Dictionary<int, int> countsByPosition);
+		double GetSumOfAlleleBaseQualities(int position, AlleleType alleleType, DirectionType directionType);
+		void AddGappedMnvRefCount(Dictionary<int, int> countsByPosition);
 
         int GetGappedMnvRefCount(int position);
 
         List<ReadCoverageSummary> GetSpanningReadSummaries(int startPosition, int endPosition);
+
+        bool ExpectStitchedReads { get; }
     }
 }

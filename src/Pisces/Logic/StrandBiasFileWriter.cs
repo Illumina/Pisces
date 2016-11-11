@@ -12,7 +12,7 @@ namespace Pisces.Logic
     public interface IStrandBiasFileWriter : IDisposable
     {
         void WriteHeader();
-        void Write(IEnumerable<BaseCalledAllele> calledVariants);
+        void Write(IEnumerable<CalledAllele> BaseCalledAlleles);
     }
 
     public class StrandBiasFileWriter : IStrandBiasFileWriter
@@ -60,7 +60,7 @@ namespace Pisces.Logic
             return vcfPath.Replace(".vcf", ".ReadStrandBias.txt");
         }
 
-        public static void PrintBiasStats(StreamWriter writer, BaseCalledAllele variant)
+        public static void PrintBiasStats(StreamWriter writer, CalledAllele variant)
         {
 
             if (variant.Reference == variant.Alternate)
@@ -75,12 +75,12 @@ namespace Pisces.Logic
 
         }
 
-        public void Write(IEnumerable<BaseCalledAllele> calledVariants)
+        public void Write(IEnumerable<CalledAllele> BaseCalledAlleles)
         {
             if (_writer == null)
                 throw new Exception("Stream already closed");
 
-            foreach (var variant in calledVariants)
+            foreach (var variant in BaseCalledAlleles)
                 PrintBiasStats(_writer, variant);
         }
 
