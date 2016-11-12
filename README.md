@@ -47,7 +47,7 @@ Note, the main executable Pisces.exe was originally named CallSomaticVariants.ex
 
 # Build instructions
 
-To configure and install, build the solution and copy the build to the desired location. The build is a windows process, and the solution in this repository is for VisualStudio 2015. Load the solution into VS, and build in release, x64 mode. This will create a bin\x64\Release folder along side the solution file. The Release folder has everything needed to run on windows and linux (under mono).
+To configure and install, build the solution and copy the build to the desired location. The build is a windows process, and the solution in this repository is for VisualStudio 2015. Load the solution into VS, and build in release, x64 mode. This will create a bin\x64\Release folder along side the solution file. The Release folder has everything needed to run on windows and linux (under mono). To run unit tests, be sure to configure your Default Processor Architecture in VS to x64 (else you will hit BadImageFormatExceptions). 
 
 The component algorithms are intended for developers to re-use and improve them. This version is not commercially supported and provided as is under the GNU GENERAL PUBLIC LICENSE. For first time use, we recommend testing with the example in the "testdata" folder.
 
