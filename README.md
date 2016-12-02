@@ -57,3 +57,5 @@ https://github.com/Illumina/Pisces/wiki
 # FAQ
 https://github.com/Illumina/Pisces/wiki/Frequently-Asked-Questions
 
+# Support
+pisces@illumina.com
