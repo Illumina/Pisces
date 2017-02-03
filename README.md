@@ -1,6 +1,16 @@
 # Pisces
 
-This application calls low frequency variants, on Linux or Windows. It will run on tumor-only samples, and search for SNVs, MNVs, and small indels. It takes in .bams and generates .vcf or .gvcf files. It is included with the Illumina MiSeqReporter pipeline and various BaseSpace workflows. The caller can also be run as a standalone program.  
+
+Pisces is a small variant calling application, tuned for amplicons and enrichment panels. By default, it calls low frequency somatic variants on tumor-only samples, but it also supports germline calling. It is included with the Illumina MiSeqReporter pipeline and various BaseSpace workflows. The caller can also be run as a standalone program. Pisces is a "software suite" that has several executables:
+
+*    Stitcher - Stitches two paired-end reads together into a single read
+
+*    Pisces - Calls small variants
+
+*    Scylla - Detects multiple nucleotide variants (MNVs) in a given sample and phases the variants in complex regions into sub populations
+
+*    VariantQualityRecalibration - Recalibrates the variant quality scores (Q scores) if the particular variants are over represented
+
 
 POC: 
 [Tamsen Dunn](https://www.linkedin.com/in/tamsen-dunn-7340145) and
