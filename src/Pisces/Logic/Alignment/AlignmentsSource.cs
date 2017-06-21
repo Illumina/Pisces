@@ -4,8 +4,7 @@ using System.Linq;
 using Pisces.Interfaces;
 using Pisces.Domain.Interfaces;
 using Pisces.Domain.Models;
-using Pisces.Processing.Utility;
-using StitchingLogic;
+using Common.IO.Utility;
 
 namespace Pisces.Logic.Alignment
 {
@@ -77,7 +76,7 @@ namespace Pisces.Logic.Alignment
             return (!read.IsMapped ||
                     !read.IsPrimaryAlignment ||
                     (_config.OnlyUseProperPairs && !read.IsProperPair) ||
-                    read.IsPcrDuplicate ||
+                    (_config.SkipDuplicates && read.IsPcrDuplicate) ||
                     read.MapQuality < _config.MinimumMapQuality ||
                     !read.HasCigar);
         }
@@ -90,6 +89,7 @@ namespace Pisces.Logic.Alignment
 
     public class AlignmentSourceConfig
     {
+        public bool SkipDuplicates { get; set; }
         public bool OnlyUseProperPairs { get; set; }
         public int MinimumMapQuality { get; set; }
     }

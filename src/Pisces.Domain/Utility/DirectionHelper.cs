@@ -39,7 +39,7 @@ namespace Pisces.Domain.Utility
                 case "S":
                     return DirectionType.Stitched;
                 default:
-                    throw new Exception(string.Format("Unrecognized direction key '{0}'", directionKey));
+                    throw new ArgumentException(string.Format("Unrecognized direction key '{0}'", directionKey));
             }
         }
     }

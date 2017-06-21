@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using Pisces.Domain.Options;
 using Pisces.Domain.Types;
 using Pisces.Domain.Models.Alleles;
 
@@ -17,14 +18,21 @@ namespace Pisces.Calculators
         public int MinGQScore { get; set; }
         public int MaxGQScore { get; set; }
         public int MinDepthToGenotype { get; set; }
+	    public float MinVarFrequency { get; set; }
+	    public float MinVarFrequencyFilter { get; set; }
+	    public void SetMinFreqFilter(float minFreqFilter)
+	    {
+		    MinVarFrequencyFilter = minFreqFilter > MinVarFrequency ? minFreqFilter : MinVarFrequency;
+	    }
 
-        public DiploidGenotypeCalculator() { }
+	    public DiploidGenotypeCalculator() { }
         public DiploidGenotypeCalculator(DiploidThresholdingParameters parameters, int minCalledVariantDepth, int minGQscore, int maxGQscore)
         {
             _diploidThresholdingParameters = parameters;
             MinGQScore = minGQscore;
             MaxGQScore = maxGQscore;
             MinDepthToGenotype = minCalledVariantDepth;
+	        MinVarFrequency = _diploidThresholdingParameters.MinorVF;
         }
 
         public PloidyModel PloidyModel
@@ -49,75 +57,25 @@ namespace Pisces.Calculators
 
 
             var singleGTForLoci = CalculateDiploidGenotype(alleles, MinDepthToGenotype, _diploidThresholdingParameters, out allelesToPrune);
-
+            int phaseSetIndex = 1;  //reserve -1 for unset, and 0 for reference, and 1 and 2 for alts
             foreach (var allele in alleles)
             {
                 allele.Genotype = singleGTForLoci;
-                allele.GenotypeQscore = DiploidGenotypeQualityCalculator.Compute(allele,MinGQScore,MaxGQScore);             
+                allele.GenotypeQscore = DiploidGenotypeQualityCalculator.Compute(allele, MinGQScore, MaxGQScore);
+
+
+                if (allele.IsRefType)
+                {
+                    allele.PhaseSetIndex = 0;
+                }
+                else
+                {
+                    allele.PhaseSetIndex = phaseSetIndex;
+                    phaseSetIndex++;
+                }
             }
 
             return allelesToPrune;
-        }
-
-        private static double GetReferenceFrequency(IEnumerable<CalledAllele> alleles, double minorVF)
-        {
-            double altFrequencyCount = 0;
-
-            if (alleles.Count() == 0)
-                return 0;
-
-            if (alleles.Count() == 1)
-                return alleles.First().RefFrequency;
-
-            foreach (var allele in alleles)
-            {
-
-                if (allele.Type == AlleleCategory.Reference)
-                {
-                    return allele.Frequency;
-                }
-                if (allele is CalledAllele)
-                {
-                    altFrequencyCount += allele.Frequency;
-                    if (allele.Type == AlleleCategory.Snv)
-                        return ((CalledAllele)allele).RefFrequency;
-                }
-            }
-
-            //we only get here if all the calls are indels or MNVS, ie a 1/2 GT
-            //in which case (since MNV and indel, the reference counts are just equal to ~not MNV or indel)
-            // so the % ref boils down to our best estimate.
-
-            //we know its got to be less that the MinorVF, and also less than the sum or the VF calls put together.
-
-            //this is a bit of a hack for very rare cases. if we fixed the fact that the ref counts on indels
-            //are not the true ref count, we can take this out.
-
-            return Math.Min((1.0 - altFrequencyCount), minorVF - 0.0001);
-        }
-
-
-        private static List<CalledAllele> FilterAndOrderAllelesByFrequency(IEnumerable<CalledAllele> alleles, List<CalledAllele> allelesToPrune,
-            double minFreqThreshold)
-        {
-            var variantAlleles = new List<CalledAllele>();
-
-            foreach (var allele in alleles)
-            {
-                if (allele.Type != AlleleCategory.Reference)
-                {
-                    if (allele.Frequency >= minFreqThreshold)
-                    {
-                        variantAlleles.Add(allele);
-                    }
-                    else
-                        allelesToPrune.Add(allele);
-                }
-            }
-
-            variantAlleles = variantAlleles.OrderByDescending(p => p.Frequency).ToList();
-
-            return variantAlleles;
         }
 
         private static bool CheckForTriAllelicIssue(bool hasReference, double referenceFreq, List<CalledAllele> variantAlleles, double threshold)
@@ -138,27 +96,17 @@ namespace Pisces.Calculators
             }
         }
 
-        private static bool CheckForDepthIssue(IEnumerable<CalledAllele> alleles, int minDepthToEmit)
-        {
-            foreach (var allele in alleles)
-            {
-                if (allele.TotalCoverage < minDepthToEmit)
-                {
-                    return true;
-                }
-            }
-            return false;
-        }
+
 
         private static Genotype CalculateDiploidGenotype(IEnumerable<CalledAllele> alleles, 
             int minDepthToGenotype, DiploidThresholdingParameters thresholdingParameters, out List<CalledAllele> allelesToPrune)
         {
             allelesToPrune = new List<CalledAllele>();
             var singleGTForLoci = Genotype.RefLikeNoCall;
-            var orderedVariants = FilterAndOrderAllelesByFrequency(alleles, allelesToPrune, thresholdingParameters.MinorVF);
-            var referenceFrequency = GetReferenceFrequency(alleles, thresholdingParameters.MinorVF);
+            var orderedVariants = GenotypeCalculatorUtilities.FilterAndOrderAllelesByFrequency(alleles, allelesToPrune, thresholdingParameters.MinorVF);
+            var referenceFrequency = GenotypeCalculatorUtilities.GetReferenceFrequency(alleles, thresholdingParameters.MinorVF);
             var refExists = (referenceFrequency >= thresholdingParameters.MinorVF);
-            var depthIssue = CheckForDepthIssue(alleles, minDepthToGenotype);
+            var depthIssue = GenotypeCalculatorUtilities.CheckForDepthIssue(alleles, minDepthToGenotype);
             var diploidModelFail = false;  // as in {30%,30%,30%} not {49%,49%,2%},ie, diploid model FAIL.
             bool refCall = ((orderedVariants.Count == 0) || (orderedVariants[0].Frequency < thresholdingParameters.MinorVF));
 
@@ -230,7 +178,7 @@ namespace Pisces.Calculators
             }
 
             //if (!diploidModelFail)
-            allelesToPrune = GetAllelesToPruneBasedOnGTCall(singleGTForLoci, orderedVariants, allelesToPrune);
+            allelesToPrune = GenotypeCalculatorUtilities.GetAllelesToPruneBasedOnGTCall(singleGTForLoci, orderedVariants, allelesToPrune);
 
             //tjd +
             //incase of DiploidModelFail, we *used* to show all alleles we detected, but then we were worried about down stream processors.
@@ -243,42 +191,7 @@ namespace Pisces.Calculators
         }
 
 
-        private static List<CalledAllele> GetAllelesToPruneBasedOnGTCall(Genotype singleGTForLoci,
-            List<CalledAllele> orderedVariants, List<CalledAllele> allelesToPrune)
-        {
-            int allowedNumVarAlleles = 0;
 
-            switch (singleGTForLoci)
-            {
-                case Genotype.AltAndNoCall:
-                case Genotype.AltLikeNoCall:
-                case Genotype.HomozygousAlt:
-                case Genotype.HeterozygousAltRef:
-                    {
-                        allowedNumVarAlleles = 1;
-                        break;
-                    }
-                case Genotype.Alt12LikeNoCall:
-                case Genotype.HeterozygousAlt1Alt2:
-                    {
-                        allowedNumVarAlleles = 2;
-                        break;
-                    }
-                default:
-                    {
-                        allowedNumVarAlleles = 0;
-                        break;
-                    }
-            }
-
-            for (int i = 0; i < orderedVariants.Count; i++)
-            {
-                if (i >= allowedNumVarAlleles)
-                    allelesToPrune.Add(orderedVariants[i]);
-
-            }
-            return allelesToPrune;
-        }
 
         private static Genotype CalculateSomaticGenotype(CalledAllele allele, float minFrequency)
         {

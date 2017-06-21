@@ -32,14 +32,14 @@ namespace Pisces.IO
                     }
                 }
                 File.Delete(OutputFilePath);
-                Writer = new StreamWriter(outputFilePath);
+                Writer = new StreamWriter(new FileStream(outputFilePath, FileMode.Create));
                 Writer.NewLine = "\n";
                 BufferLimit = bufferLimit;
                 BufferList = new List<T>(BufferLimit);
             }
             catch (Exception)
             {
-                throw new Exception(String.Format("Failed to create {0} in the specified folder.", outputFilePath));
+                throw new IOException(String.Format("Failed to create {0} in the specified folder.", outputFilePath));
             }
 
         }
@@ -51,10 +51,7 @@ namespace Pisces.IO
             if (Writer != null)
             {
                 FlushBuffer();
-
-                Writer.Close();
                 Writer.Dispose();
-
                 Writer = null;
             }
         }
@@ -81,7 +78,7 @@ namespace Pisces.IO
         protected abstract void GroupsAllelesThenWrite(StreamWriter writer, List<T> variants, IRegionMapper mapper = null);
         protected abstract void WriteSingleAllele(StreamWriter writer, T variant, IRegionMapper mapper = null);
 
-        public virtual void WriteRemaining(IRegionMapper mapper = null)
+        public virtual void WriteRemaining(IRegionMapper mapper = null, Dictionary<int, List<Tuple<string, string>>> forcedAllelesByPos = null)
         {
             // do nothing by default
         }
@@ -89,7 +86,7 @@ namespace Pisces.IO
         public virtual void Write(IEnumerable<T> BaseCalledAlleles, IRegionMapper mapper = null)
         {
             if (Writer == null)
-                throw new Exception("Stream already closed");
+                throw new IOException("Stream already closed");
 
             BufferList.AddRange(BaseCalledAlleles);
 

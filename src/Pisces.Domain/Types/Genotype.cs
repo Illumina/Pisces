@@ -11,5 +11,9 @@
         AltLikeNoCall,// ./.
         RefAndNoCall, // 0/.
         AltAndNoCall,// 1/.
+		HemizygousRef, // 0
+		HemizygousAlt, // 1
+		HemizygousNoCall, // .
+		Others // */*
     }
 }

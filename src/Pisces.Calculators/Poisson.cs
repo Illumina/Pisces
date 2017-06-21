@@ -4,11 +4,10 @@ namespace Pisces.Calculators
 {
     public static class Poisson
     {
-        //This code came unreferenced from an external website.
+        //This code came unreferenced from an external website. // TODO add reference.
         //It looks like it is adapted from numerical recipes.
         //I tested it against excel.
 
-        //TOD0: lets find out where we got this!
         //TODO GB: Maybe we should add Unit Tests for this based on expected results calculated from Excel.
 
         #region members

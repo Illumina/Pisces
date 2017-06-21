@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Text;
+using System.IO;
 
 namespace Alignment.Domain.Sequencing
 {
@@ -72,7 +73,7 @@ namespace Alignment.Domain.Sequencing
             AlignmentFlag = a.AlignmentFlag;
             Bases = a.Bases;
             Bin = a.Bin;
-            CigarData = new CigarAlignment(a.CigarData.ToString());
+            CigarData = new CigarAlignment(a.CigarData);
             FragmentLength = a.FragmentLength;
             MapQuality = a.MapQuality;
             MatePosition = a.MatePosition;
@@ -305,18 +306,24 @@ namespace Alignment.Domain.Sequencing
     };
 
     // CIGAR operation data type
-    public class CigarOp
+    // This is a struct because as a class it was causing a large imapct
+    // on performance through excessive memory allocations. As a struct,
+    // there is no garbage collection.
+    public struct CigarOp
     {
-        public uint Length; // Operation length (number of bases)
-        public char Type; // Operation type (MIDNSHP)
+        private uint _length; // Operation length (number of bases)
+        private char _type; // Operation type (MIDNSHP)
 
-        public CigarOp()
-        { }
+        // The CigarOp is read only because it is a struct. Structs are not
+        // passed by reference and so setting the values may result in
+        // unexpected behavior.
+        public uint Length {  get { return _length; } }
+        public char Type { get { return _type; } }
 
         public CigarOp(char type, uint length)
         {
-            Type = type;
-            Length = length;
+            _type = type;
+            _length = length;
         }
 
         public override bool Equals(Object obj)
@@ -324,9 +331,8 @@ namespace Alignment.Domain.Sequencing
             // If parameter is null return false.
             if (obj == null) return false;
 
-            // If parameter cannot be cast to Point return false.
+            // Throws an exception if the cast fails.
             CigarOp co = (CigarOp)obj;
-            if (co == null) return false;
 
             // Return true if the fields match:
             return (Type == co.Type) && (Length == co.Length);
@@ -391,6 +397,11 @@ namespace Alignment.Domain.Sequencing
             _data = new List<CigarOp>();
         }
 
+        public CigarAlignment(CigarAlignment other)
+        {
+            _data = new List<CigarOp>(other._data);
+        }
+
         /// <summary>
         ///     initialize from SAM CIGAR string:
         /// </summary>
@@ -405,8 +416,9 @@ namespace Alignment.Domain.Sequencing
                 if (Char.IsDigit(cigarString, i)) continue;
                 if (!BamUtilities.ArrayContains(BamConstants.CigarTypes, cigarString[i]))
                 {
-                    throw new Exception(string.Format("ERROR: Unexpected format in character {0} of CIGAR string: {1}",
+                    throw new InvalidDataException(string.Format("ERROR: Unexpected format in character {0} of CIGAR string: {1}",
                                                       (i + 1), cigarString));
+                 
                 }
                 var length = uint.Parse(cigarString.Substring(head, i - head));
                 var op = new CigarOp(cigarString[i], length);
@@ -415,7 +427,8 @@ namespace Alignment.Domain.Sequencing
             }
             if (head != cigarString.Length)
             {
-                throw new Exception(string.Format("ERROR: Unexpected format in CIGAR string: {0}", cigarString));
+                throw new InvalidDataException(string.Format("ERROR: Unexpected format in CIGAR string: {0}", cigarString));
+
             }
         }
 
@@ -442,6 +455,10 @@ namespace Alignment.Domain.Sequencing
             get
             {
                 return _data[i];
+            }
+            set
+            {
+                _data[i] = value;
             }
         }
 
@@ -634,8 +651,8 @@ namespace Alignment.Domain.Sequencing
                 {
                     if (_data[j].Length == 0) continue;
                     if (_data[segmentIndex].Type != _data[j].Type) break;
-                    _data[segmentIndex].Length += _data[j].Length;
-                    _data[j].Length = 0;
+                    _data[segmentIndex] = new CigarOp(_data[segmentIndex].Type, _data[segmentIndex].Length + _data[j].Length);
+                    _data[j] = new CigarOp(_data[j].Type, 0);
                 }
             }
 
@@ -648,8 +665,8 @@ namespace Alignment.Domain.Sequencing
                 {
                     if (insertIndex >= 0 && deleteIndex >= 0)
                     {
-                        _data[insertIndex].Length += _data[segmentIndex].Length;
-                        _data[segmentIndex].Length = 0;
+                        _data[insertIndex] = new CigarOp(_data[insertIndex].Type, _data[insertIndex].Length + _data[segmentIndex].Length);
+                        _data[segmentIndex] = new CigarOp(_data[segmentIndex].Type, 0);
                     }
                     if (insertIndex == -1) insertIndex = segmentIndex;
                 }
@@ -657,8 +674,8 @@ namespace Alignment.Domain.Sequencing
                 {
                     if (insertIndex >= 0 && deleteIndex >= 0)
                     {
-                        _data[deleteIndex].Length += _data[segmentIndex].Length;
-                        _data[segmentIndex].Length = 0;
+                        _data[deleteIndex] = new CigarOp(_data[deleteIndex].Type, _data[deleteIndex].Length + _data[segmentIndex].Length);
+                        _data[segmentIndex] = new CigarOp(_data[segmentIndex].Type, 0);
                     }
                     if (deleteIndex == -1) deleteIndex = segmentIndex;
                 }
@@ -811,7 +828,7 @@ namespace Alignment.Domain.Sequencing
                         break;
 
                     default:
-                        throw new ApplicationException(
+                        throw new InvalidDataException(
                             string.Format("Found an unexpected BAM tag data type: [{0}] while looking for a tag ({1})",
                                           dataType, tagKey));
                 }
@@ -849,7 +866,7 @@ namespace Alignment.Domain.Sequencing
                     break;
 
                 default:
-                    throw new ApplicationException(
+                    throw new InvalidDataException(
                         string.Format(
                             "Found an unexpected integer BAM tag data type: [{0}] while looking for a tag ({1})",
                             dataType, tagKey));
@@ -885,7 +902,7 @@ namespace Alignment.Domain.Sequencing
                     ret += Encoding.ASCII.GetChars(tagData, tagDataBegin, 1)[0];
                     break;
                 default:
-                    throw new ApplicationException(
+                    throw new InvalidDataException(
                         string.Format(
                             "Found an unexpected string BAM tag data type: [{0}] while looking for a tag ({1})",
                             dataType, tagKey));

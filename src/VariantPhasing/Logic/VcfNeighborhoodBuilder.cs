@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Pisces.IO;
 using Pisces.Domain.Models.Alleles;
+using Pisces.Domain.Options;
 using Pisces.IO.Sequencing;
 using VariantPhasing.Interfaces;
 using VariantPhasing.Models;
@@ -89,29 +90,30 @@ namespace VariantPhasing.Logic
             }
         }
 
-        private bool IsEligibleVariant(CalledAllele vcfVariant)
+        private bool IsEligibleVariant(CalledAllele allele)
         {
-            if (_chrsToProcess.Any() && !_chrsToProcess.Contains(vcfVariant.Chromosome))
+            if (_chrsToProcess.Any() && !_chrsToProcess.Contains(allele.Chromosome))
             {
                 return false;
             }
 
            
-            var genotype = vcfVariant.Genotype;
-            if ((genotype != Pisces.Domain.Types.Genotype.HeterozygousAltRef)
-                && (genotype != Pisces.Domain.Types.Genotype.HomozygousAlt))
-                return false;
+            var genotype = allele.Genotype;
 
-            if (_hetOnly)
+            if ((allele.IsRefType) || (allele.IsNocall))
+                return false;
+                
+            
+            if (_hetOnly) //usually false
             {
-                //tjd - maybe we should allow this...
+                //by default, we allow this.
                 if (genotype == Pisces.Domain.Types.Genotype.HomozygousAlt)
                     return false;
             }
 
             if (!_passingOnly) return true;
 
-            var filters = vcfVariant.Filters;
+            var filters = allele.Filters;
 
             return (filters.Count() == 0);
         }

@@ -1,10 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.IO;
 using Pisces.Domain.Models.Alleles;
 using Pisces.Domain.Types;
 using Pisces.Calculators;
-using Pisces.Processing.Utility;
+using Common.IO.Utility;
 using VariantPhasing.Models;
 
 namespace VariantPhasing.Logic
@@ -17,9 +18,9 @@ namespace VariantPhasing.Logic
         /// the VS must be in order of their true position (first base of difference).
         /// Thats not always how they appeared in the vcf.
         /// Warning #2. Variants are typically reported in the VCF on their first base of difference 
-        /// fromt he reference genome (or in the case of indels, one base before).
-        /// However, in germline (crushed) formatting, Scyllca reports all varaints in a nbhd
-        /// at the same (anchored) position. This is becasue there can only ever be two alleles
+        /// from the reference genome (or in the case of indels, one base before).
+        /// However, in germline (crushed) formatting, Scylla reports all variants in a nbhd
+        /// at the same (anchored) position. This is because there can only ever be two alleles
         /// given the diploid assumption. So, you cant report 5 different alleles at 5 spots withn the neighborhood.
         /// IE, somatic genotyping/reporting is loci-specific.
         /// but diploid genotyping/reporting is is forced to be consistent through the whole neighborhood.
@@ -35,12 +36,12 @@ namespace VariantPhasing.Logic
         /// <param name="anchorPosition">if we are forcing the allele to be at a given position, instead of the poisition it would naturally be at in the VCF file</param>
         /// <returns></returns>
         public static Dictionary<int,int> Extract(out CalledAllele allele,
-            VariantSite[] clusterVariantSites, string referenceSequence, List<int> neighborhoodDepthAtSites, int[] clusterCountsAtSites, 
+            VariantSite[] clusterVariantSites, string referenceSequence, int[] neighborhoodDepthAtSites, int[] neighborhoodNoCallsAtSites, int[] clusterCountsAtSites, 
             string chromosome, int qNoiselevel, int maxQscore, int anchorPosition=-1)
         {
-            if (clusterVariantSites.Length != neighborhoodDepthAtSites.Count() || neighborhoodDepthAtSites.Count() != clusterCountsAtSites.Length)
+            if (clusterVariantSites.Length != neighborhoodDepthAtSites.Length || neighborhoodDepthAtSites.Length != clusterCountsAtSites.Length)
             {
-                throw new Exception("Variant sites, depths, and counts arrays are different lengths.");
+                throw new InvalidDataException("Variant sites, depths, and counts arrays are different lengths.");
             }
 
             var referenceRemoval = new Dictionary<int, int>();
@@ -50,9 +51,11 @@ namespace VariantPhasing.Logic
             var alleleAlternate = "";
             var totalCoverage = 0;
             var varCount = 0;
+            var noCallCount = 0;
 
             // Initialize trackers
             var referenceCallsSuckedIntoMnv = new List<int>();
+            var nocallsInsideMnv = new List<int>();
             var depthsInsideMnv = new List<int>();
             var countsInsideMnv = new List<int>();
 
@@ -75,10 +78,30 @@ namespace VariantPhasing.Logic
                 var refAlleleToAdd = consensusSite.TrueRefAllele;
                 var altAlleleToAdd = consensusSite.TrueAltAllele;
                 var currentPosition = consensusSite.TrueFirstBaseOfDiff;
+                var diff = lastRefBaseSitePosition - currentPosition;
 
                 // no variant here...
                 if (refAlleleToAdd == altAlleleToAdd)
                     continue;
+
+                if (differenceStarted && (diff >= 0))
+                {
+                    //We have a problem. the last site we added overlaps with the current site we want to add.
+                    //The probably are not in conflict. But we will had to do some kind of sub string to get this right..
+                   
+                    var lengthToTrimFromStart = diff + 1 ;
+
+                    if ((lengthToTrimFromStart < consensusSite.TrueAltAllele.Length) &&
+                        (lengthToTrimFromStart < consensusSite.TrueRefAllele.Length))
+                    {
+                        refAlleleToAdd = consensusSite.TrueRefAllele.Substring(lengthToTrimFromStart);
+                        altAlleleToAdd = consensusSite.TrueAltAllele.Substring(lengthToTrimFromStart);
+                        currentPosition = consensusSite.TrueFirstBaseOfDiff + lengthToTrimFromStart;
+                    }
+                    else
+                        continue; //if the last variant site entirely covered this one, just dont worry about it.
+                }
+
 
                 if (differenceStarted || usingAnchor)
                 {
@@ -104,6 +127,7 @@ namespace VariantPhasing.Logic
                 differenceStarted = true;
                 depthsInsideMnv.Add(neighborhoodDepthAtSites[siteIndex]);
                 countsInsideMnv.Add(clusterCountsAtSites[siteIndex]);
+                nocallsInsideMnv.Add(neighborhoodNoCallsAtSites[siteIndex]);
 
                 //this takes into account taking deletions out of the ref allele.
                 lastRefBaseSitePosition = currentPosition + refAlleleToAdd.Length - 1;
@@ -130,7 +154,7 @@ namespace VariantPhasing.Logic
             if (!differenceStarted || (alleleReference.Length == 0) && (alleleAlternate.Length == 0))
             {
                 //taking out the preceding bases, the phased variant compacted to nothing!
-                allele = Create(chromosome, -1, alleleReference, alleleAlternate, varCount, totalCoverage, AlleleCategory.Reference, qNoiselevel, maxQscore);
+                allele = Create(chromosome, -1, alleleReference, alleleAlternate, varCount, noCallCount, totalCoverage, AlleleCategory.Reference, qNoiselevel, maxQscore);
                 return referenceRemoval;
             }
 
@@ -138,6 +162,7 @@ namespace VariantPhasing.Logic
             // the only "holes" that lower these counts are Ns
             totalCoverage = depthsInsideMnv.Any() ? (int)depthsInsideMnv.Average() : 0;
             varCount = countsInsideMnv.Any() ? (int)countsInsideMnv.Average() : 0;
+            noCallCount = nocallsInsideMnv.Any() ? (int)nocallsInsideMnv.Average() : 0;
 
             var trueStartPosition = usingAnchor? anchorPosition : firstVariantSitePosition + precedingBasesOfAgreement;
 
@@ -149,21 +174,21 @@ namespace VariantPhasing.Logic
             //compacted to an insertion
             if ((alleleReference.Length == 0) && (alleleAlternate.Length != 0))
                 allele = Create(chromosome, trueStartPosition - 1, prependableBase + alleleReference, prependableBase + alleleAlternate,
-                    varCount, totalCoverage, AlleleCategory.Insertion, qNoiselevel, maxQscore);
+                    varCount, noCallCount, totalCoverage, AlleleCategory.Insertion, qNoiselevel, maxQscore);
             //compacted to an insertion
             else if ((alleleReference.Length != 0) && (alleleAlternate.Length == 0))
                 allele = Create(chromosome, trueStartPosition - 1, prependableBase + alleleReference, prependableBase + alleleAlternate,
-                    varCount, totalCoverage, AlleleCategory.Deletion, qNoiselevel, maxQscore);
+                    varCount, noCallCount, totalCoverage, AlleleCategory.Deletion, qNoiselevel, maxQscore);
             else  //MNV,pretty much what we were expecting. (and every time we are using an anchor)
             {
                 allele = Create(chromosome, trueStartPosition, alleleReference, alleleAlternate,
-                    varCount, totalCoverage, AlleleCategory.Mnv, qNoiselevel, maxQscore);
+                    varCount, noCallCount, totalCoverage, AlleleCategory.Mnv, qNoiselevel, maxQscore);
             }
 
 
             if (varCount==0)
                 allele = Create(chromosome, trueStartPosition, alleleReference, ".",
-                   varCount, totalCoverage, AlleleCategory.Reference, qNoiselevel, maxQscore);
+                   varCount, noCallCount, totalCoverage, AlleleCategory.Reference, qNoiselevel, maxQscore);
 
             foreach (var suckedupRefPos in referenceCallsSuckedIntoMnv)
             {
@@ -189,38 +214,34 @@ namespace VariantPhasing.Logic
         /// <returns></returns>
 
         public static CalledAllele Create(string chromosome, int alleleCoordinate, string alleleReference,
-            string alleleAlternate, int varCount, int totalCoverage, AlleleCategory category, int qNoiselevel, int maxQscore)
+            string alleleAlternate, int varCount, int noCallCount, int totalCoverage, AlleleCategory category, int qNoiselevel, int maxQscore)
         {
             if (totalCoverage < varCount)  //sometimes the orignal vcf and the bam dont agree...
                 totalCoverage = varCount;
 
+            int refSpt = totalCoverage - varCount;
+
             if (category == AlleleCategory.Reference)
             {
-                return new CalledAllele()
+                refSpt = varCount;
+            }
+
+            var allele = new CalledAllele(category)
                 {
                     Chromosome = chromosome,
-                    Coordinate = alleleCoordinate,
-                    Reference = alleleReference,
-                    Alternate = alleleAlternate,
+                    ReferencePosition = alleleCoordinate,
+                    ReferenceAllele = alleleReference,
+                    AlternateAllele = alleleAlternate,
                     TotalCoverage = totalCoverage,
+                    Type = category,
                     AlleleSupport = varCount,
-                    ReferenceSupport = varCount,
+                    ReferenceSupport = refSpt,
+                    NumNoCalls = noCallCount,
                     VariantQscore = VariantQualityCalculator.AssignPoissonQScore(varCount, totalCoverage, qNoiselevel, maxQscore)
                 };
 
-            }
-
-            return new CalledAllele(category)
-            {
-                Chromosome = chromosome,
-                Coordinate = alleleCoordinate,
-                Reference = alleleReference,
-                Alternate = alleleAlternate,
-                TotalCoverage = totalCoverage,
-                AlleleSupport = varCount,
-                ReferenceSupport = totalCoverage - varCount,
-                VariantQscore = VariantQualityCalculator.AssignPoissonQScore(varCount, totalCoverage, qNoiselevel, maxQscore)
-            };
+            allele.SetFractionNoCalls();
+            return allele;
         }
 
         private static string FillGapWithReferenceData(string reference,

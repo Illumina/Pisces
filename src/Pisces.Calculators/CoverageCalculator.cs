@@ -20,15 +20,15 @@ namespace Pisces.Calculators
                 switch (variant.Type)
                 {
                     case AlleleCategory.Deletion:
-                        CalculateSpanning(variant, alleleCountSource, variant.Coordinate + 1,
-                            variant.Coordinate + variant.Length, true);
+                        CalculateSpanning(variant, alleleCountSource, variant.ReferencePosition + 1,
+                            variant.ReferencePosition + variant.Length, true);
                         break;
                     case AlleleCategory.Mnv:
-                        CalculateSpanning(variant, alleleCountSource, variant.Coordinate,
-                            variant.Coordinate + variant.Length - 1, true);
+                        CalculateSpanning(variant, alleleCountSource, variant.ReferencePosition,
+                            variant.ReferencePosition + variant.Length - 1, true);
                         break;
                     case AlleleCategory.Insertion:
-                        CalculateSpanning(variant, alleleCountSource, variant.Coordinate, variant.Coordinate + 1, alleleCountSource.ExpectStitchedReads);
+                        CalculateSpanning(variant, alleleCountSource, variant.ReferencePosition, variant.ReferencePosition + 1, alleleCountSource.ExpectStitchedReads);
                         break;
                     default:
                         CalculateSinglePoint(variant, alleleCountSource);
@@ -48,20 +48,20 @@ namespace Pisces.Calculators
             {
                 foreach(var alleleType in Constants.CoverageContributingAlleles)
                 {
-                    allele.EstimatedCoverageByDirection[direction] += alleleCountSource.GetAlleleCount(allele.Coordinate, alleleType, (DirectionType)direction);
-					allele.SumOfBaseQuality += alleleCountSource.GetSumOfAlleleBaseQualities(allele.Coordinate, alleleType, (DirectionType)direction);
+                    allele.EstimatedCoverageByDirection[direction] += alleleCountSource.GetAlleleCount(allele.ReferencePosition, alleleType, (DirectionType)direction);
+					allele.SumOfBaseQuality += alleleCountSource.GetSumOfAlleleBaseQualities(allele.ReferencePosition, alleleType, (DirectionType)direction);
 
-					if (alleleType != AlleleHelper.GetAlleleType(allele.Reference)) continue;
+					if (alleleType != AlleleHelper.GetAlleleType(allele.ReferenceAllele)) continue;
                     if (variant != null)
                     {
-                        variant.ReferenceSupport += alleleCountSource.GetAlleleCount(variant.Coordinate, alleleType,
+                        variant.ReferenceSupport += alleleCountSource.GetAlleleCount(variant.ReferencePosition, alleleType,
                             (DirectionType) direction);
                     }
                 }
 
                 allele.TotalCoverage += allele.EstimatedCoverageByDirection[direction];
 
-                allele.NumNoCalls += alleleCountSource.GetAlleleCount(allele.Coordinate, AlleleType.N, (DirectionType)direction);
+                allele.NumNoCalls += alleleCountSource.GetAlleleCount(allele.ReferencePosition, AlleleType.N, (DirectionType)direction);
             }
 
             // adjust for reference counts already taken up by gapped mnvs
@@ -70,7 +70,7 @@ namespace Pisces.Calculators
             // this is possible when collapsing is true, and some gapped ref positions have low quality (or are N).
             // in these cases, they get collapsed to the mnv and count towards support, but those specific alleles were never added to region's allele counts because they are low quality.
             // collapsing is the correct thing to do, so this is ok.  we should just make sure to cap at 0.
-            var gappedRefCounts = alleleCountSource.GetGappedMnvRefCount(allele.Coordinate);
+            var gappedRefCounts = alleleCountSource.GetGappedMnvRefCount(allele.ReferencePosition);
 
             if (allele.Type == AlleleCategory.Snv && variant != null)
             {

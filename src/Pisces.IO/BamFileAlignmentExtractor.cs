@@ -69,7 +69,7 @@ namespace Pisces.IO
                 if (foundIndex == -1)
                 {
                     //We were asked to process a chr not in our genome.
-                    //This probabpy not a good thing, but we will will catch that later if its goign to be a problem.
+                    //This probably not a good thing, but we will will catch that later if its goign to be a problem.
                     //Right now we are just going to complain if its strictly an ordering issue.
                     continue;
                 }
@@ -77,7 +77,7 @@ namespace Pisces.IO
                 if (foundIndex < lastIndex)
                 {
                     return true;
-                   // throw new ApplicationException("Reference sequences in the bam do not match the order of the reference sequences in the genome. Check bam " + _bamFilePath);
+                   // throw new Exception("Reference sequences in the bam do not match the order of the reference sequences in the genome. Check bam " + _bamFilePath);
                 }
                 else
                     lastIndex = foundIndex;
@@ -96,7 +96,7 @@ namespace Pisces.IO
             {
                 var chrReference = _references.FirstOrDefault(r => r.Name == chromosomeFilter);
                 if (chrReference == null)
-                    throw new Exception(string.Format("Cannot set chr filter to '{0}'.  This chr is not in the bam.", chromosomeFilter));
+                    throw new InvalidDataException(string.Format("Cannot set chr filter to '{0}'.  This chr is not in the bam.", chromosomeFilter));
 
                 _bamIndexFilter = chrReference.Index;
             }
@@ -136,33 +136,32 @@ namespace Pisces.IO
         public bool GetNextAlignment(Read read)
         {
             if (_bamReader == null)
-                throw new Exception("Already disposed.");
+                throw new IOException("Already disposed.");
 
             while (true)
             {
                 Region currentInterval = null;
 
-                if (_rawAlignment != null)
-                {
-                    var currentChrIntervals = GetIntervalsForChr(_rawAlignment.RefID);
-                    if (currentChrIntervals != null) // null signals not to apply interval jumping
-                        if (!JumpIfNeeded(currentChrIntervals, out currentInterval))
-                        {
-                            Dispose();
-                            return false;
-                        }
-                }
-                else
-                {
+                if(_rawAlignment == null)
                     _rawAlignment = new BamAlignment(); // first time pass
-                }
-
+                
                 if (!_bamReader.GetNextAlignment(ref _rawAlignment, false) ||
                     ((_bamIndexFilter > -1) && (_rawAlignment.RefID != _bamIndexFilter)))
                 {
                     Dispose();
                     return false;
                 }
+
+                var currentChrIntervals = GetIntervalsForChr(_rawAlignment.RefID);
+                if (currentChrIntervals != null) // null signals not to apply interval jumping
+                {
+                    if (!JumpIfNeeded(currentChrIntervals, out currentInterval))
+                    {
+                        Dispose();
+                        return false;
+                    }
+                }
+
                 if (currentInterval == null || _rawAlignment.Position < currentInterval.EndPosition)
                 {
                     var reference = _references.FirstOrDefault(r => r.Index == _rawAlignment.RefID);

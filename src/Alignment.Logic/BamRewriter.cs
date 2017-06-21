@@ -1,9 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.Concurrent;
+using Common.IO.Utility;
 using Alignment.Domain;
 using Alignment.IO;
 using Alignment.Domain.Sequencing;
 using Alignment.IO.Sequencing;
+
+using System.Threading;
+
 
 namespace Alignment.Logic
 {
@@ -15,38 +20,116 @@ namespace Alignment.Logic
         IEnumerable<BamAlignment> GetUnpairedAlignments(bool b);
         bool ReadIsBlacklisted(BamAlignment bamAlignment);
     }
+
+    abstract class WaitForFinishTask : Task
+    {
+        private static int _numTasks = 0;
+        private static AutoResetEvent _event = new AutoResetEvent(false);
+
+        public WaitForFinishTask()
+        {
+            Interlocked.Increment(ref _numTasks);
+        }
+
+        public override void Execute(int threadNum)
+        {
+            ExecuteImpl(threadNum);
+
+            Interlocked.Decrement(ref _numTasks);
+            _event.Set();
+        }
+
+        public static void WaitUntilZeroTasks()
+        {
+            while (_numTasks > 0)
+            {
+                _event.WaitOne();
+            }
+        }
+
+        public abstract void ExecuteImpl(int threadNum);
+    }
+
+    class ExtractReadsTask : WaitForFinishTask
+    {
+        private List<IReadPairHandler> _pairHandlers;
+        private readonly IAlignmentPairFilter _filter;
+        private readonly List<ReadPair> _readPairs;
+        private List<IBamWriterHandle> _bamWriterHandles;
+
+        public ExtractReadsTask(List<IReadPairHandler> pairHandlers, IAlignmentPairFilter filter, List<ReadPair> readPairs, List<IBamWriterHandle> bamWriterHandles) : base()
+        {
+            _pairHandlers = pairHandlers;
+            _filter = filter;
+            _readPairs = readPairs;
+            _bamWriterHandles = bamWriterHandles;
+        }
+
+        public override void ExecuteImpl(int threadNum)
+        {
+            var pairHandler = _pairHandlers[threadNum];
+
+            foreach (ReadPair readPair in _readPairs)
+            {
+                var bamAlignmentList = pairHandler.ExtractReads(readPair);
+                foreach (var bamAlignment in bamAlignmentList)
+                {
+                    if (!_filter.ReadIsBlacklisted(bamAlignment))
+                    {
+                        _bamWriterHandles[threadNum].WriteAlignment(bamAlignment);
+                    }
+                }
+            }
+        }
+    }
+
+    class FlushableUnpairedReadsTask : WaitForFinishTask
+    {
+        private readonly IEnumerable<BamAlignment> _bamAlignments;
+        private List<IBamWriterHandle> _bamWriterHandles;
+
+        public FlushableUnpairedReadsTask(IEnumerable<BamAlignment> bamAlignments, List<IBamWriterHandle> bamWriterHandles) : base()
+        {
+            _bamAlignments = bamAlignments;
+            _bamWriterHandles = bamWriterHandles;
+        }
+
+        public override void ExecuteImpl(int threadNum)
+        {
+            foreach (var bamAlignment in _bamAlignments)
+            {
+                _bamWriterHandles[threadNum].WriteAlignment(bamAlignment);
+            }
+        }
+    }
+
     public class BamRewriter
     {
         private readonly IBamReader _bamReader;
-        private readonly IBamWriter _bamWriter;
+        private readonly IBamWriterMultithreaded _bamWriter;
         private readonly IAlignmentPairFilter _filter;
-        private readonly IReadPairHandler _pairHandler;
-        private readonly long? _bufferSize;
-        private readonly List<BamAlignment> _alignmentBuffer;
+        private readonly List<IReadPairHandler> _pairHandlers;
         private readonly bool _getUnpaired;
         private readonly string _chrFilter;
-        protected Action<string> OnLog;
+        private BlockingCollection<Task> _taskQueue;
 
-        public BamRewriter(IBamReader bamReader, IBamWriter bamWriter, IAlignmentPairFilter filter,
-            IReadPairHandler pairHandler, long? bufferSize = 100000, bool getUnpaired = false, string chrFilter = null)
+        public BamRewriter(IBamReader bamReader, IBamWriterMultithreaded bamWriter, IAlignmentPairFilter filter,
+          List<IReadPairHandler> pairHandlers, BlockingCollection<Task> taskQueue, bool getUnpaired = false, string chrFilter = null)
         {
             _bamReader = bamReader;
             _bamWriter = bamWriter;
             _filter = filter;
-            _pairHandler = pairHandler;
-            _bufferSize = bufferSize;
+            _pairHandlers = pairHandlers;
             _getUnpaired = getUnpaired;
             _chrFilter = chrFilter;
-
-            _alignmentBuffer = new List<BamAlignment>();
-
-            OnLog = message => Console.WriteLine(message); 
-
+            _taskQueue = taskQueue;
         }
 
         public void Execute()
         {
             var bamAlignment = new BamAlignment();
+            var bamWriterHandles = _bamWriter.GenerateHandles();
+
             int? chrFilterRefIndex = null;
 
             if (_chrFilter != null)
@@ -54,14 +137,11 @@ namespace Alignment.Logic
                 chrFilterRefIndex = _bamReader.GetReferenceIndex(_chrFilter);
             }
 
+            const int READ_BUFFER_SIZE = 64;
+            List<ReadPair> readPairBuffer = new List<ReadPair>(READ_BUFFER_SIZE);
+
             while (true)
             {
-                if (_bufferSize != null && _alignmentBuffer.Count > _bufferSize)
-                {
-                    FlushToBam();
-                }
-
-
                 var hasMoreReads = _bamReader.GetNextAlignment(ref bamAlignment, false);
                 if (!hasMoreReads) break;
 
@@ -73,54 +153,52 @@ namespace Alignment.Logic
                     }
                     if (bamAlignment.RefID > chrFilterRefIndex.Value)
                     {
-                        OnLog("Ending BAM reading for " + _chrFilter + ".");
+                        Logger.WriteToLog("Ending BAM reading for " + _chrFilter + ".");
                         break;
                     }
                 }
 
                 if (_getUnpaired && _filter.ReachedFlushingCheckpoint(bamAlignment))
                 {
-                    var unpaired = _filter.GetFlushableUnpairedReads();
-                    _alignmentBuffer.AddRange(unpaired);
+                    ExecuteTask(new FlushableUnpairedReadsTask(_filter.GetFlushableUnpairedReads(), bamWriterHandles));
                 }
 
                 var filteredReadPair = _filter.TryPair(bamAlignment);
                 if (filteredReadPair != null)
                 {
-                    _alignmentBuffer.AddRange(_pairHandler.ExtractReads(filteredReadPair));
-                }
+                    readPairBuffer.Add(filteredReadPair);
+                    if (readPairBuffer.Count >= READ_BUFFER_SIZE - 1)
+                    {
+                        ExecuteTask(new ExtractReadsTask(_pairHandlers, _filter, readPairBuffer, bamWriterHandles));
 
+                        readPairBuffer = new List<ReadPair>(READ_BUFFER_SIZE);
+                    }
+                }
+            }
+
+            if (readPairBuffer.Count > 0)
+            {
+                ExecuteTask(new ExtractReadsTask(_pairHandlers, _filter, readPairBuffer, bamWriterHandles));
             }
 
             if (_getUnpaired)
             {
-                var unpaired = _filter.GetFlushableUnpairedReads();
-                _alignmentBuffer.AddRange(unpaired);
+                ExecuteTask(new FlushableUnpairedReadsTask(_filter.GetFlushableUnpairedReads(), bamWriterHandles));
             }
-            FlushToBam();
+
+            WaitForFinishTask.WaitUntilZeroTasks();
         }
 
-        private void FlushToBam()
+        void ExecuteTask(Task task)
         {
-            OnLog(string.Format("Writing {0} alignments to bam file.", _alignmentBuffer.Count));
-            var skippedAlignments = 0;
-
-            foreach (var bamAlignment in _alignmentBuffer)
+            if (_taskQueue != null)
             {
-                if (!_filter.ReadIsBlacklisted(bamAlignment))
-                {
-                    _bamWriter.WriteAlignment(bamAlignment);
-                }
-                else
-                {
-                    skippedAlignments++;
-                }
+                _taskQueue.Add(task);
             }
-
-            OnLog(string.Format("Buffer flushed. Skipped {0} alignments.", skippedAlignments));
-
-            _alignmentBuffer.Clear();
+            else
+            {
+                task.Execute(0);
+            }
         }
-
     }
 }

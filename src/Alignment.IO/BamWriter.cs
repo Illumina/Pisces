@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using System.IO;
 using Common.IO.Sequencing;
 using Alignment.Domain.Sequencing;
 
@@ -8,74 +9,105 @@ namespace Alignment.IO.Sequencing
 {
     public class BamWriter : BgzfWriterCommon
     {
+        private static class ConversionHelper
+        {
+            static public uint[] BaseToNumber;
+            static public uint[] CigarOpToNumber;
+
+            static ConversionHelper()
+            {
+                // create our base LUT
+                BaseToNumber = new uint[256];
+                for (int i = 0; i < 256; i++) BaseToNumber[i] = BamConstants.LutError;
+
+                BaseToNumber['='] = 0;
+                BaseToNumber['a'] = 1;
+                BaseToNumber['A'] = 1;
+                BaseToNumber['c'] = 2;
+                BaseToNumber['C'] = 2;
+                BaseToNumber['g'] = 4;
+                BaseToNumber['G'] = 4;
+                BaseToNumber['t'] = 8;
+                BaseToNumber['T'] = 8;
+                BaseToNumber['n'] = 15;
+                BaseToNumber['N'] = 15;
+
+                // create our CIGAR LUT
+                CigarOpToNumber = new uint[256];
+                for (int i = 0; i < 256; i++) CigarOpToNumber[i] = BamConstants.LutError;
+                CigarOpToNumber['m'] = 0;
+                CigarOpToNumber['M'] = 0;
+                CigarOpToNumber['i'] = 1;
+                CigarOpToNumber['I'] = 1;
+                CigarOpToNumber['d'] = 2;
+                CigarOpToNumber['D'] = 2;
+                CigarOpToNumber['n'] = 3;
+                CigarOpToNumber['N'] = 3;
+                CigarOpToNumber['s'] = 4;
+                CigarOpToNumber['S'] = 4;
+                CigarOpToNumber['h'] = 5;
+                CigarOpToNumber['H'] = 5;
+                CigarOpToNumber['p'] = 6;
+                CigarOpToNumber['P'] = 6;
+                CigarOpToNumber['='] = 7;
+                CigarOpToNumber['x'] = 8;
+                CigarOpToNumber['X'] = 8;
+            }
+        }
+
         #region member variables
 
-        private uint[] _baseToNumber;
-        private uint[] _cigarOpToNumber;
         private byte[] _outputBuffer;
+        protected string SamHeader;
+        protected List<GenomeMetadata.SequenceMetadata> References;
+        protected string Filename;
 
         #endregion
 
         // constructor
         public BamWriter(int compressionLevel = BamConstants.DefaultCompression, int numThreads = 1)
-            : this(null, null, null, compressionLevel, numThreads)
+            : this((string)null, null, null, compressionLevel, numThreads)
         {
+            _outputBuffer = null;
+        }
+
+        // constructor
+        public BamWriter(Stream outStream, string samHeader, List<GenomeMetadata.SequenceMetadata> references, int compressionLevel = BamConstants.DefaultCompression, int numThreads = 1)
+            : base(compressionLevel, numThreads)
+        {
+            Filename = "";
+            SamHeader = samHeader;
+            References = references;
+            Open(outStream, samHeader, references);
         }
 
         // constructor
         public BamWriter(string filename, string samHeader, List<GenomeMetadata.SequenceMetadata> references, int compressionLevel = BamConstants.DefaultCompression, int numThreads = 1)
             : base(compressionLevel, numThreads)
         {
-            Initialize();
-            if (filename != null) Open(filename, samHeader, references);
+            Filename = filename;
+            SamHeader = samHeader;
+            References = references;
+            if (filename != null)
+            {
+                Stream outStream = new FileStream(filename, FileMode.Create, FileAccess.Write, FileShare.None, FileBufferSize, FileOptions.SequentialScan);
+                Open(outStream, samHeader, references);
+            }
         }
 
         private void Initialize()
         {
-            _outputBuffer = new byte[4096];
-
-            // create our base LUT
-            _baseToNumber = new uint[256];
-            for (int i = 0; i < 256; i++) _baseToNumber[i] = BamConstants.LutError;
-
-            _baseToNumber['='] = 0;
-            _baseToNumber['a'] = 1;
-            _baseToNumber['A'] = 1;
-            _baseToNumber['c'] = 2;
-            _baseToNumber['C'] = 2;
-            _baseToNumber['g'] = 4;
-            _baseToNumber['G'] = 4;
-            _baseToNumber['t'] = 8;
-            _baseToNumber['T'] = 8;
-            _baseToNumber['n'] = 15;
-            _baseToNumber['N'] = 15;
-
-            // create our CIGAR LUT
-            _cigarOpToNumber = new uint[256];
-            for (int i = 0; i < 256; i++) _cigarOpToNumber[i] = BamConstants.LutError;
-            _cigarOpToNumber['m'] = 0;
-            _cigarOpToNumber['M'] = 0;
-            _cigarOpToNumber['i'] = 1;
-            _cigarOpToNumber['I'] = 1;
-            _cigarOpToNumber['d'] = 2;
-            _cigarOpToNumber['D'] = 2;
-            _cigarOpToNumber['n'] = 3;
-            _cigarOpToNumber['N'] = 3;
-            _cigarOpToNumber['s'] = 4;
-            _cigarOpToNumber['S'] = 4;
-            _cigarOpToNumber['h'] = 5;
-            _cigarOpToNumber['H'] = 5;
-            _cigarOpToNumber['p'] = 6;
-            _cigarOpToNumber['P'] = 6;
-            _cigarOpToNumber['='] = 7;
-            _cigarOpToNumber['x'] = 8;
-            _cigarOpToNumber['X'] = 8;
+            if (_outputBuffer == null)
+            {
+                _outputBuffer = new byte[4096];
+            }
         }
 
         // opens BAM file
-        public void Open(string filename, string samHeader, List<GenomeMetadata.SequenceMetadata> references)
+        public void Open(Stream outStream, string samHeader, List<GenomeMetadata.SequenceMetadata> references)
         {
-            base.Open(filename);
+            Initialize();
+            base.Open(outStream);
 
             // ================
             // write the header
@@ -135,10 +167,10 @@ namespace Alignment.IO.Sequencing
 
             foreach (char c in s)
             {
-                uint baseCode = _baseToNumber[c];
+                uint baseCode = ConversionHelper.BaseToNumber[c];
                 if (baseCode == BamConstants.LutError)
                 {
-                    throw new ApplicationException(
+                    throw new InvalidDataException(
                         string.Format("ERROR: Encountered an unexpected base ({0}) when packing the read.", c));
                 }
 
@@ -151,7 +183,7 @@ namespace Alignment.IO.Sequencing
         }
 
         // encodes the supplied query sequence into 4-bit notation
-        private void PackBases(ref int offset, ref byte[] buffer, uint numEncodedBases, string s)
+        static private void PackBases(ref int offset, ref byte[] buffer, uint numEncodedBases, string s)
         {
             //for (uint baseIndex = 0; baseIndex < numEncodedBases; baseIndex++) buffer[offset + baseIndex] = 0;
             byte shift = 4;
@@ -160,10 +192,10 @@ namespace Alignment.IO.Sequencing
 
             foreach (char c in s)
             {
-                uint baseCode = _baseToNumber[c];
+                uint baseCode = ConversionHelper.BaseToNumber[c];
                 if (baseCode == BamConstants.LutError)
                 {
-                    throw new ApplicationException(
+                    throw new InvalidDataException(
                         string.Format("ERROR: Encountered an unexpected base ({0}) when packing the read.", c));
                 }
 
@@ -176,33 +208,16 @@ namespace Alignment.IO.Sequencing
         }
 
         // creates a cigar string from the supplied alignment
-        private void PackCigar(ref int offset, CigarAlignment cigarOps)
+        static private void PackCigar(ref int offset, ref byte[] buffer, CigarAlignment cigarOps)
         {
             // pack the cigar data into the string
 
             foreach (CigarOp op in cigarOps)
             {
-                uint cigarOp = _cigarOpToNumber[op.Type];
+                uint cigarOp = ConversionHelper.CigarOpToNumber[op.Type];
                 if (cigarOp == BamConstants.LutError)
                 {
-                    throw new ApplicationException(
-                        string.Format("ERROR: Encountered an unexpected CIGAR operation ({0}).", op.Type));
-                }
-
-                BinaryIO.AddUIntBytes(ref _outputBuffer, ref offset, op.Length << BamConstants.CigarShift | cigarOp);
-            }
-        }
-
-        private void PackCigar(ref int offset, ref byte[] buffer, CigarAlignment cigarOps)
-        {
-            // pack the cigar data into the string
-
-            foreach (CigarOp op in cigarOps)
-            {
-                uint cigarOp = _cigarOpToNumber[op.Type];
-                if (cigarOp == BamConstants.LutError)
-                {
-                    throw new ApplicationException(
+                    throw new InvalidDataException(
                         string.Format("ERROR: Encountered an unexpected CIGAR operation ({0}).", op.Type));
                 }
 
@@ -214,7 +229,18 @@ namespace Alignment.IO.Sequencing
         /// <summary>
         /// Serialize alignment to a byte array, for later flushing to output file.
         /// </summary>
-        public byte[] SerializeAlignment(ref BamAlignment al)
+        static public byte[] SerializeAlignment(ref BamAlignment al)
+        {
+            int offset = 0;
+            byte[] buffer = null;
+            SerializeAlignment(ref al, ref buffer, ref offset);
+            return buffer;
+        }
+
+        /// <summary>
+        /// Serialize alignment to a byte array, for later flushing to output file.
+        /// </summary>
+        static public bool SerializeAlignment(ref BamAlignment al, ref byte[] buffer, ref int offset)
         {
             // initialize
             uint nameLen = (uint)al.Name.Length + 1;
@@ -226,8 +252,16 @@ namespace Alignment.IO.Sequencing
             uint dataBlockSize = nameLen + packedCigarLen + numEncodedBases + numBases + tagDataLen;
             uint alignBlockSize = BamConstants.CoreAlignmentDataLen + dataBlockSize;
             uint blockSize = alignBlockSize + 4;
-            byte[] buffer = new byte[blockSize];
-            int offset = 0;
+
+            if (buffer == null)
+            {
+                offset = 0;
+                buffer = new byte[blockSize];
+            }
+            else if (offset + blockSize > buffer.Length)
+            {
+                return false;
+            }
 
             // store the block size
             BinaryIO.AddUIntBytes(ref buffer, ref offset, alignBlockSize);
@@ -257,14 +291,14 @@ namespace Alignment.IO.Sequencing
             Buffer.BlockCopy(al.TagData, 0, buffer, offset, al.TagData.Length);
             offset += al.TagData.Length;
 
-            return buffer;
+            return true;
         }
 
         public void WriteAlignment(byte[] buffer)
         {
             if (!IsOpen)
             {
-                throw new ApplicationException(string.Format("ERROR: Tried to write an alignment but the file has not been opened yet."));
+                throw new IOException(string.Format("ERROR: Tried to write an alignment but the file has not been opened yet."));
             }
             // test if we should flush the block
             if ((BlockOffset + buffer.Length) > MaxBlockSize) FlushBlock();
@@ -276,7 +310,7 @@ namespace Alignment.IO.Sequencing
         {
             if (!IsOpen)
             {
-                throw new ApplicationException(string.Format("ERROR: Tried to write an alignment but the file has not been opened yet."));
+                throw new IOException(string.Format("ERROR: Tried to write an alignment but the file has not been opened yet."));
             }
 
             // initialize
@@ -314,7 +348,7 @@ namespace Alignment.IO.Sequencing
             BinaryIO.AddNullTerminatedString(ref _outputBuffer, ref offset, al.Name);
 
             // store the packed CIGAR string and packed bases
-            PackCigar(ref offset, al.CigarData);
+            PackCigar(ref offset, ref _outputBuffer, al.CigarData);
             PackBases(ref offset, numEncodedBases, al.Bases);
 
             // store the base qualities

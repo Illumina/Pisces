@@ -93,14 +93,14 @@ namespace VariantPhasing.Logic
 
         private VariantSite MapCandidateVariant(int readPosition, CandidateAllele allele, bool failed, int refPosition)
         {
-            var positionAdjustment = failed ? refPosition : allele.Coordinate;
+            var positionAdjustment = failed ? refPosition : allele.ReferencePosition;
 
             var position = readPosition - 2 + positionAdjustment;
 
             return new VariantSite(position)
             {
-                VcfReferenceAllele = failed ? "N" : allele.Reference, 
-                VcfAlternateAllele = failed ? "N" : allele.Alternate
+                VcfReferenceAllele = failed ? "N" : allele.ReferenceAllele, 
+                VcfAlternateAllele = failed ? "N" : allele.AlternateAllele
             };
 
         }

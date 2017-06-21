@@ -1,4 +1,5 @@
 ﻿using System;
+using System.IO;
 using Alignment.Domain.Sequencing;
 using Pisces.Domain.Types;
 using Pisces.Domain.Utility;
@@ -331,10 +332,10 @@ namespace Pisces.Domain.Models
         private static void ValidateCigar(CigarAlignment cigarData, int readLength)
         {
             if (cigarData.Count == 1 && (cigarData[0].Type == 'I' || cigarData[0].Type == 'D'))
-                throw new Exception(string.Format("Invalid cigar '{0}': indel must have anchor", cigarData));
+                throw new InvalidDataException(string.Format("Invalid cigar '{0}': indel must have anchor", cigarData));
 
             if (cigarData.Count > 0 && cigarData.GetReadSpan() != readLength)
-                throw new Exception(string.Format("Invalid cigar '{0}': does not match length {1} of read", cigarData,
+                throw new InvalidDataException(string.Format("Invalid cigar '{0}': does not match length {1} of read", cigarData,
                     readLength));
         }
 

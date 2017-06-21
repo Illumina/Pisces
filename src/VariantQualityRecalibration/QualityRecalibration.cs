@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 using Pisces.IO.Sequencing;
 using Pisces.Calculators;
 using Pisces.Domain.Types;
-using Pisces.Processing.Utility;
+using Common.IO.Utility;
 using Pisces.IO;
 
 namespace VariantQualityRecalibration
@@ -67,7 +67,7 @@ namespace VariantQualityRecalibration
                 File.Delete(vcfOut);
 
             using (VcfReader reader = new VcfReader(vcfIn))
-            using (StreamWriter writer = new StreamWriter(vcfOut))
+            using (StreamWriter writer = new StreamWriter(new FileStream(vcfOut, FileMode.CreateNew)))
             {
                 writer.NewLine = "\n";
                 List<string> headerLines = reader.HeaderLines;

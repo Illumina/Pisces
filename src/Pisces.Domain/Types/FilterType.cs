@@ -3,12 +3,14 @@
     public enum FilterType
     {
         StrandBias,
+        PoolBias,
         LowVariantQscore,  //the confidence a variant exists
         LowDepth,
         LowVariantFrequency,
-        LowGenotypeQuality, //the confidence in a particular genotype (not for Somatic)
+        LowGenotypeQuality, //the confidence in a particular genotype 
         IndelRepeatLength,
         MultiAllelicSite,
-        RMxN
+        RMxN,
+		ForcedReport
     }
 }

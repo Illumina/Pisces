@@ -81,11 +81,11 @@ namespace Pisces.Processing.RegionState
         {
             if (candidate.Type == AlleleCategory.Reference) throw new ArgumentException(string.Format("Unable to add candidate '{0}': reference candidates are not tracked.", candidate));
 
-            if (!IsPositionInRegion(candidate.Coordinate))
+            if (!IsPositionInRegion(candidate.ReferencePosition))
                 throw new ArgumentException(string.Format("Unable to add candidate at position {0} to region '{1}'",
-                    candidate.Coordinate, Name));
+                    candidate.ReferencePosition, Name));
 
-            var regionIndex = candidate.Coordinate - StartPosition;
+            var regionIndex = candidate.ReferencePosition - StartPosition;
             var existingCandidates = _candidateVariantsLookup[regionIndex];
 
             if (existingCandidates == null)
@@ -127,13 +127,13 @@ namespace Pisces.Processing.RegionState
             switch (candidate.Type)
             {
                 case AlleleCategory.Deletion:
-                    otherEnd = candidate.Coordinate + candidate.Reference.Length;
+                    otherEnd = candidate.ReferencePosition + candidate.ReferenceAllele.Length;
                     break;
                 case AlleleCategory.Insertion:
-                    otherEnd = candidate.Coordinate + 1;
+                    otherEnd = candidate.ReferencePosition + 1;
                     break;
                 case AlleleCategory.Mnv:
-                    otherEnd = candidate.Coordinate + candidate.Reference.Length - 1;
+                    otherEnd = candidate.ReferencePosition + candidate.ReferenceAllele.Length - 1;
                     break;
             }
             if (otherEnd > MaxAlleleEndpoint)
@@ -211,7 +211,7 @@ namespace Pisces.Processing.RegionState
         }
 
         public List<CandidateAllele> GetAllCandidates(bool includeRefAlleles, ChrReference chrReference,
-            ChrIntervalSet intervals = null)
+            ChrIntervalSet intervals = null, HashSet<Tuple<string, int, string, string>> forcesGtAlleles = null)
         {
             var alleles = new List<CandidateAllele>();
 
@@ -220,11 +220,13 @@ namespace Pisces.Processing.RegionState
                 if (positionLookup != null)
                     alleles.AddRange(positionLookup);
 
-            if (includeRefAlleles)
+			var IntervalsInUse = includeRefAlleles ? intervals : CreateIntervalsFromAllels(chrReference, forcesGtAlleles);
+
+			if (includeRefAlleles|| (forcesGtAlleles !=null && forcesGtAlleles.Count !=0))
             {
-                var regionsToFetch = intervals == null
+                var regionsToFetch = IntervalsInUse == null
                     ? new List<Region> {this} // fetch whole block region
-                    : intervals.GetClipped(this); // clip intervals to block region
+                    : IntervalsInUse.GetClipped(this); // clip intervals to block region
 
                 for (var i = 0; i < regionsToFetch.Count; i ++)
                 {
@@ -260,7 +262,7 @@ namespace Pisces.Processing.RegionState
                             }
                         }
 
-                        if (intervals != null || totalSupport > 0)
+                        if (IntervalsInUse != null || totalSupport > 0)
                             alleles.Add(refAllele);
                     }
                 }
@@ -269,7 +271,22 @@ namespace Pisces.Processing.RegionState
             return alleles;
         }
 
-        public List<CandidateAllele> ExtractCollapsable(int upToPosition)
+	    private ChrIntervalSet CreateIntervalsFromAllels(ChrReference chrReference, HashSet<Tuple<string, int, string, string>> alleles)
+	    {
+
+		    if (alleles == null) return null;
+			var intervals = new List<Region>();
+
+		    foreach (var allele in alleles)
+		    {
+			    if(allele.Item1 == chrReference.Name)
+					intervals.Add(new Region(allele.Item2,allele.Item2));
+		    }
+
+			return intervals.Count==0? null: new ChrIntervalSet(intervals,chrReference.Name);
+	    }
+
+	    public List<CandidateAllele> ExtractCollapsable(int upToPosition)
         {
             var allCollapsable = new List<CandidateAllele>();
 
@@ -278,7 +295,7 @@ namespace Pisces.Processing.RegionState
                 if (lookup == null) continue;
 
                 var collapsables = lookup.Where(c =>
-                        c.Coordinate + c.Alternate.Length - 1 <= upToPosition &&
+                        c.ReferencePosition + c.AlternateAllele.Length - 1 <= upToPosition &&
                         !c.OpenOnRight && 
                         (c.Type == AlleleCategory.Mnv || c.Type == AlleleCategory.Snv)).ToList();
 

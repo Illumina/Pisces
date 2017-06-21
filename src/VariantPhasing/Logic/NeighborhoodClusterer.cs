@@ -1,7 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using Pisces.Processing.Utility;
+using Pisces.Domain.Options;
+using Common.IO.Utility;
 using VariantPhasing.Helpers;
 using VariantPhasing.Models;
 
@@ -29,16 +30,15 @@ namespace VariantPhasing.Logic
             {
                 // Make the meatiest clusters first.
                 veadGroups.Sort();
-
+                var clusters = new SetOfClusters(_options);
                 if (veadGroups.Count == 0)
                 {
-                    throw new ApplicationException("No vead groups given to clustering algorithm.");
+                    Logger.WriteToLog("No vead groups given to clustering algorithm.");
+                    return clusters;
                 }
 
                 var maxNumNewClusters = veadGroups[0].SiteResults.Length * _options.MaxNumNewClustersPerSite;
-                var clusters = new SetOfClusters(_options);
-
-
+               
                 var nbhdStart = veadGroups[0].SiteResults[0].VcfReferencePosition;
                 var nbhdEnd = veadGroups[0].SiteResults[veadGroups[0].SiteResults.Length - 1].VcfReferencePosition;
 

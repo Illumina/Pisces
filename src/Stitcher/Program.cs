@@ -3,11 +3,12 @@ using System.IO;
 using System.Reflection;
 using NDesk.Options;
 using Pisces.Domain.Utility;
-using Pisces.Processing.Utility;
+using Common.IO.Utility;
+using Common.IO;
 
 namespace Stitcher
 {
-    class Program
+    public class Program
     {
         static void Main(string[] args)
         {
@@ -19,6 +20,11 @@ namespace Stitcher
 		        return;
 	        }
 
+            if (string.IsNullOrEmpty(programOptions.OutFolder))
+            {
+                programOptions.OutFolder = Path.GetDirectoryName(programOptions.InputBam);
+            }
+
             if (!Directory.Exists(programOptions.OutFolder))
             {
                 try
@@ -28,7 +34,7 @@ namespace Stitcher
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine(Environment.NewLine + "Validation Error: Unable to create the OutFolder.");
+                    Console.WriteLine("Validation Error: Unable to create the OutFolder.");
                     Console.WriteLine(ex);
                 }
             }
@@ -38,7 +44,7 @@ namespace Stitcher
             if (doExit)
             {
                 ShowHelp(programOptions.OptionSet);
-                var userException = new Exception(Environment.NewLine + "Validation Error: You must supply a valid Bam and OutFolder.");
+                var userException = new ArgumentException("Validation Error: You must supply a valid Bam and OutFolder.");
 				Logger.WriteExceptionToLog(userException);
 	            throw userException;
             }
@@ -60,7 +66,7 @@ namespace Stitcher
             }
             finally
             {
-                Logger.TryCloseLog();
+                Logger.CloseLog();
             }
 
 
@@ -76,15 +82,16 @@ namespace Stitcher
 
 	    static void ShowVersion()
 	    {
-			var currentAssembly = Assembly.GetExecutingAssembly().GetName();
-			Console.WriteLine(currentAssembly.Name + " " + currentAssembly.Version);
+            var currentAssemblyName = FileUtilities.LocalAssemblyName<Program>();
+            var currentAssemblyVersion = FileUtilities.LocalAssemblyVersion<Program>();
+            Console.WriteLine(currentAssemblyName + " " + currentAssemblyVersion);
 			Console.WriteLine(UsageInfoHelper.GetWebsite());
 			Console.WriteLine();
 		}
 
         static void InitializeLog(string outputDirectory, string commandLine, string logFileName)
         {
-            Logger.TryOpenLog(outputDirectory, logFileName);
+            Logger.OpenLog(outputDirectory, logFileName);
             Logger.WriteToLog("Command-line arguments: ");
             Logger.WriteToLog(commandLine);
         }

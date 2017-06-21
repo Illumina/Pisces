@@ -11,9 +11,9 @@ namespace Pisces.Domain.Models.Alleles
     public class BaseAllele : IAllele
     {
         public string Chromosome { get; set; }
-        public int Coordinate { get; set; }
-        public string Reference { get; set; }
-        public string Alternate { get; set; }
+        public int ReferencePosition { get; set; }
+        public string ReferenceAllele { get; set; }
+        public string AlternateAllele { get; set; }
 
         public AlleleCategory Type { get; set; }
 
@@ -22,8 +22,9 @@ namespace Pisces.Domain.Models.Alleles
 
         public override string ToString()
         {
-            return (string.Join("\t", Chromosome, Coordinate, ".", Reference, Alternate));
+            return (string.Join("\t", Chromosome, ReferencePosition, ".", ReferenceAllele, AlternateAllele));
         }
+
         public int Length
         {
             get
@@ -32,17 +33,51 @@ namespace Pisces.Domain.Models.Alleles
                 {
                     case AlleleCategory.Mnv:
                     case AlleleCategory.Snv:
-                        return Alternate.Length;
+                        return AlternateAllele.Length;
                     case AlleleCategory.Insertion:
-                        return Alternate.Length - 1;
+                        return AlternateAllele.Length - 1;
                     case AlleleCategory.Deletion:
-                        return Reference.Length - 1;
+                        return ReferenceAllele.Length - 1;
                     case AlleleCategory.Reference:
-                        return Reference.Length;
+                        return ReferenceAllele.Length;
                     default:
-                        throw new Exception("Unrecognized allele type: " + Type);
+                        throw new ArgumentException("Unrecognized allele type: " + Type);
                 }
             }
         }
+
+        public void SetType()
+        {
+            Type = CalculateType();
+        }
+
+        private AlleleCategory CalculateType()
+        {
+
+            if (!String.IsNullOrEmpty(ReferenceAllele)
+                && !String.IsNullOrEmpty(AlternateAllele))
+            {
+                if (ReferenceAllele == AlternateAllele)
+                    return (AlleleCategory.Reference);
+
+                if (AlternateAllele == ".")
+                    return (AlleleCategory.Reference);
+
+                if (ReferenceAllele.Length == AlternateAllele.Length)
+                {
+                    return (AlternateAllele.Length == 1 ? AlleleCategory.Snv : AlleleCategory.Mnv);
+                }
+                else
+                {
+                    if (ReferenceAllele.Length == 1)
+                        return (AlleleCategory.Insertion);
+                    else if (AlternateAllele.Length == 1)
+                        return (AlleleCategory.Deletion);
+                }
+            }
+
+            return AlleleCategory.Unsupported;
+        }
+
     }
 }

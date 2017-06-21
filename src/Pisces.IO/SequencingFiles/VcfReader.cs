@@ -171,7 +171,7 @@ namespace Pisces.IO.Sequencing
 				// convert the columns to a variant
 				ConvertColumnsToVariant(cols, variant);
 				if (RequireGenotypes && (variant.Genotypes == null || variant.Genotypes.Count == 0))
-					throw new ApplicationException("Missing genotype columns in VCF file");
+					throw new InvalidDataException("Missing genotype columns in VCF file");
 				yield return variant;
 			}
 		}
@@ -195,7 +195,7 @@ namespace Pisces.IO.Sequencing
 			// convert the columns to a variant
 			ConvertColumnsToVariant(cols, variant);
 			if (RequireGenotypes && variant.Genotypes.Count == 0)
-				throw new ApplicationException("Missing genotype columns in VCF file");
+				throw new InvalidDataException("Missing genotype columns in VCF file");
 			return true;
 		}
 
@@ -219,7 +219,7 @@ namespace Pisces.IO.Sequencing
 			// convert the columns to a variant
 			ConvertColumnsToVariant(bits, variant);
 			if (RequireGenotypes && variant.Genotypes.Count == 0)
-				throw new ApplicationException("Missing genotype columns in VCF file");
+				throw new InvalidDataException("Missing genotype columns in VCF file");
 			return true;
 		}
 
@@ -242,7 +242,7 @@ namespace Pisces.IO.Sequencing
 			// convert the columns to a variant
 			ConvertColumnsToVariant(cols, variant);
 			if (RequireGenotypes && variant.Genotypes.Count == 0)
-				throw new ApplicationException("Missing genotype columns in VCF file");
+				throw new InvalidDataException("Missing genotype columns in VCF file");
 
 			return true;
 		}
@@ -378,7 +378,10 @@ namespace Pisces.IO.Sequencing
 			if (haplotype == -1)
 				return VariantType.Missing;
 
-			string altAllele = variant.VariantAlleles[haplotype - 1];
+            if (haplotype > variant.VariantAlleles.Length)
+                return VariantType.Missing;
+
+            string altAllele = variant.VariantAlleles[haplotype - 1];
 			return GetAlleleVariantType(variant.ReferenceAllele, altAllele);
 		}
 
@@ -456,7 +459,7 @@ namespace Pisces.IO.Sequencing
 			// sanity check: make sure we have the same number of columns
 			if (genotypeFormatTags.Length < genotypeCols.Length)
 			{
-				throw new ApplicationException(string.Format(
+				throw new InvalidDataException(string.Format(
 						"VCF parse error: Expected the same number of columns in the genotype format column ({0}) as in the sample genotype column ({1}).",
 						genotypeFormatTags.Length, genotypeCols.Length));
 			}
@@ -487,7 +490,7 @@ namespace Pisces.IO.Sequencing
 			// sanity check
 			if ((line == null) || !line.StartsWith(VcfCommon.ChromosomeHeader))
 			{
-				throw new ApplicationException(
+				throw new InvalidDataException(
 					string.Format("Could not find the vcf header (starts with {0}). Is this a valid vcf file?",
 								  VcfCommon.ChromosomeHeader));
 			}

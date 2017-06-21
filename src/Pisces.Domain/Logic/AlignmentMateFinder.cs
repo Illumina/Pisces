@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using Common.IO.Utility;
 using Pisces.Domain.Interfaces;
 using Pisces.Domain.Models;
 
@@ -64,9 +65,8 @@ namespace Pisces.Domain.Logic
                 if (readMate.Position != read.MatePosition || readMate.MatePosition != read.Position)
                 {
                     ReadsUnpairable += 2;
+                    Logger.WriteWarningToLog(string.Format("Read pair '{0}' do not have matching mate positions", read.Name));
                     return null;
-                    // TODO: Log a message when logging is integrated
-                    // throw new Exception(string.Format("Read pair '{0}' do not have matching mate positions", read.Name));
                 }
             }
             else

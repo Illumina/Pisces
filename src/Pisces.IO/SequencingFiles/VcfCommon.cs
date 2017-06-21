@@ -130,7 +130,7 @@ namespace Pisces.IO.Sequencing
                 string infoValue;
                 if (!InfoFields.TryGetValue(infoField, out infoValue))
                 {
-                    throw new ApplicationException(
+                    throw new InvalidDataException(
                         string.Format("Unable to find the dictionary entry for the following info key: {0}", infoField));
                 }
 
@@ -180,7 +180,7 @@ namespace Pisces.IO.Sequencing
                             string formatValue;
                             if (!currentGenotype.TryGetValue(formatField, out formatValue))
                             {
-                                throw new ApplicationException(
+                                throw new InvalidDataException(
                                     string.Format("Unable to find the dictionary entry for the following info key: {0}",
                                                   formatField));
                             }

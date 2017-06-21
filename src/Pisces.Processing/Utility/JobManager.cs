@@ -55,8 +55,11 @@ namespace Pisces.Processing.Utility
             for (var jobIndex = 0; jobIndex < jobs.Count; ++jobIndex)
             {
                 Thread.Sleep(10);
-                jobPool.WaitOne();
 
+                //this looks like its hanging and preventing any other threads from
+                //starting. maybe we are supposed to raise an event from the job when the thread is started..?
+                jobPool.WaitOne(); //i am just not sure why this is here...
+              
                 if (doneEvent.WaitOne(0)) // got the signal to quit
                 {
                     Release(jobPool);
@@ -86,7 +89,11 @@ namespace Pisces.Processing.Utility
                         try
                         {
                             if (ErrorHandlingMode == JobErrorHandlingMode.Terminate)
-                                thread.Abort();
+                            {
+                                throw new ThreadStateException("Terminating the thread. Thread.abort is missing for .net core..");
+                                 //   https://msdn.microsoft.com/en-us/library/dd997364(v=vs.110).aspx //maybe replace with cancellation token
+                            }
+                               
                             thread.Join();
                         }
                         catch
@@ -155,9 +162,10 @@ namespace Pisces.Processing.Utility
             Action();
         }
 
-        public GenericJob(Action action)
+        public GenericJob(Action action, string name)
         {
             Action = action;
+            Name = name;
         }
     }
 }

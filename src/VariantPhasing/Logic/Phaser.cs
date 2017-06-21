@@ -6,6 +6,7 @@ using Pisces.Processing.Logic;
 using Pisces.Processing.Utility;
 using Pisces.Domain.Models.Alleles;
 using VariantPhasing.Models;
+using Common.IO.Utility;
 
 namespace VariantPhasing.Logic
 {
@@ -64,13 +65,19 @@ namespace VariantPhasing.Logic
                 if (_factory.DebugMode)
                 {
                     StringBuilder sb = new StringBuilder();
-                    int[] depths = VeadGroup.DepthAtSites(collapsedReads);
+                    int[] depths;
+                    int[] nocalls;
+                    VeadGroup.DepthAtSites(collapsedReads, out depths, out nocalls);
                     Logger.WriteToLog("depth at sites:  ");
                     Logger.WriteToLog(collapsedReads.First().ToPositions());
-                    Logger.WriteToLog(string.Join("\t", depths));
+
+                    for(int i=0;i < depths.Length; i++)
+                        Logger.WriteToLog(string.Join("\t", depths[i]));
                 }
 
-                jobs.Add(new GenericJob(() => ProcessNeighborhood(vcfNeighborhood, clusterer, collapsedReads)));
+                jobs.Add(
+                    new GenericJob(() => ProcessNeighborhood(vcfNeighborhood, clusterer, collapsedReads),
+                    "ProcessNeighborhood_" + vcfNeighborhood.Id ));
 
             }
 
@@ -86,30 +93,30 @@ namespace VariantPhasing.Logic
 
             var variantCaller = _factory.CreateVariantCaller();
             var variantMerger = _factory.CreateVariantMerger();
-           // var nbhds = neighborhoods.ToArray();
-
+            
             using (var writer = _factory.CreatePhasedVcfWriter())
             {
 
                 Logger.WriteToLog("Writing phased vcf.");
                 writer.WriteHeader();
 
-               //do this in chunks to avoid having all variants in memory at all times.
-               var originalAllelesTrailingNeighbhood = new List<CalledAllele>();
+                //do this in chunks to avoid having all variants in memory at all times.
+                var originalAllelesTrailingNeighbhood = new List<CalledAllele>();
                 foreach(var nbhd in neighborhoods)
                 {
                     Logger.WriteToLog("Writing original variants up to neighborhood " + nbhd.Id);
-                    originalAllelesTrailingNeighbhood = variantMerger.WriteVariantsUptoChr(writer, originalAllelesTrailingNeighbhood , nbhd.ReferenceName);
-
+                    originalAllelesTrailingNeighbhood = variantMerger.WriteVariantsUptoChr(writer, originalAllelesTrailingNeighbhood, nbhd.ReferenceName);
+                    
                     Logger.WriteToLog("Writing phased variants inside neighborhood " + nbhd.Id);
+
                     variantCaller.CallMNVs(nbhd);
                     variantCaller.CallRefs(nbhd);
+
                     originalAllelesTrailingNeighbhood  = variantMerger.WriteVariantsUptoIncludingNbhd(nbhd,
                         writer,  originalAllelesTrailingNeighbhood);
                 }
 
                 Logger.WriteToLog("Writing variants past last neighborhood");
-
                 variantMerger.WriteRemainingVariants(writer, originalAllelesTrailingNeighbhood);
            
             }

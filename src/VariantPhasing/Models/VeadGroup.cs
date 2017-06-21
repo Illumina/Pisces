@@ -12,12 +12,20 @@ namespace VariantPhasing.Models
         public VariantSite[] SiteResults { get { return _representativeVead.SiteResults; } }
         public Vead RepresentativeVead { get { return _representativeVead; } }
         private readonly Vead _representativeVead;
-        private int NumSites
+        private int NumSitesInGroup
         {
             get
             {
                 var sitesPerVead = RepresentativeVead.SiteResults.Count(vs => vs.HasRefAndAltData);
                 return sitesPerVead * NumVeads;
+            }
+        }
+
+        private int Length
+        {
+            get
+            {
+               return RepresentativeVead.SiteResults.Count();
             }
         }
 
@@ -34,7 +42,7 @@ namespace VariantPhasing.Models
 
         public int CompareTo(VeadGroup other)
         {
-            return -1 * (NumSites.CompareTo(other.NumSites));
+            return -1 * (NumSitesInGroup.CompareTo(other.NumSitesInGroup));
         }
 
         public override string ToString()
@@ -87,42 +95,62 @@ namespace VariantPhasing.Models
         }
 
 
-        public static int[] DepthAtSites(IEnumerable<VeadGroup> vgs)
+        public static void DepthAtSites(IEnumerable<VeadGroup> vgs, out int[] depths, out int[] nocalls)
         {
-            var depthAtSites = new int[0];
+            depths = new int[0];
+            nocalls = new int[0];
             var veadgroups = vgs;
 
             if (veadgroups.Any())
             {
-                var vgDepths = veadgroups.Select(x => x.ToDepths()).ToList();
-                var depthSites = vgDepths.Any() ? vgDepths.First().Count : 0;
-                depthAtSites = new int[depthSites];
-                foreach (var vgDepth in vgDepths)
+                var vgDepths = veadgroups.Select(x => x.ToDepths()).ToList(); //as many arrays as distinct vead groups
+                var vgNoCalls = veadgroups.Select(x => x.ToNoCalls()).ToList(); //as many arrays as distinct vead groups
+
+                var numSites = vgDepths.Any() ? vgDepths.First().GetLength(0) : 0;
+                depths = new int[numSites];
+                nocalls = new int[numSites];
+
+                for (var j = 0; j < vgDepths.Count; j++)
                 {
-                    for (var i = 0; i < depthSites; i++)
+                    var vgDepth = vgDepths[j];
+                    var vgNoCall = vgNoCalls[j];
+
+                    for (var i = 0; i < numSites; i++)
                     {
-                        depthAtSites[i] += vgDepth[i];
+                        depths[i] += vgDepth[i]; //total depth count
+                        nocalls[i] += vgNoCall[i]; //total nocall count
                     }
                 }
             }
-            return depthAtSites;
         }
 
-        public List<int> ToDepths()
+        //every vead in this group is identical..
+        public int[] ToDepths()
         {
-            var depth = new List<int>();
+            var depth = new int[Length] ;
 
-            for (var i = 0; i < _representativeVead.SiteResults.Length; i++)
+            for (var i = 0; i < Length; i++)
             {
-                depth.Add(0);
-                for (var j = 0; j < NumVeads; j++)
-                {
-                    if (_representativeVead.SiteResults[i].HasRefAndAltData)
-                        depth[i]++;                    
-                }
+                if (_representativeVead.SiteResults[i].HasRefAndAltData)
+                    depth[i] = NumVeads;
             }
 
             return depth;
+        }
+
+        public int[] ToNoCalls()
+        {
+            var noCalls = new int[Length];
+
+            for (var i = 0; i < Length; i++)
+            {
+                if (!_representativeVead.SiteResults[i].HasRefAndAltData)
+
+                    noCalls[i] = NumVeads;
+
+            }
+
+            return noCalls;
         }
     }
 }

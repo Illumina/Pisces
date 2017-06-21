@@ -17,7 +17,7 @@ namespace Pisces.Calculators
         ///     Assign a strandbias-score to a SNP.
         ///     (using only forward and reverse SNP counts.)
         /// </summary>
-        private static StrandBiasResults CalculateStrandBiasResults(int[] coverageByStrandDirection,
+        public static BiasResults CalculateStrandBiasResults(int[] coverageByStrandDirection,
             int[] supportByStrandDirection,
             int qNoise, double acceptanceCriteria, StrandBiasModel strandBiasModel)
         {
@@ -39,7 +39,7 @@ namespace Pisces.Calculators
                 reverseCoverage + stitchedCoverage / 2,
                 errorRate, errorRate, strandBiasModel);
 
-            var results = new StrandBiasResults
+            var results = new BiasResults
             {
                 ForwardStats = forwardStats,
                 ReverseStats = reverseStats,
@@ -108,7 +108,6 @@ namespace Pisces.Calculators
 
             if (degreesOfFreedom < 30)
             {
-                //throw new Exception("Its best if you go look this up in a table...");
                 return false; //just don't call anything for now.
             }
 

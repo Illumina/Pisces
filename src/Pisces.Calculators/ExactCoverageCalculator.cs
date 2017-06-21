@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Linq;
+using System.IO;
 using Pisces.Domain;
 using Pisces.Domain.Interfaces;
 using Pisces.Domain.Models;
@@ -23,15 +24,15 @@ namespace Pisces.Calculators
                 switch (allele.Type)
                 {
                     case AlleleCategory.Deletion:
-                        CalculateSpanning(allele, alleleCountSource, allele.Coordinate,
-                            allele.Coordinate + allele.Length + 1);
+                        CalculateSpanning(allele, alleleCountSource, allele.ReferencePosition,
+                            allele.ReferencePosition + allele.Length + 1);
                         break;
                     case AlleleCategory.Mnv:
-                        CalculateSpanning(allele, alleleCountSource, allele.Coordinate - 1,
-                            allele.Coordinate + allele.Length);
+                        CalculateSpanning(allele, alleleCountSource, allele.ReferencePosition - 1,
+                            allele.ReferencePosition + allele.Length);
                         break;
                     case AlleleCategory.Insertion:
-                        CalculateSpanning(allele, alleleCountSource, allele.Coordinate, allele.Coordinate + 1, true);
+                        CalculateSpanning(allele, alleleCountSource, allele.ReferencePosition, allele.ReferencePosition + 1, true);
                         break;
                     default:
                         CalculateSinglePoint(allele, alleleCountSource);
@@ -118,7 +119,7 @@ namespace Pisces.Calculators
             DirectionType direction = DirectionType.Forward;
 
             if (precedingIndex == -1 && trailingIndex == -1)
-                throw new Exception(string.Format("Invalid indices {0}-{1}", precedingIndex, trailingIndex));
+                throw new InvalidDataException(string.Format("Invalid indices {0}-{1}", precedingIndex, trailingIndex));
 
             // check if indices are right next to each other
             if (trailingIndex == precedingIndex + 1)

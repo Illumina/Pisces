@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.IO;
 using Pisces.Domain.Types;
 using Pisces.Domain.Utility;
 
@@ -33,7 +34,7 @@ namespace Pisces.Domain.Models
             }
             if (head != directionString.Length)
             {
-                throw new Exception(string.Format("Unexpected format in direction string: {0}", directionString));
+                throw new InvalidDataException(string.Format("Unexpected format in direction string: {0}", directionString));
             }
         }
 
@@ -100,6 +101,50 @@ namespace Pisces.Domain.Models
         public override string ToString()
         {
             return string.Join("", Directions.Select(d => d.Length + DirectionHelper.GetDirectionKey(d.Direction)));
+        }
+    }
+
+    public class CigarDirectionExpander
+    {
+        private CigarDirection _cigarDirection;
+        private int _cigarIndex;
+        private int _opIndex;
+
+        public CigarDirectionExpander(CigarDirection cigarDirection)
+        {
+            _cigarDirection = cigarDirection;
+            _cigarIndex = 0;
+            _opIndex = 0;
+        }
+
+        public bool MoveNext()
+        {
+            if (_cigarIndex < _cigarDirection.Directions.Count)
+            {
+                ++_opIndex;
+                if (_opIndex >= _cigarDirection.Directions[_cigarIndex].Length)
+                {
+                    _opIndex = 0;
+                    ++_cigarIndex;
+                }
+            }
+            return IsNotEnd();
+        }
+
+        public bool IsNotEnd()
+        {
+            return _cigarIndex < _cigarDirection.Directions.Count;
+        }
+
+        public void Reset()
+        {
+            _cigarIndex = 0;
+            _opIndex = 0;
+        }
+
+        public DirectionType Current
+        {
+            get { return _cigarDirection.Directions[_cigarIndex].Direction; }
         }
     }
 }

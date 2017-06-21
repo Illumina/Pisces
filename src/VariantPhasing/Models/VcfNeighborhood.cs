@@ -3,7 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using Pisces.Calculators;
 using Pisces.Domain.Models.Alleles;
-using Pisces.Processing.Utility;
+using Common.IO.Utility;
+using Pisces.Domain.Options;
 using VariantPhasing.Interfaces;
 using VariantPhasing.Logic;
 
@@ -35,7 +36,11 @@ namespace VariantPhasing.Models
             get
             {
                 //TODO come back and potentially use the actual OrderVariantsExtension
-                return _acceptedPhasedVariants.OrderBy(x=> x.Chromosome).ThenBy(x=>x.Coordinate).ThenBy(x=>x.Reference).ThenBy(x=>x.Alternate).ToList();
+                //return _acceptedPhasedVariants.OrderBy(x=> x.Chromosome).ThenBy(x=>x.ReferencePosition).ThenBy(x=>x.ReferenceAllele).ThenBy(x=>x.AlternateAllele).ToList();
+
+                var comparer = new AlleleComparer();
+                _acceptedPhasedVariants.Sort(comparer);
+                return _acceptedPhasedVariants;
             }
         }
 
@@ -43,7 +48,7 @@ namespace VariantPhasing.Models
         {
             get
             {
-                return _rejectedPhasedVariants.OrderBy(x => x.Chromosome).ThenBy(x => x.Coordinate).ThenBy(x => x.Reference).ThenBy(x => x.Alternate).ToList();
+                return _rejectedPhasedVariants.OrderBy(x => x.Chromosome).ThenBy(x => x.ReferencePosition).ThenBy(x => x.ReferenceAllele).ThenBy(x => x.AlternateAllele).ToList();
             }
         }
       
@@ -86,12 +91,20 @@ namespace VariantPhasing.Models
             }
         }
 
+        public IGenotypeCalculator NbhdGTcalculator
+        {
+            get
+            {
+                return _nbhdGTcalculator;
+            }
+        }
+
         public VcfNeighborhood(VariantCallingParameters variantCallingParams, string refName, VariantSite vs1, VariantSite vs2, string interveningRef)
         {
             _nbhdGTcalculator = GenotypeCreator.CreateGenotypeCalculator(variantCallingParams.PloidyModel, variantCallingParams.MinimumFrequencyFilter,
                 variantCallingParams.MinimumCoverage,
                 variantCallingParams.DiploidThresholdingParameters,
-                variantCallingParams.MinimumGenotpyeQScore, variantCallingParams.MaximumGenotpyeQScore);
+                variantCallingParams.MinimumGenotypeQScore, variantCallingParams.MaximumGenotypeQScore);
              VcfVariantSites = new List<VariantSite>();
             _referenceName = refName;
             _acceptedPhasedVariants = new List<CalledAllele>();
@@ -156,6 +169,7 @@ namespace VariantPhasing.Models
         public void SetGenotypesAndPruneExcessAlleles()
         {
             List<CalledAllele> allelesToPrune = _nbhdGTcalculator.SetGenotypes(_acceptedPhasedVariants);
+            
 
             foreach (var mnv in allelesToPrune)
             {
@@ -169,27 +183,31 @@ namespace VariantPhasing.Models
             if (clusters == null) return;
             if (clusters.Count() == 0) return;
 
-            var depthAtSites = DepthAtSites(clusters);
+            var depthAtSites = new int[0];
+            var nocallsAtSites = new int[0];
+            DepthAtSites(clusters, out depthAtSites, out nocallsAtSites);
+            
             Logger.WriteToLog("Creating MNVs from clusters.");
 
             int anchorPosition = -1;
-   
+            //if we are crushing the vcf, or in diploid mode, always report all phased alleles throug the nbhd, starting at the first position of interest. (ie, the first position we started phasing on)
+            //If we are in somatic mode or uncrushed mode, we just report the variants at the loci we find them on (normal Pisces)
+            if (crushNbhd || _nbhdGTcalculator.PloidyModel == Pisces.Domain.Types.PloidyModel.Diploid)
+                anchorPosition = FirstPositionOfInterest;
+
 
             foreach (var cluster in clusters)
             {
                 CalledAllele mnv;
 
                 var clusterConsensus = cluster.GetConsensusSites();
-                
-                if (crushNbhd && (anchorPosition == -1))
-                    anchorPosition = clusterConsensus.First().VcfReferencePosition;
-
+               
                 Logger.WriteToLog(cluster.Name + "\tVariantSites\t" + VariantSite.ArrayToString(clusterConsensus));
                 Logger.WriteToLog(cluster.Name + "\tVariantPositions\t" + VariantSite.ArrayToPositions(clusterConsensus));
 
 
                 var referenceRemoval = PhasedVariantExtractor.Extract(out mnv, clusterConsensus,
-                    ReferenceSequence, depthAtSites.ToList(), cluster.CountsAtSites, ReferenceName, qNoiselevel, maxQscore, anchorPosition);
+                    ReferenceSequence, depthAtSites, nocallsAtSites, cluster.CountsAtSites, ReferenceName, qNoiselevel, maxQscore, anchorPosition);
 
                 if ((mnv.Type != Pisces.Domain.Types.AlleleCategory.Reference) && mnv.AlleleSupport != 0)
                 {
@@ -223,19 +241,18 @@ namespace VariantPhasing.Models
                 if (calledPhasedVariant == null) continue;
                 
                 calledPhasedVariant.ReferenceSupport = phasedVariant.TotalCoverage - phasedVariant.AlleleSupport;
-                if (UsedRefCountsLookup.ContainsKey(phasedVariant.Coordinate))
-                    calledPhasedVariant.ReferenceSupport = calledPhasedVariant.ReferenceSupport - UsedRefCountsLookup[phasedVariant.Coordinate];
+                if (UsedRefCountsLookup.ContainsKey(phasedVariant.ReferencePosition))
+                    calledPhasedVariant.ReferenceSupport = calledPhasedVariant.ReferenceSupport - UsedRefCountsLookup[phasedVariant.ReferencePosition];
 
                 calledPhasedVariant.ReferenceSupport = Math.Max(0, calledPhasedVariant.ReferenceSupport);  
             }
 
         }
 
-        public int[] DepthAtSites(IEnumerable<ICluster> clusters)
+        public void DepthAtSites(IEnumerable<ICluster> clusters, out int[] depths, out int[] nocalls)
         {
-            var depthAtSites = new int[0];
             var veadgroups = clusters.SelectMany(x => x.GetVeadGroups());
-            return VeadGroup.DepthAtSites(veadgroups);
+            VeadGroup.DepthAtSites(veadgroups, out depths, out nocalls);
         }
 
         public void AddAcceptedPhasedVariant(CalledAllele variant)

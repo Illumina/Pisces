@@ -18,6 +18,8 @@ namespace Stitcher
         public bool DebugSummary = false;
         public bool NifyUnstitchablePairs = true;
         public bool StitchProbeSoftclips = false;
+        public int NumThreads = 1;
+        public float SortMemoryGB = 0.0f;
         public int MaxReadLength = 1024;
     }
 }

@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-//using SequencingFiles;
+using System.IO;
 
 namespace Alignment.Domain.Sequencing
 
@@ -16,7 +16,7 @@ namespace Alignment.Domain.Sequencing
 
             if (alignment.CigarData == null)
             {
-                throw new Exception(string.Format("Cannot get overlap of read {0}: Cigar alignment is not available.", alignment.Name));
+                throw new InvalidDataException(string.Format("Cannot get overlap of read {0}: Cigar alignment is not available.", alignment.Name));
             }
 
             var pos = alignment.Position;
@@ -175,7 +175,6 @@ namespace Alignment.Domain.Sequencing
 
                 if (refIdMapping != null)
                 {
-                    Console.WriteLine(tagChromosome);
                     bamAlignment.RefID = refIdMapping[tagChromosome];
                 }
 

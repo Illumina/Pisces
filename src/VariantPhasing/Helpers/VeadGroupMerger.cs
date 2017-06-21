@@ -1,4 +1,4 @@
-using System;
+using System.IO;
 
 namespace VariantPhasing.Models
 {
@@ -10,7 +10,7 @@ namespace VariantPhasing.Models
             var l2 = toUpdate.Length;
             if (l1 != l2)
             {
-                throw new ApplicationException("VariantSites are not the same length and cannot be merged.");
+                throw new InvalidDataException("VariantSites are not the same length and cannot be merged.");
             }
 
             for (var i = 0; i < toUpdate.Length; i++)

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.IO;
 using Pisces.Domain.Interfaces;
 using Pisces.Domain.Models;
 using Pisces.Domain.Models.Alleles;
@@ -341,7 +342,7 @@ namespace Pisces.Domain.Logic
 
             // sanity check that we didn't magically transition from F/R or R/F without stitched region
             if (bamAlignment.SequencedBaseDirectionMap[leftAnchorIndex + 1] != bamAlignment.SequencedBaseDirectionMap[rightAnchorIndex - 1])
-                throw new Exception("Found change in direction without encountering stitched direction");
+                throw new InvalidDataException("Alignment error: Found change in direction without encountering stitched direction");
 
             return direction;
         }
@@ -371,17 +372,17 @@ namespace Pisces.Domain.Logic
                 case 'M':
                     // find any snv or mnv that start at first position
                     AnnotateOpen(candidates, true, c =>
-                        c.Coordinate == read.Position &&
+                        c.ReferencePosition == read.Position &&
                         (c.Type == AlleleCategory.Mnv || c.Type == AlleleCategory.Snv));
                     break;
                 case 'I':
                     AnnotateOpen(candidates, true, c =>
-                        c.Coordinate == read.Position - 1 && // position reported base before
+                        c.ReferencePosition == read.Position - 1 && // position reported base before
                         c.Type == AlleleCategory.Insertion);
                     break;
                 case 'D':
                     AnnotateOpen(candidates, true, c =>
-                        c.Coordinate == read.Position - 1 && // position reported base before
+                        c.ReferencePosition == read.Position - 1 && // position reported base before
                         c.Type == AlleleCategory.Deletion);
                     break;
             }
@@ -391,17 +392,17 @@ namespace Pisces.Domain.Logic
                 case 'M':
                     // find any snv or mnv that end in last position of read
                     AnnotateOpen(candidates, false, c =>
-                        c.Coordinate + c.Alternate.Length - 1 == maxPosition &&
+                        c.ReferencePosition + c.AlternateAllele.Length - 1 == maxPosition &&
                         (c.Type == AlleleCategory.Mnv || c.Type == AlleleCategory.Snv));
                     break;
                 case 'I':
                     AnnotateOpen(candidates, false, c =>
-                        c.Coordinate == maxPosition && 
+                        c.ReferencePosition == maxPosition && 
                         c.Type == AlleleCategory.Insertion);
                     break;
                 case 'D':
                     AnnotateOpen(candidates, false, c =>
-                        c.Coordinate == maxPosition &&
+                        c.ReferencePosition == maxPosition &&
                         c.Type == AlleleCategory.Deletion);
                     break;
             }

@@ -1,18 +1,16 @@
 ﻿using System;
 using System.IO;
+using System.Collections.Generic;
 using VariantPhasing;
 using VariantPhasing.Logic;
+using Pisces.IO.Sequencing;
+using Common.IO.Utility;
 
 namespace Scylla
 {
-    //example calls:
-    // -vcf \\sd-isilon\bioinfosd\lteng\MNV_25\MergedBamAll\MNV-25-var327_S327.genome.vcf -bam \\sd-isilon\bioinfosd\lteng\MNV_25\MergedBamAll\MNV-25-var327_S327.bam -out C:\Products\LatestMNV\out
-    //-vcf \\sd-isilon\bioinfosd\lteng\MergedBam\MNV-50-var50_S50.genome.vcf -bam \\sd-isilon\bioinfosd\lteng\MergedBam\MNV-50-var50_S50.bam -out C:\Products\S1
-    //-vcf \\ussd-prd-isi04\pisces\TestData\R2\ATTC_indel\CRM-CCL-119D_S12.genome.vcf -bam \\ussd-prd-isi04\pisces\TestData\R2\ATTC_indel\CRM-CCL-119D_S12.bam -out \\ussd-prd-isi04\pisces\TestData\Out -chr [chr9]
-
     public class Program
     {
-        private ApplicationOptions _options;
+        private PhasingApplicationOptions _options;
 
         private static void Main(string[] args)
         {
@@ -25,29 +23,56 @@ namespace Scylla
             catch (Exception ex)
             {
                 var wrappedException = new Exception("Unable to process: " + ex.Message, ex);
-                Pisces.Processing.Utility.Logger.WriteExceptionToLog(wrappedException);
+                Logger.WriteExceptionToLog(wrappedException);
 
                 throw wrappedException;
             }
             finally
             {
-                Pisces.Processing.Utility.Logger.TryCloseLog();
+                Logger.CloseLog();
             }
         }
 
+        public Program() { } //for tester
+
         public Program(string[] args)
         {
-            _options = CommandLineParameters.ParseAndValidateCommandLine(args);
-            if (_options == null) return;
-            Init();
+			_options = new PhasingApplicationOptions();
+           
+            bool worked = CommandLineParameters.ParseAndValidateCommandLine(args,_options);
+            if (!worked || (_options == null))
+                return;
+			
+             Init(args);
         }
 
-        private void Init()
+        private void Init(string[] args)
         {
-            Pisces.Processing.Utility.Logger.TryOpenLog(_options.LogFolder, _options.LogFileName);
-            Pisces.Processing.Utility.Logger.WriteToLog("Command-line arguments: ");
-            Pisces.Processing.Utility.Logger.WriteToLog(_options.CommandLineArguments);
-			_options.Save(Path.Combine(_options.LogFolder, "ScyllaOptions.used.xml"));
+            Logger.OpenLog(_options.LogFolder, _options.LogFileName);
+            Logger.WriteToLog("Command-line arguments: ");
+            Logger.WriteToLog(_options.CommandLineArguments);
+
+            List<string> vcfHeaderLines;
+            using (var reader = new VcfReader(_options.VcfPath))
+            {
+                vcfHeaderLines = reader.HeaderLines;
+            }
+
+
+            //where to find the Pisces options used to make the original vcf
+            var piscesLogDirectory = Path.Combine(Path.GetDirectoryName(_options.VcfPath), "PiscesLogs");
+            if (!Directory.Exists(piscesLogDirectory))
+            piscesLogDirectory = Path.GetDirectoryName(_options.VcfPath);
+
+            //update and revalidate, if required.
+            if (_options.UpdateWithPiscesConfiguration(
+                _options.CommandLineArguments.Split(), vcfHeaderLines, piscesLogDirectory))
+            {
+                _options.SetDerivedvalues();
+                _options.Validate();
+            }
+
+            _options.Save(Path.Combine(_options.LogFolder, "ScyllaOptions.used.json"));
 		}
 
         public void Execute()

@@ -4,11 +4,8 @@ using System.Linq;
 using Pisces.IO.Sequencing;
 using Pisces.Calculators;
 using Pisces.Domain.Models.Alleles;
-using Pisces.IO;
-using Pisces.Processing.Utility;
+using Pisces.Domain.Options;
 using VariantPhasing.Interfaces;
-using VariantPhasing.Utility;
-using VariantPhasing.Models;
 
 namespace VariantPhasing.Logic
 {
@@ -28,11 +25,12 @@ namespace VariantPhasing.Logic
         { 
 
                 var newRef = PhasedVariantExtractor.Create(
-                         usedVariant.Chromosome, usedVariant.Coordinate,
-                          usedVariant.Reference.Substring(0, 1), ".",
-                          Math.Max(0,usedVariant.ReferenceSupport - numRefCallsSuckedUpByOtherVariants), usedVariant.TotalCoverage, Pisces.Domain.Types.AlleleCategory.Reference,
+                         usedVariant.Chromosome, usedVariant.ReferencePosition,
+                          usedVariant.ReferenceAllele.Substring(0, 1), ".",
+                          Math.Max(0,usedVariant.ReferenceSupport - numRefCallsSuckedUpByOtherVariants), 
+                          usedVariant.NumNoCalls,
+                          usedVariant.TotalCoverage, Pisces.Domain.Types.AlleleCategory.Reference,
                           _bamParams.MinimumBaseCallQuality, _callerParams.MaximumVariantQScore);
-
 
                 CallCandidate(newRef, true);
                 AddFilters(newRef, true);
@@ -49,18 +47,20 @@ namespace VariantPhasing.Logic
             foreach (var allele in variantsRecalledByMnvCaller)
             {
                 int suckedUpRefCallCount = 0;
-                if (suckedUpRefCalls.ContainsKey(allele.Coordinate))
-                    suckedUpRefCallCount = suckedUpRefCalls[allele.Coordinate];
+                if (suckedUpRefCalls.ContainsKey(allele.ReferencePosition))
+                    suckedUpRefCallCount = suckedUpRefCalls[allele.ReferencePosition];
 
                 var newRef = ReCallAsRef(allele, suckedUpRefCallCount);
 
-                if (!possibleRefs.ContainsKey(newRef.Coordinate))
+                if (!possibleRefs.ContainsKey(newRef.ReferencePosition))
                 {
-                    possibleRefs.Add(newRef.Coordinate, newRef);
+                    completedNbhd.NbhdGTcalculator.SetGenotypes(new List<CalledAllele> { newRef });
+                    possibleRefs.Add(newRef.ReferencePosition, newRef);
                 }
             }
 
             completedNbhd.CalledRefs = possibleRefs;
+
         }
 
 
@@ -71,14 +71,15 @@ namespace VariantPhasing.Logic
             {
                 bool isReference = (mnv.Type == Pisces.Domain.Types.AlleleCategory.Reference);
 
-                CallCandidate(mnv, isReference);
+                if (CallCandidate(mnv, isReference))
+                {
+                    AddFilters(mnv, isReference);
 
-                AddFilters(mnv, isReference);
+                    if (!foundMNVs.ContainsKey(mnv.ReferencePosition))
+                        foundMNVs.Add(mnv.ReferencePosition, new List<CalledAllele>());
 
-                if (!foundMNVs.ContainsKey(mnv.Coordinate))
-                    foundMNVs.Add(mnv.Coordinate, new List<CalledAllele>());
-        
-                foundMNVs[mnv.Coordinate].Add(mnv);
+                    foundMNVs[mnv.ReferencePosition].Add(mnv);
+                }
             }
 
             completedNbhd.CalledVariants = foundMNVs;
@@ -117,7 +118,7 @@ namespace VariantPhasing.Logic
             }
         }
 
-        private void CallCandidate(CalledAllele mnv, bool isReference)
+        private bool CallCandidate(CalledAllele mnv, bool isReference)
         {
 
             mnv.NoiseLevelApplied = _bamParams.MinimumBaseCallQuality;
@@ -136,34 +137,37 @@ namespace VariantPhasing.Logic
             // B) We could make some number up based the SB of the input variants 
             // (some max value to represent the worst case of the component variants in the nbdh...?) 
             // C) Implement a fully stranded phasing model.
-            // IMO, if we put work into this, we should do C. This will probably be a feature request before too long anyway.
+            // IMO, if we put work into this, we should do C. This will probably be a feaure request before too long anyway.
             //For the moment, nothing affects actually pass/Fail varcall decisions.
 
             mnv.StrandBiasResults.GATKBiasScore = -100;
+
 
             if (mnv.VariantQscore < _callerParams.MinimumVariantQScore)
             {
 
                 if (isReference)
+                {
                     mnv.Genotype = Pisces.Domain.Types.Genotype.RefLikeNoCall;
+                    mnv.GenotypeQscore = 0;
+                }
                 else
-                    mnv.Genotype = Pisces.Domain.Types.Genotype.AltLikeNoCall;
-
-                mnv.GenotypeQscore = 0;
+                    return false;
             }
 
             if (mnv.Frequency < _callerParams.MinimumFrequency)
             {
                 if (isReference)
+                {
                     mnv.Genotype = Pisces.Domain.Types.Genotype.RefLikeNoCall;
+                    mnv.VariantQscore = 0;
+                    mnv.GenotypeQscore = 0;
+                }
                 else
-                    mnv.Genotype = Pisces.Domain.Types.Genotype.AltLikeNoCall;
-
-                mnv.VariantQscore = 0;
-                mnv.GenotypeQscore = 0;
+                    return false;
             }
 
-            //as an alternative to setting them to nocalls, we could just omit them from gvcf.
+            return true;
         }
 
     }

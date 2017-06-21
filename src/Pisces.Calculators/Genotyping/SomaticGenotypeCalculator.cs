@@ -15,15 +15,22 @@ namespace Pisces.Calculators
         public int MinGQScore { get; set; }
         public int MaxGQScore { get; set; }
         public int MinDepthToGenotype { get; set; }
+	    public float MinVarFrequency { get; set; }
+	    public float MinVarFrequencyFilter { get; set; }
+	    public void SetMinFreqFilter(float minFreqFilter)
+	    {
+		    MinVarFrequencyFilter = minFreqFilter > MinVarFrequency ? minFreqFilter : MinVarFrequency;
+	    }
 
-        public SomaticGenotypeCalculator(){ }
+	    public SomaticGenotypeCalculator(){ }
 
-        public SomaticGenotypeCalculator(float minCalledVariantFrequency, int minCalledVariantDepth, int minGQscore, int maxGQscore)
+        public SomaticGenotypeCalculator(float minCalledVariantFrequency, int minCalledVariantDepth, int minGQscore, int maxGQscore,float minVarFreq)
         {
             _minCalledVariantFrequency = minCalledVariantFrequency;
             MinGQScore = minGQscore;
             MaxGQScore = maxGQscore;
             MinDepthToGenotype = minCalledVariantDepth;
+	        MinVarFrequency = minVarFreq;
         }
 
       

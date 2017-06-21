@@ -2,7 +2,7 @@
 using System.Linq;
 using Pisces.Domain.Models;
 using Pisces.Domain.Types;
-using Pisces.Processing.Utility;
+using Common.IO.Utility;
 
 namespace StitchingLogic
 {

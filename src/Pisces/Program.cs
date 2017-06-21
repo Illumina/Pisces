@@ -2,8 +2,9 @@
 using System.IO;
 using System.Linq;
 using CallVariants.Logic.Processing;
-using Pisces.Domain.Utility;
-using Pisces.Logic.Processing;
+using Common.IO.Utility;
+using Pisces.Domain.Options;
+using Pisces.Processing;
 using Pisces.Processing.Logic;
 using Pisces.Processing.Utility;
 
@@ -11,13 +12,13 @@ namespace Pisces
 {
     public class Program
     {
-        private ApplicationOptions _options;
+        private PiscesApplicationOptions _options;
 
         private static void Main(string[] args)
         {
             if (args.Length == 0)
             {
-                ApplicationOptions.PrintUsageInfo();
+                PiscesApplicationOptions.PrintUsageInfo();
                 return;
             }
 
@@ -35,24 +36,24 @@ namespace Pisces
             }
             finally
             {
-                Logger.TryCloseLog();
+                Logger.CloseLog();
             }
         }
 
         public Program(string[] args)
         {
-            _options = ApplicationOptions.ParseCommandLine(args);   
+            _options = PiscesApplicationOptions.ParseCommandLine(args);   
 			if(_options == null) return;     
             Init();
         }
 
         private void Init()
         {
-            Logger.TryOpenLog(_options.LogFolder, _options.LogFileName);
+            Logger.OpenLog(_options.LogFolder, _options.LogFileName);
             Logger.WriteToLog("Command-line arguments: ");
             Logger.WriteToLog(string.Join(" ", _options.CommandLineArguments));
 
-            _options.Save(Path.Combine(_options.LogFolder, "PiscesOptions.used.xml"));
+            _options.Save(Path.Combine(_options.LogFolder, "PiscesOptions.used.json"));
         }
 
         public void Execute()
@@ -65,9 +66,11 @@ namespace Pisces
             foreach (var genomeDirectory in distinctGenomeDirectories)
             {
                 var genome = factory.GetReferenceGenome(genomeDirectory);
+
                 var processor = (_options.ThreadByChr && _options.MultiProcess && !_options.InsideSubProcess)
-                    ? new MultiProcessProcessor(factory, genome, new JobManager(_options.MaxNumThreads), _options.CommandLineArguments, _options.OutputFolder, _options.LogFolder, _options.MonoPath)
-                    : (BaseProcessor)new GenomeProcessor(factory, genome, !_options.ThreadByChr || _options.InsideSubProcess, !_options.InsideSubProcess);
+                    ? new GenomeProcessor(factory, genome, !_options.ThreadByChr,true)
+                    : new GenomeProcessor(factory, genome, !_options.ThreadByChr || _options.InsideSubProcess, !_options.InsideSubProcess);
+
                 processor.Execute(_options.MaxNumThreads);
             }
         }

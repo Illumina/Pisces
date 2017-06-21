@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using System.Collections.Generic;
 
 namespace VariantPhasing.Models
@@ -90,7 +91,7 @@ namespace VariantPhasing.Models
         {
             if (!_supportOfB.ContainsKey(site))
             {
-                throw new Exception(
+                throw new InvalidDataException(
                     string.Format(
                         "Support for VariantSite '{0}' is not being tracked in relation to VariantSite '{1}'", site,
                         VariantA));

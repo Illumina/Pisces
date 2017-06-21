@@ -1,0 +1,30 @@
+##fileformat=VCFv4.1
+##fileDate=20170227
+##source=dotnet-test-xunit 99.99.99.0
+##dotnet-test-xunit_cmdline=""
+##reference=C:\Projects_tdunn\git\Pisces5_Ent\Pisces5\src\test\Pisces.Tests\TestData\Genomes\chr17chr19
+##INFO=<ID=DP,Number=1,Type=Integer,Description="Total Depth">
+##FILTER=<ID=q30,Description="Quality score less than 30">
+##FILTER=<ID=LowDP,Description="Low coverage (DP tag), therefore no genotype called">
+##FILTER=<ID=SB,Description="Variant strand bias too high">
+##FILTER=<ID=R5x9,Description="Repeats of part or all of the variant allele (max repeat length 5) in the reference greater than or equal to 9">
+##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">
+##FORMAT=<ID=GQ,Number=1,Type=Integer,Description="Genotype Quality">
+##FORMAT=<ID=AD,Number=.,Type=Integer,Description="Allele Depth">
+##FORMAT=<ID=DP,Number=1,Type=Integer,Description="Total Depth Used For Variant Calling">
+##FORMAT=<ID=VF,Number=.,Type=Float,Description="Variant Frequency">
+##FORMAT=<ID=NL,Number=1,Type=Integer,Description="Applied BaseCall Noise Level">
+##FORMAT=<ID=SB,Number=1,Type=Float,Description="StrandBias Score">
+##contig=<ID=chr19,length=3119100>
+#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	Sample_S1.bam
+chr19	3118880	.	T	.	0	PASS	DP=0	GT:GQ:AD:DP:VF:NL:SB	./.:0:0:0:0.000:0:0.0000
+chr19	3118881	.	G	.	0	PASS	DP=0	GT:GQ:AD:DP:VF:NL:SB	./.:0:0:0:0.000:0:0.0000
+chr19	3118882	.	G	.	0	PASS	DP=0	GT:GQ:AD:DP:VF:NL:SB	./.:0:0:0:0.000:0:0.0000
+chr19	3118883	.	G	.	100	PASS	DP=1000	GT:GQ:AD:DP:VF:NL:SB	0/0:43:1000:1000:0.000:20:-100.0000
+chr19	3118884	.	G	.	100	PASS	DP=1000	GT:GQ:AD:DP:VF:NL:SB	0/0:43:1000:1000:0.000:20:-100.0000
+chr19	3118885	.	C	.	100	PASS	DP=1000	GT:GQ:AD:DP:VF:NL:SB	0/0:43:1000:1000:0.000:20:-100.0000
+chr19	3118886	.	G	.	100	PASS	DP=1000	GT:GQ:AD:DP:VF:NL:SB	0/0:43:1000:1000:0.000:20:-100.0000
+chr19	3118887	.	C	.	100	PASS	DP=1000	GT:GQ:AD:DP:VF:NL:SB	0/0:43:1000:1000:0.000:20:-100.0000
+chr19	3118888	.	C	.	100	PASS	DP=1000	GT:GQ:AD:DP:VF:NL:SB	0/0:43:1000:1000:0.000:20:-100.0000
+chr19	3118889	.	A	.	100	PASS	DP=1000	GT:GQ:AD:DP:VF:NL:SB	0/0:43:1000:1000:0.000:20:-100.0000
+chr19	3118890	.	G	.	100	PASS	DP=1000	GT:GQ:AD:DP:VF:NL:SB	0/0:43:1000:1000:0.000:20:-100.0000

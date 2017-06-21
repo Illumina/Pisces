@@ -1,19 +1,19 @@
-using System;
+using System.IO;
 using System.Collections.Generic;
 using Alignment.Domain;
 using Alignment.IO;
 using Pisces.Domain.Models;
 using Alignment.Domain.Sequencing;
-using Alignment.IO.Sequencing;
 using StitchingLogic;
 
 namespace Stitcher
 {
     public class PairHandler : IReadPairHandler
     {
-        private Dictionary<int, string> _refIdMapping;
+        private readonly Dictionary<int, string> _refIdMapping;
         private readonly IAlignmentStitcher _stitcher;
         private readonly bool _filterUnstitchablePairs;
+        private readonly ReadStatusCounter _masterStatusCounter;
         private readonly ReadStatusCounter _statusCounter;
 
         public PairHandler(Dictionary<int, string> refIdMapping, IAlignmentStitcher stitcher, bool filterUnstitchablePairs, ReadStatusCounter statusCounter)
@@ -21,7 +21,8 @@ namespace Stitcher
             _refIdMapping = refIdMapping;
             _stitcher = stitcher;
             _filterUnstitchablePairs = filterUnstitchablePairs;
-            _statusCounter = statusCounter;
+            _masterStatusCounter = statusCounter;
+            _statusCounter = new ReadStatusCounter();
             _stitcher.SetStatusCounter(_statusCounter);
         }
 
@@ -43,7 +44,7 @@ namespace Stitcher
             {
                 if (alignmentSet.ReadsForProcessing.Count > 1)
                 {
-                    throw new Exception("AlignmentSets for stitched reads should only have one ReadsForProcessing.");
+                    throw new InvalidDataException("AlignmentSets for stitched reads should only have one ReadsForProcessing.");
                 }
                 foreach (var read in alignmentSet.ReadsForProcessing)
                 {
@@ -61,6 +62,21 @@ namespace Stitcher
                     {
                         tagUtils.AddStringTag("XD", read.CigarDirections.ToString());
                     }
+                    // if the original reads had UMIs and were collapsed, they will have XU(Z), XV(i), XW(i)
+                    // these need to be copied to correctly populate some fields in the called variants
+                    if (pair.Read1.TagData != null && pair.Read1.TagData.Length > 0)
+                    {
+                        var xu = pair.Read1.GetStringTag("XU");
+                        if (xu != null)
+                            tagUtils.AddStringTag("XU", xu);
+                        var xv = pair.Read1.GetIntTag("XV");
+                        if (xv.HasValue)
+                            tagUtils.AddIntTag("XV", xv.Value);
+                        var xw = pair.Read1.GetIntTag("XW");
+                        if (xw.HasValue)
+                            tagUtils.AddIntTag("XW", xw.Value);
+                    }
+
                     var tagData = tagUtils.ToBytes();
 
                     var existingTags = alignment.TagData;
@@ -68,7 +84,7 @@ namespace Stitcher
                         alignment.TagData = tagData;
                     else
                         alignment.AppendTagData(tagData);
-
+                    
                     reads.Add(alignment);
                 }
             }
@@ -89,6 +105,9 @@ namespace Stitcher
             return reads;
         }
 
-        public Dictionary<string, int> ReadStatuses { get; set; }
+        public void Finish()
+        {
+            _masterStatusCounter.Merge(_statusCounter);
+        }
     }
 }

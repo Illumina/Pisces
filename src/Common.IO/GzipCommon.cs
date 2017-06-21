@@ -1,4 +1,5 @@
 ﻿using System;
+using System.IO;
 using Common.IO.Compression;
 
 namespace Common.IO.Sequencing
@@ -46,7 +47,7 @@ namespace Common.IO.Sequencing
             // sanity check
             if (IsOpen)
             {
-                throw new ApplicationException("ERROR: The Open method was called even though the file is already open.");
+                throw new IOException("ERROR: The Open method was called even though the file is already open.");
             }
 
             FileStreamPointer = SafeNativeMethods.gzopen(filename, fileMode);
@@ -59,7 +60,7 @@ namespace Common.IO.Sequencing
                 //interestingly enabling native code debugging is a workaround but that won't work outside Visual Studio
                 Console.Error.WriteLine(string.Format("ERROR: Unable to open the file ({0}) for reading", filename));
                 Console.Error.WriteLine("This process will now exit");
-                System.Diagnostics.StackTrace t = new System.Diagnostics.StackTrace();
+                string t = Environment.StackTrace;
                 Console.Error.WriteLine(t.ToString());
                 System.Environment.Exit(-1);
             }

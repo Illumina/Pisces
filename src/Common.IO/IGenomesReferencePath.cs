@@ -28,7 +28,7 @@ namespace Common.IO.Sequencing
     ///			IGenomesReferencePath normalReference = IGenomesReferencePath.GetReferenceFromFastaPath(normalFasta);
     ///			IGenomesReferencePath tumorReference = IGenomesReferencePath.GetReferenceFromFastaPath(tumorFasta);
     ///			if (!normalReference.Equals(tumorReference))
-    ///				throw new ApplicationException(string.Format("Incompatible reference genomes in the tumor and normal bam headers. Analysis cannot proceed. Paths were {0} and {1}", normalFasta, tumorFasta));
+    ///				throw new Exception(string.Format("Incompatible reference genomes in the tumor and normal bam headers. Analysis cannot proceed. Paths were {0} and {1}", normalFasta, tumorFasta));
     /// 
     /// </summary>
     public class IGenomesReferencePath

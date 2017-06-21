@@ -8,7 +8,7 @@ using Pisces.Domain.Models.Alleles;
 using Pisces.IO;
 using Pisces.IO.Interfaces;
 using Pisces.Processing.Interfaces;
-using Pisces.Processing.Utility;
+using Common.IO.Utility;
 
 namespace Pisces.Logic
 {
@@ -23,10 +23,12 @@ namespace Pisces.Logic
         private readonly IRegionMapper _regionMapper;
         private readonly IStrandBiasFileWriter _biasFileWriter;
         private readonly ChrIntervalSet _intervalSet;
+		private readonly HashSet<Tuple<string, int, string, string>> _forcedGTAlleles;
+	    private readonly Dictionary<int, List<Tuple<string, string>>> _forcedAllelesByPos;
 
-        public SomaticVariantCaller(IAlignmentSource alignmentSource, ICandidateVariantFinder variantFinder, IAlleleCaller alleleCaller, 
+		public SomaticVariantCaller(IAlignmentSource alignmentSource, ICandidateVariantFinder variantFinder, IAlleleCaller alleleCaller, 
             IVcfWriter<CalledAllele> vcfWriter, IStateManager stateManager, ChrReference chrReference, IRegionMapper regionMapper, 
-            IStrandBiasFileWriter biasFileWriter, ChrIntervalSet intervalSet = null)
+            IStrandBiasFileWriter biasFileWriter, ChrIntervalSet intervalSet = null, HashSet<Tuple<string, int, string, string>> forcedGTAlleles = null)
         {
             _alignmentSource = alignmentSource;
             _variantFinder = variantFinder;
@@ -37,9 +39,38 @@ namespace Pisces.Logic
             _regionMapper = regionMapper;
             _biasFileWriter = biasFileWriter;
             _intervalSet = intervalSet;
+			_forcedGTAlleles = forcedGTAlleles;
+			_forcedAllelesByPos = CreateForcedAllelePos(forcedGTAlleles);
         }
 
-        public void Execute()
+	    private Dictionary<int, List<Tuple<string, string>>> CreateForcedAllelePos(HashSet<Tuple<string, int, string, string>> forcedGtAlleles)
+	    {
+		   
+			var allelesByPos = new Dictionary<int, List<Tuple<string, string>>>();
+			if (forcedGtAlleles == null) return allelesByPos;
+			foreach (var allele in forcedGtAlleles)
+		    {
+			    if (allele.Item1 != _chrReference.Name) continue;
+			    if (!allelesByPos.ContainsKey(allele.Item2))
+			    {
+				    allelesByPos[allele.Item2] = new List<Tuple<string, string>>
+				    {
+					    new Tuple<string, string>(allele.Item3, allele.Item4)
+				    };
+			    }
+			    else
+			    {
+					allelesByPos[allele.Item2].Add(new Tuple<string, string>(allele.Item3, allele.Item4));
+
+				}
+
+
+				    
+		    }
+		    return allelesByPos;
+	    }
+
+	    public void Execute()
         {
             Read read;
 
@@ -49,8 +80,7 @@ namespace Pisces.Logic
             while ((read = _alignmentSource.GetNextRead()) != null)
             {
                 // find candidate variants
-                var candidateVariants = _variantFinder.FindCandidates(read, _chrReference.Sequence,
-                    _chrReference.Name);
+                var candidateVariants = _variantFinder.FindCandidates(read, _chrReference.Sequence,  _chrReference.Name);
 
                 // track in state manager
                 _stateManager.AddCandidates(candidateVariants);
@@ -63,7 +93,7 @@ namespace Pisces.Logic
             Call(); // call everything left
 
             if (_regionMapper != null)
-                _vcfWriter.WriteRemaining(_regionMapper);  // pad any remaining intervals if necessary
+                _vcfWriter.WriteRemaining(_regionMapper,_forcedAllelesByPos);  // pad any remaining intervals if necessary
 
             Logger.WriteToLog("Totals: {0} alleles called.  {1} variants collapsed.", 
                 _alleleCaller.TotalNumCalled, _alleleCaller.TotalNumCollapsed);
@@ -71,17 +101,31 @@ namespace Pisces.Logic
 
         private void Call(int? upToPosition = null)
         {
-            var readyBatch = _stateManager.GetCandidatesToProcess(upToPosition, _chrReference);
+            var readyBatch = _stateManager.GetCandidatesToProcess(upToPosition, _chrReference,_forcedGTAlleles);
 
             if (readyBatch == null)
                 return;
+	        var chr = _chrReference.Name;
 
             if (readyBatch.HasCandidates)
             {
                 // evaluate and call variants (including ref calls if producing gvcf)
                 var BaseCalledAllelesByPosition = _alleleCaller.Call(readyBatch, _stateManager);
 
-                var BaseCalledAlleles = BaseCalledAllelesByPosition.Values.SelectMany(a => a).ToList();
+
+				foreach (var kvp in BaseCalledAllelesByPosition)
+				{
+
+					if (_forcedAllelesByPos.ContainsKey(kvp.Key))
+					{
+						CheckAndAddForcedAllele(kvp.Key,kvp.Value);
+					}
+
+				}
+
+				var BaseCalledAlleles = BaseCalledAllelesByPosition.Values.SelectMany(a => a).ToList();
+
+
 
                 // write to vcf
                 _vcfWriter.Write(BaseCalledAlleles, _regionMapper);
@@ -97,5 +141,13 @@ namespace Pisces.Logic
 
             _stateManager.DoneProcessing(readyBatch);
         }
+
+
+	    public virtual void CheckAndAddForcedAllele(int pos, List<CalledAllele> calledAllelesInPos)
+	    {
+		 ForcedAllelesUtils.AddForcedAllelesToCalledAlleles(pos, calledAllelesInPos, _forcedAllelesByPos[pos], _chrReference.Name);
+		}
+
+
     }
 }

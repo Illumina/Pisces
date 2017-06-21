@@ -72,10 +72,10 @@ namespace VariantQualityRecalibration
 
         public void StartWriter(string outFile)
         {
-            _writer = new StreamWriter(outFile);
+            _writer = new StreamWriter(new FileStream(outFile, FileMode.Create));
         }
 
-        public void CloseFalseCallsWriter()
+        public void CloseWriter()
         {
             if (_writer != null)
             {
@@ -91,7 +91,6 @@ namespace VariantQualityRecalibration
                 _writer.WriteLine("AllPossibleVariants\t" + _totalPossibleMutations);
                 _writer.WriteLine("VariantsCountedTowardEstimate\t" + TotalMutations);
                 _writer.WriteLine("MismatchEstimate(%)\t{0:N4}", (ObservedMutationRate * 100));
-                _writer.Close();
                 _writer.Dispose();
             }
         }
@@ -132,7 +131,7 @@ namespace VariantQualityRecalibration
 
             if (consensusVariant.VariantAlleles.Length > 1)
             {
-                throw new ApplicationException("This method is expecting only one variant allele per variant entry");
+                throw new ArgumentException("This method is expecting only one variant allele per variant entry");
             }
 
             int refLength = consensusVariant.ReferenceAllele.Length;

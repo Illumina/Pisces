@@ -1,8 +1,8 @@
 ﻿using System;
-using System.Reflection;
 using System.IO;
-using System.Xml.Serialization;
 using Pisces.Domain.Utility;
+using Common.IO;
+using Common.IO.Utility;
 
 namespace VariantQualityRecalibration
 {
@@ -24,8 +24,10 @@ namespace VariantQualityRecalibration
         #endregion
         public static void PrintVersionToConsole()
         {
-            var currentAssembly = Assembly.GetExecutingAssembly().GetName();
-            Console.WriteLine(currentAssembly.Name + " " + currentAssembly.Version);
+            var currentDllName = FileUtilities.LocalAssemblyDll<ApplicationOptions>().Replace(".dll","") ;
+            var currentVersion = FileUtilities.LocalAssemblyVersion<ApplicationOptions>();
+            Console.WriteLine("Version:\t" + currentVersion);
+            Console.WriteLine(currentDllName + " " + currentVersion);
             Console.WriteLine(UsageInfoHelper.GetWebsite());
             Console.WriteLine();
         }
@@ -104,13 +106,9 @@ namespace VariantQualityRecalibration
          
             return options;
         }
-
-		public void Save(string filepath)
-		{
-			var serializer = new XmlSerializer(typeof(ApplicationOptions));
-			var outputWriter = new StreamWriter(filepath);
-			serializer.Serialize(outputWriter, this);
-			outputWriter.Close();
-		}
-	}
+        public void Save(string filepath)
+        {
+            JsonUtil.Save(filepath, this);
+        }
+    }
 }

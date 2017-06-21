@@ -24,7 +24,7 @@ namespace CallVariants.Logic.Processing
 
         public GenomeProcessor(Factory factory, IGenome genome, bool throttlePerBam = true, bool writeHeader = true)
             : base(factory.WorkRequests.Where(
-                w => w.GenomeDirectory.Equals(genome.Directory, StringComparison.InvariantCultureIgnoreCase))
+                w => w.GenomeDirectory.Equals(genome.Directory, StringComparison.CurrentCultureIgnoreCase))
                 .ToList(), genome, throttlePerBam)
         {
             _factory = factory;

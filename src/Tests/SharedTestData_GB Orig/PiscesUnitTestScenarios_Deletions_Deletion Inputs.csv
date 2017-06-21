@@ -1,6 +1,0 @@
-category,ID,var input R1 Position,var input R1 Cigar,var input R1 Direction,var input R2 Position,var input R2 Cigar,var input R2 Direction,ref input R1 Position,ref input R1 Cigar,ref input R1 Direction,ref input R2 Position,ref input R2 Cigar,ref input R2 Direction,Should Stitch var,var Output R1 Position,var Output R1 Cigar,var Output R1 Direction,var Output R2 Position,var Output R2 Cigar,var Output R2Direction,Should Stitch ref,Ref Output R1 Position,Ref Output R1 Cigar,Ref Output R1 Direction,Ref Output R2 Position,Ref Output R2 Cigar,Ref Output R2Direction,var loading,ref loading,candidate direction,frequency,bias?,Notes (optional)
-Deletion,1,1,1M2D5M,F,4,6M,R,1,6M,F,4,6M,R,TRUE,1,1M2D6M,3F5S1R, , , ,TRUE,1,9M,3F3S3R, , , ,2FF,2FF,F,0.5,FALSE,
-Deletion,2,1,6M,F,2,5M2D1M,R,1,6M,F,4,6M,R,TRUE,1,6M2D1M,1F5S3R, , , ,TRUE,1,9M,3F3S3R, , , ,7RR,7RR,R,0.5,FALSE,
-Deletion,3,1,4M2D2M,F,2,3M2D3M,R,1,6M,F,4,6M,R,TRUE,1,4M2D3M,1F7S1R, , , ,TRUE,1,9M,3F3S3R, , , ,5SS,5SS,S,0.5,FALSE,
-Deletion,4,1,2M2D4M,F,2,1M2D5M,R,1,6M,F,4,6M,R,TRUE,1,2M2D5M,1F7S1R, , , ,TRUE,1,9M,3F3S3R, , , ,3SS,3FS,S,0.5,FALSE,
-Deletion,5,1,2M2D4M,F,4,1D6M,R,1,6M,F,4,6M,R,FALSE,1,2M2D4M,F,4,1D6M,R,TRUE,1,9M,3F3S3R, , , ,3FF;4R,3FS,F;R,0.5;0.5,TRUE,This does stitch in current implementation. Need to determine appropriate cigar and directions.

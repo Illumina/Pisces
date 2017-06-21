@@ -8,7 +8,6 @@ using Pisces.Domain.Models.Alleles;
 using Pisces.IO;
 using Pisces.Processing.Utility;
 using VariantPhasing.Interfaces;
-using VariantPhasing.Utility;
 using VariantPhasing.Models;
 
 namespace VariantPhasing.Logic
@@ -50,27 +49,6 @@ namespace VariantPhasing.Logic
             return (Extensions.Convert(new List<VcfVariant> { vcfVar }));
         }
 
-
-        public List<CalledAllele> WriteVariantsUptoChr(IVcfFileWriter<CalledAllele> writer, List<CalledAllele> leftoverAlleles,  string stopChr)
-        {
-            writer.Write(leftoverAlleles);
-
-            while (true)
-            {
-
-                var allelesInProcess = GetNextBlockOfOriginalAllelesFromVcfVar().ToList();
-
-                if (allelesInProcess == null || allelesInProcess.Count == 0)
-                    return new List<CalledAllele>();
-
-                if (allelesInProcess[0].Chromosome != stopChr)
-                {
-                    //still not in the right nbhd
-                    writer.Write(allelesInProcess);
-                }
-                else return allelesInProcess;
-            }
-        }
 
         public List<CalledAllele> WriteVariantsUptoIncludingNbhd(
             IVcfNeighborhood nbhdWithMNVs,
@@ -188,10 +166,10 @@ namespace VariantPhasing.Logic
             if (originalVariant.Chromosome != nbhdWithMNVs.ReferenceName)
                 return 1;
 
-            if (originalVariant.Coordinate > nbhdWithMNVs.LastPositionOfInterestInVcf)
+            if (originalVariant.ReferencePosition > nbhdWithMNVs.LastPositionOfInterestInVcf)
                 return 1;
 
-            if ((originalVariant.Coordinate <= nbhdWithMNVs.LastPositionOfInterestInVcf) && (originalVariant.Coordinate >= nbhdWithMNVs.FirstPositionOfInterest))
+            if ((originalVariant.ReferencePosition <= nbhdWithMNVs.LastPositionOfInterestInVcf) && (originalVariant.ReferencePosition >= nbhdWithMNVs.FirstPositionOfInterest))
                 return 0;
 
             return -1;
@@ -209,7 +187,7 @@ namespace VariantPhasing.Logic
             for (int i = 0; i < originalVariantsInsideRange.Count; i++)
             {
                 var originalCall = originalVariantsInsideRange[i];
-                var currentPosition = originalCall.Coordinate;
+                var currentPosition = originalCall.ReferencePosition;
                 bool variantWasAlreadyUsed = CheckIfUsed(indexesOfVariantsRecalledByMnvCaller, originalCall);
 
                 if (foundMNVS.ContainsKey(currentPosition))
@@ -232,10 +210,10 @@ namespace VariantPhasing.Logic
                 //or a new reference call converted from a variant that got used by the MNV caller.                
                 if (variantWasAlreadyUsed)
                 {
-                    var newRef = completedNbhd.CalledRefs[originalCall.Coordinate];
+                    var newRef = completedNbhd.CalledRefs[originalCall.ReferencePosition];
 
                     //sometimes several variants were used, all at the same position. we dont need to add new references for all of them.
-                    if ((mergedVariantList.Count == 0) || (mergedVariantList.Last().Coordinate != currentPosition))
+                    if ((mergedVariantList.Count == 0) || (mergedVariantList.Last().ReferencePosition != currentPosition))
                         mergedVariantList.Add(newRef);
 
                 }
@@ -255,6 +233,27 @@ namespace VariantPhasing.Logic
 
             return mergedVariantList;
 
+        }
+
+        public List<CalledAllele> WriteVariantsUptoChr(IVcfFileWriter<CalledAllele> writer, List<CalledAllele> leftoverAlleles, string stopChr)
+        {
+            writer.Write(leftoverAlleles);
+
+            while (true)
+            {
+
+                var allelesInProcess = GetNextBlockOfOriginalAllelesFromVcfVar().ToList();
+
+                if (allelesInProcess == null || allelesInProcess.Count == 0)
+                    return new List<CalledAllele>();
+
+                if (allelesInProcess[0].Chromosome != stopChr)
+                {
+                    //still not in the right nbhd
+                    writer.Write(allelesInProcess);
+                }
+                else return allelesInProcess;
+            }
         }
 
         private static bool CheckIfUsed(List<CalledAllele> usedAlleles, CalledAllele originalCall)

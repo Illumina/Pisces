@@ -33,8 +33,8 @@ namespace Pisces.Domain.Utility
 
         public static CandidateAllele Map(CalledAllele called)
         {
-            var candidateAllele = new CandidateAllele(called.Chromosome, called.Coordinate, called.Reference,
-                called.Alternate, called.Type);
+            var candidateAllele = new CandidateAllele(called.Chromosome, called.ReferencePosition, called.ReferenceAllele,
+                called.AlternateAllele, called.Type);
 
             Array.Copy(called.SupportByDirection, candidateAllele.SupportByDirection, called.SupportByDirection.Length);
 
@@ -57,10 +57,10 @@ namespace Pisces.Domain.Utility
 
             var calledAllele = new CalledAllele(candidate.Type);
 
-            calledAllele.Alternate = candidate.Alternate;
-            calledAllele.Reference = candidate.Reference;
+            calledAllele.AlternateAllele = candidate.AlternateAllele;
+            calledAllele.ReferenceAllele = candidate.ReferenceAllele;
             calledAllele.Chromosome = candidate.Chromosome;
-            calledAllele.Coordinate = candidate.Coordinate;
+            calledAllele.ReferencePosition = candidate.ReferencePosition;
             calledAllele.AlleleSupport = candidate.Support;
             Array.Copy(candidate.SupportByDirection, calledAllele.SupportByDirection, candidate.SupportByDirection.Length);
 

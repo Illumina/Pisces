@@ -452,7 +452,7 @@ namespace Alignment.IO.Sequencing
 
                 if (magicNumberString != BamConstants.BaiMagicNumber)
                 {
-                    throw new ApplicationException(
+                    throw new InvalidDataException(
                         string.Format("ERROR: Expected the BAM index magic number to be {0}, but found {1}.",
                                       BamConstants.BaiMagicNumber, magicNumberString));
                 }
@@ -536,7 +536,7 @@ namespace Alignment.IO.Sequencing
             }
             else if (alignment.Position < _lastPosition)
             {
-                throw new ApplicationException(
+                throw new InvalidDataException(
                     string.Format(
                         "ERROR: The BAM file is not sorted. An alignment ({0}:{1}) occurred before the preceding alignment ({2}:{3}).",
                         alignment.RefID, alignment.Position, _lastRefID, _lastPosition));
@@ -570,7 +570,7 @@ namespace Alignment.IO.Sequencing
 
             if (offset <= _lastOffset)
             {
-                throw new ApplicationException(
+                throw new InvalidDataException(
                     "ERROR: While updating the BAM index, the offset did not increase after processing the last alignment.");
             }
 

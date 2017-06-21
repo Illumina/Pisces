@@ -1,13 +1,15 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.Concurrent;
 using System.Linq;
 using System.Reflection;
 using Alignment.IO;
 using Alignment.Logic;
-using Pisces.Processing.Utility;
+using Common.IO.Utility;
 using Alignment.IO.Sequencing;
 using StitchingLogic;
 using Common.IO.Sequencing;
+using Common.IO;
 
 namespace Stitcher
 {
@@ -29,10 +31,19 @@ namespace Stitcher
         public void Execute()
         {
             var readStatuses = new ReadStatusCounter();
-            var pairHandler = CreatePairHandler(readStatuses);
+            var pairHandlers = CreatePairHandlers(readStatuses, _options.NumThreads);
             var stitcherPairFilter = new StitcherPairFilter(_options.FilterDuplicates,
                 _options.FilterForProperPairs, CreateDuplicateIdentifier(), readStatuses,
                 minMapQuality: _options.FilterMinMapQuality);
+
+            BlockingCollection<Task> taskQueue = null;
+            ThreadPool threadPool = null;
+
+            if (_options.NumThreads > 1)
+            {
+                taskQueue = new BlockingCollection<Task>(4 * _options.NumThreads);
+                threadPool = new ThreadPool(taskQueue, _options.NumThreads);
+            }
 
             Logger.WriteToLog(string.Format("Beginning execution of {0}.", _inBam + (_chrFilter !=null ? ":"+_chrFilter : "")));
 
@@ -41,9 +52,19 @@ namespace Stitcher
                 using (var bamReader = CreateBamReader())
                 {
                     var rewriter = new BamRewriter(bamReader, bamWriter, stitcherPairFilter, 
-                        pairHandler, bufferSize: 100000, getUnpaired: _options.KeepUnpairedReads, chrFilter: _chrFilter);
+                        pairHandlers, taskQueue, getUnpaired: _options.KeepUnpairedReads, chrFilter: _chrFilter);
                     rewriter.Execute();
                 }
+
+                threadPool?.RunToCompletion();
+
+                foreach (var pairHandler in pairHandlers)
+                {
+                    pairHandler.Finish();
+                }
+
+                Logger.WriteToLog("Finished stitching. Starting sort and write.");
+                bamWriter.Flush();
             }
 
             foreach (var readStatus in readStatuses.GetReadStatuses())
@@ -62,7 +83,7 @@ namespace Stitcher
             Logger.WriteToLog(string.Format("Done writing filtered bam at '{0}'.", _outBam));
         }
 
-        private IBamWriter CreateBamWriter()
+        private IBamWriterMultithreaded CreateBamWriter()
         {
             string bamHeader;
             List<GenomeMetadata.SequenceMetadata> bamReferences;
@@ -72,17 +93,22 @@ namespace Stitcher
             {
                 bamReferences = reader.GetReferences();
                 var oldBamHeader = reader.GetHeader();
-				bamHeader = UpdateBamHeader(oldBamHeader);
+                bamHeader = UpdateBamHeader(oldBamHeader);
                 foreach (var referenceName in reader.GetReferenceNames())
                 {
                     refIdMapping.Add(reader.GetReferenceIndex(referenceName), referenceName);
                 }
             }
 
-            return new BamWriterWrapper(new BamWriter(_outBam, bamHeader, bamReferences));
+            if (_options.SortMemoryGB == 0)
+            {
+                return new BamWriterMultithreaded(_outBam, bamHeader, bamReferences, _options.NumThreads, 1);
+            }
+            
+            return new BamWriterInMem(_outBam, bamHeader, bamReferences, _options.SortMemoryGB, _options.NumThreads, 1);
         }
 
-	    private string UpdateBamHeader(string bamHeader)
+	    public static string UpdateBamHeader(string bamHeader)
 	    {
 		    var headers = bamHeader.Split('\n').ToList();
 
@@ -93,9 +119,9 @@ namespace Stitcher
 			    if (headers[i].StartsWith("@PG")) lastPgHeaderIndex = i;
 		    }
 
-		    var piscesVersion = Assembly.GetExecutingAssembly().GetName().Version;
+		    var piscesVersion = FileUtilities.LocalAssemblyVersion<BamStitcher>();
 
-			headers[lastPgHeaderIndex] += ("\n@PG\tID:Pisces PN:Stitcher VN:" + piscesVersion + " CL:" +Environment.CommandLine);
+            headers[lastPgHeaderIndex] += ("\n@PG\tID:Pisces PN:Stitcher VN:" + piscesVersion + " CL:" + string.Join("",Environment.GetCommandLineArgs()));
 	     
 		    return string.Join("\n", headers);
 
@@ -106,10 +132,9 @@ namespace Stitcher
             return new BamReader(_inBam);
         }
 
-        private IReadPairHandler CreatePairHandler(ReadStatusCounter readStatuses)
+        private List<IReadPairHandler> CreatePairHandlers(ReadStatusCounter readStatuses, int numThreads)
         {
-            var stitcher = new BasicStitcher(_options.MinBaseCallQuality, useSoftclippedBases: _options.UseSoftClippedBases, 
-                nifyDisagreements: _options.NifyDisagreements, debug: _options.Debug, nifyUnstitchablePairs: _options.NifyUnstitchablePairs, ignoreProbeSoftclips: !_options.StitchProbeSoftclips, maxReadLength: _options.MaxReadLength);
+            var handlers = new List<IReadPairHandler>(numThreads);
 
             var refIdMapping = new Dictionary<int, string>();
 
@@ -120,7 +145,17 @@ namespace Stitcher
                     refIdMapping.Add(reader.GetReferenceIndex(referenceName), referenceName);
                 }
             }
-            return new PairHandler(refIdMapping, stitcher, _options.FilterUnstitchablePairs, readStatuses);
+
+            for (int i = 0; i < numThreads; ++i)
+            {
+                var stitcher = new BasicStitcher(_options.MinBaseCallQuality, useSoftclippedBases: _options.UseSoftClippedBases,
+                    nifyDisagreements: _options.NifyDisagreements, debug: _options.Debug, nifyUnstitchablePairs: _options.NifyUnstitchablePairs, ignoreProbeSoftclips: !_options.StitchProbeSoftclips, maxReadLength: _options.MaxReadLength);
+
+
+                handlers.Add(new PairHandler(refIdMapping, stitcher, _options.FilterUnstitchablePairs, readStatuses));
+            }
+
+            return handlers;
         }
 
         private IDuplicateIdentifier CreateDuplicateIdentifier()

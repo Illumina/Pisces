@@ -5,6 +5,7 @@ using Pisces.Processing.Utility;
 using Alignment.IO.Sequencing;
 using Alignment.Domain.Sequencing;
 using Common.IO.Sequencing;
+using Common.IO.Utility;
 
 namespace Stitcher
 {
@@ -28,7 +29,7 @@ namespace Stitcher
             _chroms = baseReader.GetReferenceNames();
             _header = baseReader.GetHeader();
             _references = baseReader.GetReferences();
-
+            _header = BamStitcher.UpdateBamHeader(_header);
         }
 
         public void Process(string inputBam, string outFolder, StitcherOptions stitcherOptions)
@@ -44,7 +45,7 @@ namespace Stitcher
                 var intermediateOutput = Path.Combine(outFolder, Path.GetFileNameWithoutExtension(inputBam) + "." + chrom + ".stitched.bam");
                 perChromBams.Add(intermediateOutput);
                 var stitcher = new BamStitcher(inputBam, intermediateOutput, stitcherOptions, chrFilter: chrom);
-                jobs.Add(new GenericJob(() => stitcher.Execute()));
+                jobs.Add(new GenericJob(() => stitcher.Execute(), "Stitcher_" + chrom));
             }
 
             jobManager.Process(jobs);

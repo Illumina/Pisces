@@ -7,5 +7,7 @@ namespace Alignment.IO
     public interface IReadPairHandler
     {
         List<BamAlignment> ExtractReads(ReadPair pair);
+
+        void Finish();
     }
 }

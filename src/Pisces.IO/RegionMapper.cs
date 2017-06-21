@@ -72,9 +72,9 @@ namespace Pisces.IO
             var allele = new CalledAllele()
             {
                 Chromosome = _chrReference.Name,
-                Reference = refBase,
-                Alternate = refBase,
-                Coordinate = position,
+                ReferenceAllele = refBase,
+                AlternateAllele = refBase,
+                ReferencePosition = position,
                 Genotype =  Genotype.RefLikeNoCall,
                 NoiseLevelApplied = noiseLevel
             };

@@ -11,16 +11,16 @@ namespace VariantPhasing
 {
     public class Factory
     {
-        private readonly ApplicationOptions _options;
+        private readonly PhasingApplicationOptions _options;
         public string VcfPath { get { return _options.VcfPath; } }
         public string FilteredNbhd { get { return _options.PhasableVariantCriteria.FilteredNbhdToProcess; } }
 
-        public Factory(ApplicationOptions options)
+        public Factory(PhasingApplicationOptions options)
         {
             _options = options;
         }
 
-        public ApplicationOptions Options
+        public PhasingApplicationOptions Options
         {
             get { return _options; }
         }
@@ -75,14 +75,16 @@ namespace VariantPhasing
             }
             else
             {
-                throw new Exception(string.Format("Input file is not a VCF file: '{0}'", originalFileName));
+                throw new InvalidDataException(string.Format("Input file is not a VCF file: '{0}'", originalFileName));
             }
 
             var outFile = Path.Combine(_options.OutFolder, outputFileName);
 
 	        var phasingCommandLine = "##Scylla_cmdline=\"" + _options.CommandLineArguments + "\"";
 
-			return new PhasedVcfWriter(outFile,_options.GetWriterConfig(), new VcfWriterInputContext(), header, phasingCommandLine);
+			return new PhasedVcfWriter(outFile,
+                new VcfWriterConfig(_options.VariantCallingParams,  _options.VcfWritingParams, _options.BamFilterParams, null, _options.Debug, false), 
+                new VcfWriterInputContext(), header, phasingCommandLine);
         }
 
         public VariantCaller CreateVariantCaller()

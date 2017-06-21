@@ -101,7 +101,7 @@ namespace Common.IO.Sequencing
 
             // use StreamReader to avoid URI parsing of filename that will cause problems with 
             // certain characters in the path (#). 
-            using (var xmlReader = XmlReader.Create(new StreamReader(inputFilename)))
+            using (var xmlReader = XmlReader.Create(new StreamReader(new FileStream(inputFilename, FileMode.Open, FileAccess.Read))))
             {
                 while (xmlReader.Read())
                 {
@@ -201,51 +201,7 @@ namespace Common.IO.Sequencing
             return false;
         }
 
-        /// <summary>
-        /// Serializes the genome metadata to an XML file
-        /// </summary>
-        public void Serialize(string outputFilename)
-        {
-            // open the XML file
-            // Initialize with StreamWriter to avoid URI parsing of input filename which doesn't 
-            // like # in the path
-            using (XmlTextWriter xmlWriter = new XmlTextWriter(new StreamWriter(outputFilename, false, Encoding.ASCII)))
-            {
-                xmlWriter.Formatting = Formatting.Indented;
-                xmlWriter.IndentChar = '\t';
-                xmlWriter.Indentation = 1;
-
-                // write all of our sequences
-                xmlWriter.WriteStartElement("sequenceSizes");
-                if (!string.IsNullOrEmpty(Name)) xmlWriter.WriteAttributeString("genomeName", Name);
-
-                foreach (SequenceMetadata refSeq in Sequences)
-                {
-                    xmlWriter.WriteStartElement("chromosome");
-
-                    // required for compatibility with CASAVA 1.8
-                    xmlWriter.WriteAttributeString("fileName", Path.GetFileName(refSeq.FastaPath));
-                    xmlWriter.WriteAttributeString("contigName", refSeq.Name);
-                    xmlWriter.WriteAttributeString("totalBases", refSeq.Length.ToString());
-
-                    // additional attributes for MiSeq
-                    if (!string.IsNullOrEmpty(refSeq.Build)) xmlWriter.WriteAttributeString("build", refSeq.Build);
-                    xmlWriter.WriteAttributeString("isCircular", (refSeq.IsCircular ? "true" : "false"));
-                    if (!string.IsNullOrEmpty(refSeq.Checksum)) xmlWriter.WriteAttributeString("md5", refSeq.Checksum);
-                    xmlWriter.WriteAttributeString("ploidy", refSeq.Ploidy.ToString());
-                    if (!string.IsNullOrEmpty(refSeq.Species))
-                        xmlWriter.WriteAttributeString("species", refSeq.Species);
-                    xmlWriter.WriteAttributeString("knownBases", refSeq.KnownBases.ToString());
-                    xmlWriter.WriteAttributeString("type", refSeq.Type.ToString());
-
-                    xmlWriter.WriteEndElement();
-                }
-                xmlWriter.WriteEndElement();
-
-                // close the XML file
-                xmlWriter.Close();
-            }
-        }
+     
 
         /// <summary>
         ///     Retrieves the FASTA filenames from the specified directory
@@ -304,7 +260,7 @@ namespace Common.IO.Sequencing
             }
             if (fastaFilenames.Count == 0)
             {
-                throw new Exception(string.Format("Error: No reference genome FASTA file (genome.fa) found in folder {0}", directory));
+                throw new IOException(string.Format("Error: No reference genome FASTA file (genome.fa) found in folder {0}", directory));
             }
 
             bool requireWritableFolder = false;
@@ -384,7 +340,7 @@ namespace Common.IO.Sequencing
             Other, // currently only chrEBV has this classification
         }
 
-        [Serializable]
+       
         public class SequenceMetadata : IComparable<SequenceMetadata>
         {
             #region member variables
@@ -536,12 +492,12 @@ namespace Common.IO.Sequencing
 
                 if (!File.Exists(faiPath))
                 {
-                    throw new ApplicationException(string.Format("Cannot open the FASTA index file ({0}) for reading.", faiPath));
+                    throw new IOException(string.Format("Cannot open the FASTA index file ({0}) for reading.", faiPath));
                 }
 
                 long referenceOffset = 0;
 
-                using (StreamReader faiReader = new StreamReader(faiPath))
+                using (StreamReader faiReader = new StreamReader(new FileStream(faiPath, FileMode.Open, FileAccess.Read)))
                 {
                     bool foundReference = false;
 
@@ -556,7 +512,7 @@ namespace Common.IO.Sequencing
 
                         if (faiColumns.Length != 5)
                         {
-                            throw new ApplicationException(string.Format("Expected 5 columns in the FASTA index file ({0}), but found {1}.",
+                            throw new InvalidDataException(string.Format("Expected 5 columns in the FASTA index file ({0}), but found {1}.",
                                 faiPath, faiColumns.Length));
                         }
 
@@ -572,7 +528,7 @@ namespace Common.IO.Sequencing
                     // sanity check
                     if (!foundReference)
                     {
-                        throw new ApplicationException(
+                        throw new InvalidDataException(
                             string.Format("Unable to find the current sequence ({0}) in the index file ({1})", Name,
                                           faiPath));
                     }
@@ -601,7 +557,7 @@ namespace Common.IO.Sequencing
                         line = reader.ReadLine();
                         if (line == null)
                         {
-                            throw new ApplicationException(string.Format(
+                            throw new IOException(string.Format(
                                     "Encountered the end of file before being able to retrieve the entire FASTA sequence. Remaining bases: {0}",
                                     numRemainingBases));
                         }
@@ -648,7 +604,7 @@ namespace Common.IO.Sequencing
                         line = reader.ReadLine();
                         if (line == null)
                         {
-                            throw new ApplicationException(string.Format(
+                            throw new IOException(string.Format(
                                 "Encountered the end of file before being able to retrieve the entire FASTA sequence. Remaining bases: {0}",
                                 numRemainingBases));
                         }

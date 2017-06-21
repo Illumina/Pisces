@@ -31,7 +31,7 @@ x64/
 
 # ReSharper is a .NET coding add-in
 _ReSharper*
-*.DotSettings.user
+_ReSharper.*
 
 # NuGet Packages Directory
 src/packages/**/*
@@ -40,9 +40,14 @@ src/packages/**/*
 ._*
 .DS_Store
 
+#VS 
+launchSettings.json
+*.DotSettings.user
 *.suo
 *.user
-_ReSharper.*
+
 bin
 obj
 packages
+UpgradeLog*.htm
+Backup/

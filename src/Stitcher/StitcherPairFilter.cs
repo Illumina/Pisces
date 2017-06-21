@@ -1,7 +1,6 @@
 using System;
 using Alignment.Domain;
 using Alignment.Logic;
-using Pisces.Processing.Utility;
 using Alignment.Domain.Sequencing;
 using StitchingLogic;
 
@@ -27,12 +26,6 @@ namespace Stitcher
             _minMapQuality = minMapQuality;
             _maxPairGap = maxPairGap;
             _statusCounter = statusCounter;
-            OnLog = WriteToLog;
-        }
-
-        private void WriteToLog(string s)
-        {
-            Logger.WriteToLog(s);
         }
 
         protected override bool ShouldSkipRead(BamAlignment alignment)

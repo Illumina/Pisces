@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using Common.IO.Utility;
 using Common.IO.Sequencing;
 using Common.IO.Compression;
 using Alignment.Domain.Sequencing;
@@ -57,10 +58,9 @@ namespace Alignment.IO.Sequencing
 			IsOpen = false;
 
 			_header = "";
-
-			_reader.Close();
-			BgzfFileStream.Close();
-		}
+            _reader.Dispose(); //.net core changes
+            BgzfFileStream.Dispose(); //.net core changes
+        }
 
 		// returns the SAM header
 		public string GetHeader()
@@ -282,7 +282,7 @@ namespace Alignment.IO.Sequencing
 			int referenceIndex;
 			if (!_referenceNameToIndex.TryGetValue(referenceName, out referenceIndex))
 			{
-				throw new ApplicationException(
+				throw new IOException(
 					string.Format("Unable to find the reference sequence ({0}) in the BAM file.", referenceName));
 			}
 
@@ -381,9 +381,13 @@ namespace Alignment.IO.Sequencing
 					if ((currentOffsetIndex >= 0) &&
 						(bamIterator.CurrentOffset != bamIterator.Offsets[currentOffsetIndex].End))
 					{
-						throw new ApplicationException(
-							string.Format(
-								"Found a potential bug in the BAM index routines. CurrentOffset ({0}) != Offsets[currentOffsetIndex].End ({1}",
+
+                        Logger.WriteWarningToLog(string.Format(
+                                "Found a conflict in the BAM index routines. CurrentOffset ({0}) != Offsets[currentOffsetIndex].End ({1})",
+                                bamIterator.CurrentOffset, bamIterator.Offsets[currentOffsetIndex].End));
+
+						throw new InvalidDataException(
+							string.Format("BAM index error. CurrentOffset ({0}) != Offsets[currentOffsetIndex].End ({1})",
 								bamIterator.CurrentOffset, bamIterator.Offsets[currentOffsetIndex].End));
 					}
 
@@ -436,14 +440,14 @@ namespace Alignment.IO.Sequencing
 
 			if (Read(ref buffer, 4) != 4)
 			{
-				throw new ApplicationException("ERROR: Could not read the BAM magic number.");
+				throw new InvalidDataException("ERROR: Could not read the BAM magic number.");
 			}
 
 			string magicNumberString = Encoding.ASCII.GetString(buffer, 0, 4);
 
 			if (magicNumberString != BamConstants.MagicNumber)
 			{
-				throw new ApplicationException(
+				throw new InvalidDataException(
 					string.Format("ERROR: Expected the BAM magic number to be {0}, but found {1}.",
 								  BamConstants.MagicNumber, magicNumberString));
 			}
@@ -492,52 +496,59 @@ namespace Alignment.IO.Sequencing
 		{
 			if (!File.Exists(filename))
 			{
-				throw new ApplicationException(string.Format("ERROR: The supplied BAM filename ({0}) does not exist.",
+				throw new System.IO.IOException(string.Format("ERROR: The supplied BAM filename ({0}) does not exist.",
 															 filename));
 			}
 
 			BamPath = filename;
 
-			// sanity check: make sure this is a GZIP file
-			ushort gzipMagicNumber;
-			using (BinaryReader checkReader = new BinaryReader(new FileStream(filename, FileMode.Open, FileAccess.Read, FileShare.Read)))
-			{
-				gzipMagicNumber = checkReader.ReadUInt16();
-			}
+            // FileOptions.SequentialScan improves cache usage when random access isn't needed.
+            Open(new FileStream(filename, FileMode.Open, FileAccess.Read, FileShare.Read, FileBufferSize, FileOptions.SequentialScan));
+        }
 
-			if (gzipMagicNumber != BamConstants.GzipMagicNumber)
-			{
-				throw new ApplicationException(string.Format(
-					"The input file ({0}) does not seem to be a BAM file. A GZIP magic number could not be found.", filename));
-			}
+        // opens BAM file
+        public void Open(Stream inStream)
+        {
+            // sanity check: make sure this is a GZIP file
+            ushort gzipMagicNumber;
+            BgzfFileStream = inStream;
+            try
+            {
+                _reader = new BinaryReader(BgzfFileStream);
+            }
+            catch (IOException e)
+            {
+                throw new IOException(string.Format(
+                    "ERROR: Unable to open the BAM file ({0}) for reading: {1}", BamPath, e.Message));
+            }
 
-			// open our file streams
-			try
-			{
-				BgzfFileStream = new FileStream(filename, FileMode.Open, FileAccess.Read, FileShare.Read);
-				_reader = new BinaryReader(BgzfFileStream);
-			}
-			catch (IOException e)
-			{
-				throw new ApplicationException(string.Format(
-					"ERROR: Unable to open the BAM file ({0}) for reading: {1}", filename, e.Message));
-			}
+            try
+            {
+                gzipMagicNumber = _reader.ReadUInt16();
+                if (gzipMagicNumber != BamConstants.GzipMagicNumber)
+                    throw new InvalidDataException($"A GZIP magic number could not be found. Check BAM file {BamPath}");
+            }
+            catch (Exception e)
+            {
+                throw new IOException($"The input file ({BamPath}) does not seem to be a BAM file.", e);
+            }
 
-			IsOpen = true;
+            inStream.Seek(0, SeekOrigin.Begin);
+            IsOpen = true;
 
-			// open the index file if it exists
-			string indexPath = string.Format("{0}.bai", filename);
-			if (_index.ReadIndex(indexPath)) _hasIndex = true;
+            // open the index file if it exists
+            string indexPath = string.Format("{0}.bai", BamPath);
+            if (!string.IsNullOrEmpty(BamPath) && _index.ReadIndex(indexPath)) _hasIndex = true;
 
-			LoadHeaderData();
-			LoadReferenceData();
+            LoadHeaderData();
+            LoadReferenceData();
 
-			// store file offset of first alignment
-			_alignmentsOffset = ((BlockAddress << 16) | ((long)BlockOffset & 0xFFFF));
-		}
+            // store file offset of first alignment
+            _alignmentsOffset = ((BlockAddress << 16) | ((long)BlockOffset & 0xFFFF));
+        }
 
-		// reads data from the BGZF block
-		public int Read(ref byte[] data, uint dataLength)
+        // reads data from the BGZF block
+        public int Read(ref byte[] data, uint dataLength)
 		{
 			if (dataLength == 0) return 0;
 			if (dataLength > data.Length)
@@ -592,7 +603,7 @@ namespace Alignment.IO.Sequencing
 
 			if (count != BamConstants.BlockHeaderLength)
 			{
-				throw new ApplicationException(
+				throw new InvalidDataException(
 					string.Format("ERROR: Expected to read {0} bytes from the block header, but only read {1} bytes.",
 								  BamConstants.BlockHeaderLength, count));
 			}
@@ -605,7 +616,7 @@ namespace Alignment.IO.Sequencing
 
 			if (count != remaining)
 			{
-				throw new ApplicationException(
+				throw new InvalidDataException(
 					string.Format("ERROR: Expected to read {0} bytes from the block header, but only read {1} bytes.",
 					remaining, count));
 			}
@@ -634,7 +645,7 @@ namespace Alignment.IO.Sequencing
 			}
 			catch (IOException e)
 			{
-				throw new ApplicationException(string.Format("ERROR: Unable to seek in the BAM file: {0}", e.Message));
+				throw new InvalidDataException(string.Format("ERROR: Unable to seek in the BAM file: {0}", e.Message));
 			}
 		}
 

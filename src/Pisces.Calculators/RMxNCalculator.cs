@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Pisces.Domain.Models.Alleles;
 using Pisces.Domain.Types;
+using Pisces.IO;
 
 namespace Pisces.Calculators
 {
@@ -69,8 +70,7 @@ namespace Pisces.Calculators
                     var newBackPeekPosition = backPeekPosition - bookend.Length;
                     if (newBackPeekPosition < 0) break;
 
-                    if (!CompareSubstring(bookend, referenceBases, newBackPeekPosition))
-                        break;
+                    if (!Extensions.CompareSubstring(bookend, referenceBases, newBackPeekPosition)) break;
 
                     backPeekPosition = newBackPeekPosition;
                 }
@@ -82,8 +82,7 @@ namespace Pisces.Calculators
                 {
                     if (currentPosition + bookend.Length > referenceBases.Length) break;
 
-                    if (!CompareSubstring(bookend, referenceBases, currentPosition))
-                        break;
+                    if (!Extensions.CompareSubstring(bookend, referenceBases, currentPosition)) break;
 
                     repeatCount++;
                     currentPosition += bookend.Length;
@@ -95,51 +94,38 @@ namespace Pisces.Calculators
             return maxRepeatsFound;
         }
 
-
-        public static bool CompareSubstring(string str1, string str2, int startPos2)
-        {
-            for (int i = 0; i<str1.Length; ++i)
-            {
-                if (str1[i] != str2[startPos2 + i])
-                {
-                    return false;
-                }
-            }
-
-            return true;
-        }
-/// <summary>
-///     Calculates repeats of the front, back, or entirety of a variant. For MNVs and SNVs, the variant is broken down into hypothesized
-///     insertion/deletion events. A pair of integers is returned, and the minimum of the two is meant to be judged against the threshold
-///     number of repetitions. For MNVs and SNVs, this represents the max repeats found in the hypothesized component deletion event and 
-///     the larger of the max repeats found in the two hypothesized insertion events. For Insertions and Deletions, this is simply the 
-///     max number of repeats found and an impossibly large number (as there is only one component indel event).
-/// </summary>
-public static Tuple<int, int> ComputeComponentRMxNLengths(CalledAllele allele, string referenceBases, int maxRepeatUnitLength)
+        /// <summary>
+        ///     Calculates repeats of the front, back, or entirety of a variant. For MNVs and SNVs, the variant is broken down into hypothesized
+        ///     insertion/deletion events. A pair of integers is returned, and the minimum of the two is meant to be judged against the threshold
+        ///     number of repetitions. For MNVs and SNVs, this represents the max repeats found in the hypothesized component deletion event and 
+        ///     the larger of the max repeats found in the two hypothesized insertion events. For Insertions and Deletions, this is simply the 
+        ///     max number of repeats found and an impossibly large number (as there is only one component indel event).
+        /// </summary>
+        public static Tuple<int, int> ComputeComponentRMxNLengths(CalledAllele allele, string referenceBases, int maxRepeatUnitLength)
         {
             var component1 = 0;
             var component2 = int.MaxValue;
 
             // TODO handle complex indels (ref length != alt length and neither = 1)
             var variantBases = (
-                allele.Type == AlleleCategory.Mnv || allele.Type == AlleleCategory.Snv) ? allele.Alternate
-                : allele.Type == AlleleCategory.Insertion ? allele.Alternate.Substring(1)
-                : allele.Reference.Substring(1);
+                allele.Type == AlleleCategory.Mnv || allele.Type == AlleleCategory.Snv) ? allele.AlternateAllele
+                : allele.Type == AlleleCategory.Insertion ? allele.AlternateAllele.Substring(1)
+                : allele.ReferenceAllele.Substring(1);
 
             if (allele.Type == AlleleCategory.Insertion || allele.Type == AlleleCategory.Deletion)
             {
                 // Only 1 indel component for insertions or deletions
-                component1 = ComputeRMxNLengthForIndel(allele.Coordinate, variantBases, referenceBases, maxRepeatUnitLength);
+                component1 = ComputeRMxNLengthForIndel(allele.ReferencePosition, variantBases, referenceBases, maxRepeatUnitLength);
             }
             else
             {
                 // Treat MNVs and SNVs as potential combination insertion-deletion events.
                 // Only ever one possible deletion component
-                component1 = ComputeRMxNLengthForIndel(allele.Coordinate - 1, allele.Reference, referenceBases, maxRepeatUnitLength);
+                component1 = ComputeRMxNLengthForIndel(allele.ReferencePosition - 1, allele.ReferenceAllele, referenceBases, maxRepeatUnitLength);
 
                 // Try insertion at front or tail end of variant
-                var candidateComponentInsertion1 = ComputeRMxNLengthForIndel(allele.Coordinate + allele.Reference.Length - 1, variantBases, referenceBases, maxRepeatUnitLength);
-                var candidateComponentInsertion2 = ComputeRMxNLengthForIndel(allele.Coordinate - 1, variantBases, referenceBases, maxRepeatUnitLength);
+                var candidateComponentInsertion1 = ComputeRMxNLengthForIndel(allele.ReferencePosition + allele.ReferenceAllele.Length - 1, variantBases, referenceBases, maxRepeatUnitLength);
+                var candidateComponentInsertion2 = ComputeRMxNLengthForIndel(allele.ReferencePosition - 1, variantBases, referenceBases, maxRepeatUnitLength);
                 component2 = Math.Max(candidateComponentInsertion1, candidateComponentInsertion2);
             }
 

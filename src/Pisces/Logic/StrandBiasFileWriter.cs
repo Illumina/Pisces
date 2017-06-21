@@ -37,11 +37,11 @@ namespace Pisces.Logic
                         throw new ArgumentException(string.Format("Failed to create the Output Folder: {0}", _outputFilePath));
                     }
                 }
-                _writer = new StreamWriter(_outputFilePath);
+                _writer = new StreamWriter(new FileStream(_outputFilePath, FileMode.Create));
             }
             catch (Exception)
             {
-                throw new Exception(String.Format("Failed to create {0} in the specified folder.", _outputFilePath));
+                throw new IOException(String.Format("Failed to create {0} in the specified folder.", _outputFilePath));
             }
             
         }
@@ -49,7 +49,7 @@ namespace Pisces.Logic
         public void WriteHeader()
         {
             if (_writer == null)
-                throw new Exception("Stream already closed");
+                throw new IOException("Stream already closed");
             string header = "Chr\tPosition\tReference\tAlternate\t" + ToColHeaders();
             _writer.WriteLine(header);
         }
@@ -63,13 +63,13 @@ namespace Pisces.Logic
         public static void PrintBiasStats(StreamWriter writer, CalledAllele variant)
         {
 
-            if (variant.Reference == variant.Alternate)
+            if (variant.ReferenceAllele == variant.AlternateAllele)
                 return; //skip ref calls. 
 
             var strandBiasResults = StatsToString(variant.StrandBiasResults);
             StringBuilder sb = new StringBuilder(string.Format("{0}\t{1}\t{2}\t{3}\t",
-                                                                variant.Chromosome, variant.Coordinate, variant.Reference,
-                                                                variant.Alternate));
+                                                                variant.Chromosome, variant.ReferencePosition, variant.ReferenceAllele,
+                                                                variant.AlternateAllele));
             sb.Append(strandBiasResults);
             writer.WriteLine(sb.ToString());
 
@@ -78,7 +78,7 @@ namespace Pisces.Logic
         public void Write(IEnumerable<CalledAllele> BaseCalledAlleles)
         {
             if (_writer == null)
-                throw new Exception("Stream already closed");
+                throw new IOException("Stream already closed");
 
             foreach (var variant in BaseCalledAlleles)
                 PrintBiasStats(_writer, variant);
@@ -130,7 +130,7 @@ namespace Pisces.Logic
             s[i + 4 * d] = prefix + "Coverage" + suffix;
         }
 
-        public static string StatsToString(StrandBiasResults stat)
+        public static string StatsToString(BiasResults stat)
         {
             var delimiter = "\t";
             StringBuilder builder = new StringBuilder();
@@ -173,7 +173,6 @@ namespace Pisces.Logic
         {
             if (_writer != null)
             {
-                _writer.Close();
                 _writer.Dispose();
 
                 _writer = null;

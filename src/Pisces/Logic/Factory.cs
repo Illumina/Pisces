@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using CallVariants.Logic;
 using Pisces.Interfaces;
 using Pisces.Logic;
 using Pisces.Logic.Alignment;
@@ -17,22 +16,23 @@ using Pisces.Domain.Models.Alleles;
 using Pisces.Domain.Types;
 using Pisces.IO;
 using Pisces.IO.Interfaces;
+using Pisces.Domain.Options;
 using Pisces.Processing;
 using Pisces.Processing.Interfaces;
 using Pisces.Processing.RegionState;
-using Pisces.Processing.Utility;
-using StitchingLogic;
+using Common.IO.Utility;
 
 namespace Pisces
 {
     public class Factory : WorkFactory
     {
-        private readonly ApplicationOptions _options;
+        private readonly PiscesApplicationOptions _options;
         private const char _intervalFileDelimiter = '\t';
         private Dictionary<string, Dictionary<string, List<Region>>> _bamIntervalLookup = new Dictionary<string, Dictionary<string, List<Region>>>();
         public Dictionary<string, List<CandidateAllele>> _knownVariants = new Dictionary<string, List<CandidateAllele>>();
+	    private Dictionary<string, HashSet<Tuple<string, int, string, string>>> _forcedAllelesByChrom = new Dictionary<string, HashSet<Tuple<string, int, string, string>>>();
  
-        public Factory(ApplicationOptions options) : base(options)
+        public Factory(PiscesApplicationOptions options) : base(options)
         {
             _options = options;
 
@@ -41,9 +41,37 @@ namespace Pisces
             UpdateWorkRequests();
             UpdateBamIntervals();
             UpdateKnownPriors();
+	        GetForcedAlleles();
         }
 
-        public string[] GetCommandLine()
+	    private void GetForcedAlleles()
+	    {
+		    if(_options.ForcedAllelesFileNames == null || _options.ForcedAllelesFileNames.Count==0) return;
+	        foreach (var fileName in _options.ForcedAllelesFileNames)
+	        {
+	            using (var reader = new VcfReader(fileName,false,false))
+	            {
+	                foreach (var variant in reader.GetVariants())
+	                {
+	                    var chr = variant.ReferenceName;
+	                    var pos = variant.ReferencePosition;
+	                    var refAllele = variant.ReferenceAllele;
+	                    var altAlleles = variant.VariantAlleles;
+
+	                    if(!_forcedAllelesByChrom.ContainsKey(chr))
+	                        _forcedAllelesByChrom[chr] = new HashSet<Tuple<string, int, string, string>>();
+
+	                    foreach (var altAllele in altAlleles)
+	                    {
+	                        _forcedAllelesByChrom[chr].Add(new Tuple<string, int, string, string>(chr, pos, refAllele, altAllele));
+                        }
+	                    
+                    }   
+	            }
+	        }
+	    }
+
+	    public string[] GetCommandLine()
         {
             return _options.CommandLineArguments;
         }
@@ -63,8 +91,9 @@ namespace Pisces
 
             var config = new AlignmentSourceConfig
             {
-                MinimumMapQuality = _options.MinimumMapQuality,
-                OnlyUseProperPairs = _options.OnlyUseProperPairs,
+                MinimumMapQuality = _options.BamFilterParameters.MinimumMapQuality,
+                OnlyUseProperPairs = _options.BamFilterParameters.OnlyUseProperPairs,
+                SkipDuplicates = _options.BamFilterParameters.RemoveDuplicates
             };
             return new AlignmentSource(alignmentExtractor, mateFinder, config);
         }
@@ -72,45 +101,56 @@ namespace Pisces
    
         protected virtual ICandidateVariantFinder CreateVariantFinder()
         {
-            return new CandidateVariantFinder(_options.MinimumBaseCallQuality, _options.MaxSizeMNV, _options.MaxGapBetweenMNV, _options.CallMNVs);
+            return new CandidateVariantFinder(_options.BamFilterParameters.MinimumBaseCallQuality, _options.MaxSizeMNV, _options.MaxGapBetweenMNV, _options.CallMNVs);
         }
 
-        protected virtual IAlleleCaller CreateVariantCaller(ChrReference chrReference, ChrIntervalSet intervalSet)
+        protected virtual IAlleleCaller CreateVariantCaller(ChrReference chrReference, ChrIntervalSet intervalSet, HashSet<Tuple<string, int, string, string>> forceGtAlleles = null)
         {
-            var coverageCalculator = CreateCoverageCalculator();
-            var genotypeCalculator = GenotypeCreator.CreateGenotypeCalculator(
-                _options.PloidyModel,_options.FilteredVariantFrequency,_options.MinimumDepth, _options.DiploidThresholdingParameters, _options.MinimumGenotypeQScore, _options.MaximumGenotypeQScore);
+	        var coverageCalculator = CreateCoverageCalculator();
+	        var genotypeCalculator = GenotypeCreator.CreateGenotypeCalculator(
+		        _options.VariantCallingParameters.PloidyModel, _options.VariantCallingParameters.MinimumFrequencyFilter,
+		        _options.VariantCallingParameters.MinimumCoverage,
+		        _options.VariantCallingParameters.DiploidThresholdingParameters,
+		        _options.VariantCallingParameters.MinimumGenotypeQScore,
+		        _options.VariantCallingParameters.MaximumGenotypeQScore, _options.VariantCallingParameters.MinimumFrequency,chrReference.Name,_options.VariantCallingParameters.IsMale );
 
-            return new AlleleCaller(new VariantCallerConfig
+			genotypeCalculator.SetMinFreqFilter(_options.VariantCallingParameters.MinimumFrequencyFilter);
+
+            var alleleCaller =  new AlleleCaller(new VariantCallerConfig
             {
-                IncludeReferenceCalls = _options.OutputgVCFFiles,
-                MinVariantQscore = _options.MinimumVariantQScore,
-                MaxVariantQscore = _options.MaximumVariantQScore,
-                MinGenotypeQscore = _options.MinimumGenotypeQScore,
-                MaxGenotypeQscore = _options.MaximumGenotypeQScore,
-                VariantQscoreFilterThreshold = _options.FilteredVariantQScore,
-                MinCoverage = _options.MinimumDepth,
-                MinFrequency = _options.MinimumFrequency,
-                EstimatedBaseCallQuality = GetEstimatedBaseCallQuality(),
-                StrandBiasModel = _options.StrandBiasModel,
-                StrandBiasFilterThreshold = _options.StrandBiasAcceptanceCriteria,
-                FilterSingleStrandVariants = _options.FilterOutVariantsPresentOnlyOneStrand,
+                IncludeReferenceCalls = _options.VcfWritingParameters.OutputGvcfFile,
+                MinVariantQscore = _options.VariantCallingParameters.MinimumVariantQScore,
+                MaxVariantQscore = _options.VariantCallingParameters.MaximumVariantQScore,
+                MinGenotypeQscore = _options.VariantCallingParameters.MinimumGenotypeQScore,
+                MaxGenotypeQscore = _options.VariantCallingParameters.MaximumGenotypeQScore,
+                VariantQscoreFilterThreshold = _options.VariantCallingParameters.MinimumVariantQScoreFilter,
+                MinCoverage = _options.VariantCallingParameters.MinimumCoverage,
+                MinFrequency = genotypeCalculator.MinVarFrequency,
+                NoiseLevelUsedForQScoring = _options.VariantCallingParameters.NoiseLevelUsedForQScoring,
+                StrandBiasModel = _options.VariantCallingParameters.StrandBiasModel,
+                StrandBiasFilterThreshold = _options.VariantCallingParameters.StrandBiasAcceptanceCriteria,
+                FilterSingleStrandVariants = _options.VariantCallingParameters.FilterOutVariantsPresentOnlyOneStrand,
                 GenotypeCalculator = genotypeCalculator,
-                VariantFreqFilter = _options.FilteredVariantFrequency,
-                LowGTqFilter = _options.LowGenotypeQualityFilter,
-                IndelRepeatFilter = _options.IndelRepeatFilter,
-                LowDepthFilter = _options.LowDepthFilter,
+                VariantFreqFilter = genotypeCalculator.MinVarFrequencyFilter,
+                LowGTqFilter = _options.VariantCallingParameters.LowGenotypeQualityFilter,
+                IndelRepeatFilter = _options.VariantCallingParameters.IndelRepeatFilter,
+                LowDepthFilter = _options.VariantCallingParameters.LowDepthFilter,
                 ChrReference = chrReference,
                 RMxNFilterSettings = new RMxNFilterSettings
                 {
-                    RMxNFilterMaxLengthRepeat = _options.RMxNFilterMaxLengthRepeat,
-                    RMxNFilterMinRepetitions = _options.RMxNFilterMinRepetitions,
-                    RMxNFilterFrequencyLimit = _options.RMxNFilterFrequencyLimit
+                    RMxNFilterMaxLengthRepeat = _options.VariantCallingParameters.RMxNFilterMaxLengthRepeat,
+                    RMxNFilterMinRepetitions = _options.VariantCallingParameters.RMxNFilterMinRepetitions,
+                    RMxNFilterFrequencyLimit = _options.VariantCallingParameters.RMxNFilterFrequencyLimit
                 },
-				NoiseModel = _options.NoiseModel				
+				NoiseModel = _options.VariantCallingParameters.NoiseModel
             }, intervalSet, 
             CreateVariantCollapser(chrReference.Name, coverageCalculator),
             coverageCalculator);
+
+			alleleCaller.AddForcedGtAlleles(forceGtAlleles);
+
+	        return alleleCaller;
+
         }
 
         protected virtual ICoverageCalculator CreateCoverageCalculator()
@@ -129,7 +169,7 @@ namespace Pisces
 
         protected virtual IStateManager CreateStateManager(ChrIntervalSet intervalSet, bool expectStitchedReads=false)
         {
-            return new RegionStateManager(_options.OutputgVCFFiles, _options.MinimumBaseCallQuality, expectStitchedReads, intervalSet, 
+            return new RegionStateManager(_options.VcfWritingParameters.OutputGvcfFile, _options.BamFilterParameters.MinimumBaseCallQuality, expectStitchedReads, intervalSet, 
                 trackOpenEnded: _options.Collapse, blockSize: GlobalConstants.RegionSize, 
                 trackReadSummaries: _options.CoverageMethod == CoverageMethod.Exact);
         }
@@ -155,48 +195,32 @@ namespace Pisces
        protected virtual IRegionMapper CreateRegionPadder(ChrReference chrReference, ChrIntervalSet intervalSet, bool includeReference)
         {
             // padder is only required if there are intervals and we are including reference calls
-            return intervalSet == null || !_options.OutputgVCFFiles ? null : new RegionMapper(chrReference, intervalSet, _options.MinimumBaseCallQuality);
+            return intervalSet == null || !_options.VcfWritingParameters.OutputGvcfFile ? null : new RegionMapper(chrReference, intervalSet, _options.BamFilterParameters.MinimumBaseCallQuality);
         }
 
         public virtual ISomaticVariantCaller CreateSomaticVariantCaller(
             ChrReference chrReference, string bamFilePath, IVcfWriter<CalledAllele> vcfWriter, 
             IStrandBiasFileWriter biasFileWriter = null, string intervalFilePath = null, List<string> chrToProcess = null)
         {
-            var alignmentSource = CreateAlignmentSource(chrReference, bamFilePath, chrToProcess);
+	        var forceGtAlleles = _forcedAllelesByChrom.ContainsKey(chrReference.Name)?_forcedAllelesByChrom[chrReference.Name]:new HashSet<Tuple<string, int, string, string>>();
+
+			var alignmentSource = CreateAlignmentSource(chrReference, bamFilePath, chrToProcess);
             var variantFinder = CreateVariantFinder();
             var intervalSet = GetIntervalSet(chrReference.Name, bamFilePath);
-            var alleleCaller = CreateVariantCaller(chrReference, intervalSet);
+            var alleleCaller = CreateVariantCaller(chrReference, intervalSet,forceGtAlleles);
             var stateManager = CreateStateManager(intervalSet, alignmentSource.SourceIsStitched);
-            var intervalPadder = CreateRegionPadder(chrReference, intervalSet, _options.OutputgVCFFiles);
+            var intervalPadder = CreateRegionPadder(chrReference, intervalSet, _options.VcfWritingParameters.OutputGvcfFile);
+
 
             return new SomaticVariantCaller(alignmentSource, variantFinder, alleleCaller,
-                vcfWriter, stateManager, chrReference, intervalPadder, biasFileWriter, intervalSet);
+                vcfWriter, stateManager, chrReference, intervalPadder, biasFileWriter, intervalSet,forceGtAlleles);
         }
 
         public VcfFileWriter CreateVcfWriter(string outputVcfPath, VcfWriterInputContext context, IRegionMapper mapper = null)
         {
             return new VcfFileWriter(outputVcfPath,
-                new VcfWriterConfig
-                {
-                    DepthFilterThreshold = _options.OutputgVCFFiles ? _options.MinimumDepth : (_options.LowDepthFilter > _options.MinimumDepth)? _options.LowDepthFilter : (int?)null,
-                    IndelRepeatFilterThreshold = _options.IndelRepeatFilter > 0 ? _options.IndelRepeatFilter : (int?)null,
-                    VariantQualityFilterThreshold = _options.FilteredVariantQScore,
-                    GenotypeQualityFilterThreshold = _options.LowGenotypeQualityFilter.HasValue && _options.LowGenotypeQualityFilter > _options.MinimumVariantQScore ? _options.LowGenotypeQualityFilter : null,
-                    StrandBiasFilterThreshold = _options.StrandBiasAcceptanceCriteria < 1 ? _options.StrandBiasAcceptanceCriteria : (float?)null,
-                    FrequencyFilterThreshold = ( _options.FilteredVariantFrequency > _options.MinimumFrequency) ? _options.FilteredVariantFrequency : (float?)null,
-                    MinFrequencyThreshold = _options.MinimumFrequency,
-                    ShouldOutputNoCallFraction = _options.ReportNoCalls,
-                    ShouldOutputStrandBiasAndNoiseLevel = _options.OutputNoiseLevelAndStrandBias(),
-                    ShouldFilterOnlyOneStrandCoverage = _options.FilterOutVariantsPresentOnlyOneStrand,
-                    EstimatedBaseCallQuality = GetEstimatedBaseCallQuality(),
-                    ShouldOutputRcCounts = _options.ReportRcCounts,
-                    AllowMultipleVcfLinesPerLoci = _options.AllowMultipleVcfLinesPerLoci,
-                    PloidyModel = _options.PloidyModel,
-                    RMxNFilterMaxLengthRepeat = _options.RMxNFilterMaxLengthRepeat,
-                    RMxNFilterMinRepetitions = _options.RMxNFilterMinRepetitions,
-                    RMxNFilterFrequencyLimit = _options.RMxNFilterFrequencyLimit,
-					NoiseModel = _options.NoiseModel
-    }, context);
+                new VcfWriterConfig(_options.VariantCallingParameters,_options.VcfWritingParameters,
+                _options.BamFilterParameters, null, _options.DebugMode, _options.OutputBiasFiles,_options.ForcedAllelesFileNames.Count>0), context);
         }
 
         public StrandBiasFileWriter CreateBiasFileWriter(string outputVcfPath)
@@ -218,7 +242,7 @@ namespace Pisces
 
         public override string GetOutputFile(string inputBamPath)
         {
-            var vcfOutputPath = Path.ChangeExtension(inputBamPath, _options.OutputgVCFFiles ? "genome.vcf" : ".vcf");
+            var vcfOutputPath = Path.ChangeExtension(inputBamPath, _options.VcfWritingParameters.OutputGvcfFile ? "genome.vcf" : ".vcf");
 
             if (!string.IsNullOrEmpty(_options.OutputFolder))
             {
@@ -250,7 +274,7 @@ namespace Pisces
                     {
                         var regionsByChr = new Dictionary<string, List<Region>>();
 
-                        using (var reader = new StreamReader(intervalFilePath))
+                        using (var reader = new StreamReader(new FileStream(intervalFilePath, FileMode.Open, FileAccess.Read))) 
                         {
                             string line;
                             while ((line = reader.ReadLine()) != null)
@@ -283,14 +307,10 @@ namespace Pisces
             }
         }
 
-        private int GetEstimatedBaseCallQuality()
-        {
-            return _options.AppliedNoiseLevel == -1 ? _options.MinimumBaseCallQuality : _options.AppliedNoiseLevel;
-        }
 
         private bool SkipPrior(CandidateAllele candidate)
         {
-            return candidate.Type == AlleleCategory.Mnv && candidate.Reference.Length != candidate.Alternate.Length;
+            return candidate.Type == AlleleCategory.Mnv && candidate.ReferenceAllele.Length != candidate.AlternateAllele.Length;
         }
 
         private void UpdateKnownPriors()
@@ -308,9 +328,9 @@ namespace Pisces
                             {
                                 if (knownVariant.Type == AlleleCategory.Mnv)
                                 {
-                                    knownVariant.Reference = knownVariant.Reference.Substring(1);
-                                    knownVariant.Alternate = knownVariant.Alternate.Substring(1);
-                                    knownVariant.Coordinate++;
+                                    knownVariant.ReferenceAllele = knownVariant.ReferenceAllele.Substring(1);
+                                    knownVariant.AlternateAllele = knownVariant.AlternateAllele.Substring(1);
+                                    knownVariant.ReferencePosition++;
                                 }
                             }
                         }

@@ -1,17 +1,20 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.IO;
 using Alignment.Domain.Sequencing;
 using Pisces.Domain.Models;
 using Pisces.Domain.Types;
 using Pisces.Domain.Utility;
-using Pisces.Processing.Utility;
+using Common.IO.Utility;
 using StitchingLogic.Models;
 
 namespace StitchingLogic
 {
     public class ReadMerger
     {
+        private const int MaxReadLength = 200;
+	    private const int MaxBaseQuality = 93;
         private bool _useSoftclippedBases;
         private bool _allowRescuedInsertionBaseDisagreement;
         private ReadStatusCounter _statusCounter;
@@ -19,6 +22,10 @@ namespace StitchingLogic
         private readonly bool _ignoreProbeSoftclips;
         private bool _nifyDisagreements;
         private int _minBasecallQuality;
+
+        // Allocate these once for performance
+        private readonly List<char> _stitchedBases = new List<char>(MaxReadLength);
+        private readonly List<byte> _stitchedQualities = new List<byte>(MaxReadLength);
 
         public ReadMerger(int minBasecallQuality, bool allowRescuedInsertionBaseDisagreement, bool useSoftclippedBases, bool nifyDisagreements, ReadStatusCounter statusCounter, bool debug, bool ignoreProbeSoftclips)
         {
@@ -88,11 +95,8 @@ namespace StitchingLogic
 
         public Read GenerateConsensusRead(Read read1, Read read2, StitchingInfo stitchingInfo, bool isOutie)
         {
-            var stitchedBases = new List<char>();
-            var stitchedQualities = new List<byte>();
-
-            var expandedDirections = stitchingInfo.StitchedDirections.Expand();
-            var expandedCigar = stitchingInfo.StitchedCigar.Expand();
+            _stitchedBases.Clear();
+            _stitchedQualities.Clear();
 
             var startIndexInR1 = 0;
             var startIndexInR2 = 0;
@@ -134,12 +138,15 @@ namespace StitchingLogic
                 reverseReadIndexer = r1Indexer;
             }
 
-            for (var i = 0; i < expandedCigar.Count; i++)
+            CigarDirectionExpander cigarDirectionExpander = new CigarDirectionExpander(stitchingInfo.StitchedDirections);
+            for (CigarExtensions.CigarOpExpander cigarExpander = new CigarExtensions.CigarOpExpander(stitchingInfo.StitchedCigar);
+                cigarExpander.IsNotEnd() && cigarDirectionExpander.IsNotEnd();
+                cigarExpander.MoveNext(), cigarDirectionExpander.MoveNext())
             {
-                var cigarOp = expandedCigar[i];
-                var direction = expandedDirections[i];
+                var cigarType = cigarExpander.Current;
+                var direction = cigarDirectionExpander.Current;
 
-                if (cigarOp.Type == 'D') continue;
+                if (cigarType == 'D') continue;
 
                 var r1Index = r1Indexer.Index;
                 var r2Index = r2Indexer.Index;
@@ -170,19 +177,19 @@ namespace StitchingLogic
                     case DirectionType.Forward:
                         if (forwardReadIndexer.BaseAtIndex == null)
                         {
-                            throw new Exception("Forward base at index " + forwardReadIndexer.Index + " is null.");
+                            throw new InvalidDataException("Forward base at index " + forwardReadIndexer.Index + " is null.");
                         }
-                        stitchedBases.Add((char)forwardReadIndexer.BaseAtIndex);
-                        stitchedQualities.Add((byte)forwardReadIndexer.QualityAtIndex);
+                        _stitchedBases.Add((char)forwardReadIndexer.BaseAtIndex);
+                        _stitchedQualities.Add((byte)forwardReadIndexer.QualityAtIndex);
                         forwardReadIndexer.Increment();
                         break;
                     case DirectionType.Reverse:
                         if (reverseReadIndexer.BaseAtIndex == null)
                         {
-                            throw new Exception("Reverse base at index " + reverseReadIndexer.Index + " is null.");
+                            throw new InvalidDataException("Reverse base at index " + reverseReadIndexer.Index + " is null.");
                         }
-                        stitchedBases.Add((char)reverseReadIndexer.BaseAtIndex); // TODO - stringbuilder instead?
-                        stitchedQualities.Add((byte)reverseReadIndexer.QualityAtIndex);
+                        _stitchedBases.Add((char)reverseReadIndexer.BaseAtIndex); // TODO - stringbuilder instead?
+                        _stitchedQualities.Add((byte)reverseReadIndexer.QualityAtIndex);
                         reverseReadIndexer.Increment();
                         break;
                     case DirectionType.Stitched:
@@ -190,46 +197,49 @@ namespace StitchingLogic
                         {
                             if (forwardReadIndexer.BaseAtIndex == reverseReadIndexer.BaseAtIndex)
                             {
-                                stitchedBases.Add((char)forwardReadIndexer.BaseAtIndex);
-                                var sticheredQuality = Convert.ToInt32((byte)forwardReadIndexer.QualityAtIndex) +
+                                _stitchedBases.Add((char)forwardReadIndexer.BaseAtIndex);
+                                var sumQuality = Convert.ToInt32((byte)forwardReadIndexer.QualityAtIndex) +
                                                        Convert.ToInt32((byte)reverseReadIndexer.QualityAtIndex);
 
-                                stitchedQualities.Add((byte)sticheredQuality);
+	                            var sticheredQuality = sumQuality > MaxBaseQuality ? MaxBaseQuality : sumQuality;
+
+								_stitchedQualities.Add((byte)sticheredQuality);
                             }
                             else //the bases disagree...
                             {
                                 if (_nifyDisagreements)
                                 {
                                     // we have disagreeing bases AND we chose to always Nify them
-                                    stitchedBases.Add('N');
-                                    stitchedQualities.Add(0);
+                                    _stitchedBases.Add('N');
+                                    _stitchedQualities.Add(0);
                                 }
                                 else
                                 {
                                     if ((byte)forwardReadIndexer.QualityAtIndex >= reverseReadIndexer.QualityAtIndex)
                                         // Original stitching implementation -- TODO, reconcile this with new reqs.
                                     {
-                                        stitchedBases.Add((char)forwardReadIndexer.BaseAtIndex);
+                                        _stitchedBases.Add((char)forwardReadIndexer.BaseAtIndex);
 
                                         if (reverseReadIndexer.QualityAtIndex < _minBasecallQuality)
-                                            stitchedQualities.Add((byte)forwardReadIndexer.QualityAtIndex);
+                                            _stitchedQualities.Add((byte)forwardReadIndexer.QualityAtIndex);
                                         else
-                                            stitchedQualities.Add(0);
+                                            _stitchedQualities.Add(0);
                                         //this was a high Q disagreement, and dangerous! we will filter this base.
                                     }
                                     else
                                     //if ((byte)forwardReadIndexer.QualityAtIndex < reverseReadIndexer.QualityAtIndex) // Original stitching implementation 
                                     {
-                                        stitchedBases.Add((char)reverseReadIndexer.BaseAtIndex);
+                                        _stitchedBases.Add((char)reverseReadIndexer.BaseAtIndex);
                                         if (forwardReadIndexer.QualityAtIndex < _minBasecallQuality)
-                                            stitchedQualities.Add((byte)reverseReadIndexer.QualityAtIndex);
+                                            _stitchedQualities.Add((byte)reverseReadIndexer.QualityAtIndex);
                                         else
-                                            stitchedQualities.Add(0);
+                                            _stitchedQualities.Add(0);
                                         //this was a high Q disagreement, and dangerous! we will filter this base.
                                     }
                                 }
                             }
                         }
+
                         forwardReadIndexer.Increment();
                         reverseReadIndexer.Increment();
                         break;
@@ -262,12 +272,12 @@ namespace StitchingLogic
             }
 
             // TODO investigate if these are ever worth handling
-            if (stitchingInfo.StitchedCigar.Count > 0 && stitchingInfo.StitchedCigar.GetReadSpan() != stitchedBases.Count)
+            if (stitchingInfo.StitchedCigar.Count > 0 && stitchingInfo.StitchedCigar.GetReadSpan() != _stitchedBases.Count)
             {
                 if (_debug)
                 {
                     Logger.WriteToLog(string.Format("Invalid cigar '{0}': does not match length {1} of read ({2})", stitchingInfo.StitchedCigar,
-                        stitchedBases.Count, read1.Name));
+                        _stitchedBases.Count, read1.Name));
                 }
 
                 _statusCounter.AddDebugStatusCount("Invalid cigar does not match length of read");
@@ -277,22 +287,17 @@ namespace StitchingLogic
             var mergedRead = new Read(read1.Chromosome, new BamAlignment
             {
                 Name = read1.Name,
-                Bases = string.Join("", stitchedBases),
+                Bases = string.Join("", _stitchedBases),
                 Position = Math.Min(read1.Position - 1, read2.Position - 1),
-                Qualities = stitchedQualities.ToArray(),
+                Qualities = _stitchedQualities.ToArray(),
                 CigarData = stitchingInfo.StitchedCigar
             })
             {
-                StitchedCigar = stitchingInfo.StitchedCigar,
-                CigarDirections = new CigarDirection(stitchingInfo.StitchedDirections.ToString())
+                StitchedCigar = stitchingInfo.StitchedCigar
             };
-
-
-
 
             return mergedRead;
         }
-
 
     }
 }

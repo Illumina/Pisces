@@ -1,18 +1,18 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
+using System.IO;
 using System.Threading.Tasks;
-using VariantCalling.Processing.Utility;
+using Pisces.Processing.Utility;
 
-namespace VariantCalling.Processing.Models
+namespace Pisces.Processing.Models
 {
     public class BamChrJob : GenericJob
     {
         public string BamFilePath { get; private set; }
         public string ChrName { get; private set; }
 
-        public BamChrJob(Action action, string bamFilePath, string chrName) : base(action)
+        public BamChrJob(Action action, string bamFilePath, string chrName) : base(action, Path.GetFileNameWithoutExtension(bamFilePath) + "_" + chrName)
         {
             BamFilePath = bamFilePath;
             ChrName = chrName;

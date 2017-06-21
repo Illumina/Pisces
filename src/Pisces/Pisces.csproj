@@ -1,112 +1,55 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
-<Project ToolsVersion="12.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
   <PropertyGroup>
-    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
-    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{9D5A3356-5A08-4802-8237-D8C8C83E9545}</ProjectGuid>
-    <OutputType>Exe</OutputType>
-    <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>Pisces</RootNamespace>
+    <TargetFramework>netcoreapp1.0</TargetFramework>
     <AssemblyName>Pisces</AssemblyName>
-    <TargetFrameworkVersion>v4.5.1</TargetFrameworkVersion>
-    <FileAlignment>512</FileAlignment>
-    <TargetFrameworkProfile />
-    <NuGetPackageImportStamp>61ec8fb1</NuGetPackageImportStamp>
+    <OutputType>Exe</OutputType>
+    <PackageId>Pisces</PackageId>
+    <RuntimeFrameworkVersion>1.0.4</RuntimeFrameworkVersion>
+    <PackageTargetFallback>$(PackageTargetFallback);dnxcore50</PackageTargetFallback>
+    <GenerateAssemblyConfigurationAttribute>false</GenerateAssemblyConfigurationAttribute>
+    <GenerateAssemblyCompanyAttribute>false</GenerateAssemblyCompanyAttribute>
+    <GenerateAssemblyProductAttribute>false</GenerateAssemblyProductAttribute>
+    <PostBuildEvent>copy $(SolutionDir)\redist $(OutDir)</PostBuildEvent>
+    <Version>1.0.0.0</Version>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x64'">
-    <DebugSymbols>true</DebugSymbols>
-    <OutputPath>bin\x64\Debug\</OutputPath>
-    <DefineConstants>DEBUG;TRACE</DefineConstants>
-    <DebugType>full</DebugType>
-    <PlatformTarget>x64</PlatformTarget>
-    <ErrorReport>prompt</ErrorReport>
-    <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
-    <Prefer32Bit>true</Prefer32Bit>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|x64'">
-    <OutputPath>bin\x64\Release\</OutputPath>
-    <DefineConstants>TRACE</DefineConstants>
-    <Optimize>true</Optimize>
-    <DebugType>pdbonly</DebugType>
-    <PlatformTarget>x64</PlatformTarget>
-    <ErrorReport>prompt</ErrorReport>
-    <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
-    <Prefer32Bit>true</Prefer32Bit>
-    <UseVSHostingProcess>false</UseVSHostingProcess>
-  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x86'" />
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" />
+
   <ItemGroup>
-    <Reference Include="System" />
-    <Reference Include="System.Core" />
-    <Reference Include="System.Xml.Linq" />
-    <Reference Include="System.Data.DataSetExtensions" />
-    <Reference Include="Microsoft.CSharp" />
-    <Reference Include="System.Data" />
-    <Reference Include="System.Xml" />
+    <None Update="..\..\redist\libFileCompression.so">
+      <Link>libFileCompression.so</Link>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </None>
+    <None Update="..\..\redist\FileCompression.dll">
+      <Link>FileCompression.dll</Link>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </None>
+    <None Update="FileCompression.dll;libFileCompression.so">
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </None>
   </ItemGroup>
+
   <ItemGroup>
-    <Compile Include="ApplicationOptions.cs" />
-    <Compile Include="Interfaces\ISomaticVariantCaller.cs" />
-    <Compile Include="Interfaces\IVariantCollapser.cs" />
-    <Compile Include="Logic\Processing\GenomeProcessor.cs" />
-    <Compile Include="Logic\Processing\MultiProcessProcessor.cs" />
-    <Compile Include="Logic\StrandBiasFileWriter.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="Logic\VariantCalling\AlleleProcessor.cs" />
-    <Compile Include="Logic\VariantCalling\MnvReallocator.cs" />
-    <Compile Include="Logic\VariantCalling\VariantCollapser.cs" />
-    <Compile Include="Logic\VariantCalling\AlleleCaller.cs" />
-    <Compile Include="Logic\Alignment\AlignmentsSource.cs" />
-    <Compile Include="Interfaces\IAlignmentSource.cs" />
-    <Compile Include="Interfaces\IAlleleCaller.cs" />
-    <Compile Include="Program.cs" />
-    <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="Logic\SomaticVariantCaller.cs" />
-    <Compile Include="Interfaces\ISomaticCallerFactory.cs" />
-    <Compile Include="Logic\Factory.cs" />
-    <Compile Include="Constants.cs" />
+    <Content Include="..\..\redist\*" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
+
   <ItemGroup>
-    <None Include="App.config" />
-    <None Include="Pisces.nuspec" />
+    <ProjectReference Include="..\Alignment.Domain\Alignment.Domain.csproj" />
+    <ProjectReference Include="..\Alignment.IO\Alignment.IO.csproj" />
+    <ProjectReference Include="..\Common.IO\Common.IO.csproj" />
+    <ProjectReference Include="..\Pisces.Calculators\Pisces.Calculators.csproj" />
+    <ProjectReference Include="..\Pisces.Domain\Pisces.Domain.csproj" />
+    <ProjectReference Include="..\Pisces.Processing\Pisces.Processing.csproj" />
+    <ProjectReference Include="..\Pisces.IO\Pisces.IO.csproj" />
   </ItemGroup>
+
   <ItemGroup>
-    <ProjectReference Include="..\Pisces.Calculators\Pisces.Calculators.csproj">
-      <Project>{d127283a-3a7d-4d65-8f45-0ad2154bc3ad}</Project>
-      <Name>Pisces.Calculators</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\Pisces.Domain\Pisces.Domain.csproj">
-      <Project>{4717ddf8-91cd-41b7-a477-452c2ebdf627}</Project>
-      <Name>Pisces.Domain</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\Pisces.IO\Pisces.IO.csproj">
-      <Project>{c1db9ec5-c88f-4fb2-b8e6-698ae85682b5}</Project>
-      <Name>Pisces.IO</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\Pisces.Processing\Pisces.Processing.csproj">
-      <Project>{8dbb696e-bd43-4bbf-b1c5-f10b28108f4a}</Project>
-      <Name>Pisces.Processing</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\StitchingLogic\StitchingLogic.csproj">
-      <Project>{88b6061c-a010-43d0-b7c0-3ef96fe39295}</Project>
-      <Name>StitchingLogic</Name>
-    </ProjectReference>
+    <PackageReference Include="System.Threading.Thread" Version="4.3.0" />
+    <PackageReference Include="System.Threading.Tasks" Version="4.3.0" />
+    <PackageReference Include="System.Threading.Tasks.Parallel" Version="4.3.0" />
   </ItemGroup>
-  <ItemGroup>
-    <Folder Include="Infrastructure\" />
-  </ItemGroup>
-  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
-  <PropertyGroup>
-    <PostBuildEvent>copy "$(SolutionDir)RequiredFiles\FileCompression.dll" "$(TargetDir)"
-copy "$(SolutionDir)AdditionalFilesForLinux\libFileCompression.so" "$(TargetDir)"
-</PostBuildEvent>
-  </PropertyGroup>
-  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
-       Other similar extension points exist, see Microsoft.Common.targets.
-  <Target Name="BeforeBuild">
-  </Target>
-  <Target Name="AfterBuild">
-  </Target>
-  -->
+
 </Project>

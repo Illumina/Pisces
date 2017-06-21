@@ -2,18 +2,20 @@
 using System.Collections.Generic;
 using System.Linq;
 using Pisces.IO;
+using Pisces.Domain.Options;
 using Pisces.Processing.Logic;
 using Pisces.Processing.Utility;
 using Alignment.IO.Sequencing;
+using Common.IO.Utility;
 
 namespace Pisces.Processing
 {
     public abstract class WorkFactory
     {
-        private readonly BaseApplicationOptions _baseOptions;
+        private readonly BamProcessorOptions _baseOptions;
         public List<BamWorkRequest> WorkRequests { get; private set; }
 
-        public WorkFactory(BaseApplicationOptions options)
+        public WorkFactory(BamProcessorOptions options)
         {
             _baseOptions = options;
         }
@@ -23,7 +25,7 @@ namespace Pisces.Processing
             var chromosomeNames = new List<string>();
             var bamWorkRequests =
                 WorkRequests.Where(
-                    w => w.GenomeDirectory.Equals(genomePath, StringComparison.InvariantCultureIgnoreCase)).ToList();
+                    w => w.GenomeDirectory.Equals(genomePath, StringComparison.CurrentCultureIgnoreCase)).ToList();
 
             for (var i = 0; i < bamWorkRequests.Count(); i++)
             {

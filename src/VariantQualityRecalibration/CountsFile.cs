@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using Pisces.IO.Sequencing;
-using Pisces.Processing.Utility;
+using Common.IO.Utility;
 
 namespace VariantQualityRecalibration
 {
@@ -38,7 +38,7 @@ namespace VariantQualityRecalibration
         public void LoadCountsFile(string file)
         {
             bool inRateSection = false;
-            using (StreamReader sr = new StreamReader(file))
+            using (StreamReader sr = new StreamReader(new FileStream(file, FileMode.Open)))
             {
                 string line;
 
@@ -63,7 +63,7 @@ namespace VariantQualityRecalibration
                         double result = -1;
                         if (!(double.TryParse(Splat[1], out result)))
                         {
-                            throw new ApplicationException("Unable to parse counts from noise file " + file);
+                            throw new IOException("Unable to parse counts from noise file " + file);
                         }
 
                         switch (Splat[0])
@@ -98,6 +98,18 @@ namespace VariantQualityRecalibration
             
             var variant = new VcfVariant();
             var countsPath = Path.Combine(outDir, Path.GetFileName(vcfIn).Replace(".vcf", ".counts"));
+            var countsPathOld = Path.Combine(outDir, Path.GetFileName(vcfIn).Replace(".vcf", ".counts.original"));
+
+            if (File.Exists(countsPath))
+            {
+                if (File.Exists(countsPathOld))
+                {
+                    File.Delete(countsPathOld);
+                }
+                File.Copy(countsPath, countsPathOld);
+                File.Delete(countsPath);
+            }
+
             var counter = new MutationCounter();
 
             using (VcfReader readerA = new VcfReader(vcfIn))
@@ -119,7 +131,7 @@ namespace VariantQualityRecalibration
                     }
                 }
 
-                counter.CloseFalseCallsWriter();
+                counter.CloseWriter();
             }
 
             return countsPath;

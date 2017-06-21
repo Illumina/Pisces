@@ -3,6 +3,7 @@ using System.IO;
 using System.Linq;
 using Pisces.Domain.Interfaces;
 using Pisces.Domain.Models;
+using Pisces.Domain.Options;
 using VariantPhasing.Interfaces;
 using VariantPhasing.Models;
 
@@ -96,7 +97,7 @@ namespace VariantPhasing.Logic
         {
             if (_debugMode)
             {
-                using (StreamWriter sw = new StreamWriter(debugLog, true))
+                using (StreamWriter sw = new StreamWriter(new FileStream(debugLog, FileMode.OpenOrCreate)))
                 {
                     sw.WriteLine(msg);
                 }
@@ -113,6 +114,11 @@ namespace VariantPhasing.Logic
             if (_options.RemoveDuplicates)
             {
                 if (read.IsPcrDuplicate) return true;
+            }
+
+            if (_options.OnlyUseProperPairs)
+            {
+                if (!read.IsProperPair) return true;
             }
 
             if (read.MapQuality < _options.MinimumMapQuality) return true;

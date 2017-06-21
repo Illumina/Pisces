@@ -1,0 +1,22 @@
+
+CountsByCategory
+AtoC	1
+AtoG	1
+AtoT	1
+CtoA	1
+CtoG	1
+CtoT	1
+GtoA	1
+GtoC	1
+GtoT	1
+TtoA	1
+TtoC	1
+TtoG	1
+Insertion	0
+Deletion	0
+Reference	0
+Other	0
+
+AllPossibleVariants	12
+VariantsCountedTowardEstimate	12
+MismatchEstimate(%)	100.0000

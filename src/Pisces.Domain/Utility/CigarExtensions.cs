@@ -27,7 +27,7 @@ namespace Pisces.Domain.Utility
 
         public static CigarAlignment GetReverse(this CigarAlignment cigar)
         {
-            var reverseCigar = new CigarAlignment(cigar.ToString());
+            var reverseCigar = new CigarAlignment(cigar);
             reverseCigar.Reverse();
 
             return reverseCigar;
@@ -281,6 +281,50 @@ namespace Pisces.Domain.Utility
             return insertionLength;
         }
 
+        public class CigarOpExpander
+        {
+            private CigarAlignment _cigar;
+            private int _cigarIndex;
+            private int _opIndex;
+
+            public CigarOpExpander(CigarAlignment cigar)
+            {
+                _cigar = cigar;
+                _cigarIndex = 0;
+                _opIndex = 0;
+            }
+
+            public bool MoveNext()
+            {
+                if (_cigarIndex < _cigar.Count)
+                {
+                    ++_opIndex;
+                    if (_opIndex >= _cigar[_cigarIndex].Length)
+                    {
+                        _opIndex = 0;
+                        ++_cigarIndex;
+                    }
+                }
+                return IsNotEnd();
+            }
+
+            public bool IsNotEnd()
+            {
+                return _cigarIndex < _cigar.Count;
+            }
+
+            public void Reset()
+            {
+                _cigarIndex = 0;
+                _opIndex = 0;
+            }
+
+            public char Current
+            {
+                get { return _cigar[_cigarIndex].Type; }
+            }
+        }
+
         public static List<CigarOp> Expand(this CigarAlignment cigar)
         {
             var expandedCigar = new List<CigarOp>();
@@ -293,6 +337,23 @@ namespace Pisces.Domain.Utility
             }
 
             return expandedCigar;
+        }
+
+        public static void Expand(this CigarAlignment cigar, List<CigarOp> expandedCigar)
+        {
+            // Memory allocations from this function used to account for nearly
+            // half of all allocations performed by the stitcher. Now there are 0.
+
+            expandedCigar.Clear();
+            int recycleIndex = 0;
+            foreach (CigarOp op in cigar)
+            {
+                for (var i = 0; i < op.Length; ++i)
+                {
+                    expandedCigar.Add(new CigarOp(op.Type, 1));
+                    ++recycleIndex;
+                }
+            }
         }
 
         public static CigarAlignment GetCigarWithoutProbeClips(this CigarAlignment cigar, bool isRead1)

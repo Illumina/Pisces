@@ -14,6 +14,7 @@ namespace Pisces.Processing.Utility
             return Type.GetType("Mono.Runtime") != null;
         }
 
+        /* Should never need this ever again....
         public static string GetMonoPath()
         {
             var runtime = string.Empty;
@@ -32,6 +33,6 @@ namespace Pisces.Processing.Utility
             {
                 throw new Exception("Unable to get mono path from run time location: " + runtime, ex);
             }
-        }
+        }*/
     }
 }

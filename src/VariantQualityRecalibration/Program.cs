@@ -1,9 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Text;
-using System.Threading.Tasks;
-using Pisces.Processing.Utility;
+using Common.IO.Utility;
 
 namespace VariantQualityRecalibration
 {
@@ -33,14 +31,14 @@ namespace VariantQualityRecalibration
             {
                 if (!(options.InputVcf).ToLower().EndsWith(".genome.vcf"))
                 {
-                    Logger.WriteToLog(">>> **Warning**: VCF supplied to Recalibration algorithms should be genome VCF. Was this the intent?");
-                    Logger.WriteToLog(">>> continuing...");
+                    Logger.WriteWarningToLog("VCF supplied to Recalibration algorithms should be genome VCF. Was this the intent?");
+                    Logger.WriteToLog("Continuing...");
                 }
 
-                Logger.WriteToLog(">>> generating counts file");
+                Logger.WriteToLog("Generating counts file");
                 string countsFile = Counts.WriteCountsFile(options.InputVcf, options.OutputDirectory);
 
-                Logger.WriteToLog(">>> starting Recalibration");
+                Logger.WriteToLog("Starting Recalibration");
                 QualityRecalibration.Recalibrate(options.InputVcf, countsFile, options.BaseQNoise, 
                     options.ZFactor, options.MaxQScore, options.FilterQScore);        
         
@@ -49,15 +47,15 @@ namespace VariantQualityRecalibration
             {
                 Logger.WriteToLog("*** Error encountered: {0}", e);
             }
-            Logger.WriteToLog(">>> Work complete.");
-            Logger.TryCloseLog();
+            Logger.WriteToLog("Work complete.");
+            Logger.CloseLog();
             return 0;
         }
 
         public static void Init(ApplicationOptions options)
         {
-            Logger.TryOpenLog(options.OutputDirectory, options.LogFileName);
-			options.Save(Path.Combine(options.OutputDirectory, "VariantQualityRecalibrationOptions.used.xml"));
+            Logger.OpenLog(options.OutputDirectory, options.LogFileName);
+			options.Save(Path.Combine(options.OutputDirectory, "VariantQualityRecalibrationOptions.used.json"));
 
 		}
     }

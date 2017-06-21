@@ -52,9 +52,9 @@ namespace VariantPhasing.Models
         public VariantSite(CalledAllele variant)
         {
             ReferenceName = variant.Chromosome;
-            VcfReferencePosition = variant.Coordinate;
-            VcfReferenceAllele = variant.Reference;
-            VcfAlternateAllele = variant.Alternate;
+            VcfReferencePosition = variant.ReferencePosition;
+            VcfReferenceAllele = variant.ReferenceAllele;
+            VcfAlternateAllele = variant.AlternateAllele;
             OriginalAlleleFromVcf = variant;
         }
 
@@ -124,10 +124,23 @@ namespace VariantPhasing.Models
 
         int IComparable<VariantSite>.CompareTo(VariantSite vs)
         {
+            //order by true first base.
             if (TrueFirstBaseOfDiff < vs.TrueFirstBaseOfDiff)
                 return -1;
             if (TrueFirstBaseOfDiff > vs.TrueFirstBaseOfDiff)
                 return 1;
+
+            /*
+            //always search for the longest alt allele first
+            // (if we are looking for VS  "ACT-> TTT" or "AC-> TT" in a read,
+            // we should check the alternate allele TTTTT for TTT before we look for TT.)
+           
+
+            if (TrueAltAllele.Length > vs.TrueAltAllele.Length)
+                return -1;
+            if (TrueAltAllele.Length < vs.TrueAltAllele.Length)
+                return 1;
+                */
             return 0;
         }
     }

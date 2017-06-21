@@ -16,20 +16,11 @@ namespace Pisces.Logic.VariantCalling
         public static void Process(CalledAllele allele, 
             float minFrequency, int? lowDepthFilter, int? filterVariantQscore, bool filterSingleStrandVariants, float? variantFreqFilter, float? lowGqFilter, int? indelRepeatFilter, RMxNFilterSettings rMxNFilterSettings, ChrReference chrReference, bool isStitchedSource = false)
         {
-            SetFractionNoCall(allele);
+            allele.SetFractionNoCalls();
             ApplyFilters(allele, lowDepthFilter, filterVariantQscore, filterSingleStrandVariants, variantFreqFilter, lowGqFilter, indelRepeatFilter, rMxNFilterSettings, isStitchedSource, chrReference);
         }
 
-        // jg todo - set numnocalls - appears to only be applicable to SNVs
-        private static void SetFractionNoCall(CalledAllele allele)
-        {
-            var allReads = (float)(allele.TotalCoverage + allele.NumNoCalls);
-            if (allReads == 0)
-                allele.FractionNoCalls = 0;
-            else
-                allele.FractionNoCalls = allele.NumNoCalls / allReads;
-        }
-
+       
         private static void ApplyFilters(CalledAllele allele, int? minCoverageFilter, int? variantQscoreThreshold, bool filterSingleStrandVariants, float? variantFreqFilter, float? lowGenotypeqFilter, int? indelRepeatFilter,
             RMxNFilterSettings rMxNFilterSettings, bool hasStitchedSource, ChrReference chrReference)
         {
@@ -65,7 +56,7 @@ namespace Pisces.Logic.VariantCalling
 
                 if (hasStitchedSource) //can only happen for insertions and MNVs
                 {
-                    if (allele.Alternate.Contains("N"))
+                    if (allele.AlternateAllele.Contains("N"))
                         allele.AddFilter(FilterType.StrandBias);
                 }
             }
@@ -84,7 +75,7 @@ namespace Pisces.Logic.VariantCalling
             if (allele.Type != AlleleCategory.Insertion && allele.Type != AlleleCategory.Deletion && allele.Type != AlleleCategory.Snv) return 0;
 
             // Logic from GetFlankingBases:
-            var stringPos = allele.Coordinate - 1;
+            var stringPos = allele.ReferencePosition - 1;
             var upstreamBegin = stringPos - FlankingBaseCount;
             var upstreamEnd = stringPos - 1;
             var downstreamBegin = stringPos;
@@ -117,13 +108,13 @@ namespace Pisces.Logic.VariantCalling
 
             if (allele.Type == AlleleCategory.Insertion) 
             {
-                variantBases = allele.Alternate.Substring(1);
+                variantBases = allele.AlternateAllele.Substring(1);
                 currentPosition++;
             }
 
             if (allele.Type == AlleleCategory.Deletion)
             {
-                variantBases = allele.Reference.Substring(1);
+                variantBases = allele.ReferenceAllele.Substring(1);
                 currentPosition++;
             }
             

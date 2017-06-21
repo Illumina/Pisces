@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
-using Pisces.Processing.Utility;
+using Pisces.Domain.Options;
+using Common.IO.Utility;
 
 namespace VariantPhasing.Models
 {

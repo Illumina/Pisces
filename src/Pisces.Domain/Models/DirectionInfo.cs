@@ -29,6 +29,7 @@ namespace Pisces.Domain.Models
                     Directions.Add(new DirectionOp {Length = length, Direction = direction});
                 }
                 
+                // debugging option
                 //Validate(); nope. wild west, now.
             }
             catch (Exception ex)
@@ -51,6 +52,9 @@ namespace Pisces.Domain.Models
             return map.ToArray();
         }
 
+        /// <summary>
+        /// currently not used. Left in as a debug option, if we have future troubles with stitching.
+        /// </summary>
         private void Validate()
         {
             switch (Directions.Count)

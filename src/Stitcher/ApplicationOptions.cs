@@ -34,6 +34,8 @@ namespace Stitcher
                 {"ThreadByChr=", "{BOOL} Whether to thread by chromosome (beta). Default: false.", o=> StitcherOptions.ThreadByChromosome  = bool.Parse(o)  },
                 {"DebugSummary=", "{BOOL} indicating whether we should run in debug (verbose) mode. Default: false.", o=> StitcherOptions.DebugSummary = bool.Parse(o)  },
                 {"StitchProbeSoftclips=", "{BOOL} indicating whether to allow probe softclips that overlap the mate to contribute to a stitched direction. Default: false.", o=> StitcherOptions.StitchProbeSoftclips = bool.Parse(o)  },
+                {"NumThreads=", "{INT} number of threads. Default: 1.", o=> StitcherOptions.NumThreads = int.Parse(o) },
+                {"SortMemoryGB=", "{FLOAT} max memory in GB used to sort the bam. Temporary files are used if memory exceeds this value. If 0, the bam will not be sorted. Default: 0.0.", o=> StitcherOptions.SortMemoryGB = float.Parse(o) },
                 {"MaxReadLength=", "{INT} indicating the maximum expected length of individual reads, used to determine the maximum expected stitched read length (2*len - 1). For optimal performance, set as low as appropriate (i.e. the actual single-read length) for your data. Default: 1024.", o=> StitcherOptions.MaxReadLength = int.Parse(o)  },
                 {"v|ver" ,"displays the version", o => ShowVersion = o != null }
             };

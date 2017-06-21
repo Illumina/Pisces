@@ -7,6 +7,7 @@
         Deletion,
         Mnv,
         Reference,
+		NonReference,
         Unsupported
     }
 }

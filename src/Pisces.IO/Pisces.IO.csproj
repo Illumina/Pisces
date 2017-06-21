@@ -1,96 +1,24 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
-<Project ToolsVersion="12.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
   <PropertyGroup>
-    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
-    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{C1DB9EC5-C88F-4FB2-B8E6-698AE85682B5}</ProjectGuid>
-    <OutputType>Library</OutputType>
-    <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>Pisces.IO</RootNamespace>
+    <TargetFramework>netcoreapp1.0</TargetFramework>
     <AssemblyName>Pisces.IO</AssemblyName>
-    <TargetFrameworkVersion>v4.5.1</TargetFrameworkVersion>
-    <FileAlignment>512</FileAlignment>
-    <TargetFrameworkProfile />
+    <PackageId>Pisces.IO</PackageId>
+    <RuntimeFrameworkVersion>1.0.4</RuntimeFrameworkVersion>
+    <PackageTargetFallback>$(PackageTargetFallback);dnxcore50</PackageTargetFallback>
+    <GenerateAssemblyConfigurationAttribute>false</GenerateAssemblyConfigurationAttribute>
+    <GenerateAssemblyCompanyAttribute>false</GenerateAssemblyCompanyAttribute>
+    <GenerateAssemblyProductAttribute>false</GenerateAssemblyProductAttribute>
+    <Version>1.0.0.0</Version>
   </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
-    <DebugSymbols>true</DebugSymbols>
-    <DebugType>full</DebugType>
-    <Optimize>false</Optimize>
-    <OutputPath>bin\Debug\</OutputPath>
-    <DefineConstants>DEBUG;TRACE</DefineConstants>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
-  </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
-    <DebugType>pdbonly</DebugType>
-    <Optimize>true</Optimize>
-    <OutputPath>bin\Release\</OutputPath>
-    <DefineConstants>TRACE</DefineConstants>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x64'">
-    <DebugSymbols>true</DebugSymbols>
-    <OutputPath>bin\x64\Debug\</OutputPath>
-    <DefineConstants>DEBUG;TRACE</DefineConstants>
-    <DebugType>full</DebugType>
-    <PlatformTarget>x64</PlatformTarget>
-    <ErrorReport>prompt</ErrorReport>
-    <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|x64'">
-    <OutputPath>bin\x64\Release\</OutputPath>
-    <DefineConstants>TRACE</DefineConstants>
-    <Optimize>true</Optimize>
-    <DebugType>pdbonly</DebugType>
-    <PlatformTarget>x64</PlatformTarget>
-    <ErrorReport>prompt</ErrorReport>
-    <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
-  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" />
+
   <ItemGroup>
-    <Reference Include="System" />
-    <Reference Include="System.Core" />
-    <Reference Include="System.Xml" />
+    <ProjectReference Include="..\Alignment.Domain\Alignment.Domain.csproj" />
+    <ProjectReference Include="..\Alignment.IO\Alignment.IO.csproj" />
+    <ProjectReference Include="..\Common.IO\Common.IO.csproj" />
+    <ProjectReference Include="..\Pisces.Domain\Pisces.Domain.csproj" />
   </ItemGroup>
-  <ItemGroup>
-    <Compile Include="BamFileAlignmentExtractor.cs" />
-    <Compile Include="BaseVcfFileWriter.cs" />
-    <Compile Include="Extensions.cs" />
-    <Compile Include="Genome.cs" />
-    <Compile Include="Interfaces\IRegionMapper.cs" />
-    <Compile Include="Interfaces\IVcfWriter.cs" />
-    <Compile Include="RegionMapper.cs" />
-    <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="SequencingFiles\VcfCommon.cs" />
-    <Compile Include="VcfFormatter.cs" />
-    <Compile Include="VcfFileWriter.cs" />
-    <Compile Include="SequencingFiles\VcfReader.cs" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\Alignment.Domain\Alignment.Domain.csproj">
-      <Project>{BE61B905-3AC0-49CA-9740-F1947D89423C}</Project>
-      <Name>Alignment.Domain</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\Alignment.IO\Alignment.IO.csproj">
-      <Project>{9CA4468C-D80C-4C43-A57B-3F3C8C758E67}</Project>
-      <Name>Alignment.IO</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\Common.IO\Common.IO.csproj">
-      <Project>{eab3df93-68a2-4545-a0cf-10173c955bea}</Project>
-      <Name>Common.IO</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\Pisces.Domain\Pisces.Domain.csproj">
-      <Project>{4717ddf8-91cd-41b7-a477-452c2ebdf627}</Project>
-      <Name>Pisces.Domain</Name>
-    </ProjectReference>
-  </ItemGroup>
-  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
-  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
-       Other similar extension points exist, see Microsoft.Common.targets.
-  <Target Name="BeforeBuild">
-  </Target>
-  <Target Name="AfterBuild">
-  </Target>
-  -->
+
 </Project>

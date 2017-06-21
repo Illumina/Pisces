@@ -34,7 +34,7 @@
     }
 
 
-    public class StrandBiasResults
+    public class BiasResults
     {
         public bool BiasAcceptable { get; set; }
         public double BiasScore { get; set; }
@@ -51,12 +51,12 @@
         public StrandBiasStats ReverseStats { get; set; }
         public StrandBiasStats StitchedStats { get; set; }
 
-        public static StrandBiasResults DeepCopy(StrandBiasResults originalSBresults)
+        public static BiasResults DeepCopy(BiasResults originalSBresults)
         {
             if (originalSBresults == null)
                 return null;
 
-            var sb = new StrandBiasResults()
+            var sb = new BiasResults()
             {
                 BiasAcceptable = originalSBresults.BiasAcceptable,
                 BiasScore = originalSBresults.BiasScore,

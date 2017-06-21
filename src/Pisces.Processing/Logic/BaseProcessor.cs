@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using Pisces.Domain.Interfaces;
-using Pisces.Processing.Utility;
+using Common.IO.Utility;
 
 namespace Pisces.Processing.Logic
 {

@@ -1,21 +1,24 @@
 ﻿using System;
+using System.Linq;
+using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
+using Pisces.Domain.Options;
 using Pisces.Domain.Utility;
 using Pisces.Domain.Types;
-using Pisces.Calculators;
+using Common.IO.Utility;
 using VariantPhasing;
 
 namespace Scylla
 {
-    public class CommandLineParameters
+    public class CommandLineParameters 
     {
-        private const char _delimiter = ',';
-
+       
         public static void PrintVersionToConsole()
         {
-            var currentAssembly = Assembly.GetExecutingAssembly().GetName();
-            Console.WriteLine(currentAssembly.Name + " " + currentAssembly.Version);
+            var currentAssemblyName = Common.IO.FileUtilities.LocalAssemblyName<CommandLineParameters>();
+            var currentAssemblyVersion  = Common.IO.FileUtilities.LocalAssemblyVersion<CommandLineParameters>();
+            Console.WriteLine(currentAssemblyName + " " + currentAssemblyVersion);
             Console.WriteLine(UsageInfoHelper.GetWebsite());
             Console.WriteLine();
         }
@@ -46,176 +49,46 @@ namespace Scylla
             Console.WriteLine("-m : Minimum map quality to consider a read. Default, 1");
         }
 
-        public static ApplicationOptions ParseAndValidateCommandLine(string[] arguments)
+        public static bool ParseAndValidateCommandLine(string[] arguments, PhasingApplicationOptions options)
         {
-            var options = ParseCommandLine(arguments);
-
-            if (arguments.Length != 0 && options != null)
-            {
-                Validate(options);
-            }
-            return options;
-        }
-
-        public static ApplicationOptions ParseCommandLine(string[] arguments)
-        {
-
-
-            
 
             if ((arguments == null) || (arguments.Length == 0))
             {
                 PrintUsageInfo();
-                return null;
+                return false;
             }
 
-            var options = new ApplicationOptions();
+            if (arguments.Contains("-help") || (arguments.Contains("-h")))
+            {
+                PrintUsageInfo();
+                return false;
+            }
 
-            var lastArgumentField = string.Empty;
+
 
             try
             {
-                var argumentIndex = 0;
-                while (argumentIndex < arguments.Length)
-                {
-                    if (string.IsNullOrEmpty(arguments[argumentIndex]))
-                    {
-                        argumentIndex++;
-                        continue;
-                    }
-                    string value = null;
-                    if (argumentIndex < arguments.Length - 1) value = arguments[argumentIndex + 1];
-
-                    lastArgumentField = arguments[argumentIndex];
-
-                    switch (lastArgumentField.ToLower())
-                    {
-                        case "-out":
-                            options.OutFolder = value;
-                            break;
-                        case "-bam":
-                            options.BamPath = value;
-                            break;
-                        case "-vcf":
-                            options.VcfPath = value;
-                            break;
-                        case "-dist":
-                            options.PhasableVariantCriteria.PhasingDistance = int.Parse(value);
-                            break;
-						case "-v":
-                        case "-ver":
-                            var currentAssembly = System.Reflection.Assembly.GetCallingAssembly().GetName();
-                            Console.WriteLine("Version:\t" + currentAssembly.Version);
-                            return null;
-                        case "-h":
-                        case "-help":
-                            PrintUsageInfo();
-                            return null;
-                        case "-passingvariantsonly":
-                            options.PhasableVariantCriteria.PassingVariantsOnly = bool.Parse(value);
-                            break;
-                        case "-hetvariantsonly":
-                            options.PhasableVariantCriteria.HetVariantsOnly = bool.Parse(value);
-                            break;
-                        case "-allowclustermerging":
-                            options.ClusteringParams.AllowClusterMerging = bool.Parse(value);
-                            break;
-                        case "-allowworstfitremoval":
-                            options.ClusteringParams.AllowWorstFitRemoval = bool.Parse(value);
-                            break;
-                        case "-debug":
-                            options.Debug = bool.Parse(value);
-                            break;
-                        case "-maxnbhdstoprocess":
-                            options.PhasableVariantCriteria.MaxNumNbhdsToProcess = int.Parse(value);
-                            break;
-                        case "-t":
-                        case "-maxnumthreads":
-                            options.NumThreads = int.Parse(value);
-                            break;
-                        case "-minvariantqscore":
-                            options.VariantCallingParams.MinimumVariantQScore = int.Parse(value);
-                            break;
-                        case "-minimumfrequency":
-                            options.VariantCallingParams.MinimumFrequency = float.Parse(value);
-                            break;
-                        case "-variantqualityfilter":
-                            options.VariantCallingParams.MinimumVariantQScoreFilter = int.Parse(value);
-                            break;
-                        case "-minvariantfrequencyfilter":
-                            options.VariantCallingParams.MinimumFrequencyFilter = float.Parse(value);
-                            break;
-                        case "-b":
-                        case "-minbasecallquality":
-                            options.BamFilterParams.MinimumBaseCallQuality = int.Parse(value);
-                            break;
-                        case "-filterduplicates":
-                            options.BamFilterParams.RemoveDuplicates = bool.Parse(value);
-                            break;
-                        case "-m":
-                        case "-minmapquality":
-                            options.BamFilterParams.MinimumMapQuality = int.Parse(value);
-                            break;
-                        case "-clusterconstraint":
-                            options.ClusteringParams.ClusterConstraint = int.Parse(value);
-                            break;
-                        case "-ploidy":
-                            if (value.ToLower().Contains("somatic"))
-                                options.VariantCallingParams.PloidyModel = PloidyModel.Somatic;
-                            else if (value.ToLower().Contains("diploid") || value == "2")
-                                options.VariantCallingParams.PloidyModel = PloidyModel.Diploid;
-                            else
-                                throw new ArgumentException(string.Format("Unknown ploidy model '{0}'", value));
-                            break;
-                        case "-diploidgenotypeparameters":
-                            var parameters = ParseStringToFloat(value.Split(_delimiter));
-                            if (parameters.Length != 3)
-                                throw new ArgumentException(string.Format("DiploidGenotypeParamteers argument requires exactly three values."));
-                            options.VariantCallingParams.DiploidThresholdingParameters = new DiploidThresholdingParameters(parameters);
-                            break;
-                        case "-crushvcf":
-                            bool crushedallelestyle = bool.Parse(value);
-                            options.VcfWritingParams.AllowMultipleVcfLinesPerLoci = !(crushedallelestyle);
-                            break;
-                        case "-chr":
-                            options.PhasableVariantCriteria.ChrToProcessArray = ListOfParamsToStringArray(value);
-                            break;
-                        case "-nbhd":
-                            options.PhasableVariantCriteria.FilteredNbhdToProcess = value;
-                            break;
-
-                        default:
-                            PrintUsageInfo();
-                            throw new ArgumentException(string.Format("Unknown argument '{0}'", value));
-                    }
-
-                    argumentIndex += 2;
-                }
-
-                options.CommandLineArguments = string.Join(" ", arguments);
-                options.LogFileName = Path.GetFileName(options.VcfPath).Replace(".genome.vcf", ".phased.genome.log");
-
-                if (options.VariantCallingParams.PloidyModel == PloidyModel.Diploid)
-                    options.VariantCallingParams.MinimumFrequency = options.VariantCallingParams.DiploidThresholdingParameters.MinorVF;
-
-                if (options.VariantCallingParams.MinimumFrequencyFilter < options.VariantCallingParams.MinimumFrequency)
-                    options.VariantCallingParams.MinimumFrequencyFilter = options.VariantCallingParams.MinimumFrequency;
-
-                if (options.VariantCallingParams.MinimumVariantQScoreFilter < options.VariantCallingParams.MinimumVariantQScore)
-                    options.VariantCallingParams.MinimumVariantQScoreFilter = options.VariantCallingParams.MinimumVariantQScore;
-
-
-                return options;
+                options.ParseCommandLine(arguments);
             }
-            catch (ArgumentException ex)
+            catch (Exception)
             {
                 PrintUsageInfo();
-                throw new Exception(string.Format("Unable to parse argument {0}: {1}", lastArgumentField, ex.Message));
+                throw;
             }
+
+            if (arguments.Length != 0 && options != null)
+            {
+                options.SetDerivedvalues();
+                Validate(options);
+            }
+
+            return true;
 
         }
 
-        public static void Validate(ApplicationOptions options)
+    
+
+        public static void Validate(PhasingApplicationOptions options)
         {
             // Check for required fields.
             if (string.IsNullOrEmpty(options.BamPath) || string.IsNullOrEmpty(options.VcfPath))
@@ -231,35 +104,17 @@ namespace Scylla
                 throw new ArgumentException(string.Format("VCF path '{0}' does not exist.", options.VcfPath));
 
             if (string.IsNullOrEmpty(options.OutFolder))
+            {
                 options.OutFolder = Path.GetDirectoryName(options.VcfPath);
 
-        }
-
-        public static string[] ListOfParamsToStringArray(string param)
-        {
-            return param.Split(new[] { ',', '[', ']' }, StringSplitOptions.RemoveEmptyEntries);
-        }
-
-        private static float[] ParseStringToFloat(string[] stringArray)
-        {
-            var parameters = new float[stringArray.Length];
-
-            for (int i = 0; i < parameters.Length; i++)
-            {
-                try
+                if (string.IsNullOrEmpty(options.OutFolder))
                 {
-                    parameters[i] = float.Parse(stringArray[i]);
-                }
-                catch
-                {
-                    throw new ArgumentException(string.Format("Unable to parse float type from " + stringArray[i]
-                        + ".  Please check parameters."));
+                    options.OutFolder = Directory.GetCurrentDirectory();//some sensible default
                 }
             }
+            options.Validate();
 
-            return parameters;
         }
-
 
     }
 

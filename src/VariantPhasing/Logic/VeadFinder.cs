@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
-using Pisces.IO.Sequencing;
+using Pisces.Domain.Options;
 using Alignment.Domain.Sequencing;
 using Pisces.Domain.Models;
 using VariantPhasing.Models;
@@ -32,12 +32,6 @@ FindVariantResults(List<VariantSite> variantsFromVcf, BamAlignment read)
             FindVariantResults(List<VariantSite> variantsFromVcf, Read read)
         {
             return FindVariantResults(variantsFromVcf, read.BamAlignment);
-
-            //var firstPosInAlignment = read.Position;
-            //var finder = new VariantSiteFinder(_bamFilterParams.MinimumBaseCallQuality);
-            //var lastPos = (int) (firstPosInAlignment + read.CigarData.GetReferenceSpan());
-            //var sites = finder.FindVariantSites(read, read.Chromosome);
-            //return MatchReadVariantsWithVcfVariants(variantsFromVcf, sites, firstPosInAlignment, lastPos);
         }
 
         public VariantSite[] MatchReadVariantsWithVcfVariants(List<VariantSite> variantsFromVcf, Dictionary<SomaticVariantType, 
@@ -45,6 +39,7 @@ FindVariantResults(List<VariantSite> variantsFromVcf, BamAlignment read)
         {
             var interrogationResults = new VariantSite[variantsFromVcf.Count];
             var numSitesFoundInRead = 0;
+            var lastPositionWithFoundVariant = -1;
 
             for (var i = 0; i < variantsFromVcf.Count; i++)
             {
@@ -69,15 +64,22 @@ FindVariantResults(List<VariantSite> variantsFromVcf, BamAlignment read)
                     continue;
                 }
                 var foundThisVariant = false;
-                var foundVariantThatFailedFilters = false;
+                var foundThisVariantThatFailedFilters = false;
+                var foundDifferentVariant = false;
 
                 foreach (var variantFound in variantsInFoundAlignment[type])
                 {
-                    //if (variantFound.VcfReferencePosition <= 55589767 && (variantFound.VcfReferencePosition + (variantFound.VcfAlternateAllele.Length) >= 5558967))
-                    //    Console.WriteLine("Matching candidate {0} {1}>{2}", variantFound.VcfReferencePosition, variantFound.VcfReferenceAllele, variantFound.VcfAlternateAllele);
 
                     if (foundThisVariant)
                         break;
+
+                    //if we have conflicting VS sites, and we already found the best agreement, dont keep looking.
+                    /*
+                    if (lastPositionWithFoundVariant == variantToLookFor.TrueFirstBaseOfDiff)
+                    {
+                        foundDifferentVariant = true;
+                        break;
+                    }*/
 
                     //check we have not already gone past where this variant should be found
                     if (variantToLookFor.VcfReferencePosition < variantFound.VcfReferencePosition)
@@ -88,75 +90,93 @@ FindVariantResults(List<VariantSite> variantsFromVcf, BamAlignment read)
 
                     switch (type)
                     {
-                            //if its an insertion, check the inserted bases match.
+                        //if its an insertion, check the inserted bases match.
                         case SomaticVariantType.Insertion:
-                        {
-                            if (variantFound.VcfReferencePosition != variantToLookFor.VcfReferencePosition)
+                            {
+                                if (variantFound.VcfReferencePosition != variantToLookFor.VcfReferencePosition)
+                                    break;
+
+                                var insertionSection = variantToLookFor.VcfAlternateAllele.Substring(1,
+                                    variantToLookFor.VcfAlternateAllele.Length - 1);
+
+                                if (variantFound.HasNoData)
+                                    foundThisVariantThatFailedFilters = true;
+                                else if (variantFound.VcfAlternateAllele == insertionSection)
+                                    foundThisVariant = true;
+                                else
+                                {
+                                    foundDifferentVariant = true;
+                                }
                                 break;
-
-                            var insertionSection = variantToLookFor.VcfAlternateAllele.Substring(1,
-                                variantToLookFor.VcfAlternateAllele.Length - 1);
-
-                            if (variantFound.HasNoData)
-                                foundVariantThatFailedFilters = true;
-                            else if (variantFound.VcfAlternateAllele == insertionSection)
-                                foundThisVariant = true;
-
-                            break;
-                        }
-                            //if its a deletion, check the deletion length matches
+                            }
+                        //if its a deletion, check the deletion length matches
                         case SomaticVariantType.Deletion:
-                        {
-                            if (variantFound.VcfReferencePosition != variantToLookFor.VcfReferencePosition)
+                            {
+                                if (variantFound.VcfReferencePosition != variantToLookFor.VcfReferencePosition)
+                                    break;
+
+                                var numDeletedBasesToLookFor =
+                                    variantToLookFor.VcfReferenceAllele.Length - variantToLookFor.VcfAlternateAllele.Length;
+
+                                var numDeletedBasesFound = variantFound.VcfReferenceAllele.Length;
+
+                                if (variantFound.HasNoData)
+                                    foundThisVariantThatFailedFilters = true;
+                                else if (numDeletedBasesToLookFor == numDeletedBasesFound)
+                                    foundThisVariant = true;
+                                else
+                                {
+                                    foundDifferentVariant = true;
+                                }
                                 break;
+                            }
 
-                            var numDeletedBasesToLookFor =
-                                variantToLookFor.VcfReferenceAllele.Length - variantToLookFor.VcfAlternateAllele.Length;
-
-                            var numDeletedBasesFound = variantFound.VcfReferenceAllele.Length;
-
-                            if (variantFound.HasNoData)
-                                foundVariantThatFailedFilters = true;
-                            else if (numDeletedBasesToLookFor == numDeletedBasesFound)
-                                foundThisVariant = true;
-
-                            break;
-                        }
-
-                            //if its a phased (or regular) snp, check the bases match.
+                        //if its a phased (or regular) snp, check the bases match.
                         case SomaticVariantType.SNP:
                         case SomaticVariantType.PhasedSNP:
-                        {
-                            var indexIntoFoundVariant = variantToLookFor.VcfReferencePosition -
-                                                        variantFound.VcfReferencePosition;
+                            {
+                                var indexIntoFoundVariant = variantToLookFor.VcfReferencePosition -
+                                                            variantFound.VcfReferencePosition;
 
-                            //variant runs off read.
-                            if (
-                                indexIntoFoundVariant + variantToLookFor.VcfAlternateAllele.Length >
-                                variantFound.VcfAlternateAllele.Length)
+                                //variant runs off read.
+                                if (
+                                    indexIntoFoundVariant + variantToLookFor.VcfAlternateAllele.Length >
+                                    variantFound.VcfAlternateAllele.Length)
+                                    break;
+
+                                var sectionFoundInRead =
+                                    variantFound.VcfAlternateAllele.Substring(indexIntoFoundVariant,
+                                        variantToLookFor.VcfAlternateAllele.Length);
+
+                                if (sectionFoundInRead == variantToLookFor.VcfAlternateAllele)
+                                    foundThisVariant = true;
+                                else if (sectionFoundInRead.Contains("N"))
+                                    foundThisVariantThatFailedFilters = true;
+                                else if (sectionFoundInRead == variantToLookFor.VcfReferenceAllele)
+                                {
+                                    foundDifferentVariant = false;
+                                }
+                                else 
+                                {
+                                    foundDifferentVariant = true;
+                                }
                                 break;
-
-                            var sectionFoundInRead =
-                                variantFound.VcfAlternateAllele.Substring(indexIntoFoundVariant,
-                                    variantToLookFor.VcfAlternateAllele.Length);
-
-                            if (sectionFoundInRead == variantToLookFor.VcfAlternateAllele)
-                                foundThisVariant = true;
-                            else if (sectionFoundInRead == "N")
-                                foundVariantThatFailedFilters = true;
-
-                            break;
-                        }
+                            }
                     }
                 }
 
-                if (foundVariantThatFailedFilters)
+                if (foundThisVariantThatFailedFilters)
                 {
                     interrogationResults[i] = SetEmptyMatch(variantToLookFor);
                 }
                 else if (foundThisVariant)
                 {
                     interrogationResults[i] = SetVariantMatch(variantToLookFor);
+                    lastPositionWithFoundVariant = variantToLookFor.TrueFirstBaseOfDiff;
+                }
+                else if (foundDifferentVariant)
+                {
+                    interrogationResults[i] = SetDifferenceMatch(variantToLookFor);
                 }
                 else
                 {
@@ -183,6 +203,14 @@ FindVariantResults(List<VariantSite> variantsFromVcf, BamAlignment read)
             var variantMatch = vcfVariant.DeepCopy();
             variantMatch.VcfReferenceAllele = vcfVariant.VcfReferenceAllele.Substring(0, 1);
             variantMatch.VcfAlternateAllele = vcfVariant.VcfReferenceAllele.Substring(0, 1);
+            return variantMatch;
+        }
+
+        private static VariantSite SetDifferenceMatch(VariantSite vcfVariant)
+        {
+            var variantMatch = vcfVariant.DeepCopy();
+            variantMatch.VcfReferenceAllele = "X";
+            variantMatch.VcfAlternateAllele = "X";
             return variantMatch;
         }
 

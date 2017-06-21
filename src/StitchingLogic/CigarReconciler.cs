@@ -1,11 +1,12 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.IO;
 using Alignment.Domain.Sequencing;
 using Pisces.Domain.Models;
 using Pisces.Domain.Types;
 using Pisces.Domain.Utility;
-using Pisces.Processing.Utility;
+using Common.IO.Utility;
 using StitchingLogic.Models;
 
 namespace StitchingLogic
@@ -17,7 +18,13 @@ namespace StitchingLogic
         private readonly bool _ignoreProbeSoftclips;
         private readonly bool _allowTerminalClipsToSupportOverlappingDels;
         private bool _useSoftclippedBases;
+
+        // For performance reasons, avoid allocating memory repeatedly
         private readonly StitchedPosition[] _stitchPositions;
+        private readonly List<StitchedPosition> _stitchPositionsList;
+        private readonly List<CigarOp> _expandedCigar1;
+        private readonly List<CigarOp> _expandedCigar2;
+
         private int _positionsUsed;
 
         public CigarReconciler(ReadStatusCounter statusCounter, bool useSoftclippedBases, bool debug, bool ignoreProbeSoftclips, int maxReadLength, bool allowTerminalClipsToSupportOverlappingDels = true)
@@ -28,12 +35,14 @@ namespace StitchingLogic
             _ignoreProbeSoftclips = ignoreProbeSoftclips;
             _allowTerminalClipsToSupportOverlappingDels = allowTerminalClipsToSupportOverlappingDels;
 
-            var maxStitchedReadLength = maxReadLength*2 - 1;
-
+            var maxStitchedReadLength = maxReadLength * 2 - 1;
             _stitchPositions = new StitchedPosition[maxStitchedReadLength];
+            _stitchPositionsList = new List<StitchedPosition>(maxStitchedReadLength);
+            _expandedCigar1 = new List<CigarOp>(maxReadLength);
+            _expandedCigar2 = new List<CigarOp>(maxReadLength);
 
             // For performance reasons, we keep one collection of StitchedPositions and recycle them for each pair we try to stitch
-            for (var i = 0; i < maxStitchedReadLength; i++)
+            for (var i = 0; i < _stitchPositions.Length; i++)
             {
                 _stitchPositions[i] = new StitchedPosition();
             }
@@ -41,16 +50,19 @@ namespace StitchingLogic
 
         public StitchingInfo GetStitchedCigar(CigarAlignment cigar1, int pos1, CigarAlignment cigar2, int pos2, bool reverseFirst, bool pairIsOutie)
         {
-            var positions = GetStitchedSites(cigar1, cigar2, pos2, pos1);
+            // This list is cleared rather than reallocated to avoid excess garbage collection.
+            _stitchPositionsList.Clear();
+
+            GetStitchedSites(cigar1, cigar2, pos2, pos1);
 
             var success = true;
 
-            var stitchingInfo = ReconcileSites(positions, reverseFirst, out success, pairIsOutie ? (int) cigar2.GetPrefixClip() : (int)cigar1.GetPrefixClip(), pairIsOutie ? (int) (cigar1.GetReadSpan() - (int) cigar1.GetSuffixClip()) : (int)(cigar2.GetReadSpan() - (int)cigar2.GetSuffixClip()), pairIsOutie);
+            var stitchingInfo = ReconcileSites(reverseFirst, out success, pairIsOutie ? (int) cigar2.GetPrefixClip() : (int)cigar1.GetPrefixClip(), pairIsOutie ? (int) (cigar1.GetReadSpan() - (int) cigar1.GetSuffixClip()) : (int)(cigar2.GetReadSpan() - (int)cigar2.GetSuffixClip()), pairIsOutie);
 
             return success ? stitchingInfo : null;
         }
 
-        public StitchingInfo ReconcileSites(List<StitchedPosition> positions, bool r1IsReverse, out bool success, int prefixProbeClipEnd, int suffixProbeClipStart, bool pairIsOutie, bool leftAlignUnmapped = true)
+        public StitchingInfo ReconcileSites(bool r1IsReverse, out bool success, int prefixProbeClipEnd, int suffixProbeClipStart, bool pairIsOutie, bool leftAlignUnmapped = true)
         {
             var stitchingInfo = new StitchingInfo();
             success = true;
@@ -59,159 +71,50 @@ namespace StitchingLogic
             var r1DirectionType = r1IsReverse ? DirectionType.Reverse : DirectionType.Forward;
             var r2DirectionType = r1IsReverse ? DirectionType.Forward : DirectionType.Reverse;
 
-            RedistributeSoftclips(positions, true);
-            RedistributeSoftclips(positions, false);
+            RedistributeSoftclips(true);
+            RedistributeSoftclips(false);
 
             var indexInR1 = -1;
             var indexInR2 = -1;
-            for (var i = 0; i < positions.Count; i++)
+            for (var i = 0; i < _stitchPositionsList.Count; i++)
             {
                 StitchedPosition positionBefore = null;
                 if (i > 0)
                 {
-                    positionBefore = positions[i - 1];
+                    positionBefore = _stitchPositionsList[i - 1];
                 }
-                var stitchPosition = positions[i];
+                var stitchPosition = _stitchPositionsList[i];
 
-                if (stitchPosition.UnmappedPrefix.R1HasInsertion() && !stitchPosition.UnmappedPrefix.R2Ops.Any())
+                if (stitchPosition.UnmappedPrefix.R1HasInsertion() && (stitchPosition.UnmappedPrefix.R2Ops.Count == 0))
                 {
-                    if (stitchPosition.MappedSite?.R2Ops.Count(x => x.IsReferenceSpan()) > 0 &&
-                        positionBefore?.MappedSite?.R2Ops.Count(x => x.IsReferenceSpan()) > 0)
+                    if (stitchPosition.MappedSite != null && stitchPosition.MappedSite.R2Ops.Any(x => x.IsReferenceSpan()) &&
+                        positionBefore != null && positionBefore.MappedSite != null && positionBefore.MappedSite.R2Ops.Any(x => x.IsReferenceSpan()))
                     {
                         success = false;
                         return null;
                     }
                 }
-                if (stitchPosition.UnmappedPrefix.R2HasInsertion() && !stitchPosition.UnmappedPrefix.R1Ops.Any())
+                if (stitchPosition.UnmappedPrefix.R2HasInsertion() && (stitchPosition.UnmappedPrefix.R1Ops.Count == 0))
                 {
-                    if (stitchPosition.MappedSite?.R1Ops.Count(x => x.IsReferenceSpan()) > 0 &&
-                        positionBefore?.MappedSite?.R1Ops.Count(x => x.IsReferenceSpan()) > 0)
+                    if (stitchPosition.MappedSite != null && stitchPosition.MappedSite.R1Ops.Any(x => x.IsReferenceSpan()) &&
+                        positionBefore != null && positionBefore.MappedSite != null && positionBefore.MappedSite.R1Ops.Any(x => x.IsReferenceSpan()))
                     {
                         success = false;
                         return null;
                     }
                 }
 
-                foreach (var stitchSite in new List<StitchedSite>() { stitchPosition.UnmappedPrefix, stitchPosition.MappedSite })
+                success = ReconcileSite(stitchPosition.UnmappedPrefix, stitchingInfo, prefixProbeClipEnd, suffixProbeClipStart, pairIsOutie, r1DirectionType, r2DirectionType, ref indexInR1, ref indexInR2);
+                if (!success)
                 {
-                    var unmappedSite = stitchSite as UnmappedStretch;
-                    var rightAlign = unmappedSite != null && unmappedSite.IsPrefix; //&& !unmappedSite.IsSuffix;
-
-                    var offset = Math.Abs(stitchSite.R1Ops.Count - stitchSite.R2Ops.Count);
-                    var r1StretchLonger = stitchSite.R1Ops.Count > stitchSite.R2Ops.Count;
-
-                    for (var j = 0; j < Math.Max(stitchSite.R1Ops.Count(), stitchSite.R2Ops.Count()); j++)
-                    {                       
-                        int r1StretchIndex;
-                        int r2StretchIndex;
-                        if (rightAlign)
-                        {
-                            r1StretchIndex = r1StretchLonger ? j : j - offset;
-                            r2StretchIndex = r1StretchLonger ? j - offset : j;
-                        }
-                        else
-                        {
-                            r1StretchIndex = j;
-                            r2StretchIndex = j;
-                        }
-                        var r1Op = r1StretchIndex >= 0 && stitchSite.R1Ops.Count > r1StretchIndex ? stitchSite.R1Ops[r1StretchIndex] : null;
-                        var r2Op = r2StretchIndex >= 0 && stitchSite.R2Ops.Count > r2StretchIndex ? stitchSite.R2Ops[r2StretchIndex] : null;
-
-                        var combinedOp = GetCombinedOp(r1Op, r2Op);
-
-                        if (combinedOp == null)
-                        {
-                            success = false;
-                            if (_debug)
-                            {
-                                Logger.WriteToLog(string.Format("Could not stitch operations {0} and {1}.", r1Op?.Type,
-                                    r2Op?.Type));
-                            }
-                            _statusCounter.AddDebugStatusCount("Could not stitch operations");
-                            return null;
-                        }
-
-                        stitchingInfo.StitchedCigar.Add(combinedOp);
-                        var r1opUsed = r1Op != null;
-                        var r2opUsed = r2Op != null;
-
-                        if (combinedOp.Type != 'S')
-                        {
-                            if (!_useSoftclippedBases && r2Op?.Type == 'S')
-                            {
-                                r2opUsed = false;
-                            }
-                            if (!_useSoftclippedBases && r1Op?.Type == 'S')
-                            {
-                                r1opUsed = false;
-                            }
-                        }
-
-                        if (r1opUsed && r1Op.IsReadSpan())
-                        {
-                            indexInR1++;
-                        }
-                        if (r2opUsed && r2Op.IsReadSpan())
-                        {
-                            indexInR2++;
-                        }
-
-                        if (_ignoreProbeSoftclips)
-                        {
-                            if (r1opUsed && r1Op.Type == 'S')
-                            {
-                                var isProbeSoftclip  = (pairIsOutie && indexInR1 >= suffixProbeClipStart) ||
-                                                       (!pairIsOutie && indexInR1 < prefixProbeClipEnd);
-
-                                // If this is a probe softclip, don't stitch it
-                                if (isProbeSoftclip && r2opUsed)
-                                {
-                                    r1opUsed = false;
-                                    if (pairIsOutie)
-                                    {
-                                        stitchingInfo.IgnoredProbeSuffixBases ++;
-                                    }
-                                    else
-                                    {
-                                        stitchingInfo.IgnoredProbePrefixBases++;
-                                    }
-                                }
-                            }
-                            if (r2opUsed && r2Op.Type == 'S')
-                            {
-                                var isProbeSoftclip = (pairIsOutie && indexInR2 < prefixProbeClipEnd) ||
-                                                      (!pairIsOutie && indexInR2 >= suffixProbeClipStart);
-                                if (isProbeSoftclip && r1opUsed)
-                                {
-                                    r2opUsed = false;
-                                    if (pairIsOutie)
-                                    {
-                                        stitchingInfo.IgnoredProbePrefixBases++;
-                                    }
-                                    else
-                                    {
-                                        stitchingInfo.IgnoredProbeSuffixBases++;
-                                    }
-                                }
-                            }
-                            // TODO support scenarios where R1 and R2 are both in probe softclips, if necessary. Otherwise, if this is really never going to happen, throw an exception if we see it.
-                            if (!r1opUsed && !r2opUsed)
-                            {
-                                throw new Exception("Stitching exception: Both R1 and R2 are in probe softclip regions at overlapping position.");
-                            }
-                        }
-                        var stitched = r1opUsed && r2opUsed;
-                        stitchingInfo.StitchedDirections.Directions.Add(new DirectionOp()
-                        {
-                            Direction =
-                                stitched
-                                    ? DirectionType.Stitched
-                                    : (r1opUsed ? r1DirectionType : r2DirectionType),
-                            Length = 1
-                        });
-                    }
+                    return null;
                 }
 
+                success = ReconcileSite(stitchPosition.MappedSite, stitchingInfo, prefixProbeClipEnd, suffixProbeClipStart, pairIsOutie, r1DirectionType, r2DirectionType, ref indexInR1, ref indexInR2);
+                if (!success)
+                {
+                    return null;
+                }
             }
 
             stitchingInfo.StitchedCigar.Compress();
@@ -227,34 +130,167 @@ namespace StitchingLogic
             return stitchingInfo;
         }
 
-        private void RedistributeSoftclips(List<StitchedPosition> positions, bool operateOnR1)
+        private bool ReconcileSite(StitchedSite stitchSite, StitchingInfo stitchingInfo, int prefixProbeClipEnd, int suffixProbeClipStart, bool pairIsOutie, DirectionType r1DirectionType, DirectionType r2DirectionType, ref int indexInR1, ref int indexInR2)
+        {
+            bool success = true;
+
+            var unmappedSite = stitchSite as UnmappedStretch;
+            var rightAlign = unmappedSite != null && unmappedSite.IsPrefix; //&& !unmappedSite.IsSuffix;
+
+            var offset = Math.Abs(stitchSite.R1Ops.Count - stitchSite.R2Ops.Count);
+            var r1StretchLonger = stitchSite.R1Ops.Count > stitchSite.R2Ops.Count;
+
+            for (var j = 0; j < Math.Max(stitchSite.R1Ops.Count, stitchSite.R2Ops.Count); j++)
+            {
+                int r1StretchIndex;
+                int r2StretchIndex;
+                if (rightAlign)
+                {
+                    r1StretchIndex = r1StretchLonger ? j : j - offset;
+                    r2StretchIndex = r1StretchLonger ? j - offset : j;
+                }
+                else
+                {
+                    r1StretchIndex = j;
+                    r2StretchIndex = j;
+                }
+                CigarOp? r1Op = null;
+                if (r1StretchIndex >= 0 && stitchSite.R1Ops.Count > r1StretchIndex)
+                {
+                    r1Op = stitchSite.R1Ops[r1StretchIndex];
+                }
+
+                CigarOp? r2Op = null;
+                if (r2StretchIndex >= 0 && stitchSite.R2Ops.Count > r2StretchIndex)
+                {
+                    r2Op = stitchSite.R2Ops[r2StretchIndex];
+                }
+
+                var combinedOp = GetCombinedOp(r1Op, r2Op);
+
+                if (combinedOp == null)
+                {
+                    success = false;
+                    if (_debug)
+                    {
+                        Logger.WriteToLog(string.Format("Could not stitch operations {0} and {1}.", r1Op?.Type,
+                            r2Op?.Type));
+                    }
+                    _statusCounter.AddDebugStatusCount("Could not stitch operations");
+                    return success;
+                }
+
+                stitchingInfo.StitchedCigar.Add(combinedOp.Value);
+                var r1opUsed = r1Op != null;
+                var r2opUsed = r2Op != null;
+
+                if (combinedOp.Value.Type != 'S')
+                {
+                    if (!_useSoftclippedBases && r2Op?.Type == 'S')
+                    {
+                        r2opUsed = false;
+                    }
+                    if (!_useSoftclippedBases && r1Op?.Type == 'S')
+                    {
+                        r1opUsed = false;
+                    }
+                }
+
+                if (r1opUsed && r1Op.Value.IsReadSpan())
+                {
+                    indexInR1++;
+                }
+                if (r2opUsed && r2Op.Value.IsReadSpan())
+                {
+                    indexInR2++;
+                }
+
+                if (_ignoreProbeSoftclips)
+                {
+                    if (r1opUsed && r1Op.Value.Type == 'S')
+                    {
+                        var isProbeSoftclip = (pairIsOutie && indexInR1 >= suffixProbeClipStart) ||
+                                                (!pairIsOutie && indexInR1 < prefixProbeClipEnd);
+
+                        // If this is a probe softclip, don't stitch it
+                        if (isProbeSoftclip && r2opUsed)
+                        {
+                            r1opUsed = false;
+                            if (pairIsOutie)
+                            {
+                                stitchingInfo.IgnoredProbeSuffixBases++;
+                            }
+                            else
+                            {
+                                stitchingInfo.IgnoredProbePrefixBases++;
+                            }
+                        }
+                    }
+                    if (r2opUsed && r2Op.Value.Type == 'S')
+                    {
+                        var isProbeSoftclip = (pairIsOutie && indexInR2 < prefixProbeClipEnd) ||
+                                                (!pairIsOutie && indexInR2 >= suffixProbeClipStart);
+                        if (isProbeSoftclip && r1opUsed)
+                        {
+                            r2opUsed = false;
+                            if (pairIsOutie)
+                            {
+                                stitchingInfo.IgnoredProbePrefixBases++;
+                            }
+                            else
+                            {
+                                stitchingInfo.IgnoredProbeSuffixBases++;
+                            }
+                        }
+                    }
+                    // TODO support scenarios where R1 and R2 are both in probe softclips, if necessary. Otherwise, if this is really never going to happen, throw an exception if we see it.
+                    if (!r1opUsed && !r2opUsed)
+                    {
+                        throw new InvalidDataException("Stitching exception: Both R1 and R2 are in probe softclip regions at overlapping position.");
+                    }
+                }
+                var stitched = r1opUsed && r2opUsed;
+                stitchingInfo.StitchedDirections.Directions.Add(new DirectionOp()
+                {
+                    Direction =
+                        stitched
+                            ? DirectionType.Stitched
+                            : (r1opUsed ? r1DirectionType : r2DirectionType),
+                    Length = 1
+                });
+            }
+
+            return success;
+        }
+
+        private void RedistributeSoftclips(bool operateOnR1)
         {
             var thisReadNum = operateOnR1 ? ReadNumber.Read1 : ReadNumber.Read2;
             var otherReadNum = operateOnR1 ? ReadNumber.Read2 : ReadNumber.Read1;
             StitchedPosition suffixToAdd = null;
 
-            for (var indexInPositions = 0; indexInPositions < positions.Count; indexInPositions++)
+            for (var indexInPositions = 0; indexInPositions < _stitchPositionsList.Count; indexInPositions++)
             {
                 // Try to spread bookending softclips across the further-extending positions on the opposite read
 
-                var stitchPosition = positions[indexInPositions];
+                var stitchPosition = _stitchPositionsList[indexInPositions];
                 StitchedPosition nextStitchPos = null;
                 StitchedPosition previousStitchPos = null;
 
-                if (indexInPositions <= positions.Count - 2)
+                if (indexInPositions <= _stitchPositionsList.Count - 2)
                 {
-                    nextStitchPos = positions[indexInPositions + 1];
+                    nextStitchPos = _stitchPositionsList[indexInPositions + 1];
                 }
                 if (indexInPositions > 0)
                 {
-                    previousStitchPos = positions[indexInPositions - 1];
+                    previousStitchPos = _stitchPositionsList[indexInPositions - 1];
                 }
 
 
-                var isSuffixPosition = indexInPositions == positions.Count -1 || (nextStitchPos!= null && !nextStitchPos.UnmappedPrefix.GetOpsForRead(thisReadNum).Any() &&
-                                       !nextStitchPos.MappedSite.GetOpsForRead(thisReadNum).Any());
-                var isPrefixPosition = indexInPositions == 0 || (previousStitchPos!= null && !previousStitchPos.UnmappedPrefix.GetOpsForRead(thisReadNum).Any() &&
-                                       !previousStitchPos.MappedSite.GetOpsForRead(thisReadNum).Any());
+                var isSuffixPosition = indexInPositions == _stitchPositionsList.Count -1 || (nextStitchPos!= null && (nextStitchPos.UnmappedPrefix.GetOpsForRead(thisReadNum).Count == 0) &&
+                                       (nextStitchPos.MappedSite.GetOpsForRead(thisReadNum).Count == 0));
+                var isPrefixPosition = indexInPositions == 0 || (previousStitchPos!= null && (previousStitchPos.UnmappedPrefix.GetOpsForRead(thisReadNum).Count == 0) &&
+                                       (previousStitchPos.MappedSite.GetOpsForRead(thisReadNum).Count == 0));
 
                 if (stitchPosition.UnmappedPrefix.HasValue())
                 {
@@ -294,24 +330,24 @@ namespace StitchingLogic
                         {
                             stitchPosition.UnmappedPrefix.AddOpsForRead(thisReadNum, new List<CigarOp> { originalOps[i] });
                         }
-                        while (opsToGiveAway.Any())
+                        while (opsToGiveAway.Count != 0)
                         {
                             var indexToRatchetTo = indexInPositions + stitchPosCount;
 
-                            if (indexToRatchetTo > positions.Count - 1)
+                            if (indexToRatchetTo > _stitchPositionsList.Count - 1)
                             {
                                 suffixToAdd = new StitchedPosition();
                                 suffixToAdd.UnmappedPrefix.SetOpsForRead(thisReadNum, opsToGiveAway);
                                 break;
                             }
-                            var currentRatchetedStitchPos = positions[indexToRatchetTo];
+                            var currentRatchetedStitchPos = _stitchPositionsList[indexToRatchetTo];
 
                             // First support the unmappeds at this site
                             while (true)
                             {
-                                if (currentRatchetedStitchPos.UnmappedPrefix.GetOpsForRead(otherReadNum).Count() ==
-                                    currentRatchetedStitchPos.UnmappedPrefix.GetOpsForRead(thisReadNum).Count()
-                                    || !opsToGiveAway.Any())
+                                if (currentRatchetedStitchPos.UnmappedPrefix.GetOpsForRead(otherReadNum).Count ==
+                                    currentRatchetedStitchPos.UnmappedPrefix.GetOpsForRead(thisReadNum).Count
+                                    || opsToGiveAway.Count == 0)
                                 {
                                     break;
                                 }
@@ -321,7 +357,7 @@ namespace StitchingLogic
 
                             // Support the mappeds at this site next
                             var otherSideOpsAtSite = currentRatchetedStitchPos.MappedSite.GetOpsForRead(otherReadNum);
-                            var siteHasOtherSideMapped = otherSideOpsAtSite.Any();
+                            var siteHasOtherSideMapped = (otherSideOpsAtSite.Count != 0);
 
                             if (_allowTerminalClipsToSupportOverlappingDels && siteHasOtherSideMapped && otherSideOpsAtSite.All(s => s.Type == 'D'))
                             {
@@ -329,7 +365,7 @@ namespace StitchingLogic
                                 // Assumption is that there's only one op at that site.
                                 currentRatchetedStitchPos.MappedSite.AddOpsForRead(thisReadNum, new List<CigarOp> { new CigarOp(otherSideOpsAtSite.First().Type, otherSideOpsAtSite.First().Length) });
                             }
-                            else if (siteHasOtherSideMapped && opsToGiveAway.Any() && !currentRatchetedStitchPos.MappedSite.GetOpsForRead(thisReadNum).Any())
+                            else if (siteHasOtherSideMapped && (opsToGiveAway.Count != 0) && (currentRatchetedStitchPos.MappedSite.GetOpsForRead(thisReadNum).Count == 0))
                             {
                                 currentRatchetedStitchPos.MappedSite.AddOpsForRead(thisReadNum, new List<CigarOp> { opsToGiveAway.First() });
                                 opsToGiveAway.RemoveAt(0);
@@ -375,21 +411,21 @@ namespace StitchingLogic
                         {
                             stitchPosition.UnmappedPrefix.AddOpsForRead(thisReadNum, new List<CigarOp> { originalOps[i] });
                         }
-                        while (opsToGiveAway.Any())
+                        while (opsToGiveAway.Count != 0)
                         {
                             stitchPosCount++;
                             var indexToRatchetTo = indexInPositions - stitchPosCount;
-                            var penultimateStitchPos = positions[indexToRatchetTo + 1];
+                            var penultimateStitchPos = _stitchPositionsList[indexToRatchetTo + 1];
 
                             if (indexToRatchetTo < 0)
                             {
                                 penultimateStitchPos.UnmappedPrefix.SetOpsForRead(thisReadNum, opsToGiveAway);
                                 break;
                             }
-                            var currentRatchetedStitchPos = positions[indexToRatchetTo];
+                            var currentRatchetedStitchPos = _stitchPositionsList[indexToRatchetTo];
 
                             var otherSideOpsAtPreviousSite = currentRatchetedStitchPos.MappedSite.GetOpsForRead(operateOnR1 ? ReadNumber.Read2 : ReadNumber.Read1);
-                            var previousHasSomethingInR2Mapped = otherSideOpsAtPreviousSite.Any();
+                            var previousHasSomethingInR2Mapped = (otherSideOpsAtPreviousSite.Count != 0);
 
                             if (_allowTerminalClipsToSupportOverlappingDels && previousHasSomethingInR2Mapped && otherSideOpsAtPreviousSite.All(s => s.Type == 'D'))
                             {
@@ -398,7 +434,7 @@ namespace StitchingLogic
                                 currentRatchetedStitchPos.MappedSite.AddOpsForRead(thisReadNum, new List<CigarOp> { new CigarOp(otherSideOpsAtPreviousSite.First().Type, otherSideOpsAtPreviousSite.First().Length) });
                                 continue;
                             }
-                            else if (previousHasSomethingInR2Mapped && opsToGiveAway.Any() && !currentRatchetedStitchPos.MappedSite.GetOpsForRead(operateOnR1 ? ReadNumber.Read1 : ReadNumber.Read2).Any())
+                            else if (previousHasSomethingInR2Mapped && (opsToGiveAway.Count != 0) && (currentRatchetedStitchPos.MappedSite.GetOpsForRead(operateOnR1 ? ReadNumber.Read1 : ReadNumber.Read2).Count == 0))
                             {
                                 currentRatchetedStitchPos.MappedSite.AddOpsForRead(operateOnR1 ? ReadNumber.Read1 : ReadNumber.Read2, new List<CigarOp> { opsToGiveAway.Last() });
                                 opsToGiveAway.RemoveAt(opsToGiveAway.Count - 1);
@@ -416,11 +452,11 @@ namespace StitchingLogic
 
             if (suffixToAdd != null)
             {
-                positions.Add(suffixToAdd);
+                _stitchPositionsList.Add(suffixToAdd);
             }
         }
 
-        private CigarOp GetCombinedOp(CigarOp r1Op, CigarOp r2Op)
+        private CigarOp? GetCombinedOp(CigarOp? r1Op, CigarOp? r2Op)
         {
             if (r1Op == null && r2Op == null)
             {
@@ -434,17 +470,17 @@ namespace StitchingLogic
             {
                 return r1Op;
             }
-            if (r1Op.Type == r2Op.Type)
+            if (r1Op.Value.Type == r2Op.Value.Type)
             {
                 return r1Op;
             }
 
             // TODO - more nuanced resolution
-            if (r1Op.Type == 'S')
+            if (r1Op.Value.Type == 'S')
             {
                 return r2Op;
             }
-            if (r2Op.Type == 'S')
+            if (r2Op.Value.Type == 'S')
             {
                 return r1Op;
             }
@@ -464,55 +500,73 @@ namespace StitchingLogic
             return stitchPosition;
         }
 
-        private List<StitchedPosition> GetStitchedSites(CigarAlignment cigar1, CigarAlignment cigar2, long firstPos2, long firstPos1)
+        private void GetStitchedSites(CigarAlignment cigar1, CigarAlignment cigar2, long firstPos2, long firstPos1)
         {
-            var expandedCigar1 = cigar1.Expand();
-            var expandedCigar2 = cigar2.Expand();
-
-            var posDict = new Dictionary<int, StitchedPosition>();
+            cigar1.Expand(_expandedCigar1);
+            cigar2.Expand(_expandedCigar2);
 
             _positionsUsed = 0;
 
-            var refPos = 0;
-            foreach (var op in expandedCigar1)
+            if (firstPos1 < firstPos2)
             {
-                if (!posDict.ContainsKey(refPos))
-                {
-                    posDict[refPos] = GetFreshStitchedPosition();
-                }
-                if (op.IsReferenceSpan())
-                {
-                    posDict[refPos].MappedSite.R1Ops.Add(op);
-                    refPos++;
-                }
-                else
-                {
-                    posDict[refPos].UnmappedPrefix.R1Ops.Add(op);
-                }
+                AddR1ToList(0);
+                AddR2ToList((int)(firstPos2 - firstPos1));
             }
-
-            // Reset the ref pos
-            refPos = (int)(firstPos2 - firstPos1);
-
-            foreach (var op in expandedCigar2)
+            else
             {
-                if (!posDict.ContainsKey(refPos))
-                {
-                    posDict[refPos] = GetFreshStitchedPosition();
-                }
-                if (op.IsReferenceSpan())
-                {
-                    posDict[refPos].MappedSite.R2Ops.Add(op);
-                    refPos++;
-                }
-                else
-                {
-                    posDict[refPos].UnmappedPrefix.R2Ops.Add(op);
-                }
+                AddR2ToList(0);
+                AddR1ToList((int)(firstPos1 - firstPos2));
             }
-
-            return posDict.OrderBy(x => x.Key).Select(x => x.Value).ToList();
         }
 
+        private void AddR1ToList(int refPos)
+        {
+            if (refPos > _stitchPositionsList.Count)
+            {
+                refPos = _stitchPositionsList.Count;
+            }
+
+            foreach (var op in _expandedCigar1)
+            {
+                if (refPos >= _stitchPositionsList.Count)
+                {
+                    _stitchPositionsList.Add(GetFreshStitchedPosition());
+                }
+                if (op.IsReferenceSpan())
+                {
+                    _stitchPositionsList[refPos].MappedSite.R1Ops.Add(op);
+                    refPos++;
+                }
+                else
+                {
+                    _stitchPositionsList[refPos].UnmappedPrefix.R1Ops.Add(op);
+                }
+            }
+        }
+
+        private void AddR2ToList(int refPos)
+        {
+            if (refPos > _stitchPositionsList.Count)
+            {
+                refPos = _stitchPositionsList.Count;
+            }
+
+            foreach (var op in _expandedCigar2)
+            {
+                if (refPos >= _stitchPositionsList.Count)
+                {
+                    _stitchPositionsList.Add(GetFreshStitchedPosition());
+                }
+                if (op.IsReferenceSpan())
+                {
+                    _stitchPositionsList[refPos].MappedSite.R2Ops.Add(op);
+                    refPos++;
+                }
+                else
+                {
+                    _stitchPositionsList[refPos].UnmappedPrefix.R2Ops.Add(op);
+                }
+            }
+        }
     }
 }

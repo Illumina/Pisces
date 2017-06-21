@@ -3,8 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Alignment.Domain.Sequencing;
 using Alignment.Domain;
-using Alignment.IO.Sequencing;
-using Alignment.Domain.Sequencing;
+using Common.IO.Utility;
 
 namespace Alignment.Logic
 {
@@ -12,7 +11,6 @@ namespace Alignment.Logic
     {
         public int LastRefId;
         private readonly bool _removeFailedPairs;
-        protected Action<string> OnLog;
         private readonly Dictionary<string, ReadPair> _readsWaitingForMate;
         private int _readsProcessed;
         private int _readsSkipped;
@@ -22,11 +20,20 @@ namespace Alignment.Logic
         private readonly HashSet<string> _blacklistedReads = new HashSet<string>();
         private readonly HashSet<string> _whitelistedReads = new HashSet<string>();
         private ReadPairEvaluator _pairEvaluator;
+        private readonly bool _requireSupplementaries;
+        private int _readsAggressivelySkipped;
 
-        protected AlignmentPairFilter(bool removeFailedPairs = true, ReadPairEvaluator pairEvaluator = null)
+        /// <summary>
+        /// Constructs an AlignmentPairFilter.
+        /// </summary>
+        /// <param name="removeFailedPairs">Whether to remove ReadPairs once they have returned "true" from ShouldSkipPair. Default = true. If false, allows the pair to continue collecting reads and be re-evaluated.</param>
+        /// <param name="pairEvaluator">Read pair evaluator for custom behavior.</param>
+        /// <param name="requireSupplementaries">Whether the read pair requires all expected supplementary reads to be present in order to be considered complete. Default = true.</param>
+        protected AlignmentPairFilter(bool removeFailedPairs = true, ReadPairEvaluator pairEvaluator = null, 
+            bool requireSupplementaries = true)
         {
             _removeFailedPairs = removeFailedPairs;
-            OnLog = Console.WriteLine;
+            _requireSupplementaries = requireSupplementaries;
             _readsWaitingForMate = new Dictionary<string, ReadPair>();
             _pairEvaluator = pairEvaluator ?? new ReadPairEvaluator();
         }
@@ -35,27 +42,29 @@ namespace Alignment.Logic
         {
             if (_readsProcessed % 100000 == 0)
             {
-                OnLog(string.Format("At {6}:{7}. Processed {0} reads and {4} pairs so far. {1} skipped, {2} pairs skipped, {5} pairs paired, {3} currently waiting for mate",
-                    _readsProcessed, _readsSkipped, _pairsSkipped, _readsWaitingForMate.Keys.Count, _pairsProcessed, _pairsPaired, alignment.RefID, alignment.Position));
+                LogStatus(alignment.RefID + ":" + alignment.Position);
             }
 
             _readsProcessed++;
 
             LastRefId = alignment.RefID;
 
+            var readIndexer = ReadIndexer(alignment);
+
             // Check if this read should be blacklisted
             if (ShouldBlacklistReadIndexer(alignment))
             {
-                _blacklistedReads.Add(ReadIndexer(alignment));
+                _blacklistedReads.Add(readIndexer);
             }
 
-            // If this read is in the blacklist, skip the read. If we've already started tracking a mate, remove it from the mate lookup.
-            if (_blacklistedReads.Contains(ReadIndexer(alignment)))
+            // If this read is in the blacklist, or is a read that should be "aggressively" skipped, skip the read. If we've already started tracking a mate, remove it from the mate lookup.
+            if (ShouldSkipAndRemoveWaitingMates(alignment) || _blacklistedReads.Contains(readIndexer))
             {
-                _readsSkipped++;
-                if (_readsWaitingForMate.ContainsKey(ReadIndexer(alignment)))
+                _readsAggressivelySkipped++;
+
+                if (_readsWaitingForMate.ContainsKey(readIndexer))
                 {
-                    _readsWaitingForMate.Remove(ReadIndexer(alignment));
+                    _readsWaitingForMate.Remove(readIndexer);
                 }
                 return null;
             }
@@ -66,17 +75,18 @@ namespace Alignment.Logic
                 return null;
             }
 
-            if (!_readsWaitingForMate.ContainsKey(ReadIndexer(alignment)))
+            if (!_readsWaitingForMate.ContainsKey(readIndexer))
             {
-                _readsWaitingForMate.Add(ReadIndexer(alignment), new ReadPair(new BamAlignment(alignment), ReadIndexer(alignment), GetReadNumber(alignment)));
+                // TODO do we really need to create a new copy here? I think we're already doing it later
+                _readsWaitingForMate.Add(readIndexer, new ReadPair(new BamAlignment(alignment), readIndexer, GetReadNumber(alignment)));
                 return null;
             }
             else
             {
-                var readPair = _readsWaitingForMate[ReadIndexer(alignment)];
+                var readPair = _readsWaitingForMate[readIndexer];
                 readPair.AddAlignment(alignment, GetReadNumber(alignment));
 
-                if (!readPair.IsComplete() || _pairEvaluator.TreatReadPairAsIncomplete(readPair)) return null;
+                if (!readPair.IsComplete(_requireSupplementaries) || _pairEvaluator.TreatReadPairAsIncomplete(readPair)) return null;
 
                 _pairsProcessed++;
 
@@ -85,11 +95,11 @@ namespace Alignment.Logic
 
                 if (!shouldSkip || _removeFailedPairs)
                 {
-                    _readsWaitingForMate.Remove(ReadIndexer(alignment)); // If succeeded, no longer waiting for mate; if failed and we're being strict on failures, remove
+                    _readsWaitingForMate.Remove(readIndexer); // If succeeded, no longer waiting for mate; if failed and we're being strict on failures, remove
                 }
                 if (ShouldWhitelistReadIndexer(alignment, shouldSkip))
                 {
-                    _whitelistedReads.Add(ReadIndexer(alignment));
+                    _whitelistedReads.Add(readIndexer);
                 }
 
                 if (shouldSkip) _pairsSkipped++;
@@ -97,6 +107,16 @@ namespace Alignment.Logic
 
                 return shouldSkip ? null : readPair;
             }
+        }
+
+
+        public void LogStatus(string position)
+        {
+            Logger.WriteToLog(
+                string.Format(
+                    "At {6}. Processed {0} reads and {4} pairs so far. {1} skipped, {7} skipped and blacklisted, {2} pairs skipped, {5} pairs paired, {3} currently waiting for mate. Blacklist: {8}",
+                    _readsProcessed, _readsSkipped, _pairsSkipped, _readsWaitingForMate.Keys.Count, _pairsProcessed,
+                    _pairsPaired, position, _readsAggressivelySkipped, _blacklistedReads.Count));
         }
 
         public virtual bool ReachedFlushingCheckpoint(BamAlignment alignment)
@@ -156,6 +176,11 @@ namespace Alignment.Logic
         /// <returns></returns>
         protected abstract bool ShouldBlacklistReadIndexer(BamAlignment alignment);
 
+        protected virtual bool ShouldSkipAndRemoveWaitingMates(BamAlignment alignment)
+        {
+            return false;
+        }
+
         /// <summary>
         /// Whether a particular mate indexer should be whitelisted, i.e. automatically kept in the future.
         /// Whether a read has been whitelisted is also publicly accessible. 
@@ -188,6 +213,22 @@ namespace Alignment.Logic
         }
 
         /// <summary>
+        /// Clears the read names being held in the blacklist.
+        /// </summary>
+        public void ClearBlacklist()
+        {
+            _blacklistedReads.Clear();
+        }
+
+        /// <summary>
+        /// Clears the collection of reads waiting for mates.
+        /// </summary>
+        public void ClearWaiting()
+        {
+            _readsWaitingForMate.Clear();
+        }
+
+        /// <summary>
         /// Returns a list of BamAlignments that were viable (not skipped, waiting for mates). Must specify whether to remove them from the waiting status.
         /// </summary>
         /// <returns></returns>
@@ -200,7 +241,7 @@ namespace Alignment.Logic
 
         public IEnumerable<BamAlignment> GetFlushableUnpairedReads()
         {
-            OnLog("At RefId=" + LastRefId + ": Scanning through " + _readsWaitingForMate.Keys.Count + " unmated reads.");
+            Logger.WriteToLog("At RefId=" + LastRefId + ": Scanning through " + _readsWaitingForMate.Keys.Count + " unmated reads.");
 
             var readyToFlush = new List<BamAlignment>();
 
@@ -214,11 +255,10 @@ namespace Alignment.Logic
                 }
             }
 
-            OnLog(string.Format("Flushing {0} alignments no longer waiting for pair.", readyToFlush.Count));
+            Logger.WriteToLog(string.Format("Flushing {0} alignments no longer waiting for pair.", readyToFlush.Count));
 
 
             return readyToFlush;
         }
-
     }
 }

@@ -59,8 +59,8 @@ namespace StitchingLogic
 
         public string Stringify()
         {
-            return string.Join("", R1Ops.Select(x => x?.Type)) + "/" +
-                   string.Join("", R2Ops.Select(x => x?.Type));
+            return string.Join("", R1Ops.Select(x => x.Type)) + "/" +
+                   string.Join("", R2Ops.Select(x => x.Type));
         }
 
         public void Reset()

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.IO;
 using Alignment.Domain.Sequencing;
 
 namespace Alignment.Domain
@@ -27,8 +28,14 @@ namespace Alignment.Domain
             get
             {
                 var alignments = new List<BamAlignment>() { Read1 };
-                alignments.AddRange(Read1SupplementaryAlignments);
-                alignments.AddRange(Read1SecondaryAlignments);
+                if (Read1SupplementaryAlignments != null)
+                {
+                    alignments.AddRange(Read1SupplementaryAlignments);
+                }
+                if (Read1SecondaryAlignments != null)
+                {
+                    alignments.AddRange(Read1SecondaryAlignments);
+                }
                 return alignments;
             }
         }
@@ -37,8 +44,14 @@ namespace Alignment.Domain
             get
             {
                 var alignments = new List<BamAlignment>() { Read2 };
-                alignments.AddRange(Read2SupplementaryAlignments);
-                alignments.AddRange(Read2SecondaryAlignments);
+                if (Read2SupplementaryAlignments != null)
+                {
+                    alignments.AddRange(Read2SupplementaryAlignments);
+                }
+                if (Read2SecondaryAlignments != null)
+                {
+                    alignments.AddRange(Read2SecondaryAlignments);
+                }
                 return alignments;
             }
         }
@@ -46,10 +59,6 @@ namespace Alignment.Domain
         public ReadPair(BamAlignment alignment, string name = null, ReadNumber readNumber = ReadNumber.NA)
         {
             Name = name ?? alignment.Name;
-            Read1SupplementaryAlignments = new List<BamAlignment>();
-            Read2SupplementaryAlignments = new List<BamAlignment>();
-            Read1SecondaryAlignments = new List<BamAlignment>();
-            Read2SecondaryAlignments = new List<BamAlignment>();
 
             AddAlignment(alignment, readNumber);
         }
@@ -61,18 +70,18 @@ namespace Alignment.Domain
             {
                 if (readNumber == ReadNumber.NA)
                 {
-                    if (Read1 != null && Read2 != null) throw new Exception("Already have both primary alignments.");
+                    if (Read1 != null && Read2 != null) throw new InvalidDataException("Already have both primary alignments.");
                     if (Read1 == null) Read1 = alignmentCopy;
                     else Read2 = alignmentCopy;
                 }
                 else if (readNumber == ReadNumber.Read1)
                 {
-                    if (Read1 != null) throw new Exception("Already have a read 1 primary alignment.");
+                    if (Read1 != null) throw new InvalidDataException("Already have a read 1 primary alignment.");
                     Read1 = alignmentCopy;
                 }
                 else if (readNumber == ReadNumber.Read2)
                 {
-                    if (Read2 != null) throw new Exception("Already have a read 2 primary alignment.");
+                    if (Read2 != null) throw new InvalidDataException("Already have a read 2 primary alignment.");
                     Read2 = alignmentCopy;
                 }
             }
@@ -81,12 +90,24 @@ namespace Alignment.Domain
                 switch (readNumber)
                 {
                     case ReadNumber.Read1:
+                        if (Read1SupplementaryAlignments == null)
+                        {
+                            Read1SupplementaryAlignments = new List<BamAlignment>();
+                        }
                         Read1SupplementaryAlignments.Add(alignmentCopy);
                         break;
                     case ReadNumber.Read2:
+                        if (Read2SupplementaryAlignments == null)
+                        {
+                            Read2SupplementaryAlignments = new List<BamAlignment>();
+                        }
                         Read2SupplementaryAlignments.Add(alignmentCopy);
                         break;
                     case ReadNumber.NA:
+                        if (Read1SupplementaryAlignments == null)
+                        {
+                            Read1SupplementaryAlignments = new List<BamAlignment>();
+                        }
                         Read1SupplementaryAlignments.Add(alignmentCopy);
                         break;
                     default:
@@ -98,12 +119,24 @@ namespace Alignment.Domain
                 switch (readNumber)
                 {
                     case ReadNumber.Read1:
+                        if (Read1SecondaryAlignments == null)
+                        {
+                            Read1SecondaryAlignments = new List<BamAlignment>();
+                        }
                         Read1SecondaryAlignments.Add(alignmentCopy);
                         break;
                     case ReadNumber.Read2:
+                        if (Read2SecondaryAlignments == null)
+                        {
+                            Read2SecondaryAlignments = new List<BamAlignment>();
+                        }
                         Read2SecondaryAlignments.Add(alignmentCopy);
                         break;
                     case ReadNumber.NA:
+                        if (Read1SecondaryAlignments == null)
+                        {
+                            Read1SecondaryAlignments = new List<BamAlignment>();
+                        }
                         Read1SecondaryAlignments.Add(alignmentCopy);
                         break;
                     default:
@@ -115,23 +148,32 @@ namespace Alignment.Domain
             if (!alignment.IsProperPair()) IsImproper = true;
         }
 
-        public bool IsComplete()
+        public bool IsComplete(bool requireSupplementaryForCompletion = true)
         {
             var completePair = Read1 != null && Read2 != null;
             if (!completePair) return false;
+            
+            if (requireSupplementaryForCompletion)
+            {
+                var r1SupplementariesCollected = !Read1.HasSupplementaryAlignment() || Read1.GetSupplementaryAlignments().Count <= (Read1SupplementaryAlignments?.Count ?? 0);
+                var r2SupplementariesCollected = !Read2.HasSupplementaryAlignment() || Read2.GetSupplementaryAlignments().Count <= (Read2SupplementaryAlignments?.Count ?? 0);
 
-            var expectedSupplementary = (Read1.HasSupplementaryAlignment() ? Read1.GetSupplementaryAlignments().Count : 0) + (Read2.HasSupplementaryAlignment() ? Read2.GetSupplementaryAlignments().Count : 0);
-            var supplementariesCollected = expectedSupplementary <= (Read1SupplementaryAlignments.Count + Read2SupplementaryAlignments.Count); // TODO can you have multiple supplementary?
+                return r1SupplementariesCollected && r2SupplementariesCollected;
+            }
 
-            return supplementariesCollected;
+            return true;
         }
 
+        /// <summary>
+        /// Get all primary and supplementary alignments for read 1 and read 2. Does not include secondary alignments.
+        /// </summary>
+        /// <returns></returns>
         public IEnumerable<BamAlignment> GetAlignments()
         {
             return
                 new List<BamAlignment>() { Read1, Read2 }
-                .Concat(Read1SupplementaryAlignments)
-                .Concat(Read2SupplementaryAlignments)
+                .Concat(Read1SupplementaryAlignments ?? new List<BamAlignment>())
+                .Concat(Read2SupplementaryAlignments ?? new List<BamAlignment>())
                 .Where(a => a != null);
         }
     }

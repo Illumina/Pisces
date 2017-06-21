@@ -1,10 +1,12 @@
 ﻿using System;
+using System.IO;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using Pisces.Domain.Interfaces;
 using Pisces.Domain.Models;
 using Pisces.Processing.Utility;
+using Common.IO.Utility;
 
 namespace Pisces.Processing.Logic
 {
@@ -37,10 +39,11 @@ namespace Pisces.Processing.Logic
 
         public override void InternalExecute(int maxThreads)
         {
+            
             try
             {
                 Logger.WriteToLog("Processing genome '{0}' with {1} threads", Genome.Directory, maxThreads);
-
+               
                 Initialize();
 
                 // if throttling, clip max threads to number of work request so we don't have idle threads
@@ -61,8 +64,8 @@ namespace Pisces.Processing.Logic
                     foreach (var workRequest in WorkRequests)
                     {
                         chrWork.Add(workRequest);
-                        jobs.Add(new GenericJob(() => ProcessByBam(workRequest, chrName)));
-                        _remainingChrByBam[workRequest].Add(chrName);
+                        jobs.Add(new GenericJob(() => ProcessByBam(workRequest, chrName),workRequest.BamFileName + "_" + chrName ));
+                        _remainingChrByBam[workRequest].Add(chrName) ;
                     }
 
                     _remainingWorkByChr.Add(chrName, chrWork);
@@ -93,7 +96,7 @@ namespace Pisces.Processing.Logic
         private void ProcessByBam(BamWorkRequest workRequest, string chrName)
         {
             var bamFileName = workRequest.BamFileName;
-
+            
             try
             {
                 if (ShouldThrottle)
@@ -119,7 +122,7 @@ namespace Pisces.Processing.Logic
             {
                 var wrappedException = new Exception(string.Format("{1}: Error processing chr '{0}': {2}", chrName, bamFileName, ex.Message), ex);
                 Logger.WriteExceptionToLog(wrappedException);
-
+                
                 lock (this)
                     Exceptions.Add(ex);
             }

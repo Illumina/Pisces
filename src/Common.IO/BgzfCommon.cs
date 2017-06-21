@@ -12,6 +12,9 @@ namespace Common.IO.Sequencing
         // constants
         protected const int MaxBlockSize = 64 * 1024;
 
+        // Use 1 MB buffer to avoid seek latency on HDD drives.
+        protected const int FileBufferSize = 1048576; // 1 MB
+
         // variables
         protected internal Stream BgzfFileStream;
         protected internal long BlockAddress;
@@ -34,7 +37,7 @@ namespace Common.IO.Sequencing
             }
             catch (OutOfMemoryException e)
             {
-                throw new ApplicationException(
+                throw new OutOfMemoryException(
                     string.Format("ERROR: Unable to allocate memory for the compressed and uncompressed blocks: {0}",
                                   e.Message));
             }
@@ -88,7 +91,7 @@ namespace Common.IO.Sequencing
             public CompressedData _compressedData;
         }
 
-        private readonly int _compressionLevel;
+        protected readonly int _compressionLevel;
 
         // The compression threads pull the data off of this queue.
         private BlockingCollection<Data> _compressQueue;
@@ -101,26 +104,30 @@ namespace Common.IO.Sequencing
         private Thread[] _compressionThreads;
         private Thread _writingThread;
         private BinaryWriter _writer;
+        protected int NumThreads;
 
         #endregion
 
         public BgzfWriterCommon(int compressionLevel, int numThreads=1)
         {
             _compressionLevel = compressionLevel;
-            if (numThreads <= 1)
-            {
-                _compressQueue = null;
-                _writeQueue = null;
-                _compressionThreads = null;
-                _writingThread = null;
-            }
-            else
-            {
-                _compressQueue =  new BlockingCollection<Data>(2 * numThreads);
-                _writeQueue =  new BlockingCollection<CompressedData>(2 * numThreads);
-                _compressionThreads = new Thread[numThreads];
+            NumThreads = numThreads;
 
-                for (int i = 0; i < numThreads; ++i)
+            _compressQueue = null;
+            _writeQueue = null;
+            _compressionThreads = null;
+            _writingThread = null;
+        }
+
+        private void InitThreads()
+        {
+            if (NumThreads > 1)
+            {
+                _compressQueue = new BlockingCollection<Data>(2 * NumThreads);
+                _writeQueue = new BlockingCollection<CompressedData>(2 * NumThreads);
+                _compressionThreads = new Thread[NumThreads];
+
+                for (int i = 0; i < NumThreads; ++i)
                 {
                     _compressionThreads[i] = new Thread(() => CompressionThread());
                     _compressionThreads[i].Name = string.Format("Compression thread {0}", i);
@@ -183,7 +190,7 @@ namespace Common.IO.Sequencing
             }
             catch (IOException e)
             {
-                throw new ApplicationException(
+                throw new IOException(
                     string.Format("ERROR: An IO exception occurred when flushing the BGZF block: {0}", e.Message));
             }
             catch (InvalidOperationException)
@@ -196,9 +203,7 @@ namespace Common.IO.Sequencing
         {
             if (IsOpen) Close();
 
-            BgzfFileStream = new FileStream(filename, FileMode.Create);
-            _writer = new BinaryWriter(BgzfFileStream);
-            IsOpen = true;
+            Open(new FileStream(filename, FileMode.Create));
         }
 
         protected void Open(Stream outStream)
@@ -208,6 +213,7 @@ namespace Common.IO.Sequencing
             BgzfFileStream = outStream;
             _writer = new BinaryWriter(BgzfFileStream);
             IsOpen = true;
+            InitThreads();
         }
 
         // close Bgzipped file
@@ -241,8 +247,10 @@ namespace Common.IO.Sequencing
             // write an empty block (as EOF marker)
             FlushSingleBlock();
 
-            _writer.Close();
-            BgzfFileStream.Close();
+            //_writer.Close(); not supported with .net core
+            //BgzfFileStream.Close();not supported with .net core
+            _writer.Dispose();
+            BgzfFileStream.Dispose();
         }
 
         private int FlushSingleBlock()
@@ -260,7 +268,7 @@ namespace Common.IO.Sequencing
             }
             catch (IOException e)
             {
-                throw new ApplicationException(
+                throw new IOException(
                     string.Format("ERROR: An IO exception occurred when flushing the BGZF block: {0}", e.Message));
             }
 
@@ -278,12 +286,11 @@ namespace Common.IO.Sequencing
         }
 
         // writes data to the BGZF block
-        protected int Write(byte[] data, uint dataLength)
+        public int Write(byte[] data, uint dataLength, int inputIndex = 0)
         {
             // initialize
             const int blockLength = MaxBlockSize;
             int numBytesWritten = 0;
-            int inputIndex = 0;
 
             // copy the data to the buffer
             while (numBytesWritten < dataLength)

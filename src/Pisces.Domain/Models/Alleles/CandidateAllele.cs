@@ -16,14 +16,16 @@ namespace Pisces.Domain.Models.Alleles
         public bool IsKnown { get; set; }
 
         public float Frequency { get; set; }
+		public bool IsForcedAllele { get; set; }
+
 
         public CandidateAllele(string chromosome, int coordinate, string reference, string alternate, AlleleCategory type)
         {
             Type = type;
             Chromosome = chromosome;
-            Coordinate = coordinate;
-            Reference = reference;
-            Alternate = alternate;
+            ReferencePosition = coordinate;
+            ReferenceAllele = reference;
+            AlternateAllele = alternate;
 
             if (string.IsNullOrEmpty(chromosome))
                 throw new ArgumentException("Chromosome is empty.");
@@ -52,11 +54,11 @@ namespace Pisces.Domain.Models.Alleles
             var otherVariant = o as CandidateAllele;
 
             return otherVariant != null
-                   && otherVariant.Coordinate == Coordinate
-                   && otherVariant.Alternate.Equals(Alternate)
+                   && otherVariant.ReferencePosition == ReferencePosition
+                   && otherVariant.AlternateAllele.Equals(AlternateAllele)
                    && otherVariant.Type == Type
                    && otherVariant.Chromosome.Equals(Chromosome)
-                   && otherVariant.Reference.Equals(Reference);    
+                   && otherVariant.ReferenceAllele.Equals(ReferenceAllele);    
         }
 
         public void AddSupport(CandidateAllele fromAllele)
@@ -67,7 +69,7 @@ namespace Pisces.Domain.Models.Alleles
 
         public CandidateAllele DeepCopy()
         {
-            var copy = new CandidateAllele(Chromosome, Coordinate, Reference, Alternate, Type)
+            var copy = new CandidateAllele(Chromosome, ReferencePosition, ReferenceAllele, AlternateAllele, Type)
             {
                 OpenOnLeft = OpenOnLeft,
                 OpenOnRight = OpenOnRight,
@@ -81,7 +83,7 @@ namespace Pisces.Domain.Models.Alleles
 
         public override string ToString()
         {
-            return string.Format("{0}:{1} {2}>{3}", Chromosome, Coordinate, Reference, Alternate);
+            return string.Format("{0}:{1} {2}>{3}", Chromosome, ReferencePosition, ReferenceAllele, AlternateAllele);
         }
     }
 }

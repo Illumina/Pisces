@@ -1,0 +1,3 @@
+<sequenceSizes genomeName="PhiX (Illumina RTA)">
+	<chromosome fileName="genome.fa" contigName="phix" totalBases="5386" isCircular="false" md5="bb9dae7b38a25a45dae8e3179d7c4241" ploidy="2" knownBases="5386" />
+</sequenceSizes>

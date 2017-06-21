@@ -46,7 +46,7 @@ namespace Common.IO.Sequencing
 															 BufferSize - (uint)bufferOffset);
 			if (_bufferByteCount < 0)
 			{
-				throw new ApplicationException(string.Format("ERROR: Unable to read data from {0}, _bufferByteCount={1}, check zlib.h or zutil.c for error code meaning.", FilePath,
+				throw new InvalidDataException(string.Format("ERROR: Unable to read data from {0}, _bufferByteCount={1}, check zlib.h or zutil.c for error code meaning.", FilePath,
 					_bufferByteCount));
 			}
 		}
@@ -62,7 +62,7 @@ namespace Common.IO.Sequencing
 			if (_bufferByteCount < 0)
 			{
 				//throw exception if this is <0
-				throw new ApplicationException(string.Format("ERROR: Unable to read data from {0}, _bufferByteCount={1}, check zlib.h or zutil.c for error code meaning.", FilePath,
+				throw new InvalidDataException(string.Format("ERROR: Unable to read data from {0}, _bufferByteCount={1}, check zlib.h or zutil.c for error code meaning.", FilePath,
 					_bufferByteCount));
 			}
 			// skip if the file is not currently open or if we don't have any data in the buffer
@@ -100,7 +100,7 @@ namespace Common.IO.Sequencing
 					else
 					{
 						//throw exception if _bufferByteCount <0
-						throw new ApplicationException(string.Format("ERROR: Unable to read data from {0}, _bufferByteCount={1}, check zlib.h or zutil.c for error code meaning.", FilePath,
+						throw new InvalidDataException(string.Format("ERROR: Unable to read data from {0}, _bufferByteCount={1}, check zlib.h or zutil.c for error code meaning.", FilePath,
 							_bufferByteCount));
 					}
 				}

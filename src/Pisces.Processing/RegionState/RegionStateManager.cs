@@ -52,7 +52,7 @@ namespace Pisces.Processing.RegionState
         {
             foreach (var candidateVariant in candidateVariants)
             {
-                var block = GetBlock(candidateVariant.Coordinate);
+                var block = GetBlock(candidateVariant.ReferencePosition);
                 block.AddCandidate(candidateVariant, _trackOpenEnded);
             }
         }
@@ -165,7 +165,7 @@ namespace Pisces.Processing.RegionState
         public List<ReadCoverageSummary> GetSpanningReadSummaries(int startPosition, int endPosition)
         {
             if (!_trackReadSummaries)
-                throw new Exception("Not configured to track read summaries.");
+                throw new ArgumentException("Not configured to track read summaries.");
 
             var summaries = new List<ReadCoverageSummary>();
 
@@ -199,7 +199,7 @@ namespace Pisces.Processing.RegionState
         /// /// <param name="chrReference"></param>
         /// /// <param name="intervalSet"></param>
         /// <returns></returns>
-        public virtual ICandidateBatch GetCandidatesToProcess(int? upToPosition, ChrReference chrReference = null)
+        public virtual ICandidateBatch GetCandidatesToProcess(int? upToPosition, ChrReference chrReference = null,HashSet<Tuple<string,int,string,string>> forcesGtAlleles=null)
         {
             try
             {
@@ -226,7 +226,8 @@ namespace Pisces.Processing.RegionState
                     {
                         break;
                     }
-                    batch.Add(block.GetAllCandidates(_includeRefAlleles, chrReference, _intervalSet));
+	                //Console.WriteLine("block start="+ block.StartPosition+" ;block end = "+ block.EndPosition);
+                    batch.Add(block.GetAllCandidates(_includeRefAlleles, chrReference, _intervalSet,forcesGtAlleles));
                     batch.BlockKeys.Add(key);
                     blocks.Add(block);
                 }
