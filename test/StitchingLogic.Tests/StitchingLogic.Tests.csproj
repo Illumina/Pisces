@@ -66,6 +66,7 @@
       copy $(SolutionDir)\redist $(TargetDir)
       xcopy /Y /S /R /F $(SolutionDir)test\SharedData $(TargetDir)..\SharedData\
     </PostBuildEvent>
+    <Copyright>Copyright ©  2017</Copyright>
   </PropertyGroup>
 
 </Project>
