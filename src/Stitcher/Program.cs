@@ -1,7 +1,7 @@
 ﻿using System;
 using System.IO;
 using System.Reflection;
-using NDesk.Options;
+using StitcherNDOptions;
 using Pisces.Domain.Utility;
 using Common.IO.Utility;
 using Common.IO;

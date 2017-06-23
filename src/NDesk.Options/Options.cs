@@ -131,7 +131,7 @@ using System.IO;
 using System.Text;
 using System.Text.RegularExpressions;
 
-namespace NDesk.Options
+namespace StitcherNDOptions
 {
     public sealed class OptionValueCollection : IList, IList<string>
     {

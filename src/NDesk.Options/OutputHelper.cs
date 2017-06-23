@@ -1,7 +1,7 @@
 ﻿using System;
 using System.IO;
 
-namespace NDesk.Options
+namespace StitcherNDOptions
 {
     public static class OutputHelper
     {

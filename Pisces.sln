@@ -50,7 +50,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "VariantQualityRecalibration
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "VennVcf", "src\VennVcf\VennVcf.csproj", "{B16D0D11-0251-4880-92D9-F55BC850C1B1}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NDesk.Options", "src\NDesk.Options\NDesk.Options.csproj", "{B9B5879A-0907-45BB-ABD5-7C4E86CBF077}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "StitcherNDOptions", "src\NDesk.Options\StitcherNDOptions.csproj", "{B9B5879A-0907-45BB-ABD5-7C4E86CBF077}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Common.IO.Tests", "test\Common.IO.Tests\Common.IO.Tests.csproj", "{6DEDCE72-3D9E-42D3-B3CB-1953DC1BC81E}"
 EndProject

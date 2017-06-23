@@ -50,12 +50,12 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Common.IO\Common.IO.csproj" />
+    <ProjectReference Include="..\NDesk.Options\StitcherNDOptions.csproj" />
     <ProjectReference Include="..\Pisces.Calculators\Pisces.Calculators.csproj" />
     <ProjectReference Include="..\Pisces.Domain\Pisces.Domain.csproj" />
     <ProjectReference Include="..\Pisces.Processing\Pisces.Processing.csproj" />
     <ProjectReference Include="..\Pisces.IO\Pisces.IO.csproj" />
     <ProjectReference Include="..\StitchingLogic\StitchingLogic.csproj" />
-    <ProjectReference Include="..\NDesk.Options\NDesk.Options.csproj" />
   </ItemGroup>
 
   <ItemGroup>

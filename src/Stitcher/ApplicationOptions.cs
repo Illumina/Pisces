@@ -1,4 +1,4 @@
-﻿using NDesk.Options;
+﻿using StitcherNDOptions;
 
 namespace Stitcher
 {
