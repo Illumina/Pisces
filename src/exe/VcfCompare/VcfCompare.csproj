@@ -1,0 +1,53 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netcoreapp2.0</TargetFramework>
+    <AssemblyName>VcfCompare</AssemblyName>
+    <OutputType>Exe</OutputType>
+    <PackageId>Pisces</PackageId>
+    
+    
+    <GenerateAssemblyConfigurationAttribute>false</GenerateAssemblyConfigurationAttribute>
+    <GenerateAssemblyCompanyAttribute>false</GenerateAssemblyCompanyAttribute>
+    <GenerateAssemblyProductAttribute>false</GenerateAssemblyProductAttribute>
+    <PostBuildEvent>copy $(SolutionDir)\redist $(OutDir)</PostBuildEvent>
+    <Version>5.2.5.20</Version>
+    <Copyright>Copyright © Illumina 2017</Copyright>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x86'" />
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" />
+
+  <ItemGroup>
+    <None Update="..\..\redist\libFileCompression.so">
+      <Link>libFileCompression.so</Link>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </None>
+    <None Update="..\..\redist\FileCompression.dll">
+      <Link>FileCompression.dll</Link>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </None>
+    <None Update="FileCompression.dll;libFileCompression.so">
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </None>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="..\..\..\redist\*" CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="System.Threading.Thread" Version="4.3.0" />
+    <PackageReference Include="System.Threading.Tasks" Version="4.3.0" />
+    <PackageReference Include="System.Threading.Tasks.Parallel" Version="4.3.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\lib\Alignment.Domain\Alignment.Domain.csproj" />
+    <ProjectReference Include="..\..\lib\Common.IO\Common.IO.csproj" />
+    <ProjectReference Include="..\..\lib\Pisces.Domain\Pisces.Domain.csproj" />
+    <ProjectReference Include="..\..\lib\Pisces.IO\Pisces.IO.csproj" />
+  </ItemGroup>
+
+</Project>

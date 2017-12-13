@@ -1,0 +1,28 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netcoreapp2.0</TargetFramework>
+    <AssemblyName>VariantPhasing</AssemblyName>
+    <PackageId>VariantPhasing</PackageId>
+    
+    
+    <GenerateAssemblyConfigurationAttribute>false</GenerateAssemblyConfigurationAttribute>
+    <GenerateAssemblyCompanyAttribute>false</GenerateAssemblyCompanyAttribute>
+    <GenerateAssemblyProductAttribute>false</GenerateAssemblyProductAttribute>
+    <Version>5.2.5.20</Version>
+    <Copyright>Copyright © Illumina 2017</Copyright>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" />
+
+  <ItemGroup>
+    <ProjectReference Include="..\Alignment.Domain\Alignment.Domain.csproj" />
+    <ProjectReference Include="..\Alignment.IO\Alignment.IO.csproj" />
+    <ProjectReference Include="..\Common.IO\Common.IO.csproj" />
+    <ProjectReference Include="..\Pisces.Calculators\Pisces.Calculators.csproj" />
+    <ProjectReference Include="..\Pisces.Domain\Pisces.Domain.csproj" />
+    <ProjectReference Include="..\Pisces.IO\Pisces.IO.csproj" />
+    <ProjectReference Include="..\Pisces.Processing\Pisces.Processing.csproj" />
+  </ItemGroup>
+
+</Project>

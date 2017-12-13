@@ -1,0 +1,25 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard1.6</TargetFramework>
+    <AssemblyName>Alignment.Logic</AssemblyName>
+    <PackageId>Alignment.Logic</PackageId>
+    <NetStandardImplicitPackageVersion>1.6.0</NetStandardImplicitPackageVersion>
+    
+    <GenerateAssemblyConfigurationAttribute>false</GenerateAssemblyConfigurationAttribute>
+    <GenerateAssemblyCompanyAttribute>false</GenerateAssemblyCompanyAttribute>
+    <GenerateAssemblyProductAttribute>false</GenerateAssemblyProductAttribute>
+    <PostBuildEvent>copy $(SolutionDir)\redist $(OutDir)</PostBuildEvent>
+    <Version>5.2.5.20</Version>
+    <Copyright>Copyright © Illumina 2017</Copyright>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" />
+
+  <ItemGroup>
+    <ProjectReference Include="..\Alignment.Domain\Alignment.Domain.csproj" />
+    <ProjectReference Include="..\Alignment.IO\Alignment.IO.csproj" />
+    <ProjectReference Include="..\Common.IO\Common.IO.csproj" />
+  </ItemGroup>
+
+</Project>

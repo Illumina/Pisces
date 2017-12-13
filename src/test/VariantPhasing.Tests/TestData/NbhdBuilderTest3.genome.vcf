@@ -1,0 +1,28 @@
+﻿##fileformat=VCFv4.1
+##fileDate=20151029
+##source=Pisces 5.2.5.20
+##Pisces_cmdline="-B Sample.bam -g C:\Illumina\MiSeqAnalysisPortal\Genomes\Homo_sapiens\UCSC\hg19\Sequence\WholeGenomeFasta -OutFolder C:\ -gVCF false -StitchPairedReads false -CallMNVs false -OutFolder C:\Users\gberry\Documents\LiSim\216 -MaxMNVLength 5"
+##reference=C:\Illumina\MiSeqAnalysisPortal\Genomes\Homo_sapiens\UCSC\hg19\Sequence\WholeGenomeFasta
+##INFO=<ID=DP,Number=1,Type=Integer,Description="Total Depth">
+##INFO=<ID=TI,Number=.,Type=String,Description="Transcript ID">
+##INFO=<ID=GI,Number=.,Type=String,Description="Gene ID">
+##INFO=<ID=EXON,Number=0,Type=Flag,Description="Exon Region">
+##INFO=<ID=FC,Number=.,Type=String,Description="Functional Consequence">
+##FILTER=<ID=q30,Description="Quality below 30">
+##FILTER=<ID=LowDP,Description="Low coverage (DP tag), therefore no genotype called">
+##FILTER=<ID=SB,Description="Variant strand bias too high">
+##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">
+##FORMAT=<ID=GQ,Number=1,Type=Integer,Description="Genotype Quality">
+##FORMAT=<ID=AD,Number=.,Type=Integer,Description="Allele Depth">
+##FORMAT=<ID=VF,Number=1,Type=Float,Description="Variant Frequency">
+##FORMAT=<ID=NL,Number=1,Type=Integer,Description="Applied BaseCall Noise Level">
+##FORMAT=<ID=SB,Number=1,Type=Float,Description="StrandBias Score">
+##contig=<ID=chrM,length=16571>
+##contig=<ID=chr1,length=249250621>
+#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	MNV-25-var216_S216.bam
+chr1	123	.	A	T	100	PASS	DP=381	GT:GQ:AD:VF:NL:SB	0/1:100:188,193:0.507:20:-100.0000
+chr1	124	.	A	T	100	PASS	DP=374	GT:GQ:AD:VF:NL:SB	0/1:100:187,187:0.500:20:-100.0000
+chr1	125	.	A	T	100	PASS	DP=375	GT:GQ:AD:VF:NL:SB	0/1:100:186,189:0.504:20:-100.0000
+chr1	128	.	A	T	100	PASS	DP=377	GT:GQ:AD:VF:NL:SB	0/1:100:190,187:0.496:20:-100.0000
+chr1	129	.	A	T	100	PASS	DP=375	GT:GQ:AD:VF:NL:SB	0/1:100:186,189:0.504:20:-100.0000
+chr1	125	.	A	T	100	PASS	DP=377	GT:GQ:AD:VF:NL:SB	0/1:100:190,187:0.496:20:-100.0000

@@ -1,0 +1,29 @@
+##fileformat=VCFv4.1
+##fileDate=20160315
+##source=Pisces.IO.Tests 1.0.0.0
+##Pisces.IO.Tests_cmdline="myCommandLine"
+##reference=myReference
+##ALT=<ID=<M>,Description="There is an overlapping other allele that has been called in a separate VCF record">
+##INFO=<ID=DP,Number=1,Type=Integer,Description="Total Depth">
+##FILTER=<ID=q20,Description="Quality score less than 20">
+##FILTER=<ID=LowDP,Description="Low coverage (DP tag), therefore no genotype called">
+##FILTER=<ID=SB,Description="Variant strand bias too high or coverage on only one strand">
+##FILTER=<ID=LowVariantFreq,Description="Variant frequency less than 0.0070">
+##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">
+##FORMAT=<ID=GQ,Number=1,Type=Integer,Description="Genotype Quality">
+##FORMAT=<ID=AD,Number=.,Type=Integer,Description="Allele Depth">
+##FORMAT=<ID=DP,Number=1,Type=Integer,Description="Total Depth Used For Variant Calling">
+##FORMAT=<ID=VF,Number=.,Type=Float,Description="Variant Frequency">
+##FORMAT=<ID=NL,Number=1,Type=Integer,Description="Applied BaseCall Noise Level">
+##FORMAT=<ID=SB,Number=1,Type=Float,Description="StrandBias Score">
+##FORMAT=<ID=NC,Number=1,Type=Float,Description="Fraction of bases which were uncalled or with basecall quality below the minimum threshold">
+##contig=<ID=chr1,length=10001>
+##contig=<ID=chrX,length=500>
+#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	mySample
+chr4	2	.	C	.	0	LowDP	DP=0	GT:GQ:AD:DP:VF:NL:SB:NC	./.:0:0:0:0.0000:23:0.0000:0.0000
+chr4	3	.	C	.	0	LowDP	DP=0	GT:GQ:AD:DP:VF:NL:SB:NC	./.:0:0:0:0.0000:23:0.0000:0.0000
+chr4	6	.	C	.	0	LowDP	DP=0	GT:GQ:AD:DP:VF:NL:SB:NC	./.:0:0:0:0.0000:23:0.0000:0.0000
+chr4	7	.	C	A	0	PASS	DP=5394	GT:GQ:AD:DP:VF:NL:SB:NC	1/1:0:7,2387:5394:0.4425:23:0.0000:0.0000
+chr4	8	.	C	.	0	LowDP	DP=0	GT:GQ:AD:DP:VF:NL:SB:NC	./.:0:0:0:0.0000:23:0.0000:0.0000
+chr4	10	.	AA	GA,G	0	PASS	DP=5394	GT:GQ:AD:DP:VF:NL:SB:NC	1/2:0:2387,2000:5394:0.8133:23:0.0000:0.0000
+chr4	11	.	C	.	0	LowDP	DP=0	GT:GQ:AD:DP:VF:NL:SB:NC	./.:0:0:0:0.0000:23:0.0000:0.0000
