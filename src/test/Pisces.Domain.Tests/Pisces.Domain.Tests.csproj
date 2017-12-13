@@ -1,0 +1,83 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netcoreapp2.0</TargetFramework>
+    <AssemblyName>Pisces.Domain.Tests</AssemblyName>
+    <PackageId>Pisces.Domain.Tests</PackageId>
+    
+    
+    <GenerateAssemblyConfigurationAttribute>false</GenerateAssemblyConfigurationAttribute>
+    <GenerateAssemblyCompanyAttribute>false</GenerateAssemblyCompanyAttribute>
+    <GenerateAssemblyProductAttribute>false</GenerateAssemblyProductAttribute>
+    <Version>5.2.5.20</Version>
+    <Copyright>Copyright © Illumina 2017</Copyright>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" />
+
+  <ItemGroup>
+    <Content Include="..\SharedData\Genomes\chr19\GenomeSize.xml" Link="SharedData\Genomes\chr19\GenomeSize.xml">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\lib\Alignment.Domain\Alignment.Domain.csproj" />
+    <ProjectReference Include="..\..\lib\Pisces.Domain\Pisces.Domain.csproj" />
+    <ProjectReference Include="..\TestUtilities\TestUtilities.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+   <PackageReference Include="Microsoft.NET.Test.Sdk" Version="15.3.0" />
+    <PackageReference Include="xunit" Version="2.2.0" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.2.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Service Include="{82a7f48d-3b50-4b1e-b82e-3ada8210c358}" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="SharedData\Bams\" />
+    <Folder Include="SharedData\Genomes\chr19\" />
+    <Folder Include="SharedData\Intervals\" />
+    <Folder Include="TestData\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\SharedData\Bams\Chr17Chr19.bam" Link="SharedData\Bams\Chr17Chr19.bam">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="..\SharedData\Bams\Chr17Chr19.bam.bai" Link="SharedData\Bams\Chr17Chr19.bam.bai">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="..\SharedData\Bams\Chr17Chr19_removedSQlines.bam" Link="SharedData\Bams\Chr17Chr19_removedSQlines.bam">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="..\SharedData\Bams\Chr17Chr19_removedSQlines.bam.bai" Link="SharedData\Bams\Chr17Chr19_removedSQlines.bam.bai">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="..\SharedData\Bams\chr17only.picard" Link="SharedData\Intervals\chr17only.picard">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="..\SharedData\Genomes\chr19\chr19.fa" Link="SharedData\Genomes\chr19\chr19.fa">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="..\SharedData\Genomes\chr19\chr19.fa.fai" Link="SharedData\Genomes\chr19\chr19.fa.fai">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="TestData\Chr17Chr19_removedSQlines.bam">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestData\Chr17Chr19_removedSQlines.bam.bai">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestData\chr17only.picard">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+</Project>

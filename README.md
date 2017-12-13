@@ -14,14 +14,13 @@ Pisces source code is provided under the GPLv3 license. Pisces includes third pa
 
 64 bit OS. 
 
-If running on windows or linux, you need .net core framework 1.0.  This is freely available from https://www.microsoft.com/net/download/core .
-
 If running on Linux, you need the “libFileCompression.so” file included with the Pisces solution. If you use a precompiled Pisces binary, this should already be in place alongside the application.
 
-For Pisces versions 5.2.x, Mono is no longer required to run Pisces on Linux.
+For Pisces version 5.2.5 and above, we have rolled forwards to .net core 2.0, which seems much more solid than the 1.0 .net core release. ( https://www.microsoft.com/net/download/windows ) . We are using dotnet version 2.0.3.
 
-For Pisces versions 5.1.x and below, please see the Legacy System Requirements from the associated branch ReadMe.
-For example, [ReadMe 5.1.3](https://git.illumina.com/Bioinformatics/Pisces5/blob/5_1_7/README.md)
+For Pisces version 5.2.0, for Windows or Linux, you need .net core framework 1.0.  This is freely available from https://www.microsoft.com/net/download/core . (This particular release has been working well for our users: https://github.com/dotnet/core/blob/master/release-notes/download-archives/1.0.5-download.md )
+
+For Pisces versions 5.1.x and below, Mono is required on Linux. Please see the Legacy System Requirements from the associated branch ReadMe. For example, [ReadMe 5.1.3](https://git.illumina.com/Bioinformatics/Pisces5/blob/5_1_7/README.md)
 
 # Running from a binary distribution
 
@@ -48,7 +47,9 @@ For example, [ReadMe 5.1.3](https://git.illumina.com/Bioinformatics/Pisces5/blob
 
 # Build instructions
 
-To configure and install, build the solution and copy the build to the desired location. The build is a windows process, and the solution in this repository is for VisualStudio 2017. Load the solution into VS, and build in release, x64 mode. This will create a bin\x64\Release folder along side the solution file. The Release folder has everything needed to run on windows, locally. The .net core release process includes a "Publish" step.  Use publish to gather local nuget dependencies and dll's needed to support other runtime targets (such as debian). The output from the publish step should be deployable to both win and linux without further modification.
+To configure and install, build the solution and copy the build to the desired location. The build is a windows process, and the solution in this repository is for VisualStudio 2017. For the .net core 2.0 version of Pisces, we reccomend VS 15.3 or above (we are using 15.5.1). Not all versions of VS are compatible with 2.0. 
+
+Load the solution into VS, and build in release, x64 mode. This will create a bin\x64\Release folder along side the solution file. The Release folder has everything needed to run on windows, locally. The .net core release process includes a "Publish" step.  Use publish to gather local nuget dependencies and dll's needed to support other runtime targets (such as debian). The output from the publish step should be deployable to both win and linux without further modification.
 
 The component algorithms are intended for developers to re-use and improve them. This version is not commercially supported and provided as is under the GNU GENERAL PUBLIC LICENSE. For first time use, we recommend testing with the example in the "testdata" folder.
 
@@ -62,4 +63,5 @@ https://github.com/Illumina/Pisces/wiki/Frequently-Asked-Questions
 pisces@illumina.com
 
 If you are using Pisces, feel free to introduce yourself!
+
 

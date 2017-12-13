@@ -1,0 +1,201 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netcoreapp2.0</TargetFramework>
+    <AssemblyName>Pisces.Tests</AssemblyName>
+    <PackageId>Pisces.Tests</PackageId>
+    
+    
+    <GenerateAssemblyConfigurationAttribute>false</GenerateAssemblyConfigurationAttribute>
+    <GenerateAssemblyCompanyAttribute>false</GenerateAssemblyCompanyAttribute>
+    <GenerateAssemblyProductAttribute>false</GenerateAssemblyProductAttribute>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" />
+
+  <ItemGroup>
+    <Content Include="..\SharedData\Genomes\Bacillus_cereus\Sequence\WholeGenomeFasta\GenomeSize.xml" Link="SharedData\Genomes\Bacillus_cereus\Sequence\WholeGenomeFasta\GenomeSize.xml">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="..\SharedData\Genomes\chr17chr19\GenomeSize.xml" Link="SharedData\Genomes\chr17chr19\GenomeSize.xml">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="..\SharedData\Genomes\chr19\GenomeSize.xml" Link="SharedData\Genomes\chr19\GenomeSize.xml">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="..\SharedData\Genomes\fakeChr1Chr19\GenomeSize.xml" Link="SharedData\Genomes\fakeChr1Chr19\GenomeSize.xml">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="..\SharedData\Genomes\fourChrs\GenomeSize.xml" Link="SharedData\Genomes\fourChrs\GenomeSize.xml">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="..\SharedData\Genomes\invalidGenomeSize\GenomeSize.xml" Link="SharedData\Genomes\invalidGenomeSize\GenomeSize.xml">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="..\SharedData\Genomes\PhiX\WholeGenomeFasta\GenomeSize.xml" Link="SharedData\Genomes\PhiX\WholeGenomeFasta\GenomeSize.xml">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\..\..\redist\FileCompression.dll" Link="FileCompression.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="..\..\..\redist\libFileCompression.so" Link="libFileCompression.so">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="..\SharedData\Bams\Bcereus_S4.bam" Link="SharedData\Bams\Bcereus_S4.bam">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="..\SharedData\Bams\Bcereus_S4.bam.bai" Link="SharedData\Bams\Bcereus_S4.bam.bai">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="..\SharedData\Bams\PhiX_S3.bam" Link="SharedData\Bams\PhiX_S3.bam">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="..\SharedData\Bams\PhiX_S3.bam.bai" Link="SharedData\Bams\PhiX_S3.bam.bai">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="..\SharedData\Genomes\Bacillus_cereus\Sequence\WholeGenomeFasta\genome.dict" Link="SharedData\Genomes\Bacillus_cereus\Sequence\WholeGenomeFasta\genome.dict">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="..\SharedData\Genomes\Bacillus_cereus\Sequence\WholeGenomeFasta\genome.fa" Link="SharedData\Genomes\Bacillus_cereus\Sequence\WholeGenomeFasta\genome.fa">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="..\SharedData\Genomes\Bacillus_cereus\Sequence\WholeGenomeFasta\genome.fa.fai" Link="SharedData\Genomes\Bacillus_cereus\Sequence\WholeGenomeFasta\genome.fa.fai">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="..\SharedData\Genomes\chr17chr19\chr17chr19.fa" Link="SharedData\Genomes\chr17chr19\chr17chr19.fa">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="..\SharedData\Genomes\chr17chr19\chr17chr19.fa.fai" Link="SharedData\Genomes\chr17chr19\chr17chr19.fa.fai">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="..\SharedData\Genomes\chr19\chr19.dict" Link="SharedData\Genomes\chr19\chr19.dict">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="..\SharedData\Genomes\chr19\chr19.fa" Link="SharedData\Genomes\chr19\chr19.fa">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="..\SharedData\Genomes\chr19\chr19.fa.bwt" Link="SharedData\Genomes\chr19\chr19.fa.bwt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="..\SharedData\Genomes\chr19\chr19.fa.fai" Link="SharedData\Genomes\chr19\chr19.fa.fai">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="..\SharedData\Genomes\fakeChr1Chr19\fake.fa" Link="SharedData\Genomes\fakeChr1Chr19\fake.fa">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="..\SharedData\Genomes\fakeChr1Chr19\fake.fa.fai" Link="SharedData\Genomes\fakeChr1Chr19\fake.fa.fai">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="..\SharedData\Genomes\fourChrs\chr7chr19.fa" Link="SharedData\Genomes\fourChrs\chr7chr19.fa">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="..\SharedData\Genomes\fourChrs\chr7chr19.fa.fai" Link="SharedData\Genomes\fourChrs\chr7chr19.fa.fai">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="..\SharedData\Genomes\PhiX\WholeGenomeFasta\genome.fa" Link="SharedData\Genomes\PhiX\WholeGenomeFasta\genome.fa">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="..\SharedData\Genomes\PhiX\WholeGenomeFasta\genome.fa.fai" Link="SharedData\Genomes\PhiX\WholeGenomeFasta\genome.fa.fai">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="..\SharedData\StitcherTestData\PiscesUnitTestScenarios_Deletions_Deletion Inputs.csv" Link="SharedData\StitcherTestData\PiscesUnitTestScenarios_Deletions_Deletion Inputs.csv">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="..\SharedData\StitcherTestData\PiscesUnitTestScenarios_GapSituations_Gaps Inputs.csv" Link="SharedData\StitcherTestData\PiscesUnitTestScenarios_GapSituations_Gaps Inputs.csv">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="..\SharedData\StitcherTestData\PiscesUnitTestScenarios_Insertions_Insertion Inputs.csv" Link="SharedData\StitcherTestData\PiscesUnitTestScenarios_Insertions_Insertion Inputs.csv">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="..\SharedData\StitcherTestData\PiscesUnitTestScenarios_SCProbeDeletions_SCProbeDeletion Inputs.csv" Link="SharedData\StitcherTestData\PiscesUnitTestScenarios_SCProbeDeletions_SCProbeDeletion Inputs.csv">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="..\SharedData\StitcherTestData\PiscesUnitTestScenarios_SCProbeInsertions_SCProbeInsertion Inputs.csv" Link="SharedData\StitcherTestData\PiscesUnitTestScenarios_SCProbeInsertions_SCProbeInsertion Inputs.csv">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="..\SharedData\StitcherTestData\PiscesUnitTestScenarios_SCProbeSnpsAndMnvs_SCProbe MNVs Inputs.csv" Link="SharedData\StitcherTestData\PiscesUnitTestScenarios_SCProbeSnpsAndMnvs_SCProbe MNVs Inputs.csv">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="..\SharedData\StitcherTestData\PiscesUnitTestScenarios_SnpsAndMnvs_SNPs and MNVs Inputs.csv" Link="SharedData\StitcherTestData\PiscesUnitTestScenarios_SnpsAndMnvs_SNPs and MNVs Inputs.csv">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="..\SharedData\StitcherTestData\PiscesUnitTestScenarios_SoftClippedDeletions_SoftclippedDeletion Inputs.csv" Link="SharedData\StitcherTestData\PiscesUnitTestScenarios_SoftClippedDeletions_SoftclippedDeletion Inputs.csv">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="..\SharedData\StitcherTestData\PiscesUnitTestScenarios_SoftClippedInsertions_SoftClippedInsertion Inputs.csv" Link="SharedData\StitcherTestData\PiscesUnitTestScenarios_SoftClippedInsertions_SoftClippedInsertion Inputs.csv">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="..\SharedData\StitcherTestData\PiscesUnitTestScenarios_SoftClippedSnpsAndMnvs_Softclipped MNVs Inputs.csv" Link="SharedData\StitcherTestData\PiscesUnitTestScenarios_SoftClippedSnpsAndMnvs_Softclipped MNVs Inputs.csv">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="..\SharedData\StitcherTestData\PiscesUnitTestScenarios_UnstitchableDeletions_UnstitchableDeletions Inputs.csv" Link="SharedData\StitcherTestData\PiscesUnitTestScenarios_UnstitchableDeletions_UnstitchableDeletions Inputs.csv">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="..\SharedData\StitcherTestData\PiscesUnitTestScenarios_UnstitchableInsertions_UnstitchableIns Inputs.csv" Link="SharedData\StitcherTestData\PiscesUnitTestScenarios_UnstitchableInsertions_UnstitchableIns Inputs.csv">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="..\..\redist\libFileCompression.so">
+      <Link>libFileCompression.so</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="..\..\redist\FileCompression.dll">
+      <Link>FileCompression.dll</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="FileCompression.dll;libFileCompression.so;TestData\*">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\exe\Pisces\Pisces.csproj" />
+    <ProjectReference Include="..\..\lib\Alignment.Domain\Alignment.Domain.csproj" />
+    <ProjectReference Include="..\..\lib\Alignment.IO\Alignment.IO.csproj" />
+    <ProjectReference Include="..\..\lib\Common.IO\Common.IO.csproj" />
+    <ProjectReference Include="..\..\lib\Pisces.Calculators\Pisces.Calculators.csproj" />
+    <ProjectReference Include="..\..\lib\Pisces.Domain\Pisces.Domain.csproj" />
+    <ProjectReference Include="..\..\lib\Pisces.Processing\Pisces.Processing.csproj" />
+    <ProjectReference Include="..\..\lib\Pisces.IO\Pisces.IO.csproj" />
+    <ProjectReference Include="..\TestUtilities\TestUtilities.csproj" />
+    <ProjectReference Include="..\..\lib\StitchingLogic\StitchingLogic.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="xunit" Version="2.2.0" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="15.3.0" />
+   <PackageReference Include="xunit.runner.console" Version="2.2.0" />
+   <PackageReference Include="xunit.runner.visualstudio" Version="2.2.0" />
+   <PackageReference Include="Moq" Version="4.7.99" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Service Include="{82a7f48d-3b50-4b1e-b82e-3ada8210c358}" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="SharedData\Bams\" />
+    <Folder Include="SharedData\Genomes\Bacillus_cereus\Sequence\WholeGenomeFasta\" />
+    <Folder Include="SharedData\Genomes\chr17chr19\" />
+    <Folder Include="SharedData\Genomes\chr19\" />
+    <Folder Include="SharedData\Genomes\fakeChr1Chr19\" />
+    <Folder Include="SharedData\Genomes\fourChrs\" />
+    <Folder Include="SharedData\Genomes\invalidGenomeSize\" />
+    <Folder Include="SharedData\Genomes\PhiX\WholeGenomeFasta\" />
+    <Folder Include="SharedData\StitcherTestData\" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <PreBuildEvent></PreBuildEvent>
+    <PostBuildEvent>
+</PostBuildEvent>
+    <Version>5.2.5.20</Version>
+    <Copyright>Copyright © Illumina 2017</Copyright>
+  </PropertyGroup>
+
+</Project>

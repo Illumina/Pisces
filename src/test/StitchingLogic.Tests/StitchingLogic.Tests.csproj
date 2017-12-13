@@ -1,0 +1,106 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netcoreapp2.0</TargetFramework>
+    <AssemblyName>StitchingLogic.Tests</AssemblyName>
+    <PackageId>StitchingLogic.Tests</PackageId>
+    
+    
+    <GenerateAssemblyConfigurationAttribute>false</GenerateAssemblyConfigurationAttribute>
+    <GenerateAssemblyCompanyAttribute>false</GenerateAssemblyCompanyAttribute>
+    <GenerateAssemblyProductAttribute>false</GenerateAssemblyProductAttribute>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" />
+
+  <ItemGroup>
+    <None Update="..\..\redist\libFileCompression.so">
+      <Link>libFileCompression.so</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="..\..\redist\FileCompression.dll">
+      <Link>FileCompression.dll</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="FileCompression.dll;libFileCompression.so;TestData\*">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\lib\Alignment.Domain\Alignment.Domain.csproj" />
+    <ProjectReference Include="..\..\lib\Alignment.IO\Alignment.IO.csproj" />
+    <ProjectReference Include="..\..\lib\Common.IO\Common.IO.csproj" />
+    <ProjectReference Include="..\..\lib\Pisces.Calculators\Pisces.Calculators.csproj" />
+    <ProjectReference Include="..\..\lib\Pisces.Domain\Pisces.Domain.csproj" />
+    <ProjectReference Include="..\..\lib\Pisces.IO\Pisces.IO.csproj" />
+    <ProjectReference Include="..\..\lib\Pisces.Processing\Pisces.Processing.csproj" />
+    <ProjectReference Include="..\..\lib\StitchingLogic\StitchingLogic.csproj" />
+    <ProjectReference Include="..\TestUtilities\TestUtilities.csproj" />
+    <ProjectReference Include="..\Pisces.IO.Tests\Pisces.IO.Tests.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Moq" Version="4.7.99" />
+    <PackageReference Include="xunit" Version="2.2.0" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="15.3.0" />
+  <PackageReference Include="xunit.runner.console" Version="2.2.0" />
+  <PackageReference Include="xunit.runner.visualstudio" Version="2.2.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Service Include="{82a7f48d-3b50-4b1e-b82e-3ada8210c358}" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="SharedData\StitcherTestData\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\SharedData\StitcherTestData\PiscesUnitTestScenarios_Deletions_Deletion Inputs.csv" Link="SharedData\StitcherTestData\PiscesUnitTestScenarios_Deletions_Deletion Inputs.csv">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="..\SharedData\StitcherTestData\PiscesUnitTestScenarios_GapSituations_Gaps Inputs.csv" Link="SharedData\StitcherTestData\PiscesUnitTestScenarios_GapSituations_Gaps Inputs.csv">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="..\SharedData\StitcherTestData\PiscesUnitTestScenarios_Insertions_Insertion Inputs.csv" Link="SharedData\StitcherTestData\PiscesUnitTestScenarios_Insertions_Insertion Inputs.csv">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="..\SharedData\StitcherTestData\PiscesUnitTestScenarios_SCProbeDeletions_SCProbeDeletion Inputs.csv" Link="SharedData\StitcherTestData\PiscesUnitTestScenarios_SCProbeDeletions_SCProbeDeletion Inputs.csv">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="..\SharedData\StitcherTestData\PiscesUnitTestScenarios_SCProbeInsertions_SCProbeInsertion Inputs.csv" Link="SharedData\StitcherTestData\PiscesUnitTestScenarios_SCProbeInsertions_SCProbeInsertion Inputs.csv">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="..\SharedData\StitcherTestData\PiscesUnitTestScenarios_SCProbeSnpsAndMnvs_SCProbe MNVs Inputs.csv" Link="SharedData\StitcherTestData\PiscesUnitTestScenarios_SCProbeSnpsAndMnvs_SCProbe MNVs Inputs.csv">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="..\SharedData\StitcherTestData\PiscesUnitTestScenarios_SnpsAndMnvs_SNPs and MNVs Inputs.csv" Link="SharedData\StitcherTestData\PiscesUnitTestScenarios_SnpsAndMnvs_SNPs and MNVs Inputs.csv">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="..\SharedData\StitcherTestData\PiscesUnitTestScenarios_SoftClippedDeletions_SoftclippedDeletion Inputs.csv" Link="SharedData\StitcherTestData\PiscesUnitTestScenarios_SoftClippedDeletions_SoftclippedDeletion Inputs.csv">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="..\SharedData\StitcherTestData\PiscesUnitTestScenarios_SoftClippedInsertions_SoftClippedInsertion Inputs.csv" Link="SharedData\StitcherTestData\PiscesUnitTestScenarios_SoftClippedInsertions_SoftClippedInsertion Inputs.csv">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="..\SharedData\StitcherTestData\PiscesUnitTestScenarios_SoftClippedSnpsAndMnvs_Softclipped MNVs Inputs.csv" Link="SharedData\StitcherTestData\PiscesUnitTestScenarios_SoftClippedSnpsAndMnvs_Softclipped MNVs Inputs.csv">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="..\SharedData\StitcherTestData\PiscesUnitTestScenarios_UnstitchableDeletions_UnstitchableDeletions Inputs.csv" Link="SharedData\StitcherTestData\PiscesUnitTestScenarios_UnstitchableDeletions_UnstitchableDeletions Inputs.csv">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="..\SharedData\StitcherTestData\PiscesUnitTestScenarios_UnstitchableInsertions_UnstitchableIns Inputs.csv" Link="SharedData\StitcherTestData\PiscesUnitTestScenarios_UnstitchableInsertions_UnstitchableIns Inputs.csv">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+  <PropertyGroup>
+    <PreBuildEvent></PreBuildEvent>
+    <PostBuildEvent>
+</PostBuildEvent>
+    <Version>5.2.5.20</Version>
+    <Copyright>Copyright © Illumina 2017</Copyright>
+  </PropertyGroup>
+
+</Project>
