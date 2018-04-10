@@ -82,7 +82,7 @@ namespace Pisces.Tests.UnitTests
                 {
                     BAMPaths = new[] { string.Empty },
                     GenomePaths = new[] { GenomeChr19 },
-                    OutputFolder = Path.Combine(TestPaths.LocalTestDataDirectory, "ExcelStitchingTests"),
+                    OutputDirectory = Path.Combine(TestPaths.LocalTestDataDirectory, "ExcelStitchingTests"),
                     CallMNVs = true,
                     MaxSizeMNV = 6,
                     MaxGapBetweenMNV = 1,
@@ -111,7 +111,7 @@ namespace Pisces.Tests.UnitTests
             if (scenario.ShouldRefStitch != true)
                 return;
 
-            var resultsSummary = Path.Combine(Options.OutputFolder, LoadingSummaryFileName);
+            var resultsSummary = Path.Combine(Options.OutputDirectory, LoadingSummaryFileName);
             using (StreamWriter sw = new StreamWriter(new FileStream(resultsSummary, FileMode.OpenOrCreate)))
             {
                 var day = DateTime.Now.ToString("d"); //.net core
@@ -195,7 +195,7 @@ namespace Pisces.Tests.UnitTests
             if (scenario.ShouldStitch != true)
                 return;
 
-            var resultsSummary = Path.Combine(Options.OutputFolder, StrandBiasSummaryFileName);
+            var resultsSummary = Path.Combine(Options.OutputDirectory, StrandBiasSummaryFileName);
             using (StreamWriter sw = new StreamWriter(new FileStream(resultsSummary, FileMode.OpenOrCreate))) 
             {
                 var day = DateTime.Now.ToString("d"); //.net core
@@ -208,8 +208,8 @@ namespace Pisces.Tests.UnitTests
                 try
                 {
 
-                    if (!Directory.Exists(Options.OutputFolder))
-                        Directory.CreateDirectory(Options.OutputFolder);
+                    if (!Directory.Exists(Options.OutputDirectory))
+                        Directory.CreateDirectory(Options.OutputDirectory);
 
 
                     var factory = new AmpliconTestFactory(new string('A', 100), sourceIsStitched: true);
@@ -228,7 +228,7 @@ namespace Pisces.Tests.UnitTests
                           refRead, numReferenceCounts);
 
                     var outputFileName = string.Format("{0}_{1}.vcf", scenario.Category, scenario.Id);
-                    var vcfOutputPath = Path.Combine(Options.OutputFolder, outputFileName);
+                    var vcfOutputPath = Path.Combine(Options.OutputDirectory, outputFileName);
                     var biasOutputPath = StrandBiasFileWriter.GetBiasFilePath(vcfOutputPath);
 
                     File.Delete(vcfOutputPath);

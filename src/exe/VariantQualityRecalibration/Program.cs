@@ -1,80 +1,81 @@
 ﻿using System;
 using System.IO;
 using Common.IO.Utility;
+using CommandLine.VersionProvider;
+using CommandLine.IO;
+using CommandLine.IO.Utilities;
 
 namespace VariantQualityRecalibration
 {
-    //example cmd line
-    // -vcf pisces\TestData\ByFeature\QScoreRecalibration_PICS-5\L11_S1.genome.vcf -log hi.txt
-    public class Program
+    public class Program : BaseApplication
     {
-        static int Main(string[] arguments)
+       
+        private VQROptions _options;
+        static string _commandlineExample = "--vcf <vcf path>";
+        static string _programDescription = "VQR: variant quality recalibrator";
+
+        public Program(string programDescription, string commandLineExample, string programAuthors, IVersionProvider versionProvider = null) : base(programDescription, commandLineExample, programAuthors, versionProvider = null) { }
+
+
+        public static int Main(string[] args)
         {
 
+            Program vqr = new Program(_programDescription, _commandlineExample, UsageInfoHelper.GetWebsite());
+            vqr.DoParsing(args);
+            vqr.Execute();
 
-	        if (arguments.Length == 0)
-	        {
-				ApplicationOptions.PrintUsageInfo();
-				return 1;
-			}
+            return vqr.ExitCode;
+        }
 
-            var options = ApplicationOptions.ParseCommandLine(arguments);
-           
-            if (options == null)
-            {
-                ApplicationOptions.PrintUsageInfo();
-                return 1;
-            }
+        public void DoParsing(string[] args)
+        {
+            ApplicationOptionParser = new VQROptionsParser();
+            ApplicationOptionParser.ParseArgs(args);
+            _options = ((VQROptionsParser)ApplicationOptionParser).Options;
+
+            //We could tuck this line into the OptionsParser() constructor if we had a base options class.
+            _options.CommandLineArguments = ApplicationOptionParser.CommandLineArguments;
+        }
+
+        protected override void Init()
+        {
+            Logger.OpenLog(_options.OutputDirectory, _options.LogFileName);
+            Logger.WriteToLog("Command-line arguments: " + _options.QuotedCommandLineArgumentsString);
+            _options.Save(Path.Combine(_options.OutputDirectory, "VariantQualityRecalibrationOptions.used.json"));
+
+        }
+
+        protected override void Close()
+        {
+            Logger.CloseLog();
+        }
+
+        protected override void ProgramExecution()
+        {
+            Logger.WriteToLog("Generating counts file");
+            string countsFile = Counts.WriteCountsFile(_options.InputVcf, _options.OutputDirectory, _options.LociCount);
+
+            Logger.WriteToLog("Starting Recalibration");
+
             try
             {
-                Init(options);
-                if (options.InputVcf.ToLower().EndsWith(".vcf"))
-                {
-                    if (!(options.InputVcf).ToLower().EndsWith(".genome.vcf"))
-                    {
-                        // if its a vcf and not a gvcf, they better have supplied a loci count.
-
-                        if (options.LociCount > 0)
-                        {
-                            Logger.WriteToLog("Recalibration algorithm processing .vcf, with loci count " + options.LociCount + ".");
-                        }
-                        else
-                        {
-                            Logger.WriteWarningToLog("Recalibration algorithm needs a loci count when processing a .vcf .");
-                            ApplicationOptions.PrintUsageInfo();
-                            return 1;
-                        }
-                    }
-                }
-                else
-                {
-                    Logger.WriteToLog("Warning. File passed to Recalibration algorithm should be .vcf or .genome.vcf .");
-                }
-
-
-                Logger.WriteToLog("Generating counts file");
-                string countsFile = Counts.WriteCountsFile(options.InputVcf, options.OutputDirectory, options.LociCount);
-
-                Logger.WriteToLog("Starting Recalibration");
-
-                QualityRecalibration.Recalibrate(options.InputVcf, countsFile, options.OutputDirectory, options.BaseQNoise, 
-                    options.ZFactor, options.MaxQScore, options.FilterQScore, string.Join(" ", arguments));        
-        
+                QualityRecalibration.Recalibrate(_options.InputVcf, countsFile, _options.OutputDirectory, _options.BaseQNoise,
+                    _options.ZFactor, _options.MaxQScore, _options.FilterQScore, _options.QuotedCommandLineArgumentsString);
             }
             catch (Exception e)
             {
                 Logger.WriteToLog("*** Error encountered: {0}", e);
+                throw e;
             }
+
             Logger.WriteToLog("Work complete.");
-            Logger.CloseLog();
-            return 0;
         }
 
-        public static void Init(ApplicationOptions options)
+        
+        public void RegularResetMain()
         {
-            Logger.OpenLog(options.OutputDirectory, options.LogFileName);
-			options.Save(Path.Combine(options.OutputDirectory, "VariantQualityRecalibrationOptions.used.json"));
-
-		}
+            _options = new VQROptions();
+            Logger.CloseLog();
+        }
     }
 }

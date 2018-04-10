@@ -18,13 +18,14 @@ namespace VariantQualityRecalibration.Tests
             var outDir = Path.Combine(TestPaths.LocalScratchDirectory, "RecalibrateDirtyVcf");
             var outFile = Path.Combine(outDir, "TestWithArtifacts.vcf.recal");
             var expectedFile = Path.Combine(TestPaths.LocalTestDataDirectory, "ExpectedDirty.vcf.recal");
+            var quotedCmdLineString = "\"-vcf TestWithArtifacts.vcf\"";
 
             if (File.Exists(outFile))
                 File.Delete(outFile);
 
             Logger.OpenLog(outDir, "RecalibrateDirtyVcfLog.txt", true);
-
-            QualityRecalibration.Recalibrate(vcfPath, countsPath, outDir, 30, 0, 66, -1, "-vcf TestWithArtifacts.vcf");
+            
+            QualityRecalibration.Recalibrate(vcfPath, countsPath, outDir, 30, 0, 66, -1, quotedCmdLineString);
 
             Logger.CloseLog();
 

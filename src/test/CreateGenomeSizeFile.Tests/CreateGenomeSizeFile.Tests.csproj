@@ -1,0 +1,52 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netcoreapp2.0</TargetFramework>
+    <GenerateAssemblyConfigurationAttribute>false</GenerateAssemblyConfigurationAttribute>
+    <GenerateAssemblyCompanyAttribute>false</GenerateAssemblyCompanyAttribute>
+    <GenerateAssemblyProductAttribute>false</GenerateAssemblyProductAttribute>
+    <Version>5.2.7.47</Version>
+    <Copyright>Copyright © Illumina 2018</Copyright>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Content Include="..\SharedData\Genomes\Bacillus_cereus\Sequence\WholeGenomeFasta\GenomeSize.xml" Link="SharedData\Genomes\Bacillus_cereus\Sequence\WholeGenomeFasta\GenomeSize.xml">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="15.3.0" />
+    <PackageReference Include="xunit" Version="2.2.0" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.2.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\tools\CreateGenomeSizeFile\CreateGenomeSizeFile.csproj" />
+    <ProjectReference Include="..\TestUtilities\TestUtilities.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="TestData\" />
+    <Folder Include="SharedData\Genomes\Bacillus_cereus\Sequence\WholeGenomeFasta\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\SharedData\Genomes\Bacillus_cereus\Sequence\WholeGenomeFasta\genome.dict" Link="SharedData\Genomes\Bacillus_cereus\Sequence\WholeGenomeFasta\genome.dict">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="..\SharedData\Genomes\Bacillus_cereus\Sequence\WholeGenomeFasta\genome.fa" Link="SharedData\Genomes\Bacillus_cereus\Sequence\WholeGenomeFasta\genome.fa">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="..\SharedData\Genomes\Bacillus_cereus\Sequence\WholeGenomeFasta\genome.fa.fai" Link="SharedData\Genomes\Bacillus_cereus\Sequence\WholeGenomeFasta\genome.fa.fai">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="TestData\GenomeSize.xml">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+</Project>

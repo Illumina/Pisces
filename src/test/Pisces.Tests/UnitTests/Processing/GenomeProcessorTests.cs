@@ -47,7 +47,7 @@ namespace Pisces.Tests.UnitTests.Processing
                 {
                     OutputGvcfFile = false
                 },
-                OutputFolder = outDir
+                OutputDirectory = outDir
             };
 
             var logFile = Path.Combine(options.LogFolder, options.LogFileName);
@@ -118,7 +118,7 @@ namespace Pisces.Tests.UnitTests.Processing
                 BAMPaths = new[] { bamFilePath, bamFilePath2 },
                 IntervalPaths = new [] { validIntervals, emptyIntervals },
                 GenomePaths = new[] { genomePath },
-                OutputFolder = outputFolder,
+                OutputDirectory = outputFolder,
                 VcfWritingParameters = new Domain.Options.VcfWritingParameters()
                 { OutputGvcfFile = true }
             };
@@ -147,7 +147,7 @@ namespace Pisces.Tests.UnitTests.Processing
             // ----------------------
 
             options.IntervalPaths = new[] {emptyIntervals};
-            options.OutputFolder = Path.Combine(TestPaths.LocalTestDataDirectory, "EmptyIntervalsTest_All");
+            options.OutputDirectory = Path.Combine(TestPaths.LocalTestDataDirectory, "EmptyIntervalsTest_All");
 
             factory = new Factory(options);
             processor = new GenomeProcessor(factory, factory.GetReferenceGenome(genomePath), throttle);

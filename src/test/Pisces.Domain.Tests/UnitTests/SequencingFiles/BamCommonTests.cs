@@ -57,14 +57,55 @@ namespace Pisces.Domain.Tests.UnitTests.SequencingFiles
                 Position = 500,
                 CigarData = new CigarAlignment("5M7I19M3D")
             };
-            Assert.Equal(527, alignment1.GetEndPosition());
+            Assert.Equal(526, alignment1.GetEndPosition());
 
-            var alignment2 = new BamAlignment()
+            var alignmentWithNoMappingBases = new BamAlignment()
             {
                 Position = 500,
                 CigarData = new CigarAlignment("3I")
             };
-            Assert.Equal(500, alignment2.GetEndPosition());
+
+            //Assert.Equal(500, alignment2.GetEndPosition());
+            // Apparently for a degenerate case such as this, we're going to allow start position to be > end position.
+            // https://jira.illumina.com/browse/PICS-857
+            Assert.Equal(499, alignmentWithNoMappingBases.GetEndPosition());
+
+            alignmentWithNoMappingBases = new BamAlignment()
+            {
+                Position = 500,
+                CigarData = new CigarAlignment("100S")
+            };
+            Assert.Equal(499, alignmentWithNoMappingBases.GetEndPosition());
+
+            var alignmentWithNonMappingEnds = new BamAlignment()
+            {
+                Position = 500,
+                CigarData = new CigarAlignment("5M5I")
+            };
+            Assert.Equal(504, alignmentWithNonMappingEnds.GetEndPosition());
+
+            alignmentWithNonMappingEnds = new BamAlignment()
+            {
+                Position = 500,
+                CigarData = new CigarAlignment("3S5M5I3S")
+            };
+            Assert.Equal(504, alignmentWithNonMappingEnds.GetEndPosition());
+
+            alignmentWithNonMappingEnds = new BamAlignment()
+            {
+                Position = 500,
+                CigarData = new CigarAlignment("3S5M3S")
+            };
+            Assert.Equal(504, alignmentWithNonMappingEnds.GetEndPosition());
+
+            alignmentWithNonMappingEnds = new BamAlignment()
+            {
+                Position = 500,
+                CigarData = new CigarAlignment("3S3M2D3S")
+            };
+            Assert.Equal(504, alignmentWithNonMappingEnds.GetEndPosition());
+
+
         }
 
         [Fact]
@@ -72,7 +113,7 @@ namespace Pisces.Domain.Tests.UnitTests.SequencingFiles
         {
             // create a tag
             TagUtils tagUtils = new TagUtils();
-            tagUtils.AddIntTag("NM", 5);
+            tagUtils.AddIntTag("NM", 5);            
             tagUtils.AddStringTag("XU", "ABCD");
             tagUtils.AddCharTag("XP", '?');
             byte[] tagData = tagUtils.ToBytes();
@@ -84,6 +125,23 @@ namespace Pisces.Domain.Tests.UnitTests.SequencingFiles
             Assert.Throws<System.IO.InvalidDataException>(() => alignment.GetStringTag("NM"));
             Assert.Equal(null, alignment.GetStringTag("AB"));
 
+            
+        }
+
+        [Fact]
+        public void UpdateIntTagData_Tests()
+        {
+            TagUtils tagUtils = new TagUtils();
+            byte[] tagData = tagUtils.ToBytes();
+            var alignment = new BamAlignment() { TagData = tagData };
+
+            // when there was not an NM tag to begin with
+            alignment.UpdateIntTagData("NM", 4);
+            Assert.Equal(4, alignment.GetIntTag("NM"));
+
+            // when there was an NM tag to begin with
+            alignment.UpdateIntTagData("NM", 3);
+            Assert.Equal(3, alignment.GetIntTag("NM"));
         }
 
         [Fact]
@@ -214,6 +272,12 @@ namespace Pisces.Domain.Tests.UnitTests.SequencingFiles
             alignment.SetIsUnmapped(false);
             Assert.Equal((uint)0, alignment.AlignmentFlag);
 
+            //Set Supplementary Alignment
+            alignment.SetIsSupplementaryAlignment(true);
+            Assert.Equal((uint)2048, alignment.AlignmentFlag);
+            alignment.SetIsSupplementaryAlignment(false);
+            Assert.Equal((uint)0, alignment.AlignmentFlag);
+            
         }
 
         [Fact]

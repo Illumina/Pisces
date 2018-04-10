@@ -182,11 +182,9 @@ namespace Pisces.Processing.Tests.UnitTests
             int minQuality = 25;
 
             var stateManager = new CollapsedRegionStateManager(false, minQuality);
-            var readpair = ReadTestHelper.CreateReadPair("test", 6, type, pos:10, matePos:15, minBaseQuality: 30);
-
+            var readpair = ReadTestHelper.CreateProperReadPair("test", 6, type, pos:10, matePos:15, minBaseQuality: 30);
             stateManager.AddAlleleCounts(readpair.Item1);
             stateManager.AddAlleleCounts(readpair.Item2);
-
             Assert.Equal(1, stateManager.GetCollapsedReadCount(10, type));
             Assert.Equal(1, stateManager.GetCollapsedReadCount(11, type));
             Assert.Equal(1, stateManager.GetCollapsedReadCount(12, type));
@@ -200,6 +198,41 @@ namespace Pisces.Processing.Tests.UnitTests
             Assert.Equal(1, stateManager.GetCollapsedReadCount(20, type));
             Assert.Equal(0, stateManager.GetCollapsedReadCount(9,type));
             Assert.Equal(0, stateManager.GetCollapsedReadCount(21, type));
+
+            // test SimplexStitched which is not a primative type.
+            if (type == ReadCollapsedType.SimplexForwardStitched || type == ReadCollapsedType.SimplexReverseStitched)
+            {
+                Assert.Equal(1, stateManager.GetCollapsedReadCount(10, ReadCollapsedType.SimplexStitched));
+                Assert.Equal(1, stateManager.GetCollapsedReadCount(11, ReadCollapsedType.SimplexStitched));
+                Assert.Equal(1, stateManager.GetCollapsedReadCount(12, ReadCollapsedType.SimplexStitched));
+                Assert.Equal(1, stateManager.GetCollapsedReadCount(13, ReadCollapsedType.SimplexStitched));
+                Assert.Equal(1, stateManager.GetCollapsedReadCount(14, ReadCollapsedType.SimplexStitched));
+                Assert.Equal(2, stateManager.GetCollapsedReadCount(15, ReadCollapsedType.SimplexStitched));  // overlapping
+                Assert.Equal(1, stateManager.GetCollapsedReadCount(16, ReadCollapsedType.SimplexStitched));
+                Assert.Equal(1, stateManager.GetCollapsedReadCount(17, ReadCollapsedType.SimplexStitched));
+                Assert.Equal(1, stateManager.GetCollapsedReadCount(18, ReadCollapsedType.SimplexStitched));
+                Assert.Equal(1, stateManager.GetCollapsedReadCount(19, ReadCollapsedType.SimplexStitched));
+                Assert.Equal(1, stateManager.GetCollapsedReadCount(20, ReadCollapsedType.SimplexStitched));
+                Assert.Equal(0, stateManager.GetCollapsedReadCount(9, ReadCollapsedType.SimplexStitched));
+                Assert.Equal(0, stateManager.GetCollapsedReadCount(21, ReadCollapsedType.SimplexStitched));
+            }
+            // test SimplexNonStitched which is also not a primative type.
+            if (type == ReadCollapsedType.SimplexForwardNonStitched || type == ReadCollapsedType.SimplexReverseNonStitched)
+            {
+                Assert.Equal(1, stateManager.GetCollapsedReadCount(10, ReadCollapsedType.SimplexNonStitched));
+                Assert.Equal(1, stateManager.GetCollapsedReadCount(11, ReadCollapsedType.SimplexNonStitched));
+                Assert.Equal(1, stateManager.GetCollapsedReadCount(12, ReadCollapsedType.SimplexNonStitched));
+                Assert.Equal(1, stateManager.GetCollapsedReadCount(13, ReadCollapsedType.SimplexNonStitched));
+                Assert.Equal(1, stateManager.GetCollapsedReadCount(14, ReadCollapsedType.SimplexNonStitched));
+                Assert.Equal(2, stateManager.GetCollapsedReadCount(15, ReadCollapsedType.SimplexNonStitched));  // overlapping
+                Assert.Equal(1, stateManager.GetCollapsedReadCount(16, ReadCollapsedType.SimplexNonStitched));
+                Assert.Equal(1, stateManager.GetCollapsedReadCount(17, ReadCollapsedType.SimplexNonStitched));
+                Assert.Equal(1, stateManager.GetCollapsedReadCount(18, ReadCollapsedType.SimplexNonStitched));
+                Assert.Equal(1, stateManager.GetCollapsedReadCount(19, ReadCollapsedType.SimplexNonStitched));
+                Assert.Equal(1, stateManager.GetCollapsedReadCount(20, ReadCollapsedType.SimplexNonStitched));
+                Assert.Equal(0, stateManager.GetCollapsedReadCount(9, ReadCollapsedType.SimplexNonStitched));
+                Assert.Equal(0, stateManager.GetCollapsedReadCount(21, ReadCollapsedType.SimplexNonStitched));
+            }
         }
 
         [Theory]
@@ -213,7 +246,7 @@ namespace Pisces.Processing.Tests.UnitTests
         {
             int minQuality = 35;
             var stateManager = new CollapsedRegionStateManager(false, minQuality);
-            var readpair = ReadTestHelper.CreateReadPair("test", 6, type, pos: 10, matePos: 15, minBaseQuality: 30);
+            var readpair = ReadTestHelper.CreateProperReadPair("test", 6, type, pos: 10, matePos: 15, minBaseQuality: 30);
             // all base quality less than min quality, no count 
             stateManager.AddAlleleCounts(readpair.Item1);
             stateManager.AddAlleleCounts(readpair.Item2);
@@ -244,7 +277,7 @@ namespace Pisces.Processing.Tests.UnitTests
 
             // non collapsed BAM (no reco @PG line in BAM header)
             var stateManager = new RegionStateManager(false, minQuality,expectStitchedReads: true);
-            var readpair = ReadTestHelper.CreateReadPair("test", 6, type, pos: 10, matePos: 15);
+            var readpair = ReadTestHelper.CreateProperReadPair("test", 6, type, pos: 10, matePos: 15);
             stateManager.AddAlleleCounts(readpair.Item1);
             stateManager.AddAlleleCounts(readpair.Item2);
             Assert.Equal(0, stateManager.GetCollapsedReadCount(10, type));
@@ -272,7 +305,7 @@ namespace Pisces.Processing.Tests.UnitTests
         {
             int minQuality = 20;
             var stateManager = new CollapsedRegionStateManager(false, minQuality);
-            var readpair = ReadTestHelper.CreateReadPair("test", 6, type, pos: 10,
+            var readpair = ReadTestHelper.CreateProperReadPair("test", 6, type, pos: 10,
                 matePos: 15,minBaseQuality:30, candidateBases:"N"); // Generate read pairs only contain "N"
             stateManager.AddAlleleCounts(readpair.Item1);
             stateManager.AddAlleleCounts(readpair.Item2);
@@ -318,7 +351,7 @@ namespace Pisces.Processing.Tests.UnitTests
 
             int minQuality = 25;
             var stateManager = new CollapsedRegionStateManager(false, minQuality);
-            var readpair = ReadTestHelper.CreateReadPair("test", 6, type, pos: 10, matePos: 15, minBaseQuality: 30);
+            var readpair = ReadTestHelper.CreateProperReadPair("test", 6, type, pos: 10, matePos: 15, minBaseQuality: 30);
             stateManager.AddAlleleCounts(readpair.Item1);
             stateManager.AddAlleleCounts(readpair.Item2);
             Assert.Equal(1, stateManager.GetCollapsedReadCount(10, type));

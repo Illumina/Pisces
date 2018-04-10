@@ -43,7 +43,7 @@ namespace VariantQualityRecalibration
         }
 
         private static void DoRecalibrationWork(string vcfIn, string vcfOut, string sampleCountsFileName, 
-            int baselineQNoise, double zFactor, int maxQscore, int filterQScore,string commandLineArgument)
+            int baselineQNoise, double zFactor, int maxQscore, int filterQScore,string commandLineArgumentString)
         {
             
             if (!File.Exists(sampleCountsFileName))
@@ -70,7 +70,7 @@ namespace VariantQualityRecalibration
             {
                 writer.NewLine = "\n";
                 List<string> headerLines = reader.HeaderLines;
-                WriteHeaders(writer,headerLines, commandLineArgument);
+                WriteHeaders(writer,headerLines, commandLineArgumentString);
                 
 
                 var originalVar = new VcfVariant();
@@ -89,13 +89,13 @@ namespace VariantQualityRecalibration
             }
         }
 
-        private static void WriteHeaders(StreamWriter writer, List<string> headerLines, string commandLineArgument)
+        private static void WriteHeaders(StreamWriter writer, List<string> headerLines, string commandLineArgumentString)
         {
             foreach (string headerLine in headerLines.Take(VcfHeaderOffset))
                 writer.WriteLine(headerLine);
 
-            if(!string.IsNullOrEmpty(commandLineArgument))
-                writer.WriteLine("##VQR_cmdline=\"" + commandLineArgument + "\"");
+            if(!string.IsNullOrEmpty(commandLineArgumentString))
+                writer.WriteLine("##VQR_cmdline=" + commandLineArgumentString);
 
             for(var i=VcfHeaderOffset;i<headerLines.Count;i++)
                 writer.WriteLine(headerLines[i]);

@@ -21,7 +21,7 @@ namespace VennVcf
             List<string> originalHeader, string phasingCommandLine, int bufferLimit = 2000, bool debugMode =false ) : base(outputFilePath, config, context, bufferLimit)
         {
             _originalHeader = originalHeader;
-            _originalFilterLines = Extensions.GetFilterStringsByType(originalHeader);
+            _originalFilterLines = VcfVariantUtilities.GetFilterStringsByType(originalHeader);
             _formatter = new VennVcfFormatter(config, debugMode);
             AllowMultipleVcfLinesPerLoci = config.AllowMultipleVcfLinesPerLoci;
             _vennCommandLine = phasingCommandLine;
@@ -60,7 +60,7 @@ namespace VennVcf
         //we add one header line, PB
         public void AdjustHeaderLines()
         {
-            var originalFilterLines = Extensions.GetFilterStringsByType(_originalHeader);
+            var originalFilterLines = VcfVariantUtilities.GetFilterStringsByType(_originalHeader);
             var vennFilterLines = _formatter.GenerateFilterStringsByType();
 
             //Pisces might have used these, but venn (currently) never does.
@@ -102,7 +102,7 @@ namespace VennVcf
 
         public override void Write(IEnumerable<CalledAllele> calledAlleles, IRegionMapper mapper = null)
         {
-            var comparer = new AlleleComparer();
+            var comparer = new AlleleCompareByLoci();
             var sortedVariants = calledAlleles.OrderBy(a => a, comparer).ThenBy(a => a.ReferenceAllele).ThenBy(a => a.AlternateAllele);
             base.Write(sortedVariants);
         }

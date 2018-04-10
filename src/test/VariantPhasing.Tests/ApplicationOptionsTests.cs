@@ -7,8 +7,8 @@ namespace VariantPhasing.Tests
         [Fact]
         public void LogFolder()
         {
-            var options = new PhasingApplicationOptions();
-            options.OutFolder = @"C:\Out";
+            var options = new ScyllaApplicationOptions();
+            options.OutputDirectory = @"C:\Out";
             Assert.Equal(@"C:\Out\PhasingLogs",options.LogFolder);
         }
     }

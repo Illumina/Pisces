@@ -75,7 +75,7 @@ namespace Pisces.IO.Tests
             var expectedSQorder = new List<string> { "chr10", "chr11", "chr12", "chr13" }; //I dont know why it starts with 10, thats just how it is in the bam. thats what makes it a good test case.
 
             intervals.Add("chr13", chrIntervals);
-            var extractor = new BamFileAlignmentExtractor(smallBam, bamIntervals: intervals);
+            var extractor = new BamFileAlignmentExtractor(smallBam);
             List<string> sequencesInTheBamOrder = extractor.SourceReferenceList;
 
             Assert.Equal(expectedSQorder[0], sequencesInTheBamOrder[0]);
@@ -103,172 +103,6 @@ namespace Pisces.IO.Tests
             Assert.False(extractor.SequenceOrderingIsNotConsistent(new List<string> {  }));
             Assert.False(extractor.SequenceOrderingIsNotConsistent(null));
 
-        }
-        [Fact]
-        public void IntervalJumping_Middle()
-        {
-            var smallBam = Path.Combine(TestPaths.LocalTestDataDirectory, "Ins-L3-var12_S12.bam");
-            var intervals = new Dictionary<string, List<Region>>();
-            var chrIntervals = new List<Region>
-            {
-                new Region(28607838, 28607838),
-                new Region(28608631, 28608631)
-            };
-            intervals.Add("chr13", chrIntervals);
-            var extractor = new BamFileAlignmentExtractor(smallBam, bamIntervals: intervals);
-
-            var read = new Read();
-            // verify we skip over the middle
-            while (extractor.GetNextAlignment(read))
-            {
-                Assert.True(read.Position < 28607840 || read.BamAlignment.GetEndPosition() >= 28608631);
-            }
-        }
-
-        [Fact]
-        public void IntervalJumping_SmallIntervals()
-        {
-            var smallBam = Path.Combine(TestPaths.LocalTestDataDirectory, "Ins-L3-var12_S12.bam");
-            var intervals = new Dictionary<string, List<Region>>();
-            var chrIntervals = new List<Region>
-            {
-                new Region(28607838, 28607838),
-                new Region(28607908, 28607908),
-                new Region(28608631, 28608631)
-            };
-            intervals.Add("chr13", chrIntervals);
-            var extractor = new BamFileAlignmentExtractor(smallBam, bamIntervals: intervals);
-
-            var read = new Read();
-            var lastPosition = 0;
-            // verify we are always moving forward and not backwards (not re-reading alignments)
-            while (extractor.GetNextAlignment(read))
-            {
-                Assert.True(read.Position >= lastPosition);
-                lastPosition = read.Position;
-            }
-        }
-
-        //[Fact]
-        //public void IntervalJumping_ReadsSpanIntervals()
-        //{
-        //    // TODO: This test is commented out because the data neessary to reproduce it are
-        //    // just too large to put on source control
-        //    var smallBam = @"d:\ReCoInput\chr19.bam";
-        //    var intervals = new Dictionary<string, List<Region>>();
-        //    var chrIntervals = new List<Region>
-        //    {
-        //        new Region(3110147, 3110331),
-        //        new Region(3113328, 3113330)
-        //    };
-        //    intervals.Add("chr19", chrIntervals);
-        //    var extractor = new BamFileAlignmentExtractor(smallBam, bamIntervals: intervals);
-
-        //    var read = new Read();
-        //    var flags = new Dictionary<string, List<uint>>();
-
-        //    // verify we are always moving forward and not backwards (not re-reading alignments)
-        //    while (extractor.GetNextAlignment(read))
-        //    {
-        //        List<uint> f;
-        //        if (flags.TryGetValue(read.Name, out f))
-        //            f.Add(read.BamAlignment.AlignmentFlag);
-        //        else
-        //            flags[read.Name] = new List<uint> { read.BamAlignment.AlignmentFlag};
-        //    }
-        //    foreach (var kvp in flags)
-        //        Assert.Equal(kvp.Value.Count, kvp.Value.Distinct().Count());
-        //}
-
-
-        /// <summary>
-        /// Tests:
-        ///     - we successfully jump forward past reads to the first interval.
-        ///     - we bail out early if the remaining intervals are in regions with no data.
-        /// </summary>
-        [Fact]
-        public void IntervalJumping_Ends()
-        {
-            var smallBam = Path.Combine(TestPaths.LocalTestDataDirectory, "Ins-L3-var12_S12.bam");
-            var intervals = new Dictionary<string, List<Region>>();
-            var chrIntervals = new List<Region>
-            {
-                new Region(28608100, 28608100),  // interval in the middle of coverage
-                new Region(29608700, 29608800)   // interval out in the boonies where there's no data
-            };
-            intervals.Add("chr13", chrIntervals);
-            var extractor = new BamFileAlignmentExtractor(smallBam, bamIntervals: intervals);
-
-            var read = new Read();
-            var numReadsLessThan = 0;
-            var numReadsGreaterThan = 0;
-
-            // verify we are always moving forward and not backwards (not re-reading alignments)
-            while (extractor.GetNextAlignment(read))
-            {
-                if (read.EndPosition + 1 < 28608100) // bam reader is off by one, see note in BamFileExtractor.Jump
-                {
-                    numReadsLessThan++;
-                }
-                else if (read.Position > 28608100)
-                {
-                    numReadsGreaterThan++;
-                }
-            }
-
-            Assert.Equal(1, numReadsLessThan);  // this should be just the first read (before we figure out we're not in range)
-            Assert.Equal(0, numReadsGreaterThan);
-        }
-
-        [Fact]
-        public void NoIntervals()
-        {
-            var smallBam = Path.Combine(TestPaths.LocalTestDataDirectory, "small.bam");
-            var intervals = new Dictionary<string, List<Region>>();
-            intervals.Add("chr7", new List<Region>());
-
-            Assert.Throws<InvalidDataException>(() => new BamFileAlignmentExtractor(smallBam, "chr1", intervals));
-        }
-
-        [Fact]
-        public void Intervals_BeforeReads()
-        {
-            var bamfile = Path.Combine(TestPaths.LocalTestDataDirectory, "small.bam");
-
-            var regions = new Dictionary<string, List<Region>>();
-
-            regions.Add("chr1", new List<Region>()
-            {
-                new Region(100, 1000),
-                new Region(2000, 2100),
-                new Region(4000, 4100)
-            });
-
-            // First read in small.bam starts at position: 115251017, so no reads should be returned by the extractor since they all fall outside the regions of interest.
-
-            var extractor = new BamFileAlignmentExtractor(bamfile, null, regions);
-
-            var read = new Read();
-
-            Assert.False(extractor.GetNextAlignment(read));
-        }
-
-        [Fact]
-        public void IntervalJumping_Boundaries()
-        {
-            var smallBam = Path.Combine(TestPaths.LocalTestDataDirectory, "Ins-L3-var12_S12.bam");
-            var intervals = new Dictionary<string, List<Region>>();
-            var chrIntervals = new List<Region>
-            {
-                new Region(115169880, 115169880)  // feeding in an interval that's past reference max shouldnt cause it to blow up
-            };
-            intervals.Add("chr13", chrIntervals);
-            var extractor = new BamFileAlignmentExtractor(smallBam, bamIntervals: intervals);
-
-            var read = new Read();
-            while (extractor.GetNextAlignment(read))
-            {
-            }
         }
 
         [Fact]
@@ -425,8 +259,9 @@ namespace Pisces.IO.Tests
                 "@SQ\tSN: chr22\tLN: 51304566\n " +
                 "@SQ\tSN: chrX\tLN: 155270560\n " +
                 "@SQ\tSN: chrY\tLN: 59373566\n " +
-                "@RG\tID: Sample_71 - 100\tPL: ILLUMINA\tSM: Sample_71 - 100\n" +
-                "@PG\tID: Reco PN:Reco VN:5.2.5.20 CL:bla";
+                "@RG\tID: Sample_71 - 100\tPL: ILLUMINA\tSM: Sample_71 - 100\n " +
+                "@PG\tID: bwa\tPN: bwa\tCL:/ grail / scratch / OncoRC / Napa / Analysis / Experiments / 160317_lychee_test_data / 1.1.6.295_218UMI / bin / Dependencies / BWA / bwa mem - M - t 40 - R @RG\\tID: Sample_71 - 100\\tPL: ILLUMINA\\tSM: Sample_71 - 100 / illumina / sync / igenomes / Homo_sapiens / UCSC / hg19 / Sequence / BWAIndex / genome.fa / grail / scratch / OncoRC / Napa / Analysis / Experiments / 160317_lychee_test_data / 1.1.6.295_218UMI / HiSeqX1 / Analysis / Alignment / Staging / Sample_71 - 100 / Sample_71 - 100_S1_R1_001.fastq.gz / grail / scratch / OncoRC / Napa / Analysis / Experiments / 160317_lychee_test_data / 1.1.6.295_218UMI / HiSeqX1 / Analysis / Alignment / Staging / Sample_71 - 100 / Sample_71 - 100_S1_R2_001.fastq.gz\tVN: 0.7.12 - r1039\n" +
+                "@PG\tID: Reco PN:Reco VN:1.0.0.0 CL:bla";
         }
     }
 }

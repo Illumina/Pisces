@@ -1,64 +1,58 @@
-﻿using System;
-using System.IO;
+﻿using System.IO;
 using System.Linq;
 using CallVariants.Logic.Processing;
 using Common.IO.Utility;
 using Pisces.Domain.Options;
-using Pisces.Processing;
-using Pisces.Processing.Logic;
-using Pisces.Processing.Utility;
+using CommandLine.VersionProvider;
+using CommandLine.Options;
+using CommandLine.IO;
+using CommandLine.IO.Utilities;
 
 namespace Pisces
 {
-    public class Program
+    public class Program : BaseApplication
     {
         private PiscesApplicationOptions _options;
+        static string _commandlineExample = "-bam <bam path> -g <genome path>";
+        static string _programDescription = "Pisces: variant caller";
 
-        private static void Main(string[] args)
+        public Program(string programDescription, string commandLineExample, string programAuthors, IVersionProvider versionProvider = null) : base(programDescription, commandLineExample, programAuthors, versionProvider = null) { }
+
+        public static int Main(string[] args)
         {
-            if (args.Length == 0)
-            {
-                PiscesApplicationOptions.PrintUsageInfo();
-                return;
-            }
 
-			try
-            {
-                var application = new Program(args);
-                application.Execute();
-            }
-            catch (Exception ex)
-            {
-                var wrappedException = new Exception("Unable to process: " + ex.Message, ex);
-                Logger.WriteExceptionToLog(wrappedException);
+            Program pisces = new Program(_programDescription, _commandlineExample, UsageInfoHelper.GetWebsite());
+            pisces.DoParsing(args);
+            pisces.Execute();
 
-                throw wrappedException;
-            }
-            finally
-            {
-                Logger.CloseLog();
-            }
+            return pisces.ExitCode;
         }
 
-        public Program(string[] args)
+        public void DoParsing(string[] args)
         {
-            _options = PiscesApplicationOptions.ParseCommandLine(args);   
-			if(_options == null) return;     
-            Init();
+            ApplicationOptionParser = new PiscesOptionsParser();
+            ApplicationOptionParser.ParseArgs(args);
+            _options = ((PiscesOptionsParser)ApplicationOptionParser).PiscesOptions;
+            _options.CommandLineArguments = ApplicationOptionParser.CommandLineArguments;
         }
 
-        private void Init()
+        protected override void Init()
         {
             Logger.OpenLog(_options.LogFolder, _options.LogFileName);
             Logger.WriteToLog("Command-line arguments: ");
-            Logger.WriteToLog(string.Join(" ", _options.CommandLineArguments));
+            Logger.WriteToLog(string.Join(" ", ApplicationOptionParser.CommandLineArguments));
 
             _options.Save(Path.Combine(_options.LogFolder, "PiscesOptions.used.json"));
         }
 
-        public void Execute()
+        protected override void Close()
         {
-			if(_options == null) return;
+            Logger.CloseLog();
+        }
+
+        protected override void ProgramExecution()
+        {
+            
 			var factory = new Factory(_options);
 
             var distinctGenomeDirectories = _options.GenomePaths.Distinct();

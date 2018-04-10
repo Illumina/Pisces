@@ -26,35 +26,35 @@ namespace Pisces.Domain.Tests.UnitTests.Models.Alleles
             // ---------------------------------------------------------------------------
 
             // Same chrom, different positions - numeric chrom
-            Assert.Equal(-1, AlleleComparer.OrderAlleles(chr9, chr9Second, true));
-            Assert.Equal(-1, AlleleComparer.OrderAlleles(chr9, chr9Second, false));
-            Assert.Equal(1, AlleleComparer.OrderAlleles(chr9Second, chr9, true));
-            Assert.Equal(1, AlleleComparer.OrderAlleles(chr9Second, chr9, false));
+            Assert.Equal(-1, AlleleCompareByLoci.OrderAlleles(chr9, chr9Second, true));
+            Assert.Equal(-1, AlleleCompareByLoci.OrderAlleles(chr9, chr9Second, false));
+            Assert.Equal(1, AlleleCompareByLoci.OrderAlleles(chr9Second, chr9, true));
+            Assert.Equal(1, AlleleCompareByLoci.OrderAlleles(chr9Second, chr9, false));
 
             // Same chrom, different positions - chrX
-            Assert.Equal(-1, AlleleComparer.OrderAlleles(chrX, chrXSecond, true));
-            Assert.Equal(-1, AlleleComparer.OrderAlleles(chrX, chrXSecond, false));
-            Assert.Equal(1, AlleleComparer.OrderAlleles(chrXSecond, chrX, true));
-            Assert.Equal(1, AlleleComparer.OrderAlleles(chrXSecond, chrX, false));
+            Assert.Equal(-1, AlleleCompareByLoci.OrderAlleles(chrX, chrXSecond, true));
+            Assert.Equal(-1, AlleleCompareByLoci.OrderAlleles(chrX, chrXSecond, false));
+            Assert.Equal(1, AlleleCompareByLoci.OrderAlleles(chrXSecond, chrX, true));
+            Assert.Equal(1, AlleleCompareByLoci.OrderAlleles(chrXSecond, chrX, false));
 
             // Same chrom, different positions - chrM
-            Assert.Equal(-1, AlleleComparer.OrderAlleles(chrM, chrMSecond, true));
-            Assert.Equal(-1, AlleleComparer.OrderAlleles(chrM, chrMSecond, false));
-            Assert.Equal(1, AlleleComparer.OrderAlleles(chrMSecond, chrM, true));
-            Assert.Equal(1, AlleleComparer.OrderAlleles(chrMSecond, chrM, false));
+            Assert.Equal(-1, AlleleCompareByLoci.OrderAlleles(chrM, chrMSecond, true));
+            Assert.Equal(-1, AlleleCompareByLoci.OrderAlleles(chrM, chrMSecond, false));
+            Assert.Equal(1, AlleleCompareByLoci.OrderAlleles(chrMSecond, chrM, true));
+            Assert.Equal(1, AlleleCompareByLoci.OrderAlleles(chrMSecond, chrM, false));
 
             // Different chroms, one is >=10 (direct string compare would not sort these chroms correctly)
-            Assert.Equal(-1, AlleleComparer.OrderAlleles(chr9, chr10, true));
-            Assert.Equal(-1, AlleleComparer.OrderAlleles(chr9, chr10, false));
+            Assert.Equal(-1, AlleleCompareByLoci.OrderAlleles(chr9, chr10, true));
+            Assert.Equal(-1, AlleleCompareByLoci.OrderAlleles(chr9, chr10, false));
 
             // One numeric, one chrX
-            Assert.Equal(-1, AlleleComparer.OrderAlleles(chr9, chrX, true));
-            Assert.Equal(-1, AlleleComparer.OrderAlleles(chr9, chrX, false));
+            Assert.Equal(-1, AlleleCompareByLoci.OrderAlleles(chr9, chrX, true));
+            Assert.Equal(-1, AlleleCompareByLoci.OrderAlleles(chr9, chrX, false));
 
             // Same chrom, same position
-            Assert.Equal(0, AlleleComparer.OrderAlleles(chr9, chr9, true));
-            Assert.Equal(0, AlleleComparer.OrderAlleles(chrX, chrX, true));
-            Assert.Equal(0, AlleleComparer.OrderAlleles(chrM, chrM, true));
+            Assert.Equal(0, AlleleCompareByLoci.OrderAlleles(chr9, chr9, true));
+            Assert.Equal(0, AlleleCompareByLoci.OrderAlleles(chrX, chrX, true));
+            Assert.Equal(0, AlleleCompareByLoci.OrderAlleles(chrM, chrM, true));
 
 
             // ---------------------------------------------------------------------------
@@ -62,40 +62,40 @@ namespace Pisces.Domain.Tests.UnitTests.Models.Alleles
             // ---------------------------------------------------------------------------
 
             // One numeric, one chrM
-            Assert.Equal(1, AlleleComparer.OrderAlleles(chr9, chrM, true));
-            Assert.Equal(-1, AlleleComparer.OrderAlleles(chr9, chrM, false));
+            Assert.Equal(1, AlleleCompareByLoci.OrderAlleles(chr9, chrM, true));
+            Assert.Equal(-1, AlleleCompareByLoci.OrderAlleles(chr9, chrM, false));
 
             // One chrX, one chrM
-            Assert.Equal(1, AlleleComparer.OrderAlleles(chrX, chrM, true));
-            Assert.Equal(-1, AlleleComparer.OrderAlleles(chrX, chrM, false));
+            Assert.Equal(1, AlleleCompareByLoci.OrderAlleles(chrX, chrM, true));
+            Assert.Equal(-1, AlleleCompareByLoci.OrderAlleles(chrX, chrM, false));
 
             // ---------------------------------------------------------------------------
             // Nonstandard chroms should be below numerics and then ordered alphabetically
             // ---------------------------------------------------------------------------
 
             // One numeric, one weird
-            Assert.Equal(-1, AlleleComparer.OrderAlleles(chr9, nonstandardChrZ, true));
-            Assert.Equal(-1, AlleleComparer.OrderAlleles(chr9, nonstandardChrZ, false));
+            Assert.Equal(-1, AlleleCompareByLoci.OrderAlleles(chr9, nonstandardChrZ, true));
+            Assert.Equal(-1, AlleleCompareByLoci.OrderAlleles(chr9, nonstandardChrZ, false));
 
             // One chrX, one weird
-            Assert.Equal(-1, AlleleComparer.OrderAlleles(chrX, nonstandardChrZ, true));
-            Assert.Equal(-1, AlleleComparer.OrderAlleles(chrX, nonstandardChrZ, false));
+            Assert.Equal(-1, AlleleCompareByLoci.OrderAlleles(chrX, nonstandardChrZ, true));
+            Assert.Equal(-1, AlleleCompareByLoci.OrderAlleles(chrX, nonstandardChrZ, false));
 
             // One chrM, one weird
-            Assert.Equal(-1, AlleleComparer.OrderAlleles(chrX, nonstandardChrZ, true));
-            Assert.Equal(-1, AlleleComparer.OrderAlleles(chrX, nonstandardChrZ, false));
+            Assert.Equal(-1, AlleleCompareByLoci.OrderAlleles(chrX, nonstandardChrZ, true));
+            Assert.Equal(-1, AlleleCompareByLoci.OrderAlleles(chrX, nonstandardChrZ, false));
 
             // One numeric, one funny
-            Assert.Equal(-1, AlleleComparer.OrderAlleles(chr9, nonstandardChrA, true));
-            Assert.Equal(-1, AlleleComparer.OrderAlleles(chr9, nonstandardChrA, false));
+            Assert.Equal(-1, AlleleCompareByLoci.OrderAlleles(chr9, nonstandardChrA, true));
+            Assert.Equal(-1, AlleleCompareByLoci.OrderAlleles(chr9, nonstandardChrA, false));
 
             // One chrX, one funny
-            Assert.Equal(1, AlleleComparer.OrderAlleles(chrX, nonstandardChrA, true));
-            Assert.Equal(1, AlleleComparer.OrderAlleles(chrX, nonstandardChrA, false));
+            Assert.Equal(1, AlleleCompareByLoci.OrderAlleles(chrX, nonstandardChrA, true));
+            Assert.Equal(1, AlleleCompareByLoci.OrderAlleles(chrX, nonstandardChrA, false));
 
             // One chrM, one funny
-            Assert.Equal(1, AlleleComparer.OrderAlleles(chrX, nonstandardChrA, true));
-            Assert.Equal(1, AlleleComparer.OrderAlleles(chrX, nonstandardChrA, false));
+            Assert.Equal(1, AlleleCompareByLoci.OrderAlleles(chrX, nonstandardChrA, true));
+            Assert.Equal(1, AlleleCompareByLoci.OrderAlleles(chrX, nonstandardChrA, false));
         }
 
     }

@@ -29,7 +29,6 @@ namespace Alignment.Domain.Sequencing
     public class BamAlignment
     {
         // variables
-
         private const uint Paired = 1;
         private const uint ProperPair = 2;
         private const uint Unmapped = 4;
@@ -43,37 +42,108 @@ namespace Alignment.Domain.Sequencing
         private const uint Duplicate = 1024;
         private const uint Supplementary = 2048;
 
-        public uint AlignmentFlag; // Alignment bit-flag - see Is<something>() methods to query this value, SetIs<something>() methods to manipulate
+        ///  <summary>
+        ///  Alignment bit-flag - see Is&lt;something&gt;() methods to query this value, SetIs&lt;something&gt;() methods to manipulate
+        ///  </summary>
+        public uint AlignmentFlag;
 
-        public string Bases; // 'Original' sequence (as reported from sequencing machine) <- This comment seems like a lie
-        public uint Bin; // Bin in BAM file where this alignment resides
-        public CigarAlignment CigarData; // CIGAR operations for this alignment
-        public int FragmentLength; // Read fragment length
-        public uint MapQuality; // Mapping quality score
-        public int MatePosition; // Position (0-based) where alignment's mate starts
-        public int MateRefID; // ID number for reference sequence where alignment's mate was aligned
-        public string Name; // Read name
-        public int Position; // Position (0-based) where alignment starts
-        public byte[] Qualities; // Phred qualities
-        public int RefID; // ID number for reference sequence
-        public byte[] TagData; // Tag data (accessors will pull the requested information out)
+        /// <summary>
+        /// 'Original' sequence (as reported from sequencing machine) &lt;- This comment seems like a lie
+        /// </summary>
+        public string Bases;
+        /// <summary>
+        /// Bin in BAM file where this alignment resides
+        /// </summary>
+        public uint Bin;
+        /// <summary>
+        /// CIGAR operations for this alignment
+        /// </summary>
+        public CigarAlignment CigarData { get { return cigarData; } set { _endPosition = null; cigarData = value; } }
+        private CigarAlignment cigarData;
 
-        // constructor
+        /// <summary>
+        /// Read fragment length
+        /// </summary>
+        public int FragmentLength;
+        /// <summary>
+        /// Mapping quality score
+        /// </summary>
+        public uint MapQuality;
+        /// <summary>
+        /// Position (0-based) where alignment's mate starts
+        /// </summary>
+        public int MatePosition;
+        /// <summary>
+        /// ID number for reference sequence where alignment's mate was aligned
+        /// </summary>
+        public int MateRefID;
+        /// <summary>
+        /// Read name
+        /// </summary>
+        public string Name;
+        /// <summary>
+        /// Position (0-based) where alignment starts
+        /// </summary>
+        public int Position { get { return position; } set { _endPosition = null; position = value; } }
+        private int position;
+
+        /// <summary>
+        ///  Phred qualities
+        /// </summary>
+        public byte[] Qualities;
+        /// <summary>
+        /// ID number for reference sequence
+        /// </summary>
+        public int RefID;
+        /// <summary>
+        /// Tag data (accessors will pull the requested information out)
+        /// </summary>
+        public byte[] TagData;
+
+        /// <summary>
+        /// Parses the cigar string to determine the last 
+        /// (highest/rightmost) position on the genome covered by the read
+        /// </summary>
+        public int EndPosition => _endPosition ?? (_endPosition = Position + (int)CigarData.GetReferenceSpan() - 1).Value;
+        private int? _endPosition;
+
+        /// <summary>
+        /// constructor
+        /// </summary>
         public BamAlignment()
         {
-			MatePosition = -1;
-			MateRefID = -1;
-			CigarData = new CigarAlignment();
+            //tjd+
+            //
+            //This is a deliberate departure from the Isas lib (which leaves these two values unset)
+            //When this is set to 0 (by simply being left unset)
+            //that is a real index value. So trouble can occur wehn unmapped reads might appear to have a mate at ChrM.
+            //How best to refactor this is currently under discussion with the Isas team.
+            //
+            //Related PISCES pull request:
+            //(see BamAlignment constructor in BamCommon.cs):
+            //https://git.illumina.com/Bioinformatics/Pisces5/pull/495/files 
+            //Related ISAS pull request:
+            //https://git.illumina.com/Isas/SequencingFiles/pull/127
+            //
+            //tjd-
+
+            MatePosition = -1;
+            MateRefID = -1;
+            //tjd-
+
+            CigarData = new CigarAlignment();
+            _endPosition = null;
         }
 
-
-	    // Copy constructor.
+        /// <summary>
+        ///  Copy constructor.
+        /// </summary>
         public BamAlignment(BamAlignment a)
         {
             AlignmentFlag = a.AlignmentFlag;
             Bases = a.Bases;
             Bin = a.Bin;
-            CigarData = new CigarAlignment(a.CigarData);
+            CigarData = new CigarAlignment(a.CigarData.ToString());
             FragmentLength = a.FragmentLength;
             MapQuality = a.MapQuality;
             MatePosition = a.MatePosition;
@@ -85,8 +155,43 @@ namespace Alignment.Domain.Sequencing
 
             RefID = a.RefID;
             TagData = a.TagData;
-            if (TagData != null)
-                Array.Copy(a.TagData, TagData, TagData.Length);
+            _endPosition = a._endPosition;
+        }
+
+        /// <summary>
+        /// Compute the bam bin for an alignment covering [beg, end) - pseudocode taken straight from the bam spec.
+        /// </summary>
+        public void SetBin()
+        {
+            int beg = this.Position;
+            int end = this.Position + (int)this.CigarData.GetReferenceSpan();
+            end--;
+            if (beg >> 14 == end >> 14)
+            {
+                this.Bin = (uint)(((1 << 15) - 1) / 7 + (beg >> 14));
+                return;
+            }
+            if (beg >> 17 == end >> 17)
+            {
+                this.Bin = (uint)(((1 << 12) - 1) / 7 + (beg >> 17));
+                return;
+            }
+            if (beg >> 20 == end >> 20)
+            {
+                this.Bin = (uint)(((1 << 9) - 1) / 7 + (beg >> 20));
+                return;
+            }
+            if (beg >> 23 == end >> 23)
+            {
+                this.Bin = (uint)(((1 << 6) - 1) / 7 + (beg >> 23));
+                return;
+            }
+            if (beg >> 26 == end >> 26)
+            {
+                this.Bin = (uint)(((1 << 3) - 1) / 7 + (beg >> 26));
+                return;
+            }
+            this.Bin = 0;
         }
 
         /// <summary>
@@ -101,27 +206,49 @@ namespace Alignment.Domain.Sequencing
             TagData = newTagData;
         }
 
-        // calculates alignment end position, based on starting position and CIGAR operations
+        /// <summary>
+        ///  Update Int Tag only
+        /// </summary>
+        public void UpdateIntTagData(string s, int value)
+        {
+            bool replaced = TagUtils.ReplaceOrAddIntTag(ref TagData, s, value);           
+        }
+
+        /// <summary>
+        ///  calculates alignment end position, based on starting position and CIGAR operations
+        /// </summary>
         public int GetEndPosition()
         {
-            // initialize alignment end to starting position
-            int alignEnd = Position + (int)CigarData.GetReferenceSpan();
-
-            return alignEnd;
+            return EndPosition;
         }
 
-        // retrieves the string data associated with the specified tag
-        public string GetStringTag(string s)
+        /// <summary>
+        /// retrieves the character data associated with the specified tag
+        /// </summary> 
+        public char? GetCharTag(string s)
         {
-            return TagUtils.GetStringTag(TagData, s);
+            return TagUtils.GetCharTag(TagData, s);
         }
 
+        /// <summary>
+        /// retrieves the integer data associated with the specified tag
+        /// </summary> 
         public int? GetIntTag(string s)
         {
             return TagUtils.GetIntTag(TagData, s);
         }
 
-        // accessors
+        /// <summary> 
+        ///  retrieves the string data associated with the specified tag
+        /// </summary>
+        public string GetStringTag(string s)
+        {
+            return TagUtils.GetStringTag(TagData, s);
+        }
+
+        /// <summary>
+        ///  accessors
+        /// </summary>
         public bool IsDuplicate()
         {
             return ((AlignmentFlag & Duplicate) != 0);
@@ -145,6 +272,11 @@ namespace Alignment.Domain.Sequencing
         public bool IsMateMapped()
         {
             return ((AlignmentFlag & MateUnmapped) == 0);
+        }
+
+        public bool HasPosition()
+        {
+            return (RefID >= 0);
         }
 
         public bool IsMateReverseStrand()
@@ -245,6 +377,12 @@ namespace Alignment.Domain.Sequencing
             else AlignmentFlag &= ~Secondary;
         }
 
+        public void SetIsSupplementaryAlignment(bool b)
+        {
+            if (b) AlignmentFlag |= Supplementary;
+            else AlignmentFlag &= ~Supplementary;
+        }
+
         public void SetIsSecondMate(bool b)
         {
             if (b) AlignmentFlag |= Mate2;
@@ -256,7 +394,9 @@ namespace Alignment.Domain.Sequencing
             if (b) AlignmentFlag |= Unmapped;
             else AlignmentFlag &= ~Unmapped;
         }
+
     }
+
 
     public static class BinaryIO
     {
@@ -770,6 +910,12 @@ namespace Alignment.Domain.Sequencing
             _mByteList.Add((byte)value);
         }
 
+        // clears the tag data
+        public void Clear()
+        {
+            _mByteList.Clear();
+        }
+
         // returns the byte array
         public byte[] ToBytes()
         {
@@ -836,7 +982,38 @@ namespace Alignment.Domain.Sequencing
             return tagDataBegin;
         }
 
+
+
+
         #region Getting Values
+        // retrieves the integer data associated with the specified tag
+        public static char? GetCharTag(byte[] tagData, string tagKey)
+        {
+
+            int tagDataBegin = GetTagBeginIndex(tagData, tagKey);
+
+            if (tagDataBegin < 0) return null;
+
+            // grab the value
+            char dataType = Char.ToUpper((char)tagData[tagDataBegin + 2]);
+            char? ret = null;
+            switch (dataType)
+            {
+                // character
+                case 'A':
+                    ret = (char)tagData[tagDataBegin + 3];
+                    break;
+
+                default:
+                    throw new InvalidDataException(
+                        string.Format(
+                            "Found an unexpected character BAM tag data type: [{0}] while looking for a tag ({1})",
+                            dataType, tagKey));
+            }
+
+            return ret;
+        }
+
         // retrieves the integer data associated with the specified tag
         public static int? GetIntTag(byte[] tagData, string tagKey)
         {
@@ -847,7 +1024,7 @@ namespace Alignment.Domain.Sequencing
             // grab the value
             int ret = 0;
             char dataType = Char.ToUpper((char)tagData[tagDataBegin + 2]);
-
+            
             switch (dataType)
             {
                 // signed and unsigned int8
@@ -911,6 +1088,209 @@ namespace Alignment.Domain.Sequencing
             return ret;
         }
         #endregion
+
+        #region Replacing Values
+
+        /// <summary>
+        /// Verify that the existing tag is the correct type
+        /// <para>Tag type is tagData[tagDataBegin + 2]</para>
+        /// </summary>
+        /// <param name="dataType">Tag type is tagData[tagDataBegin + 2]</param>
+        /// <param name="expectedType">Uppercase char ('A' for char, 'Z' for string, etc.)</param>
+        /// <param name="tagKey">Name of the tag (for a more helpful error message)</param>
+        private static void AssertTagType(byte dataType, char expectedType, string tagKey)
+        {
+            if (char.ToUpper((char)dataType) != expectedType)
+                throw new InvalidDataException(
+                    string.Format(
+                        "Found an unexpected char BAM tag data type: [{0}] while looking for a tag ({1})",
+                        dataType, tagKey));
+        }
+
+        /// <summary>
+        /// Replace or add a char tag
+        /// <para>Returns true if value was replaced (false if tag was added)</para>
+        /// </summary>
+        /// <param name="tagData">i.e. BamAlignment.TagData</param>
+        /// <param name="tagKey">Name of the tag</param>
+        /// <param name="value">Value of the tag</param>
+        /// <param name="addIfMissing">If true, missing tags will be created. 
+        /// <para>Otherwise, no changes are made and method returns false.</para></param>
+        /// <returns>True if value was replaced (false if tag was added)</returns>
+        public static bool ReplaceOrAddCharTag(ref byte[] tagData, string tagKey, char value, bool addIfMissing = true)
+        {
+            bool replaced = true;
+            int tagDataBegin = GetTagBeginIndex(tagData, tagKey);
+            if (tagDataBegin < 0 && addIfMissing)
+            {
+                replaced = false;
+                // Make room for the tag
+                byte[] newTagData = new byte[tagData.Length + 4];
+                Array.Copy(tagData, newTagData, tagData.Length);
+                tagDataBegin = tagData.Length;
+                tagData = newTagData;
+
+                // Add the tag metadata
+                tagData[tagDataBegin] = (byte)tagKey[0];
+                tagData[tagDataBegin + 1] = (byte)tagKey[1];
+                tagData[tagDataBegin + 2] = (byte)'A';
+            }
+            else if (tagDataBegin < 0)
+            {
+                return false;
+            }
+            else
+            {
+                // Make sure the tag we are replacing is the right type
+                AssertTagType(tagData[tagDataBegin + 2], 'A', tagKey);
+            }
+
+            // Add the tag
+            tagData[tagDataBegin + 3] = (byte)value;
+
+            return replaced;
+        }
+
+
+        /// <summary>
+        /// Replace or add the specified int tag
+        /// <para>Returns true if tag is replaced (false if tag is added)</para>
+        /// </summary>
+        /// <param name="tagData">i.e. BamAlignment.TagData</param>
+        /// <param name="tagKey">Name of the tag</param>
+        /// <param name="value">Value of the tag</param>
+        /// <returns></returns>
+        public static bool ReplaceOrAddIntTag(ref byte[] tagData, string tagKey, int value)
+        {
+            bool replaced = true;
+            int tagDataBegin = GetTagBeginIndex(tagData, tagKey);
+
+            if (tagDataBegin < 0) {
+                replaced = false;
+                // Make room for the tag
+                byte[] newTagData = new byte[tagData.Length + 7];
+                Array.Copy(tagData, newTagData, tagData.Length);
+                tagDataBegin = tagData.Length;
+                tagData = newTagData;
+
+                // Add the tag metadata
+                tagData[tagDataBegin] = (byte)tagKey[0];
+                tagData[tagDataBegin + 1] = (byte)tagKey[1];
+                tagData[tagDataBegin + 2] = (byte)'I';
+            }
+
+            // grab the value
+            char dataType = Char.ToUpper((char)tagData[tagDataBegin + 2]);
+
+            switch (dataType)
+            {
+                // signed and unsigned int8
+                case 'C':
+                    tagData[tagDataBegin + 3] = (byte)value;
+                    break;
+
+                // signed and unsigned int16
+                case 'S':
+                    tagData[tagDataBegin + 3] = (byte)value;
+                    tagData[tagDataBegin + 4] = (byte)(value >> 8);
+                    break;
+
+                // signed and unsigned int32
+                case 'I':
+                    tagData[tagDataBegin + 3] = (byte)value;
+                    tagData[tagDataBegin + 4] = (byte)(value >> 8);
+                    tagData[tagDataBegin + 5] = (byte)(value >> 16);
+                    tagData[tagDataBegin + 6] = (byte)(value >> 24);
+                    break;
+
+                default:
+                    throw new InvalidDataException(
+                        string.Format(
+                            "Found an unexpected integer BAM tag data type: [{0}] while looking for a tag ({1})",
+                            dataType, tagKey));
+            }
+
+            return replaced;
+        }
+
+        /// <summary>
+        /// Replace or add the specified string tag
+        /// <para>Returns true if tag is replaced (false if tag is added)</para>
+        /// </summary>
+        /// <param name="tagData">i.e. BamAlignment.TagData</param>
+        /// <param name="tagKey">Name of the tag</param>
+        /// <param name="value">Value of the tag</param>
+        /// <returns></returns>
+        public static bool ReplaceOrAddStringTag(ref byte[] tagData, string tagKey, string value)
+        {
+            int tagDataBegin = GetTagBeginIndex(tagData, tagKey);
+
+            bool found = false;
+            int tagDataEnd;
+            if (tagDataBegin < 0)
+            {
+                tagDataBegin = tagData.Length;
+                tagDataEnd = tagData.Length;
+            }
+            else
+            {
+                found = true;
+                // check the tag type
+                char dataType = Char.ToUpper((char)tagData[tagDataBegin + 2]);
+                if (dataType != 'Z')
+                    throw new InvalidDataException(string.Format(
+                                "Found an unexpected char BAM tag data type: [{0}] while looking for a tag ({1})",
+                                dataType, tagKey));
+
+                // find the end of the tag
+                tagDataEnd = tagDataBegin + 3;
+                while (tagData[tagDataEnd] != 0) tagDataEnd++;
+            }
+
+            // if the new value doesn't have the same length as the old one, 
+            //   or if the tag was non-existent, we need to reallocate
+            if (tagDataEnd - tagDataBegin - 3 != value.Length)
+            {
+                int sizeDiff = value.Length - (tagDataEnd - tagDataBegin - 3);
+                if (!found) sizeDiff++; // one more character for the final \0
+                byte[] newTagData = new byte[tagData.Length + sizeDiff];
+                if (found)
+                {
+                    for (int i = 0; i < tagDataBegin + 3; i++)
+                    {
+                        newTagData[i] = tagData[i];
+                    }
+
+                    for (int i = tagDataEnd; i < tagData.Length; i++)
+                    {
+                        newTagData[i + sizeDiff] = tagData[i];
+                    }
+                }
+                else
+                {
+                    for (int i = 0; i < tagData.Length; i++)
+                    {
+                        newTagData[i] = tagData[i];
+                    }
+                    newTagData[tagData.Length] = (byte)tagKey[0];
+                    newTagData[tagData.Length + 1] = (byte)tagKey[1];
+                    newTagData[tagData.Length + 2] = (byte)'Z';
+                    newTagData[newTagData.Length - 1] = 0;
+                }
+                tagData = newTagData;
+            }
+
+            // overwrite the tag
+            for (int valueIndex = 0; valueIndex < value.Length; valueIndex++)
+            {
+                tagData[tagDataBegin + 3 + valueIndex] = (byte)value[valueIndex];
+            }
+
+            return found;
+        }
+
+        #endregion
+
 
     }
 }

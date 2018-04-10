@@ -118,8 +118,8 @@ namespace VennVcf
                 var backLogExistPoolA = ReaderA.GetNextVariant(backLogPoolAVcfVariant);
                 var backLogExistPoolB = ReaderB.GetNextVariant(backLogPoolBVcfVariant);
 
-                var backLogPoolAAlleles = backLogExistPoolA ? Extensions.Convert(new List<VcfVariant> { backLogPoolAVcfVariant }).ToList() : null;
-                var backLogPoolBAlleles = backLogExistPoolB ? Extensions.Convert(new List<VcfVariant> { backLogPoolBVcfVariant }).ToList() : null;
+                var backLogPoolAAlleles = backLogExistPoolA ? VcfVariantUtilities.Convert(new List<VcfVariant> { backLogPoolAVcfVariant }).ToList() : null;
+                var backLogPoolBAlleles = backLogExistPoolB ? VcfVariantUtilities.Convert(new List<VcfVariant> { backLogPoolBVcfVariant }).ToList() : null;
 
                 //keep reading and processing until we are done with both gvcfs
                 while (true)
@@ -140,7 +140,7 @@ namespace VennVcf
 
                             if (backLogExistPoolA && backLogExistPoolB)
                             {
-                                int OrderResult = AlleleComparer.OrderAlleles(
+                                int OrderResult = AlleleCompareByLoci.OrderAlleles(
                                     backLogPoolAAlleles.First(), backLogPoolBAlleles.First(), mFirst);
                                 if (OrderResult < 0)
                                 {
@@ -379,12 +379,12 @@ namespace VennVcf
                     if (!ContinueReadA) 
                         break;
 
-                    NextVariantList = Extensions.Convert(new List<VcfVariant> { NextVariant }).ToList();
+                    NextVariantList = VcfVariantUtilities.Convert(new List<VcfVariant> { NextVariant }).ToList();
                     
                 }
 
                 // VarOrde =  -1 if Current comes first, 0 if co-located.
-                int VarOrder = (AlleleComparer.OrderAlleles(CurrentVariant, NextVariantList.First(), mFirst));
+                int VarOrder = (AlleleCompareByLoci.OrderAlleles(CurrentVariant, NextVariantList.First(), mFirst));
 
                 switch (VarOrder)
                 {

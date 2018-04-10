@@ -75,7 +75,7 @@ namespace Pisces.Tests.FunctionalTests
             appOptions.VcfWritingParameters.OutputGvcfFile = true;
             appOptions.BAMPaths = new string[] { bacilusBam };
             appOptions.GenomePaths = new string[] { functionalTestRunner.GenomeDirectory };
-            appOptions.OutputFolder = functionalTestRunner.OutputDirectory;
+            appOptions.OutputDirectory = functionalTestRunner.OutputDirectory;
             appOptions.VariantCallingParameters.NoiseLevelUsedForQScoring = 1000;
 
             var vcfFilePath = Path.Combine(TestPaths.LocalScratchDirectory, "Bcereus_S4.genome.vcf");
@@ -168,7 +168,7 @@ namespace Pisces.Tests.FunctionalTests
             appOptions.VcfWritingParameters.OutputGvcfFile = true;
             appOptions.BAMPaths = new string[] { bacilusBam };
             appOptions.GenomePaths = new string[] { functionalTestRunner.GenomeDirectory };
-            appOptions.OutputFolder = functionalTestRunner.OutputDirectory;
+            appOptions.OutputDirectory = functionalTestRunner.OutputDirectory;
             appOptions.VariantCallingParameters.NoiseLevelUsedForQScoring = 1000;
             appOptions.VariantCallingParameters.MinimumFrequency = 0.0001f; //make sure we catch something in this little bam
             appOptions.VariantCallingParameters.MinimumVariantQScore = 3; //make sure we catch something in this little bam

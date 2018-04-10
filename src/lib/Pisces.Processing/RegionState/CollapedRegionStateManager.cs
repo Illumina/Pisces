@@ -40,11 +40,14 @@ namespace Pisces.Processing.RegionState
         {
             if (!alignment.IsCollapsedRead())
                 throw new Exception($"The input is collapsed BAM, but {alignment} is not a collapsed read.");
-            ReadCollapsedType type = alignment.GetReadCollapsedType(directionType);
-            var block = GetBlock(position) as CollapsedRegionState;
-            if (block == null)
-                throw new Exception($"Cannot find read collapsed region block @ {position}");
-            block.AddCollapsedReadCount(position, type);
+            ReadCollapsedType? type = alignment.GetReadCollapsedType(directionType);
+            if (type.HasValue)
+            {
+                var block = GetBlock(position) as CollapsedRegionState;
+                if (block == null)
+                    throw new Exception($"Cannot find read collapsed region block @ {position}");
+                block.AddCollapsedReadCount(position, type.Value);
+            }
         }
 
         protected override RegionState CreateBlock(int startPosition, int endPosition)

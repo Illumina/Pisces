@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netcoreapp2.0</TargetFramework>
+	 <GenerateAssemblyConfigurationAttribute>false</GenerateAssemblyConfigurationAttribute>
+    <GenerateAssemblyCompanyAttribute>false</GenerateAssemblyCompanyAttribute>
+    <GenerateAssemblyProductAttribute>false</GenerateAssemblyProductAttribute>
+    <Version>5.2.7.47</Version>
+    <Copyright>Copyright © Illumina 2018</Copyright>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="SharedParsingMethods\BamProcessorParsingMethods.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\CommandLine.IO\CommandLine.IO.csproj" />
+    <ProjectReference Include="..\Common.IO\Common.IO.csproj" />
+    <ProjectReference Include="..\Pisces.Domain\Pisces.Domain.csproj" />
+  </ItemGroup>
+
+</Project>

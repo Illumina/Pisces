@@ -145,6 +145,38 @@ namespace Pisces.Processing.Tests.UnitTests
             Assert.Equal(allCandidates.Count, 7);
             Assert.Equal(2025, testRegion.MaxAlleleEndpoint);
 
+            // -----------------------------------------------
+            // add candidate group
+            // -----------------------------------------------
+            var candidateGroupAdd1 = new List<CandidateAllele>() { snv1, snv2 };
+            var candidateGroupAdd2 = new List<CandidateAllele>() { deletion1, edgeDeletion };
+            var candidateGroupAdd3 = new List<CandidateAllele>() { edgeMnv, edgeInsertion, snv1 };
+            var candidateGroupAdd4 = new List<CandidateAllele>() { moreSnv1 };
+            // candidateGroupAdd5 has the same variants as candidateGroupAdd1. should not generate a new group  
+            var snv1Duplicate = new CandidateAllele("chr1", 1500, "A", "T", AlleleCategory.Snv) { SupportByDirection = new[] { 10, 0, 0 } };
+            var candidateGroupAdd5 = new List<CandidateAllele>() { snv1Duplicate, snv2 };
+
+            var candidateGroupAdd = new List<List<CandidateAllele>>() { candidateGroupAdd1, candidateGroupAdd2, candidateGroupAdd3, candidateGroupAdd4, candidateGroupAdd5 };           
+            foreach (var candidate in candidateGroupAdd)
+            {
+                testRegion.AddCandidateGroup(candidate);
+            }
+                
+            testRegion.AddCandidateGroup(candidateGroupAdd1);
+            var candidateGroupGet = testRegion.GetBlockCandidateGroup();
+            Assert.Equal(candidateGroupGet.Count, 5);
+            Assert.True(candidateGroupGet.Contains(new Tuple<string, string, string>(snv1.ToString(),snv2.ToString(), null)));
+            Assert.False(candidateGroupGet.Contains(new Tuple<string, string, string>(snv2.ToString(), snv1.ToString(), null)));
+
+            Assert.True(candidateGroupGet.Contains(new Tuple<string, string, string>(deletion1.ToString(), edgeDeletion.ToString(), null)));
+
+            Assert.True(candidateGroupGet.Contains(new Tuple<string, string, string>(snv1.ToString(), edgeMnv.ToString(), edgeInsertion.ToString())));
+            Assert.True(candidateGroupGet.Contains(new Tuple<string, string, string>(snv1.ToString(), edgeMnv.ToString(), null)));
+            Assert.True(candidateGroupGet.Contains(new Tuple<string, string, string>(edgeMnv.ToString(), edgeInsertion.ToString(), null)));
+            Assert.False(candidateGroupGet.Contains(new Tuple<string, string, string>(edgeMnv.ToString(), snv1.ToString(), edgeInsertion.ToString())));
+            Assert.False(candidateGroupGet.Contains(new Tuple<string, string, string>(snv1.ToString(), edgeInsertion.ToString(), null)));
+
+            
         }
 
         [Fact]

@@ -6,6 +6,7 @@ using Pisces.Domain.Options;
 using VariantPhasing.Logic;
 using VariantPhasing.Models;
 using VariantPhasing.Interfaces;
+using TestUtilities;
 using Xunit;
 
 namespace VariantPhasing.Tests.Logic
@@ -16,8 +17,8 @@ namespace VariantPhasing.Tests.Logic
         [Fact]
         public void CallThroughAnEmptyNbhd()
         {
-            var originalVcfVariant = PhasedVariantTestUtilities.CreateDummyAllele("chr1", 123, "A", "T", 1000, 156);
-            var originalVcfVariant2 = PhasedVariantTestUtilities.CreateDummyAllele("chr1", 124, "A", "T", 1000, 156);
+            var originalVcfVariant = TestHelper.CreateDummyAllele("chr1", 123, "A", "T", 1000, 156);
+            var originalVcfVariant2 = TestHelper.CreateDummyAllele("chr1", 124, "A", "T", 1000, 156);
             var vs1 = new VariantSite(originalVcfVariant);
             var vs2 = new VariantSite(originalVcfVariant2);
 
@@ -50,8 +51,8 @@ namespace VariantPhasing.Tests.Logic
         public void VarCallsBecomeRefsAndNulls()
         {
 
-            var originalVcfVariant = PhasedVariantTestUtilities.CreateDummyAllele("chr1", 123, "A", "T", 1000, 156);
-            var originalVcfVariant2 = PhasedVariantTestUtilities.CreateDummyAllele("chr1", 124, "A", "T", 1000, 156);
+            var originalVcfVariant = TestHelper.CreateDummyAllele("chr1", 123, "A", "T", 1000, 156);
+            var originalVcfVariant2 = TestHelper.CreateDummyAllele("chr1", 124, "A", "T", 1000, 156);
             var vs1 = new VariantSite(originalVcfVariant);
             var vs2 = new VariantSite(originalVcfVariant2);
 
@@ -180,10 +181,10 @@ namespace VariantPhasing.Tests.Logic
         public void CallAVariantInANewLocation()
         {
             //set up the original variants
-            var originalVcfVariant1 = PhasedVariantTestUtilities.CreateDummyAllele("chr1", 123, "A", "T", 1000, 156);
-            var originalVcfVariant2 = PhasedVariantTestUtilities.CreateDummyAllele("chr1", 124, "A", "T", 1000, 156);
-            var originalVcfVariant3 = PhasedVariantTestUtilities.CreateDummyAllele("chr1", 234, "A", "T", 1000, 156);
-            var originalVcfVariant4 = PhasedVariantTestUtilities.CreateDummyAllele("chr1", 234, "A", "T", 1000, 156);
+            var originalVcfVariant1 = TestHelper.CreateDummyAllele("chr1", 123, "A", "T", 1000, 156);
+            var originalVcfVariant2 = TestHelper.CreateDummyAllele("chr1", 124, "A", "T", 1000, 156);
+            var originalVcfVariant3 = TestHelper.CreateDummyAllele("chr1", 234, "A", "T", 1000, 156);
+            var originalVcfVariant4 = TestHelper.CreateDummyAllele("chr1", 234, "A", "T", 1000, 156);
 
             var vs1 = new VariantSite(originalVcfVariant1);
             var vs2 = new VariantSite(originalVcfVariant2);
@@ -266,8 +267,8 @@ namespace VariantPhasing.Tests.Logic
         public void CheckAddingFilters()
         {
 
-            var originalVcfVariant = PhasedVariantTestUtilities.CreateDummyAllele("chr1", 123, "A", "T", 1000, 156);
-            var originalVcfVariant2 = PhasedVariantTestUtilities.CreateDummyAllele("chr1", 124, "A", "T", 1000, 156);
+            var originalVcfVariant = TestHelper.CreateDummyAllele("chr1", 123, "A", "T", 1000, 156);
+            var originalVcfVariant2 = TestHelper.CreateDummyAllele("chr1", 124, "A", "T", 1000, 156);
             var vs1 = new VariantSite(originalVcfVariant);
             var vs2 = new VariantSite(originalVcfVariant2);
 

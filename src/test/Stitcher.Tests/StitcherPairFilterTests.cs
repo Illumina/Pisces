@@ -46,6 +46,24 @@ namespace Stitcher.Tests
             // Should be able to get both of these reads back with unpaired
             Assert.Equal(2, filter.GetFlushableUnpairedReads().Count());
 
+            // Realistic Cases
+            // R1 Unmapped, R1 Mate Unmapped, R2 Unmapped, R2 Mate Unmapped
+            MappedReadTest(true, true, true, true);
+            // R1 Unmapped, R1 Mate Mapped, R2 Mapped, R2 Mate Unmapped
+            MappedReadTest(true, false, false, true);
+            // R1 Mapped, R1 Mate Unmapped, R2 Unmapped, R2 Mate Mapped
+            MappedReadTest(false, true, true, false);
+
+            // Theoretical Cases
+            // R1 Unmapped, R1 Mate Unmapped, R2 Unmapped, R2 Mate Mapped(*)
+            MappedReadTest(true, true, true, false);
+            // R1 Unmapped, R1 Mate Mapped(*), R2 Unmapped, R2 Mate Unmapped
+            MappedReadTest(true, false, true, true);
+            // R1 Mapped, R1 Mate Mapped(*), R2 Unmapped, R2 Mate Mapped
+            MappedReadTest(false, false, true, false);
+            // R1 Mapped, R1 Mate Unmapped, R2 Unmapped, R2 Mate Unmapped(*)
+            MappedReadTest(false, true, true, true);
+
             // Non-overlapping pairs should be treated as incomplete (like a singleton)
             Assert.Equal(0, filter.GetFlushableUnpairedReads().Count());
             var nonOverlappingRead1 = CreateAlignment("noOverlap", true, 1, "3M2I");
@@ -56,10 +74,9 @@ namespace Stitcher.Tests
             Assert.Null(pair);
             // Should be able to get both of these reads back with unpaired
             Assert.Equal(2, filter.GetFlushableUnpairedReads().Count());
-
         }
 
-        public static BamAlignment CreateAlignment(string name, bool isProperPair = true, int position = 0, string cigarData="3M")
+        public static BamAlignment CreateAlignment(string name, bool isProperPair = true, int position = 0, string cigarData="3M", bool isUnMapped = false, bool mateIsUnMapped = false, uint mapQ = 30)
         {
             var alignment = new BamAlignment
             {
@@ -69,8 +86,24 @@ namespace Stitcher.Tests
                 Position = position
             };
             alignment.SetIsProperPair(isProperPair);
+            alignment.SetIsUnmapped(isUnMapped);
+            alignment.SetIsMateUnmapped(mateIsUnMapped);
+            alignment.MapQuality = mapQ;
 
             return alignment;
+        }
+
+        private static void MappedReadTest(bool r1UnMapped, bool r1MateUnMapped, bool r2UnMapped, bool r2MateUnMapped)
+        {
+            var dupIdentifier = new Mock<IDuplicateIdentifier>();
+            var filter = new StitcherPairFilter(false, false, dupIdentifier.Object, new ReadStatusCounter(), filterForUnmappedReads: true);
+            var unmappedRead = CreateAlignment("case1", true, 0, "3M", r1UnMapped, r1MateUnMapped);
+            var mappedRead = CreateAlignment("case1", true, 0, "3M", r2UnMapped, r2MateUnMapped);
+            var pair = filter.TryPair(mappedRead);
+            Assert.Null(pair);
+            pair = filter.TryPair(unmappedRead);
+            Assert.Null(pair);
+            Assert.Equal(0, filter.GetFlushableUnpairedReads().Count());
         }
     }
 }

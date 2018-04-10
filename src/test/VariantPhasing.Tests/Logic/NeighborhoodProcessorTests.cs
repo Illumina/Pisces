@@ -11,6 +11,7 @@ using Common.IO.Utility;
 using VariantPhasing.Interfaces;
 using VariantPhasing.Logic;
 using VariantPhasing.Models;
+using TestUtilities;
 using Xunit;
 
 namespace VariantPhasing.Tests.Logic
@@ -22,7 +23,7 @@ namespace VariantPhasing.Tests.Logic
         public Mock<IVeadGroupSource> MockVeadSource { get; set; }
         public Mock<IVcfVariantSource> MockVariantSource { get; set; }
 
-        public MockFactoryWithDefaults(PhasingApplicationOptions options) : base(options)
+        public MockFactoryWithDefaults(ScyllaApplicationOptions options) : base(options)
         {
         }
 
@@ -65,11 +66,11 @@ namespace VariantPhasing.Tests.Logic
             var vcfFilePath = Path.Combine(TestPaths.LocalTestDataDirectory, "MNV-25-var216_S216.vcf");
             var outFolder = Path.Combine(TestPaths.LocalScratchDirectory, "Out");
 
-            var options = new PhasingApplicationOptions
+            var options = new ScyllaApplicationOptions
             {
                 BamPath = bamFilePath,
                 VcfPath = vcfFilePath,
-                OutFolder = outFolder
+                OutputDirectory = outFolder
             };
 
             var logFile = Path.Combine(options.LogFolder, options.LogFileName);
@@ -184,7 +185,7 @@ namespace VariantPhasing.Tests.Logic
                         new VariantSite(123)
                         {
                             ReferenceName = "chr1",
-                            OriginalAlleleFromVcf = PhasedVariantTestUtilities.CreateDummyAllele("chr1", 123, "A", "T", 1000, 156)
+                            OriginalAlleleFromVcf = TestHelper.CreateDummyAllele("chr1", 123, "A", "T", 1000, 156)
                 //orignally at index 0
             },
                     }

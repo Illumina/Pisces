@@ -17,17 +17,18 @@ using Pisces.Domain.Types;
 using Pisces.IO;
 using Pisces.IO.Interfaces;
 using Pisces.Domain.Options;
+using Pisces.Domain.Utility;
 using Pisces.Processing;
 using Pisces.Processing.Interfaces;
 using Pisces.Processing.RegionState;
 using Common.IO.Utility;
+
 
 namespace Pisces
 {
     public class Factory : WorkFactory
     {
         private readonly PiscesApplicationOptions _options;
-        private const char _intervalFileDelimiter = '\t';
         private Dictionary<string, Dictionary<string, List<Region>>> _bamIntervalLookup = new Dictionary<string, Dictionary<string, List<Region>>>();
         public Dictionary<string, List<CandidateAllele>> _knownVariants = new Dictionary<string, List<CandidateAllele>>();
 	    private Dictionary<string, HashSet<Tuple<string, int, string, string>>> _forcedAllelesByChrom = new Dictionary<string, HashSet<Tuple<string, int, string, string>>>();
@@ -93,7 +94,7 @@ namespace Pisces
         protected virtual IAlignmentSource CreateAlignmentSource(ChrReference chrReference, string bamFilePath, List<string> chrsToProcess = null)
         {
             AlignmentMateFinder mateFinder = null;
-            var alignmentExtractor = new BamFileAlignmentExtractor(bamFilePath, chrReference.Name, _bamIntervalLookup.ContainsKey(bamFilePath) && _options.SkipNonIntervalAlignments ? _bamIntervalLookup[bamFilePath] : null);
+            var alignmentExtractor = new BamFileAlignmentExtractor(bamFilePath, chrReference.Name);
 
             //Warn if the bam has sequences ordered differently to the reference genome.
             //That would confuse us because we will not know how the user wants to order the output gvcf.
@@ -296,9 +297,9 @@ namespace Pisces
         {
             var vcfOutputPath = Path.ChangeExtension(inputBamPath, _options.VcfWritingParameters.OutputGvcfFile ? "genome.vcf" : ".vcf");
 
-            if (!string.IsNullOrEmpty(_options.OutputFolder))
+            if (!string.IsNullOrEmpty(_options.OutputDirectory))
             {
-                vcfOutputPath = Path.Combine(_options.OutputFolder, Path.GetFileName(vcfOutputPath));
+                vcfOutputPath = Path.Combine(_options.OutputDirectory, Path.GetFileName(vcfOutputPath));
             }
 
             return vcfOutputPath;
@@ -326,26 +327,13 @@ namespace Pisces
                     {
                         var regionsByChr = new Dictionary<string, List<Region>>();
 
-                        using (var reader = new StreamReader(new FileStream(intervalFilePath, FileMode.Open, FileAccess.Read))) 
-                        {
-                            string line;
-                            while ((line = reader.ReadLine()) != null)
-                            {
-                                var bits = line.Split(_intervalFileDelimiter);
-                                if (bits.Length < 3 || bits[0].Length == 0 || bits[0][0] == '@')
-                                    continue; //header or invalid line
-
-                                var chromosomeName = bits[0];
-                                if (!regionsByChr.ContainsKey(chromosomeName))
-                                    regionsByChr[chromosomeName] = new List<Region>();
-
-                                regionsByChr[chromosomeName].Add(new Region(int.Parse(bits[1]), int.Parse(bits[2])));
-                            }
-                        }
+                        IntervalFileToRegion.ParseIntervalFile(intervalFilePath, regionsByChr);
 
                         // sort regions
-                        foreach(var chrRegions in regionsByChr.Values)
+                        /* now included in the parsing step
+                        foreach (var chrRegions in regionsByChr.Values)
                             chrRegions.Sort((r1, r2) => r1.StartPosition.CompareTo(r2.StartPosition));
+                            */
 
                         _bamIntervalLookup[_options.BAMPaths[i]] = regionsByChr;
                     }
@@ -359,6 +347,7 @@ namespace Pisces
             }
         }
 
+    
 
         private bool SkipPrior(CandidateAllele candidate)
         {

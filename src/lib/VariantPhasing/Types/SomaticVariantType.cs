@@ -1,10 +1,9 @@
 ﻿namespace VariantPhasing.Types
 {
-    public enum SomaticVariantType
+    public enum SubsequenceType
     {
-        SNP = 0,
-        Insertion,
-        Deletion,
-        PhasedSNP
+        MatchOrMismatchSequence = 0,
+        InsertionSquence,
+        DeletionSequence,
     };
 }

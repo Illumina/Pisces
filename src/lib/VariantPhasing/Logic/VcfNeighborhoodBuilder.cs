@@ -6,6 +6,7 @@ using Pisces.Domain.Options;
 using Pisces.Domain.Types;
 using Pisces.IO;
 using Pisces.IO.Sequencing;
+using Common.IO.Utility;
 using VariantPhasing.Interfaces;
 using VariantPhasing.Models;
 
@@ -63,13 +64,13 @@ namespace VariantPhasing.Logic
                 if (!keepAddingNbhdsToTheBatch)
                     break;
 
-                var allelesUnpackedFromVcfVariant = Extensions.Convert(new List<VcfVariant> { _tempRawVcfVariant });
+                var allelesUnpackedFromVcfVariant = VcfVariantUtilities.Convert(new List<VcfVariant> { _tempRawVcfVariant });
                
 
                 foreach (var currentAllele in allelesUnpackedFromVcfVariant)
                 {
                    
-                    if(currentAllele.Filters.Contains(FilterType.ForcedReport)) continue;
+                    if (currentAllele.Filters.Contains(FilterType.ForcedReport)) continue;
 
                     var currentVariantSite = new VariantSite(currentAllele);
                     var refBase = currentVariantSite.VcfReferenceAllele.Substring(0, 1);
@@ -125,6 +126,14 @@ namespace VariantPhasing.Logic
 
             if ((allele.IsRefType) || (allele.IsNocall))
                 return false;
+
+            if (allele.Type == AlleleCategory.Unsupported)
+            {
+                Logger.WriteToLog(string.Join('\t',"The following variant is an unsupported type and shall not be phased:",
+                    allele.Chromosome, allele.ReferencePosition, allele.ReferenceAllele, allele.AlternateAllele));
+                return false;
+            }
+
 
 
             if (_phasableVariantCriteria.HetVariantsOnly) //usually false

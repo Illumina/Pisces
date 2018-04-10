@@ -54,15 +54,15 @@ namespace VariantPhasing.Tests.Logic
 
             var variants = new List<CalledAllele>
             {
-                PhasedVariantTestUtilities.CreateDummyAllele("chrX", 123, "A", "C",1000, 156),
-                PhasedVariantTestUtilities.CreateDummyAllele("chr10", 124, "A", "C",1000, 156),
+                TestHelper.CreateDummyAllele("chrX", 123, "A", "C",1000, 156),
+                TestHelper.CreateDummyAllele("chr10", 124, "A", "C",1000, 156),
             };
 
              var originalHeader = new List<string>
             {
                 "##fileformat=VCFv4.1",
                 "##fileDate=20160620",
-                "##source=Pisces 5.2.5.20",
+                "##source=Pisces 1.0.0.0",
                 "##Pisces_cmdline=\"-B KRAS_42_S1.bam -g -MinimumFrequency 0.01 -MinBaseCallQuality 21 -MaxVariantQScore 100 -MinCoverage 300 -MaxAcceptableStrandBiasFilter 0.5 -MinVariantQScore 20 -VariantQualityFilter 20 -gVCF true -CallMNVs True -out \\myout",
                 "##reference=WholeGenomeFASTA",
                 "##INFO=<ID=DP,Number=1,Type=Integer,Description=\"Total Depth\">",
@@ -89,9 +89,9 @@ namespace VariantPhasing.Tests.Logic
             {
                 "##fileformat=VCFv4.1",
                 "##fileDate=20160620",
-                "##source=Pisces 5.2.5.20",
+                "##source=Pisces 1.0.0.0",
                 "##Pisces_cmdline=\"-B KRAS_42_S1.bam -g -MinimumFrequency 0.01 -MinBaseCallQuality 21 -MaxVariantQScore 100 -MinCoverage 300 -MaxAcceptableStrandBiasFilter 0.5 -MinVariantQScore 20 -VariantQualityFilter 20 -gVCF true -CallMNVs True -out \\myout",
-                "##VariantPhaser=Scylla 5.2.5.20",
+                "##VariantPhaser=Scylla 1.0.0.0",
                 "##reference=WholeGenomeFASTA",
                 "##INFO=<ID=DP,Number=1,Type=Integer,Description=\"Total Depth\">",
                 "##FILTER=<ID=q20,Description=\"Quality score less than 20\">",
@@ -133,7 +133,7 @@ namespace VariantPhasing.Tests.Logic
             {
                 "##fileformat=VCFv4.1",
                 "##fileDate=20160620",
-                "##source=Pisces 5.2.5.20",
+                "##source=Pisces 1.0.0.0",
                 "##Pisces_cmdline=\"-B KRAS_42_S1.bam -g -MinimumFrequency 0.01 -MinBaseCallQuality 21 -MaxVariantQScore 100 -MinCoverage 300 -MaxAcceptableStrandBiasFilter 0.5 -MinVariantQScore 20 -VariantQualityFilter 20 -gVCF true -CallMNVs True -out \\myout",
                 "##reference=WholeGenomeFASTA",
                 "##INFO=<ID=DP,Number=1,Type=Integer,Description=\"Total Depth\">",
@@ -148,9 +148,9 @@ namespace VariantPhasing.Tests.Logic
             {
                 "##fileformat=VCFv4.1",
                 "##fileDate=20160620",
-                "##source=Pisces 5.2.5.20",
+                "##source=Pisces 1.0.0.0",
                 "##Pisces_cmdline=\"-B KRAS_42_S1.bam -g -MinimumFrequency 0.01 -MinBaseCallQuality 21 -MaxVariantQScore 100 -MinCoverage 300 -MaxAcceptableStrandBiasFilter 0.5 -MinVariantQScore 20 -VariantQualityFilter 20 -gVCF true -CallMNVs True -out \\myout",
-                "##VariantPhaser=Scylla 5.2.5.20",
+                "##VariantPhaser=Scylla 1.0.0.0",
                 "##reference=WholeGenomeFASTA",
                 "##INFO=<ID=DP,Number=1,Type=Integer,Description=\"Total Depth\">",
                 "##FORMAT=<ID=GT,Number=1,Type=String,Description=\"Genotype\">",
@@ -191,14 +191,14 @@ namespace VariantPhasing.Tests.Logic
             //Writer should order the variants by chrom, coord, ref, then alt.
             var variants = new List<CalledAllele>
             {
-                PhasedVariantTestUtilities.CreateDummyAllele("chrX", 123, "A", "C",1000, 156),
-                PhasedVariantTestUtilities.CreateDummyAllele("chr10", 124, "A", "C",1000, 156),
-                PhasedVariantTestUtilities.CreateDummyAllele("chr9", 123, "T", "C",1000, 156),
-                PhasedVariantTestUtilities.CreateDummyAllele("chr9", 123, "T", "A",1000, 156),
-                PhasedVariantTestUtilities.CreateDummyAllele("chr9", 123, "A", "C",1000, 156),
-                PhasedVariantTestUtilities.CreateDummyAllele("chr8", 123, "A", "C",1000, 156),
-                PhasedVariantTestUtilities.CreateDummyAllele("chr9", 124, "A", "C",1000, 156),
-                PhasedVariantTestUtilities.CreateDummyAllele("chrM", 123, "A", "C",1000, 156),
+                TestHelper.CreateDummyAllele("chrX", 123, "A", "C",1000, 156),
+                TestHelper.CreateDummyAllele("chr10", 124, "A", "C",1000, 156),
+                TestHelper.CreateDummyAllele("chr9", 123, "T", "C",1000, 156),
+                TestHelper.CreateDummyAllele("chr9", 123, "T", "A",1000, 156),
+                TestHelper.CreateDummyAllele("chr9", 123, "A", "C",1000, 156),
+                TestHelper.CreateDummyAllele("chr8", 123, "A", "C",1000, 156),
+                TestHelper.CreateDummyAllele("chr9", 124, "A", "C",1000, 156),
+                TestHelper.CreateDummyAllele("chrM", 123, "A", "C",1000, 156),
             };
 
             // Order should be:
@@ -216,7 +216,7 @@ namespace VariantPhasing.Tests.Logic
             writer.Dispose();
 
             Assert.Throws<IOException>(() => writer.WriteHeader());
-            Assert.Throws<IOException>(() => writer.Write(new List<CalledAllele> { PhasedVariantTestUtilities.CreateDummyAllele("chr1", 123, "A", "G", 1000, 156) }));
+            Assert.Throws<IOException>(() => writer.Write(new List<CalledAllele> { TestHelper.CreateDummyAllele("chr1", 123, "A", "G", 1000, 156) }));
             writer.Dispose();
 
             var fileLines = File.ReadAllLines(_outputFile);
@@ -257,7 +257,7 @@ namespace VariantPhasing.Tests.Logic
             writer.Dispose();
 
             Assert.Throws<IOException>(() => writer.WriteHeader());
-            Assert.Throws<IOException>(() => writer.Write(new List<CalledAllele>{PhasedVariantTestUtilities.CreateDummyAllele("chr1",123,"A","G", 1000, 156) }));
+            Assert.Throws<IOException>(() => writer.Write(new List<CalledAllele>{TestHelper.CreateDummyAllele("chr1",123,"A","G", 1000, 156) }));
             writer.Dispose();
 
             Assert.True(File.Exists(_outputFile));

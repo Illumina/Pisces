@@ -2,11 +2,17 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using Pisces.Domain;
+using Pisces;
 using Pisces.Domain.Options;
 using Pisces.Domain.Types;
+using CommandLine.IO.Utilities;
+using CommandLine.IO;
+using CommandLine.Options;
 using Xunit;
 
+
+//TODO - these tests perhpas should migrate to Pisces application tests. 
+//The option parsing code and the application running code is currently too tied together...
 namespace Pisces.Domain.Tests
 {
     public class PiscesApplicationOptionsTests
@@ -30,7 +36,7 @@ namespace Pisces.Domain.Tests
                 {
                     OutputGvcfFile = false
                 },
-                OutputFolder = outDir
+                OutputDirectory = outDir
             };
 
             Assert.Equal(Path.Combine(outDir, defaultLogFolder), options.LogFolder);
@@ -67,7 +73,7 @@ namespace Pisces.Domain.Tests
         private string _existingBamPath = Path.Combine(TestPaths.SharedBamDirectory, "Chr17Chr19.bam");
         private string _existingBamPath2 = Path.Combine(TestPaths.SharedBamDirectory, "Chr17Chr19_removedSQlines.bam");
         private string _existingGenome = Path.Combine(TestPaths.SharedGenomesDirectory, "chr19");
-        private string _existingInterval = Path.Combine(TestPaths.SharedIntervalsDirectory, "chr17only.picard");
+        private string _existingInterval = Path.Combine(TestPaths.SharedIntervalsdDirectory, "chr17only.picard");
 
 
         private Dictionary<string, Action<PiscesApplicationOptions>> GetOriginalOptionsExpectations()
@@ -98,9 +104,8 @@ namespace Pisces.Domain.Tests
             optionsExpectationsDict.Add("-sbfilter 0.7", (o) => Assert.Equal(0.7f, o.VariantCallingParameters.StrandBiasAcceptanceCriteria));
             optionsExpectationsDict.Add("-t 40", (o) => Assert.Equal(40, o.MaxNumThreads));
             optionsExpectationsDict.Add("-ReportNoCalls true", (o) => Assert.True(o.VcfWritingParameters.ReportNoCalls));
-            optionsExpectationsDict.Add(@"-OutFolder C:\out", (o) => Assert.Equal(@"C:\out", o.OutputFolder));
+            optionsExpectationsDict.Add(@"-OutFolder C:\out", (o) => Assert.Equal(@"C:\out", o.OutputDirectory));
             optionsExpectationsDict.Add("-ThreadByChr true", (o) => Assert.Equal(true, o.ThreadByChr));
-            optionsExpectationsDict.Add("-Mono bleh", (o) => Assert.Equal("bleh", o.MonoPath));
             return optionsExpectationsDict;
         }
 
@@ -131,10 +136,9 @@ namespace Pisces.Domain.Tests
             optionsExpectationsDict.Add("-MaxAcceptableStrandBiasFilter 0.7", (o) => Assert.Equal(0.7f, o.VariantCallingParameters.StrandBiasAcceptanceCriteria));
             optionsExpectationsDict.Add("-MaxNumThreads 10", (o) => Assert.Equal(10, o.MaxNumThreads));
             optionsExpectationsDict.Add("-ReportNoCalls true", (o) => Assert.True(o.VcfWritingParameters.ReportNoCalls));
-            optionsExpectationsDict.Add(@"-OutFolder C:\out", (o) => Assert.Equal(@"C:\out", o.OutputFolder));
+            optionsExpectationsDict.Add(@"-OutFolder C:\out", (o) => Assert.Equal(@"C:\out", o.OutputDirectory));
             optionsExpectationsDict.Add("-ThreadByChr true", (o) => Assert.Equal(true, o.ThreadByChr));
             optionsExpectationsDict.Add("-InsideSubProcess true", (o) => Assert.Equal(true, o.InsideSubProcess));
-            optionsExpectationsDict.Add("-Mono bleh", (o) => Assert.Equal("bleh", o.MonoPath));
             optionsExpectationsDict.Add("-BaseLogName newlogname.txt", (o) => Assert.Equal("newlogname.txt", o.LogFileNameBase));
 
             return optionsExpectationsDict;
@@ -160,15 +164,15 @@ namespace Pisces.Domain.Tests
             }
 
             //Test with multiple options strung together by spaces.
-            ExecuteParsingTest(string.Join(" ", longHandOptionsExpectations.Keys), true, longHandExpectations);
-            ExecuteParsingTest(string.Join(" ", shortHandOptionsExpectations.Keys), true, shortHandExpectations);
+            ExecuteParsingOnlyTest(string.Join(" ", longHandOptionsExpectations.Keys), true, longHandExpectations);
+            ExecuteParsingOnlyTest(string.Join(" ", shortHandOptionsExpectations.Keys), true, shortHandExpectations);
 
             //Different separator shouldn't work
-            ExecuteParsingTest(string.Join(";", longHandOptionsExpectations.Keys), false, longHandExpectations);
+            ExecuteParsingOnlyTest(string.Join(";", longHandOptionsExpectations.Keys), false, longHandExpectations);
 
             //Order shouldn't matter
-            ExecuteParsingTest(string.Join(" ", longHandOptionsExpectations.Keys.OrderByDescending(o => o)), true, longHandExpectations);
-            ExecuteParsingTest(string.Join(" ", longHandOptionsExpectations.Keys.OrderBy(o => o)), true, longHandExpectations);
+            ExecuteParsingOnlyTest(string.Join(" ", longHandOptionsExpectations.Keys.OrderByDescending(o => o)), true, longHandExpectations);
+            ExecuteParsingOnlyTest(string.Join(" ", longHandOptionsExpectations.Keys.OrderBy(o => o)), true, longHandExpectations);
 
         }
 
@@ -180,71 +184,73 @@ namespace Pisces.Domain.Tests
 
             //TODO ensure that everything here is in line item in SDS-2 and vice versa
             // make sure arguments get mapped to the right fields
-            ExecuteParsingTest("-minvq 40", true, (o) => Assert.Equal(40, o.VariantCallingParameters.MinimumVariantQScore));
-            ExecuteParsingTest("-minbq 40", true, (o) => Assert.Equal(40, o.BamFilterParameters.MinimumBaseCallQuality));
-            ExecuteParsingTest(@"-B C:\test.bam,C:\test2.bam", true, (o) => Assert.Equal(2, o.BAMPaths.Length));
-            ExecuteParsingTest("-mindp 40", true, (o) => Assert.Equal(40, o.VariantCallingParameters.MinimumCoverage));
-            ExecuteParsingTest("-d true", true, (o) => Assert.True(o.DebugMode));
-            ExecuteParsingTest("-debug true", true, (o) => Assert.True(o.DebugMode));
-            ExecuteParsingTest("-minvf 0.555", true, (o) => Assert.Equal(0.555f, o.VariantCallingParameters.MinimumFrequency));
-            ExecuteParsingTest("-vqfilter 40", true, (o) => Assert.Equal(40, o.VariantCallingParameters.MinimumVariantQScoreFilter));
-            ExecuteParsingTest("-ssfilter true", true, (o) => Assert.True(o.VariantCallingParameters.FilterOutVariantsPresentOnlyOneStrand));
-            ExecuteParsingTest(@"-g C:\genome,C:\genome2", true, (o) => Assert.Equal(2, o.GenomePaths.Length));
-            ExecuteParsingTest("-NL 40", true, (o) => Assert.Equal(40, o.VariantCallingParameters.ForcedNoiseLevel));
-            ExecuteParsingTest("-gVCF true", true, (o) => Assert.True(o.VcfWritingParameters.OutputGvcfFile));
-            ExecuteParsingTest("-CallMNVs true", true, (o) => Assert.True(o.CallMNVs));
-            ExecuteParsingTest("-MaxMNVLength 40", true, (o) => Assert.Equal(40, o.MaxSizeMNV));
-            ExecuteParsingTest("-MaxGapBetweenMNV 40", true, (o) => Assert.Equal(40, o.MaxGapBetweenMNV));
-            ExecuteParsingTest(@"-i C:\blah,C:\blah2", true, (o) => Assert.Equal(2, o.IntervalPaths.Length));
-            ExecuteParsingTest("-minmq 40", true, (o) => Assert.Equal(40, o.BamFilterParameters.MinimumMapQuality));
-            ExecuteParsingTest("-SBModel poisson", true, (o) => Assert.Equal(StrandBiasModel.Poisson, o.VariantCallingParameters.StrandBiasModel));
-            ExecuteParsingTest("-SBModel extended", true, (o) => Assert.Equal(StrandBiasModel.Extended, o.VariantCallingParameters.StrandBiasModel));
-            ExecuteParsingTest("-SBModel random", false);
-            ExecuteParsingTest("-outputsbfiles true", true, (o) => Assert.True(o.OutputBiasFiles));
-            ExecuteParsingTest("-pp true", true, (o) => Assert.True(o.BamFilterParameters.OnlyUseProperPairs));
-            ExecuteParsingTest("-maxvq 40", true, (o) => Assert.Equal(40, o.VariantCallingParameters.MaximumVariantQScore));
-            ExecuteParsingTest("-sbfilter 0.7", true, (o) => Assert.Equal(0.7f, o.VariantCallingParameters.StrandBiasAcceptanceCriteria));
-            ExecuteParsingTest("-t 40", true, (o) => Assert.Equal(40, o.MaxNumThreads));
-            ExecuteParsingTest("-ReportNoCalls true", true, (o) => Assert.True(o.VcfWritingParameters.ReportNoCalls));
-            ExecuteParsingTest(@"-OutFolder C:\out", true, (o) => Assert.Equal(@"C:\out", o.OutputFolder));
-            ExecuteParsingTest(@"-BAMFolder C:\bamfolder", true, (o) => Assert.Equal(@"C:\bamfolder", o.BAMFolder));
-            ExecuteParsingTest(@"-vffilter 20.1", true, (o) => Assert.Equal(20.1f, o.VariantCallingParameters.MinimumFrequencyFilter));
-            ExecuteParsingTest(@"-ploidy diploid", true, (o) => Assert.Equal(PloidyModel.Diploid, o.VariantCallingParameters.PloidyModel));
-            ExecuteParsingTest(@"-RepeatFilter 5", true, (o) => Assert.Equal(5, o.VariantCallingParameters.IndelRepeatFilter));
-            ExecuteParsingTest(@"-DuplicateReadFilter false", true, (o) => Assert.Equal(false, o.BamFilterParameters.RemoveDuplicates));
-            ExecuteParsingTest(@"-mindpfilter 3", true, (o) => Assert.Equal(3, o.VariantCallingParameters.LowDepthFilter));
-            ExecuteParsingTest(@"-TargetLODFrequency 0.45", true, (o) => Assert.Equal(0.45f, o.VariantCallingParameters.TargetLODFrequency));
-            ExecuteParsingTest(@"-Collapse true", true, (o) => Assert.True(o.Collapse));
-            ExecuteParsingTest(@"-Collapse false", true, (o) => Assert.False(o.Collapse));
-            ExecuteParsingTest(@"-CollapseExcludeMNVs true", true, (o) => Assert.True(o.ExcludeMNVsFromCollapsing));
-            ExecuteParsingTest(@"-CollapseExcludeMNVs false", true, (o) => Assert.False(o.ExcludeMNVsFromCollapsing));
-            ExecuteParsingTest(@"  -PriorsPath C:\path", true, (o) => Assert.Equal(@"C:\path", o.PriorsPath));
-            ExecuteParsingTest(@"  -DiploidGenotypeParameters 0.10,0.20,0.78", true, (o) =>
+            ExecuteParsingOnlyTest("-minvq 40", true, (o) => Assert.Equal(40, o.VariantCallingParameters.MinimumVariantQScore));
+            ExecuteParsingOnlyTest("-minbq 40", true, (o) => Assert.Equal(40, o.BamFilterParameters.MinimumBaseCallQuality));
+            ExecuteParsingOnlyTest(@"-B C:\test.bam,C:\test2.bam", true, (o) => Assert.Equal(2, o.BAMPaths.Length));
+            ExecuteParsingOnlyTest("-mindp 40", true, (o) => Assert.Equal(40, o.VariantCallingParameters.MinimumCoverage));
+            ExecuteParsingOnlyTest("-d true", true, (o) => Assert.True(o.DebugMode));
+            ExecuteParsingOnlyTest("-debug true", true, (o) => Assert.True(o.DebugMode));
+            ExecuteParsingOnlyTest("-minvf 0.555", true, (o) => Assert.Equal(0.555f, o.VariantCallingParameters.MinimumFrequency));
+            ExecuteParsingOnlyTest("-vqfilter 40", true, (o) => Assert.Equal(40, o.VariantCallingParameters.MinimumVariantQScoreFilter));
+            ExecuteParsingOnlyTest("-ssfilter true", true, (o) => Assert.True(o.VariantCallingParameters.FilterOutVariantsPresentOnlyOneStrand));
+            ExecuteParsingOnlyTest(@"-g C:\genome,C:\genome2", true, (o) => Assert.Equal(2, o.GenomePaths.Length));
+            ExecuteParsingOnlyTest("-NL 40", true, (o) => Assert.Equal(40, o.VariantCallingParameters.ForcedNoiseLevel));
+            ExecuteParsingOnlyTest("-gVCF true", true, (o) => Assert.True(o.VcfWritingParameters.OutputGvcfFile));
+            ExecuteParsingOnlyTest("-CallMNVs true", true, (o) => Assert.True(o.CallMNVs));
+            ExecuteParsingOnlyTest("-MaxMNVLength 40", true, (o) => Assert.Equal(40, o.MaxSizeMNV));
+            ExecuteParsingOnlyTest("-MaxGapBetweenMNV 40", true, (o) => Assert.Equal(40, o.MaxGapBetweenMNV));
+            ExecuteParsingOnlyTest(@"-i C:\blah,C:\blah2", true, (o) => Assert.Equal(2, o.IntervalPaths.Length));
+            ExecuteParsingOnlyTest("-minmq 40", true, (o) => Assert.Equal(40, o.BamFilterParameters.MinimumMapQuality));
+            ExecuteParsingOnlyTest("-SBModel poisson", true, (o) => Assert.Equal(StrandBiasModel.Poisson, o.VariantCallingParameters.StrandBiasModel));
+            ExecuteParsingOnlyTest("-SBModel extended", true, (o) => Assert.Equal(StrandBiasModel.Extended, o.VariantCallingParameters.StrandBiasModel));
+            ExecuteParsingOnlyTest("-SBModel random", false);
+            ExecuteParsingOnlyTest("-outputsbfiles true", true, (o) => Assert.True(o.OutputBiasFiles));
+            ExecuteParsingOnlyTest("-pp true", true, (o) => Assert.True(o.BamFilterParameters.OnlyUseProperPairs));
+            ExecuteParsingOnlyTest("-maxvq 40", true, (o) => Assert.Equal(40, o.VariantCallingParameters.MaximumVariantQScore));
+            ExecuteParsingOnlyTest("-sbfilter 0.7", true, (o) => Assert.Equal(0.7f, o.VariantCallingParameters.StrandBiasAcceptanceCriteria));
+            ExecuteParsingOnlyTest("-t 40", true, (o) => Assert.Equal(40, o.MaxNumThreads));
+            ExecuteParsingOnlyTest("-ReportNoCalls true", true, (o) => Assert.True(o.VcfWritingParameters.ReportNoCalls));
+            ExecuteParsingOnlyTest(@"-OutFolder C:\out", true, (o) => Assert.Equal(@"C:\out", o.OutputDirectory));
+            ExecuteParsingOnlyTest(@"-bampaths C:\bamfolder", true, (o) => Assert.Equal(@"C:\bamfolder", o.BAMPaths[0]));
+            ExecuteParsingOnlyTest(@"-vffilter 20.1", true, (o) => Assert.Equal(20.1f, o.VariantCallingParameters.MinimumFrequencyFilter));
+            ExecuteParsingOnlyTest(@"-ploidy diploid", true, (o) => Assert.Equal(PloidyModel.Diploid, o.VariantCallingParameters.PloidyModel));
+            ExecuteParsingOnlyTest(@"-repeatfilter_ToBeRetired 5", true, (o) => Assert.Equal(5, o.VariantCallingParameters.IndelRepeatFilter));
+            ExecuteParsingOnlyTest(@"-DuplicateReadFilter false", true, (o) => Assert.Equal(false, o.BamFilterParameters.RemoveDuplicates));
+            ExecuteParsingOnlyTest(@"-mindpfilter 3", true, (o) => Assert.Equal(3, o.VariantCallingParameters.LowDepthFilter));
+            ExecuteParsingOnlyTest(@"-TargetLODFrequency 0.45", true, (o) => Assert.Equal(0.45f, o.VariantCallingParameters.TargetLODFrequency));
+            ExecuteParsingOnlyTest(@"-Collapse true", true, (o) => Assert.True(o.Collapse));
+            ExecuteParsingOnlyTest(@"-Collapse false", true, (o) => Assert.False(o.Collapse));
+
+            //ExecuteParsingOnlyTest(@"-CollapseExcludeMNVs true", true, (o) => Assert.True(o.ExcludeMNVsFromCollapsing)); <- removed support for this option
+            //ExecuteParsingOnlyTest(@"-CollapseExcludeMNVs false", true, (o) => Assert.False(o.ExcludeMNVsFromCollapsing; <- removed support for this option
+
+            ExecuteParsingOnlyTest(@"  -PriorsPath C:\path", true, (o) => Assert.Equal(@"C:\path", o.PriorsPath));
+            ExecuteParsingOnlyTest(@"  -DiploidGenotypeParameters 0.10,0.20,0.78", true, (o) =>
                     Assert.True(
                         (0.10f == o.VariantCallingParameters.DiploidThresholdingParameters.MinorVF) &&
                         (0.20f == o.VariantCallingParameters.DiploidThresholdingParameters.MajorVF) &&
                         (0.78f == o.VariantCallingParameters.DiploidThresholdingParameters.SumVFforMultiAllelicSite)));
-            ExecuteParsingTest(@"-RMxNFilter false", true, (o) => Assert.True(
+            ExecuteParsingOnlyTest(@"-RMxNFilter false", true, (o) => Assert.True(
                         (null == o.VariantCallingParameters.RMxNFilterMaxLengthRepeat) &&
                         (null == o.VariantCallingParameters.RMxNFilterMinRepetitions)));
-            ExecuteParsingTest(@"-RMxNFilter true", true, (o) => Assert.True(
+            ExecuteParsingOnlyTest(@"-RMxNFilter true", true, (o) => Assert.True(
                         (5 == o.VariantCallingParameters.RMxNFilterMaxLengthRepeat) &&
                         (9 == o.VariantCallingParameters.RMxNFilterMinRepetitions)));
-            ExecuteParsingTest(@"-RMxNFilter 11,3", true, (o) => Assert.True(
+            ExecuteParsingOnlyTest(@"-RMxNFilter 11,3", true, (o) => Assert.True(
                         (11 == o.VariantCallingParameters.RMxNFilterMaxLengthRepeat) &&
                         (3 == o.VariantCallingParameters.RMxNFilterMinRepetitions)));
-            ExecuteParsingTest(@"-RMxNFilter 11,3,0.30", true, (o) => Assert.True(
+            ExecuteParsingOnlyTest(@"-RMxNFilter 11,3,0.30", true, (o) => Assert.True(
                 (11 == o.VariantCallingParameters.RMxNFilterMaxLengthRepeat) &&
                 (3 == o.VariantCallingParameters.RMxNFilterMinRepetitions) &&
                 (0.3f == o.VariantCallingParameters.RMxNFilterFrequencyLimit)));
-            ExecuteParsingTest(@"-RMxNFilter 11,3,5,0.20", false);
-            ExecuteParsingTest(@"-RMxNFilter 5", false);
-            ExecuteParsingTest(@"-RMxNFilter yourmom", false);
-            ExecuteParsingTest(@"-ThreadByChr true", true, (o) => Assert.True(o.ThreadByChr));
-            ExecuteParsingTest(@"-ThreadByChr boo", false);
-            ExecuteParsingTest(@"-Mono boo", true, (o) => Assert.Equal(@"boo", o.MonoPath));
-            ExecuteParsingTest(@"-mono boo2", true, (o) => Assert.Equal(@"boo2", o.MonoPath));
-            ExecuteParsingTest(@"-SkipNonIntervalAlignments meh", true);  //be kind to obsolete arguments
+            ExecuteParsingOnlyTest(@"-RMxNFilter 11,3,5,0.20", false);
+            ExecuteParsingOnlyTest(@"-RMxNFilter 5", false);
+            ExecuteParsingOnlyTest(@"-RMxNFilter yourmom", false);
+            ExecuteParsingOnlyTest(@"-ThreadByChr true", true, (o) => Assert.True(o.ThreadByChr));
+            ExecuteParsingOnlyTest(@"-ThreadByChr boo", false);
+            ExecuteParsingOnlyTest(@"-Mono boo", false );//  < -removed support for this option
+            ExecuteParsingOnlyTest(@"-mono boo2", false);// < -removed support for this option
+            ExecuteParsingOnlyTest(@"-SkipNonIntervalAlignments meh", false);  //<- change after argument refactor. We are no longer being kind to unsupported arguments.
         }
 
         [Fact]
@@ -254,14 +260,14 @@ namespace Pisces.Domain.Tests
             // focus on mal-formed arguments
 
             // argument mismatches
-            ExecuteParsingTest("-rmxnfilter 4,5,6,7", false);
-            ExecuteParsingTest("-mingq *", false);
-            ExecuteParsingTest("-pp 20", false);
-            ExecuteParsingTest("-maxvq 40.1", false);
+            ExecuteParsingOnlyTest("-rmxnfilter 4,5,6,7", false);
+            ExecuteParsingOnlyTest("-mingq *", false);
+            ExecuteParsingOnlyTest("-pp 20", false);
+            ExecuteParsingOnlyTest("-maxvq 40.1", false);
 
             // enum values
-            ExecuteParsingTest("-ploidy help", false);
-            ExecuteParsingTest("-SBModel bogus", false);
+            ExecuteParsingOnlyTest("-ploidy help", false);
+            ExecuteParsingOnlyTest("-SBModel bogus", false);
         }
 
         [Fact]
@@ -321,41 +327,39 @@ namespace Pisces.Domain.Tests
         [Fact]
         public void PopulateBAMPaths()
         {
+            var BAMFolder = TestPaths.SharedBamDirectory;
             //Happy Path
             var options_1 = new PiscesApplicationOptions()
             {
-                BAMFolder = TestPaths.LocalTestDataDirectory,
+                BAMPaths = BamProcessorOptions.UpdateBamPathsWithBamsFromFolder(BAMFolder),
                 GenomePaths = new[] { _existingGenome },
                 IntervalPaths = new[] { _existingInterval }
             };
-            options_1.PopulateBAMPaths();
+           
             Assert.NotNull(options_1.BAMPaths);
             Assert.True(options_1.BAMPaths.Length > 0);
 
             //no bam files found
             var options_3 = new PiscesApplicationOptions()
             {
-                BAMFolder = TestPaths.SharedGenomesDirectory,
                 GenomePaths = new[] { _existingGenome },
             };
-            Assert.Throws<ArgumentException>(() => options_3.PopulateBAMPaths());
+            Assert.Null(options_3.BAMPaths);
+            Assert.Throws<ArgumentException>(() => options_3.ValidateAndSetDerivedValues());
         }
 
         [Fact]
         public void MaxNumberThreads()
         {
-            string bamFolder = TestPaths.LocalTestDataDirectory;
-            var commandLine1 = string.Format("-minvq 40 -minbq 40 -BAMFolder {0} -t 1000 -g {1} -vqfilter 40", bamFolder, _existingGenome);
-            var options1 = PiscesApplicationOptions.ParseCommandLine(commandLine1.Split(' '));
-            Assert.Equal(Environment.ProcessorCount, options1.MaxNumThreads);
+            string bamFolder = TestPaths.SharedBamDirectory;
+            var commandLine1 = string.Format("-minvq 40 -minbq 40 -b {0} -t 1000 -g {1} -vqfilter 40", bamFolder, _existingGenome);
+            ExecuteParsingAndSetDerivedParams(commandLine1, (o) => Assert.Equal(Environment.ProcessorCount, o.MaxNumThreads));
+            
+            var commandLine2 = string.Format("-minvq 40 -minbq 40 -b {0} -g {1} -vqfilter 40", bamFolder, _existingGenome);
+            ExecuteParsingAndSetDerivedParams(commandLine2,  (o) => Assert.Equal(Environment.ProcessorCount, o.MaxNumThreads));
 
-            var commandLine2 = string.Format("-minvq 40 -minbq 40 -BAMFolder {0} -g {1} -vqfilter 40", bamFolder, _existingGenome);
-            var options2 = PiscesApplicationOptions.ParseCommandLine(commandLine2.Split(' '));
-            Assert.Equal(Environment.ProcessorCount, options2.MaxNumThreads);
-
-            var commandLine3 = string.Format("-minvq 40 -minbq 40 -BAMFolder {0} -g {1} -vqfilter 40 -t 1", bamFolder, _existingGenome);
-            var options3 = PiscesApplicationOptions.ParseCommandLine(commandLine3.Split(' '));
-            Assert.Equal(1, options3.MaxNumThreads);
+            var commandLine3 = string.Format("-minvq 40 -minbq 40 -b {0} -g {1} -vqfilter 40 -t 1", bamFolder, _existingGenome);
+            ExecuteParsingAndSetDerivedParams(commandLine3, (o) => Assert.Equal(1, o.MaxNumThreads));
         }
 
 
@@ -369,56 +373,47 @@ namespace Pisces.Domain.Tests
             // verify default should be valid
             // ---------------------
             var option = GetBasicOptions();
-            option.Validate();
+            option.ValidateAndSetDerivedValues();
 
             // ---------------------
             // verify log folder
             // ---------------------
             Assert.Equal(Path.Combine(TestPaths.SharedBamDirectory, "PiscesLogs"), option.LogFolder);
-
-            //dont worry about this - it will get caught upstream. reducing code complexity
-            //Assert.Throws<Exception>(() => new PiscesApplicationOptions().LogFolder);
-
+           
             // ---------------------------------------------------
-            // Either BAMPath(s) or BAMFolder should be specified.
+            // BAMPath(s) should be specified.
             // ---------------------------------------------------
-            ExecuteValidationTest((o) =>
-            {
-                o.BAMPaths = new[] { "bampath1.bam" };
-                o.BAMFolder = @"C:\BAMFolder";
-            }, false);
+            ExecuteValidationTest((o) => { o.BAMPaths = new[] { _existingBamPath }; }, true);
+            ExecuteValidationTest((o) => { o.BAMPaths = new[] { "bampath1.bam" }; }, false);
             ExecuteValidationTest((o) => { o.BAMPaths = null; }, false);
+
 
             // ---------------------------------------------------
             // BAMFolder
-            // Folder should exist
+            // Folder should exist (given as the first string in BAMPaths)
             // 1 Genome Path should be specified when BAMFolder is specified.
             // Atmost 1 Interval Path should be specified when BAMFolder is specified.
             // Threading by chromosome is not supported when BAMFolder is specified.
             // ---------------------------------------------------
             ExecuteValidationTest(o =>
             {
-                o.BAMPaths = null;
-                o.BAMFolder = @"C:\NonexistantBAMFolder";
+                o.BAMPaths = new string[] { @"C:\NonexistantBAMFolder" };
                 o.GenomePaths = new[] { _existingGenome };
             }, false);
             ExecuteValidationTest(o =>
             {
-                o.BAMPaths = null;
-                o.BAMFolder = TestPaths.LocalTestDataDirectory;
+                o.BAMPaths = new string[] { TestPaths.SharedBamDirectory } ;
                 o.GenomePaths = new[] { "folder1", "folder2" };
             }, false);
             ExecuteValidationTest(o =>
             {
-                o.BAMPaths = null;
-                o.BAMFolder = TestPaths.LocalTestDataDirectory;
+                o.BAMPaths = new string[] { TestPaths.SharedBamDirectory };
                 o.GenomePaths = new[] { _existingGenome };
                 o.IntervalPaths = new[] { "file1.intervals", "file2.intervals" };
             }, false);
             ExecuteValidationTest(o =>
             {
-                o.BAMPaths = null;
-                o.BAMFolder = TestPaths.LocalTestDataDirectory;
+                o.BAMPaths = BamProcessorOptions.UpdateBamPathsWithBamsFromFolder( TestPaths.SharedBamDirectory );
                 o.GenomePaths = new[] { _existingGenome };
                 o.IntervalPaths = new[] { _existingInterval };
             }, true);
@@ -444,7 +439,7 @@ namespace Pisces.Domain.Tests
             }, true);  // dup genomes ok
 
             // intervals
-            ExecuteValidationTest((o) => { o.IntervalPaths = new[] { _existingInterval, _existingInterval }; }, false);
+            ExecuteValidationTest((o) => { o.IntervalPaths = new[] { _existingInterval, _existingInterval }; }, false); 
             ExecuteValidationTest((o) => { o.IntervalPaths = new[] { "nonexistant.picard" }; }, false);
             ExecuteValidationTest((o) =>
             {
@@ -510,7 +505,7 @@ namespace Pisces.Domain.Tests
 
             ExecuteValidationTest((o) => { o.MaxSizeMNV = 0; }, true);  // ok if not calling mnv
             ExecuteValidationTest((o) => { o.MaxGapBetweenMNV = -1; }, true);  // ok if not calling mnv
-            ExecuteValidationTest((o) => { o.OutputFolder = TestPaths.LocalTestDataDirectory; }, true); // True for valid path
+            ExecuteValidationTest((o) => { o.OutputDirectory = TestPaths.LocalTestDataDirectory; }, true); // True for valid path
             ExecuteValidationTest((o) =>
             {
                 o.CallMNVs = true;
@@ -623,48 +618,107 @@ namespace Pisces.Domain.Tests
         }
 
         [Fact]
-        public void PrintAndSaveApplicationLegacyOptions()
+        public void SaveApplicationLegacyOptions()
         {
-            PiscesApplicationOptions.PrintUsageInfo();
-            var bamFolder = TestPaths.LocalTestDataDirectory;
-            var applicationOptionsFile = Path.Combine(TestPaths.LocalScratchDirectory, "PiscesOptionsTest1.used.json");
+            var parsingResult = new CommandLineParseResult();
+
+            var bamFolder = TestPaths.SharedBamDirectory;
+            var applicationOptionsFile = Path.Combine(TestPaths.LocalScratchDirectory, "SomaticVariantCallerOptions1.used.json");
             if (File.Exists(applicationOptionsFile))
                 File.Delete(applicationOptionsFile);
-            var commandLine1 = string.Format("-minvq 40 -minbq 40 -BAMFolder {0} -t 1000 -g {1} -vqfilter 40", bamFolder, _existingGenome);
-            var options1 = PiscesApplicationOptions.ParseCommandLine(commandLine1.Split(' '));
+
+            var commandLine1 = string.Format("-minvq 40 -minbq 40 -BAMpaths {0} -t 1000 -g {1} -vqfilter 40", bamFolder, _existingGenome);
+            var options1 = GetParsedOptions(commandLine1);
+
+            options1.ValidateAndSetDerivedValues();
             options1.Save(applicationOptionsFile);
             Assert.True(File.Exists(applicationOptionsFile));
         }
 
         [Fact]
-        public void PrintAndSaveApplicationOptions()
+        public void PrintOptionsTest()
         {
-            PiscesApplicationOptions.PrintUsageInfo();
-            var bamFolder = TestPaths.LocalTestDataDirectory;
-            var applicationOptionsFile = Path.Combine(TestPaths.LocalScratchDirectory, "PiscesOptionsTest2.used.json");
+
+            // "help|h" should disply help. At least check it doesnt crash.
+
+            try
+            {
+                Assert.Equal((int)ExitCodeType.Success, Program.Main(new string[] { "-h" }));
+                Assert.Equal((int)ExitCodeType.Success, Program.Main(new string[] { "--h" }));
+                Assert.Equal((int)ExitCodeType.Success, Program.Main(new string[] { "-Help" }));        
+            }
+            catch
+            {
+                Assert.True(false);
+            }
+        }
+
+        [Fact]
+        public void SaveApplicationOptions()
+        {
+            
+
+            var bamFolder = TestPaths.SharedBamDirectory;
+            var applicationOptionsFile = Path.Combine(TestPaths.LocalScratchDirectory, "SomaticVariantCallerOptions2.used.json");
             if (File.Exists(applicationOptionsFile))
                 File.Delete(applicationOptionsFile);
-            var commandLine1 = string.Format("-MinVariantQScore 40 -MinBaseCallQuality 40 -BAMFolder {0} -MaxNumThreads 1000 -GenomePaths {1} -VariantQualityFilter 40", bamFolder, _existingGenome);
-            var options1 = PiscesApplicationOptions.ParseCommandLine(commandLine1.Split(' '));
-            options1.Save(applicationOptionsFile);
+
+            var parsingResult = new CommandLineParseResult();
+            var commandLine1 = string.Format("-MinVariantQScore 40 -MinBaseCallQuality 40 -BAMPaths {0} -MaxNumThreads 1000 -GenomePaths {1} -VariantQualityFilter 40", bamFolder, _existingGenome);
+          
+            var options = GetParsedOptions(commandLine1);
+           
+            options.Save(applicationOptionsFile);
+
             Assert.True(File.Exists(applicationOptionsFile));
         }
 
-
-        private void ExecuteParsingTest(string arguments, bool shouldPass, Action<PiscesApplicationOptions> assertions = null)
+        private void ExecuteParsingAndSetDerivedParams(string arguments, Action<PiscesApplicationOptions> assertions = null)
         {
-            var options = new PiscesApplicationOptions();
+            var parser = GetParsedAndValidatedApplicationOptions(arguments);
+            assertions(parser.PiscesOptions);
+        }
+
+
+
+        private void ExecuteParsingOnlyTest(string arguments, bool shouldPass, Action<PiscesApplicationOptions> assertions = null)
+        {
+            var parser = GetParsedApplicationOptions(arguments);
 
             if (shouldPass)
             {
-                options.UpdateOptions(arguments.Split(' '));
-                if (assertions != null)
-                    assertions(options);
+                assertions(parser.PiscesOptions);
             }
             else
             {
-                Assert.Throws<ArgumentException>(() => options.UpdateOptions(arguments.Split(' ')));
+                Assert.NotEqual(0, parser.ParsingResult.ExitCode);
             }
+        }
+
+        private void ExecuteParsingTest(string arguments, Action<PiscesApplicationOptions> assertions = null)
+        {
+            var options = GetParsedOptions(arguments);
+            assertions(options);
+        }
+
+        private PiscesOptionsParser GetParsedApplicationOptions(string arguments)
+        {
+            var parsedOptions = new PiscesOptionsParser();
+            parsedOptions.ParseArgs(arguments.Split(' '), false);
+            return parsedOptions;
+        }
+
+        private PiscesOptionsParser GetParsedAndValidatedApplicationOptions(string arguments)
+        {
+            var parsedOptions = new PiscesOptionsParser();
+            parsedOptions.ParseArgs(arguments.Split(' '), true);
+            return parsedOptions;
+        }
+
+        private PiscesApplicationOptions GetParsedOptions(string arguments)
+        {
+            var parsedOptions = GetParsedApplicationOptions(arguments);
+            return parsedOptions.PiscesOptions;
         }
 
 
@@ -675,10 +729,10 @@ namespace Pisces.Domain.Tests
             testSetup(options);
 
             if (shouldPass)
-                options.Validate();
+                options.ValidateAndSetDerivedValues();
             else
             {
-                Assert.Throws<ArgumentException>(() => options.Validate());
+                Assert.Throws<ArgumentException>(() => options.ValidateAndSetDerivedValues());
             }
         }
 

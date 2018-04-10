@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using CommandLine.IO.Utilities;
 using Xunit;
 
 namespace Stitcher.Tests
@@ -64,8 +65,10 @@ namespace Stitcher.Tests
         private void ValidateOptionParsing(Dictionary<string, string> argsDict)
         {
             var args = argsDict.SelectMany(x => new[] { "-" + x.Key, x.Value }).ToArray();
+            var parser = new StitcherApplicationOptionsParser();
+            parser.ParseArgs(args);
 
-            var options = new ApplicationOptions(args);
+            var options = parser.ProgramOptions;
 
             ValidateOption(argsDict, "Bam", options.InputBam.ToString());
             ValidateOption(argsDict, "OutFolder", options.OutFolder.ToString());
@@ -86,7 +89,7 @@ namespace Stitcher.Tests
             ValidateOption(argsDict, "MemoryGB", options.StitcherOptions.SortMemoryGB.ToString());
             ValidateOption(argsDict, "MaxReadLength", options.StitcherOptions.MaxReadLength.ToString());
             ValidateOption(argsDict, "IgnoreReadsAboveMaxLength", options.StitcherOptions.IgnoreReadsAboveMaxLength.ToString());
-            Assert.Equal(argsDict.ContainsKey("ver"), options.ShowVersion);
+   
         }
 
         private void ValidateOption(Dictionary<string, string> argsDict, string optionName, string option)
@@ -94,6 +97,45 @@ namespace Stitcher.Tests
             if (argsDict.ContainsKey(optionName))
             {
                 Assert.Equal(argsDict[optionName], option);
+            }
+        }
+
+
+        /// <summary>
+        ///The following tests check the new argument handling takes care of the following cases:
+        ///(1) No arguments given
+        ///(2) Version num requested 
+        ///(3) unknown arguments given
+        ///(4) missing required input (no vcf given)
+        /// </summary>
+        [Fact]
+        public void CheckCommandLineArgumentHandling_noArguments()
+        {
+            Assert.Equal((int)ExitCodeType.MissingCommandLineOption, Program.Main(new string[] { }));
+
+            Assert.Equal((int)ExitCodeType.Success, Program.Main(new string[] { "-v" }));
+
+            Assert.Equal((int)ExitCodeType.Success, Program.Main(new string[] { "--v" }));
+
+            Assert.Equal((int)ExitCodeType.UnknownCommandLineOption, Program.Main(new string[] { "-vcf", "foo.genome.vcf", "-blah", "won't work" }));
+
+        }
+
+        [Fact]
+        public void PrintOptionsTest()
+        {
+            // "help|h" should disply help. At least check it doesnt crash.
+
+            try
+            {
+                Assert.Equal((int)ExitCodeType.Success, Program.Main(new string[] { "-h" }));
+                Assert.Equal((int)ExitCodeType.Success, Program.Main(new string[] { "--h" }));
+                Assert.Equal((int)ExitCodeType.Success, Program.Main(new string[] { "-Help" }));
+                Assert.True(true);
+            }
+            catch
+            {
+                Assert.True(false);
             }
         }
 

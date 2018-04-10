@@ -7,14 +7,21 @@ using Pisces.Domain.Utility;
 
 namespace Pisces.Domain.Models
 {
+    /// <summary>
+    /// ReadExtentions
+    /// </summary>
+    /// todo: handling non-proper reads?
+    /// todo: throw exceptions for orientations other than RF, FR, FF, RR?
     public static class ReadExtentions
     {
-        public static ReadCollapsedType GetReadCollapsedType(this Read read, 
+        public static ReadCollapsedType? GetReadCollapsedType(this Read read, 
             DirectionType directionType)
         {
             var readPairDirection = read.ReadPairDirection;
             const string forwardTemplate = "FR";
             const string reverseTemplate = "RF";
+            const string nonProperTemplateF1F2 = "FF";
+            const string nonProperTemplateR1R2 = "RR";
 
             if (read.IsDuplex)
             {
@@ -31,10 +38,12 @@ namespace Pisces.Domain.Models
                             return ReadCollapsedType.SimplexForwardStitched;
                         case reverseTemplate:
                             return ReadCollapsedType.SimplexReverseStitched;
+                        case nonProperTemplateF1F2:
+                        case nonProperTemplateR1R2:
                         default:
-                            //read pairs with direction other than FR and RF are not considered. 
-                            return ReadCollapsedType.SimplexStitched;
-                    }
+                            // non proper read pairs FF or RR are not considered 
+                            return null;
+                     }
                 }
                 else
                 {
@@ -44,9 +53,11 @@ namespace Pisces.Domain.Models
                             return ReadCollapsedType.SimplexForwardNonStitched;
                         case reverseTemplate:
                             return ReadCollapsedType.SimplexReverseNonStitched;
+                        case nonProperTemplateF1F2:
+                        case nonProperTemplateR1R2:
                         default:
-                            //read pairs with direction other than FR and RF are not considered. 
-                            return ReadCollapsedType.SimplexNonStitched;
+                            // non proper read pairs FF or RR are not considered
+                            return null;
                     }
                 }
             }
@@ -83,6 +94,8 @@ namespace Pisces.Domain.Models
         public string Name { get { return BamAlignment.Name; } } // cluster name
         public bool IsMapped { get { return BamAlignment.IsMapped(); } }
         public bool IsPrimaryAlignment { get { return BamAlignment.IsPrimaryAlignment(); } }
+        public bool IsSupplementaryAlignment { get { return BamAlignment.IsSupplementaryAlignment(); } }
+        public bool HasSupplementaryAlignment { get { return BamAlignment.HasSupplementaryAlignment(); } }
         public bool IsPcrDuplicate { get { return BamAlignment.IsDuplicate(); } }
         public bool IsProperPair { get { return BamAlignment.IsProperPair(); } }
         public uint MapQuality { get { return BamAlignment.MapQuality; } }

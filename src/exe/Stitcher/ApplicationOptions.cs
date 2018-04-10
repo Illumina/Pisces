@@ -1,15 +1,34 @@
-﻿using NDOptions;
+﻿using System.IO;
+using CommandLine.NDesk.Options;
+using Pisces.Domain.Options;
 
 namespace Stitcher
 {
-    public class ApplicationOptions
+    public class ApplicationOptions: BaseApplicationOptions
     {
         public StitcherOptions StitcherOptions;
         public string InputBam = null;
         public string OutFolder = null;
         public bool ShowVersion = false;
         public OptionSet OptionSet;
+        public string DefaultLogFolderName = "StitcherLogs";
+        public string LogFileName = "StitcherLog.txt";
 
+        public ApplicationOptions()
+        {
+            StitcherOptions = new StitcherOptions();
+        }
+
+
+
+        public string LogFolder
+        {
+            get
+            {
+                return Path.Combine(OutFolder, DefaultLogFolderName);
+            }
+        }
+        /* moved to StitcherAppOptionsParser
         public ApplicationOptions(string[] args)
         {
             StitcherOptions = new StitcherOptions();
@@ -18,7 +37,7 @@ namespace Stitcher
                 {"Bam=", "{PATH} to the original bam file. (Required).", o => InputBam = o},
                 {"OutFolder=", "{PATH} of directory in which to create the new bam file. (Required).", o => OutFolder = o},
                 {"MinBaseCallQuality=", "{INT} cutoff for which, in case of a stitching conflict, bases with qscore less than this value will automatically be disregarded in favor of the mate's bases.",  o=> StitcherOptions.MinBaseCallQuality = int.Parse(o) },
-                {"FilterMinMapQuality=", "{INT} indicating reads with map quality less than this value should be filtered. Default: 20.", o=> StitcherOptions.FilterMinMapQuality = int.Parse(o) },
+                {"FilterMinMapQuality=", "{INT} indicating reads with map quality less than this value should be filtered. Default: 1.", o=> StitcherOptions.FilterMinMapQuality = uint.Parse(o) },
                 {"FilterDuplicates=", "{BOOL} indicating whether reads marked as duplicates shall be filtered. Default: true.", o => StitcherOptions.FilterDuplicates = bool.Parse(o) },
                 {"FilterForProperPairs=", "{BOOL} indicating whether reads marked as not proper pairs shall be filtered. Default: false.", o => StitcherOptions.FilterForProperPairs = bool.Parse(o) },
                 {"FilterUnstitchablePairs=", "{BOOL} indicating whether read pairs with incompatible CIGAR strings shall be filtered. Default: false.", o => StitcherOptions.FilterUnstitchablePairs = bool.Parse(o) },
@@ -43,6 +62,6 @@ namespace Stitcher
 
             options.Parse(args);
             OptionSet = options;
-        }
+        }*/
     }
 }

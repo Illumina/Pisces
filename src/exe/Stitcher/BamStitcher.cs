@@ -149,7 +149,7 @@ namespace Stitcher
             for (int i = 0; i < numThreads; ++i)
             {
                 var stitcher = new BasicStitcher(_options.MinBaseCallQuality, useSoftclippedBases: _options.UseSoftClippedBases,
-                    nifyDisagreements: _options.NifyDisagreements, debug: _options.Debug, nifyUnstitchablePairs: _options.NifyUnstitchablePairs, ignoreProbeSoftclips: !_options.StitchProbeSoftclips, maxReadLength: _options.MaxReadLength, ignoreReadsAboveMaxLength: _options.IgnoreReadsAboveMaxLength);
+                    nifyDisagreements: _options.NifyDisagreements, debug: _options.Debug, nifyUnstitchablePairs: _options.NifyUnstitchablePairs, ignoreProbeSoftclips: !_options.StitchProbeSoftclips, maxReadLength: _options.MaxReadLength, ignoreReadsAboveMaxLength: _options.IgnoreReadsAboveMaxLength, minMapQuality: _options.FilterMinMapQuality);
 
 
                 handlers.Add(new PairHandler(refIdMapping, stitcher, _options.FilterUnstitchablePairs, readStatuses));

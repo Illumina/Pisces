@@ -5,6 +5,7 @@ using System.IO;
 using Pisces.Domain.Models.Alleles;
 using Pisces.Domain.Types;
 using Pisces.Calculators;
+using Pisces.IO;
 using Common.IO.Utility;
 using VariantPhasing.Models;
 using VariantPhasing.Interfaces;
@@ -37,8 +38,8 @@ namespace VariantPhasing.Logic
         /// <param name="anchorPosition">if we are forcing the allele to be at a given position, instead of the poisition it would naturally be at in the VCF file</param>
         /// <returns></returns>
         public static Dictionary<int, SuckedUpRefRecord> Extract(out CalledAllele allele,
-            VariantSite[] clusterVariantSites, string referenceSequence, int[] neighborhoodDepthAtSites, int[] neighborhoodNoCallsAtSites, int[] clusterCountsAtSites, 
-            string chromosome, int qNoiselevel, int maxQscore, int anchorPosition=-1)
+            VariantSite[] clusterVariantSites, string referenceSequence, int[] neighborhoodDepthAtSites, int[] neighborhoodNoCallsAtSites, int[] clusterCountsAtSites,
+            string chromosome, int qNoiselevel, int maxQscore, int anchorPosition = -1)
         {
             if (clusterVariantSites.Length != neighborhoodDepthAtSites.Length || neighborhoodDepthAtSites.Length != clusterCountsAtSites.Length)
             {
@@ -63,9 +64,7 @@ namespace VariantPhasing.Logic
             var lastRefBaseSitePosition = clusterVariantSites[0].VcfReferencePosition;
             var firstVariantSitePosition = clusterVariantSites[0].VcfReferencePosition;
             var differenceStarted = false;
-            var lengthOfRefAllele = -1;
-            var lengthOfAltAllele = -1;
-
+            
             bool usingAnchor = (anchorPosition != -1);
 
             if (usingAnchor)
@@ -89,8 +88,8 @@ namespace VariantPhasing.Logic
                 {
                     //We have a problem. the last site we added overlaps with the current site we want to add.
                     //The probably are not in conflict. But we will had to do some kind of sub string to get this right..
-                   
-                    var lengthToTrimFromStart = diff + 1 ;
+
+                    var lengthToTrimFromStart = diff + 1;
 
                     if ((lengthToTrimFromStart < consensusSite.TrueAltAllele.Length) &&
                         (lengthToTrimFromStart < consensusSite.TrueRefAllele.Length))
@@ -124,7 +123,7 @@ namespace VariantPhasing.Logic
 
                 if (!differenceStarted)
                     firstVariantSitePosition = currentPosition;
-                   
+
                 differenceStarted = true;
                 depthsInsideMnv.Add(neighborhoodDepthAtSites[siteIndex]);
                 countsInsideMnv.Add(clusterCountsAtSites[siteIndex]);
@@ -136,29 +135,30 @@ namespace VariantPhasing.Logic
                 alleleReference += refAlleleToAdd;
                 alleleAlternate += altAlleleToAdd;
 
-                lengthOfRefAllele = alleleReference.Length;
-                lengthOfAltAllele = alleleAlternate.Length;
             }
 
-            //if we are not anchored, we trim off preceding bases of agreement, and move up the cooridnate to
-            //the first base of difference.
-            var numPrecedingBasesOfAgreement = usingAnchor? 0 : GetNumPrecedingAgreement(alleleReference, alleleAlternate);
 
-            //remove any trailing bases of agreement.
-            var numTrailingBasesOfAgreement = GetNumTrailingAgreement(alleleReference, alleleAlternate);
 
             if (differenceStarted)
             {
-                alleleReference = alleleReference.Substring(numPrecedingBasesOfAgreement,
-                    lengthOfRefAllele - numPrecedingBasesOfAgreement);
-                alleleAlternate = alleleAlternate.Substring(numPrecedingBasesOfAgreement,
-                    lengthOfAltAllele - numPrecedingBasesOfAgreement);
+                //remove any trailing bases of agreement.
+                var numTrailingBasesOfAgreement = VcfVariantUtilities.GetNumTrailingAgreement(alleleReference, alleleAlternate);
 
-                alleleReference = alleleReference.Substring(0,
-                    lengthOfRefAllele - numPrecedingBasesOfAgreement - numTrailingBasesOfAgreement);
-                alleleAlternate = alleleAlternate.Substring(0,
-                    lengthOfAltAllele - numPrecedingBasesOfAgreement - numTrailingBasesOfAgreement);
+                //remove traling bases
+                alleleReference = alleleReference.Substring(0, alleleReference.Length - numTrailingBasesOfAgreement);
+                alleleAlternate = alleleAlternate.Substring(0, alleleAlternate.Length - numTrailingBasesOfAgreement);
             }
+            //if we are not anchored, we trim off preceding bases of agreement, and move up the cooridnate to
+            //the first base of difference.
+            var numPrecedingBasesOfAgreement = usingAnchor ? 0 : VcfVariantUtilities.GetNumPrecedingAgreement(alleleReference, alleleAlternate);
+
+            alleleReference = alleleReference.Substring(numPrecedingBasesOfAgreement,
+                alleleReference.Length - numPrecedingBasesOfAgreement);
+            alleleAlternate = alleleAlternate.Substring(numPrecedingBasesOfAgreement,
+                alleleAlternate.Length - numPrecedingBasesOfAgreement);
+
+
+
 
             if (!differenceStarted || (alleleReference.Length == 0) && (alleleAlternate.Length == 0))
             {
@@ -173,7 +173,7 @@ namespace VariantPhasing.Logic
             varCount = countsInsideMnv.Any() ? (int)countsInsideMnv.Average() : 0;
             noCallCount = nocallsInsideMnv.Any() ? (int)nocallsInsideMnv.Average() : 0;
 
-            var trueStartPosition = usingAnchor? anchorPosition : firstVariantSitePosition + numPrecedingBasesOfAgreement;
+            var trueStartPosition = usingAnchor ? anchorPosition : firstVariantSitePosition + numPrecedingBasesOfAgreement;
 
             var indexIntoRef = (trueStartPosition - 1) - clusterVariantSites[0].VcfReferencePosition;
             var prependableBase = "R";
@@ -195,7 +195,7 @@ namespace VariantPhasing.Logic
             }
 
 
-            if (varCount==0)
+            if (varCount == 0)
                 allele = Create(chromosome, trueStartPosition, alleleReference, ".",
                    varCount, noCallCount, totalCoverage, AlleleCategory.Reference, qNoiselevel, maxQscore);
 
@@ -203,13 +203,14 @@ namespace VariantPhasing.Logic
             {
                 if ((usingAnchor) || (suckedupRefPos > trueStartPosition))
                 {
-                    var suckedUpRefRecord = new SuckedUpRefRecord() { Counts=varCount ,AlleleThatClaimedIt= allele};
+                    var suckedUpRefRecord = new SuckedUpRefRecord() { Counts = varCount, AlleleThatClaimedIt = allele };
                     referenceRemoval.Add(suckedupRefPos, suckedUpRefRecord);
                 }
             }
 
             return referenceRemoval;
         }
+
 
 
         /// <summary>
@@ -278,73 +279,11 @@ namespace VariantPhasing.Logic
                     Logger.WriteToLog("Reference:" + reference);
                     Logger.WriteToLog("Index:" + indexIntoRef);
                     Logger.WriteToLog("Start of nbhd:" + variantSite.VcfReferencePosition);
-                    //Logger.WriteToLog("LastVSPosition:" + lastRefBaseSitePosition);
                     gapFiller += "R";
                 }
 
             }
             return gapFiller;
-        }
-
-        public static int GetNumTrailingAgreement(string alleleReference, string alleleAlternate)
-        {
-            var numBasesAgree = 0;
-            var shortString = alleleReference;
-            var longString = alleleAlternate;
-
-            if (alleleReference.Length > alleleAlternate.Length)
-            {
-                shortString = alleleReference;
-                longString = alleleAlternate;
-            }
-
-            var shortStringIndex = shortString.Length - 1;
-            var longStringIndex = longString.Length - 1;
-
-            while (true)
-            {
-                if (alleleReference.Length == numBasesAgree)
-                    break;
-
-                if (alleleAlternate.Length == numBasesAgree)
-                    break;
-
-                if (shortStringIndex < 0)
-                    break;
-
-                if (shortString[shortStringIndex] == longString[longStringIndex])
-                {
-                    numBasesAgree++;
-                    shortStringIndex--;
-                    longStringIndex--;
-                }
-                else
-                    break;
-            }
-
-            return numBasesAgree;
-        }
-            
-
-        public static int GetNumPrecedingAgreement(string alleleReference, string alleleAlternate)
-        {
-            var numBasesAgree = 0;
-
-            while (true)
-            {
-                if (alleleReference.Length == numBasesAgree)
-                    break;
-
-                if (alleleAlternate.Length == numBasesAgree)
-                    break;
-
-                if (alleleReference[numBasesAgree] == alleleAlternate[numBasesAgree])
-                    numBasesAgree++;
-                else
-                    break;
-            }
-
-            return numBasesAgree;
         }
 
     }

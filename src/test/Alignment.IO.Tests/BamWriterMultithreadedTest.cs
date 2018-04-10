@@ -6,19 +6,14 @@ using Moq;
 using Xunit;
 using System.Collections.Generic;
 
+///TODO cooment out for .net core issues
 namespace Alignment.IO.Tests
 {
     public class BamWriterMultithreadedTests
     {
         [Fact]
         public void TestMultithreaded()
-        {
-            //Assert.True(false, "looks like running this causes Alignment.IO.Tests.dll to lock");
-
-            //Severity Code    Description Project File Line    Suppression State
-            //Error C:\Projects_tdunn\git\Pisces5_Ent\Pisces5\test\Alignment.IO.Tests\error CS2012: Cannot open 'C:\Projects_tdunn\git\Pisces5_Ent\Pisces5\test\Alignment.IO.Tests\bin\Debug\netcoreapp1.0\Alignment.IO.Tests.dll' for writing-- 'The process cannot access the file 'C:\Projects_tdunn\git\Pisces5_Ent\Pisces5\test\Alignment.IO.Tests\bin\Debug\netcoreapp1.0\Alignment.IO.Tests.dll' because it is being used by another process.'  Alignment.IO.Tests  C:\Program Files(x86)\MSBuild\Microsoft\VisualStudio\v14.0\DotNet\Microsoft.DotNet.Common.Targets  262
-
-
+        {          
 
           BamAlignment bamAlignment = new BamAlignment()
             {

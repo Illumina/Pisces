@@ -70,7 +70,7 @@ namespace Pisces.Tests.UnitTests.Processing
             {
                 BAMPaths = new[] { bamFilePath1, bamFilePath2 },
                 GenomePaths = new[] { genomePath },
-                OutputFolder = outputFolder,              
+                OutputDirectory = outputFolder,              
                 CommandLineArguments = string.Format("-B {0},{1} -g {2}{3} -gVCF false", bamFilePath1, bamFilePath2, genomePath, string.IsNullOrEmpty(outputFolder) ? string.Empty : " -OutFolder " + outputFolder).Split(' '),
                 VcfWritingParameters = new VcfWritingParameters()
                 {

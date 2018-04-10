@@ -36,7 +36,7 @@ namespace VariantPhasing.Models
                 //TODO come back and potentially use the actual OrderVariantsExtension
                 //return _acceptedPhasedVariants.OrderBy(x=> x.Chromosome).ThenBy(x=>x.ReferencePosition).ThenBy(x=>x.ReferenceAllele).ThenBy(x=>x.AlternateAllele).ToList();
 
-                var comparer = new AlleleComparer();
+                var comparer = new AlleleCompareByLoci();
                 _acceptedPhasedVariants.Sort(comparer);
                 return _acceptedPhasedVariants;
             }
