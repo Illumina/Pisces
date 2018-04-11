@@ -106,11 +106,10 @@ namespace Pisces.IO.Tests.UnitTests
             {
                 BAMPaths = new[] { _bamChr19, _bamChr17Chr19, _bamChr17Chr19Dup },
                 IntervalPaths = new[] { _intervalsChr17, _intervalsChr19, null },
-                GenomePaths = new[] { _genomeChr17Chr19 }
-            };
-            var gVCFOption = new[] { "-gVCF", "true" };
-            appOptions.UpdateOptions(gVCFOption);
-
+                GenomePaths = new[] { _genomeChr17Chr19 },
+                VcfWritingParameters = new VcfWritingParameters() { OutputGvcfFile = true }
+                };
+           
             var factory = new Factory(appOptions);
 
             var context = new VcfWriterInputContext

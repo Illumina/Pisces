@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using Pisces.Domain.Utility;
-using Pisces.Domain.Types;
+﻿using Pisces.Domain.Types;
 
 namespace Pisces.Domain.Options
 {
@@ -32,64 +29,6 @@ namespace Pisces.Domain.Options
             else
                 AllowMultipleVcfLinesPerLoci = true;
         }
-
-        public List<string> Parse(string[] arguments)
-        {
-            var lastArgumentField = string.Empty;
-            var usedArguments = new List<string>();
-
-            try
-            {
-                int argumentIndex = 0;
-                while (argumentIndex < arguments.Length)
-                {
-                    if (string.IsNullOrEmpty(arguments[argumentIndex]))
-                    {
-                        argumentIndex++;
-                        continue;
-                    }
-                    string value = null;
-                    if (argumentIndex < arguments.Length - 1) value = arguments[argumentIndex + 1].Trim();
-
-                    lastArgumentField = arguments[argumentIndex].ToLower();
-
-                    switch (lastArgumentField)
-                    {
-                        case "-gvcf":
-                            OutputGvcfFile = bool.Parse(value);
-                            usedArguments.Add(lastArgumentField);
-                            break;
-                        case "-crushvcf":
-                            ForceCrush = bool.Parse(value);
-                            usedArguments.Add(lastArgumentField);
-                            break;
-                        case "-reportnocalls":
-                            ReportNoCalls = bool.Parse(value);
-                            usedArguments.Add(lastArgumentField);
-                            break;
-                        case "-reportrccounts":
-                            ReportRcCounts = bool.Parse(value);
-                            usedArguments.Add(lastArgumentField);
-                            break;
-                        case "-reporttscounts":
-                            ReportTsCounts = bool.Parse(value);
-                            usedArguments.Add(lastArgumentField);
-                            break;
-
-                        default:
-
-                            break;
-                    }
-                    argumentIndex += 2;
-                }
-                return usedArguments;
-            }
-            catch (Exception ex)
-            {
-                throw new ArgumentException(string.Format("Unable to parse argument {0}: {1}", lastArgumentField, ex.Message));
-            }
-        }
-
 
     }
 

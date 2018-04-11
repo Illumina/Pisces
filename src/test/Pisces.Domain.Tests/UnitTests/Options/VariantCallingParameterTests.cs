@@ -1,82 +1,136 @@
 ﻿using System;
+using System.Collections.Generic;
 using Pisces.Domain.Types;
 using Pisces.Domain.Options;
+using CommandLine.IO.Utilities;
+using CommandLine.IO;
+using CommandLine.Options;
 using Xunit;
 
 namespace Pisces.Domain.Tests
 {
     public class VariantCallingParameterTests
     {
+
         [Fact]
         [Trait("ReqID", "SDS-1")]
-        public void CommandLineParse()
+        public void CommandLineVarCallParse()
         {
-            var VariantCallingParameters = new VariantCallingParameters();
+            var expectations1 = GetOriginalOptionsExpectations();
+            Action<VariantCallingParameters> expectations = null;
+            foreach (var option in expectations1.Values)
+            {
+                expectations += option;
+            }
 
-            VariantCallingParameters.Parse(new string[] {
+            ExecuteParsingTest(string.Join(" ", expectations1.Keys), expectations);
 
-              "-minvariantqscore", "1",
-              "-variantqualityfilter", "80",
-              "-maxvariantqscore", "1100",    //perhaps more of a vcf-writing parameter
+            var expectations2 = GetOptionsExpectations2();
+            expectations = null;
+            foreach (var option in expectations2.Values)
+            {
+                expectations += option;
+            }
 
-              "-mindepth", "11",
-              "-mindepthfilter", "15",
+            ExecuteParsingTest(string.Join(" ", expectations2.Keys), expectations);
+        }
 
-              "-minimumvariantfrequency", "0.42",
-              "-minvariantfrequencyfilter", "0.45",
+        private Dictionary<string, Action<VariantCallingParameters>> GetOriginalOptionsExpectations()
+        {
+            var optionsExpectationsDict = new Dictionary<string, Action<VariantCallingParameters>>();
+            
+            optionsExpectationsDict.Add("-minvq 40", (o) => Assert.Equal(40, o.MinimumVariantQScore));
+            optionsExpectationsDict.Add("-variantqualityfilter 80", (o) => Assert.Equal(80, o.MinimumVariantQScoreFilter));
+           optionsExpectationsDict.Add("-mindepth 11", (o) => Assert.Equal(11, o.MinimumCoverage));
+            optionsExpectationsDict.Add("-mindepthfilter 15", (o) => Assert.Equal(15, o.LowDepthFilter));     
+            optionsExpectationsDict.Add("-minimumvariantfrequency 0.42", (o) => Assert.Equal(0.42F, o.MinimumFrequency));
+            optionsExpectationsDict.Add("-minvariantfrequencyfilter 0.45", (o) => Assert.Equal(0.45F, o.MinimumFrequencyFilter));
 
-              "-mingenotypeqscore", "10",   //perhaps more of a vcf-writing parameter
-              "-genotypequalityfilter", "35",
-              "-maxgenotypeqscore", "120",    //perhaps more of a vcf-writing parameter
+            optionsExpectationsDict.Add("-mingenotypeqscore 10", (o) => Assert.Equal(10, o.MinimumGenotypeQScore));
+            optionsExpectationsDict.Add("-genotypequalityfilter 35", (o) => Assert.Equal(35, o.LowGenotypeQualityFilter));
+            optionsExpectationsDict.Add("-maxgenotypeqscore 120", (o) => Assert.Equal(120, o.MaximumGenotypeQScore));
+            optionsExpectationsDict.Add("-repeatfilter_ToBeRetired 4", (o) => Assert.Equal(4, o.IndelRepeatFilter));
 
-              "-repeatfilter", "4",
+            optionsExpectationsDict.Add("-rmxnfilter 6,7,0.75", (o) => Assert.True(
+                        (6 == o.RMxNFilterMaxLengthRepeat) &&
+                        (7 == o.RMxNFilterMinRepetitions) &&
+                        (0.75F == o.RMxNFilterFrequencyLimit)));
 
-              "-rmxnfilter", "6,7,0.75",
+            optionsExpectationsDict.Add("-enablesinglestrandfilter true", (o) => Assert.Equal(true, o.FilterOutVariantsPresentOnlyOneStrand));
+            optionsExpectationsDict.Add("-sbmodel poisson", (o) => Assert.Equal(StrandBiasModel.Poisson, o.StrandBiasModel));
+            optionsExpectationsDict.Add("-maxacceptablestrandbiasfilter 0.75", (o) => Assert.Equal(0.75F, o.StrandBiasAcceptanceCriteria));            
+            optionsExpectationsDict.Add("-noisemodel window", (o) => Assert.Equal(NoiseModel.Window, o.NoiseModel));
+            optionsExpectationsDict.Add("-NL 72", (o) => Assert.Equal(72, o.ForcedNoiseLevel));
+            optionsExpectationsDict.Add("-ploidy diploid", (o) => Assert.Equal(PloidyModel.Diploid, o.PloidyModel));
 
-              "-enablesinglestrandfilter", "true",
-              "-sbmodel", "poisson",
-              "-maxacceptablestrandbiasfilter", "0.75",
+            optionsExpectationsDict.Add("-diploidgenotypeparameters 12,13,14", (o) => Assert.True(
+                        (12 == o.DiploidThresholdingParameters.MinorVF) &&
+                        (13 == o.DiploidThresholdingParameters.MajorVF) &&
+                        (14 == o.DiploidThresholdingParameters.SumVFforMultiAllelicSite)));
 
-              "-noisemodel","window",
-              "-noiselevelforqmodel", "72",
+            optionsExpectationsDict.Add("-gender male", (o) => Assert.Equal(true, o.IsMale));
+            return optionsExpectationsDict;
+        }
 
-              "-ploidy", "diploid",
-              "-diploidgenotypeparameters", "12,13,14",
 
-              "-gender", "male",
-        });
+        //A slightly diff set of inputs, changing the capitalizations, parameter names, etc
+        private Dictionary<string, Action<VariantCallingParameters>> GetOptionsExpectations2()
+        {
+            var optionsExpectationsDict = new Dictionary<string, Action<VariantCallingParameters>>();
 
-            Assert.Equal(VariantCallingParameters.MinimumVariantQScore, 1);
-            Assert.Equal(VariantCallingParameters.MinimumVariantQScoreFilter, 80);
-            Assert.Equal(VariantCallingParameters.MaximumVariantQScore, 1100);
+            optionsExpectationsDict.Add("-minvariantqscore 1", (o) => Assert.Equal(1, o.MinimumVariantQScore));
+            optionsExpectationsDict.Add("-maxvariantqscore 1100", (o) => Assert.Equal(1100, o.MaximumVariantQScore));
+            optionsExpectationsDict.Add("--mindepth 11", (o) => Assert.Equal(11, o.MinimumCoverage));
+            optionsExpectationsDict.Add("--mindepthfilter 15", (o) => Assert.Equal(15, o.LowDepthFilter));
+            optionsExpectationsDict.Add("-miNimumvariantfrequency 0.42", (o) => Assert.Equal(0.42F, o.MinimumFrequency));
+            optionsExpectationsDict.Add("-Minvariantfrequencyfilter 0.45", (o) => Assert.Equal(0.45F, o.MinimumFrequencyFilter));
 
-            Assert.Equal(VariantCallingParameters.MinimumCoverage, 11);
-            Assert.Equal(VariantCallingParameters.LowDepthFilter, 15);
+            optionsExpectationsDict.Add("-mingenotypeqscore 10", (o) => Assert.Equal(10, o.MinimumGenotypeQScore));
+            optionsExpectationsDict.Add("-genotypequalityfilter 35", (o) => Assert.Equal(35, o.LowGenotypeQualityFilter));
+            optionsExpectationsDict.Add("-maxgenotypeqscore 120", (o) => Assert.Equal(120, o.MaximumGenotypeQScore));
+            optionsExpectationsDict.Add("--repeaTfilter_ToBeRetired 40", (o) => Assert.Equal(40, o.IndelRepeatFilter));
 
-            Assert.Equal(VariantCallingParameters.MinimumGenotypeQScore, 10);
-            Assert.Equal(VariantCallingParameters.LowGenotypeQualityFilter, 35);
-            Assert.Equal(VariantCallingParameters.MaximumGenotypeQScore, 120);
+            optionsExpectationsDict.Add("--rmxnfilter 6,7,0.75", (o) => Assert.True(
+                        (6 == o.RMxNFilterMaxLengthRepeat) &&
+                        (7 == o.RMxNFilterMinRepetitions) &&
+                        (0.75F == o.RMxNFilterFrequencyLimit)));
 
-            Assert.Equal(VariantCallingParameters.IndelRepeatFilter, 4);
+            optionsExpectationsDict.Add("-enablesinglestrandfilter true", (o) => Assert.Equal(true, o.FilterOutVariantsPresentOnlyOneStrand));
+            optionsExpectationsDict.Add("-sbmodel poisson", (o) => Assert.Equal(StrandBiasModel.Poisson, o.StrandBiasModel));
+            optionsExpectationsDict.Add("-maxacceptablestrandbiasfilter 0.75", (o) => Assert.Equal(0.75F, o.StrandBiasAcceptanceCriteria));
+            optionsExpectationsDict.Add("-noisemodel flat", (o) => Assert.Equal(NoiseModel.Flat, o.NoiseModel));
+            optionsExpectationsDict.Add("-noiselevelforqmodel 32", (o) => Assert.Equal(32, o.ForcedNoiseLevel));
+            optionsExpectationsDict.Add("-PLOIDY somatic", (o) => Assert.Equal(PloidyModel.Somatic, o.PloidyModel));
 
-            Assert.Equal(VariantCallingParameters.RMxNFilterMaxLengthRepeat, 6);
-            Assert.Equal(VariantCallingParameters.RMxNFilterMinRepetitions, 7);
-            Assert.Equal(VariantCallingParameters.RMxNFilterFrequencyLimit, 0.75);
+            optionsExpectationsDict.Add("-diploidgenotypeparameters 12,13,24", (o) => Assert.True(
+                        (12 == o.DiploidThresholdingParameters.MinorVF) &&
+                        (13 == o.DiploidThresholdingParameters.MajorVF) &&
+                        (24 == o.DiploidThresholdingParameters.SumVFforMultiAllelicSite)));
 
-            Assert.Equal(VariantCallingParameters.FilterOutVariantsPresentOnlyOneStrand, true);
-            Assert.Equal(VariantCallingParameters.StrandBiasModel, StrandBiasModel.Poisson);
-            Assert.Equal(VariantCallingParameters.StrandBiasAcceptanceCriteria, 0.75F);
+            optionsExpectationsDict.Add("-gender FeMALE", (o) => Assert.Equal(false, o.IsMale));
+            return optionsExpectationsDict;
+        }
 
-            Assert.Equal(VariantCallingParameters.NoiseModel, NoiseModel.Window);
-            Assert.Equal(VariantCallingParameters.NoiseLevelUsedForQScoring, 20);
-            Assert.Equal(VariantCallingParameters.ForcedNoiseLevel, 72);
 
-            Assert.Equal(VariantCallingParameters.PloidyModel, PloidyModel.Diploid);
-            Assert.Equal(VariantCallingParameters.DiploidThresholdingParameters.MinorVF, 12);
-            Assert.Equal(VariantCallingParameters.DiploidThresholdingParameters.MajorVF, 13);
-            Assert.Equal(VariantCallingParameters.DiploidThresholdingParameters.SumVFforMultiAllelicSite, 14);
 
-            Assert.Equal(VariantCallingParameters.IsMale, true);
+
+        private void ExecuteParsingTest(string arguments, Action<VariantCallingParameters> assertions = null)
+        {
+            var options = GetParsedOptions(arguments).VariantCallingParameters;
+            assertions(options);
+        }
+
+        private PiscesApplicationOptions GetParsedOptions(string arguments)
+        {
+            var parsedOptions = GetParsedApplicationOptions(arguments);
+            return parsedOptions.PiscesOptions;
+        }
+
+        private PiscesOptionsParser GetParsedApplicationOptions(string arguments)
+        {
+            var parsedOptions = new PiscesOptionsParser();
+            parsedOptions.ParseArgs(arguments.Split(' '), false);
+            return parsedOptions;
         }
 
         [Fact]

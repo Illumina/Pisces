@@ -7,7 +7,7 @@ namespace VariantPhasing.Tests
         [Fact]
         public void VcfPath()
         {
-            var options = new PhasingApplicationOptions() {VcfPath = "testPath"};
+            var options = new ScyllaApplicationOptions() {VcfPath = "testPath"};
             var factory = new Factory(options);
             Assert.Equal("testPath", factory.VcfPath);
         }

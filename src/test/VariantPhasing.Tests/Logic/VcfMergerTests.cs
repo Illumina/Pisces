@@ -57,10 +57,10 @@ namespace VariantPhasing.Tests.Logic
 
 
             //set up the original variants
-            var originalVcfVariant1 = PhasedVariantTestUtilities.CreateDummyAllele("chr2", 116380048, "A", "New", 1000, 156);
-            var originalVcfVariant2 = PhasedVariantTestUtilities.CreateDummyAllele("chr2", 116380048, "AAA", "New", 1000, 156);
-            var originalVcfVariant4 = PhasedVariantTestUtilities.CreateDummyAllele("chr7", 116380051, "A", "New", 1000, 156);
-            var originalVcfVariant5 = PhasedVariantTestUtilities.CreateDummyAllele("chr7", 116380052, "AC", "New", 1000, 156);
+            var originalVcfVariant1 = TestHelper.CreateDummyAllele("chr2", 116380048, "A", "New", 1000, 156);
+            var originalVcfVariant2 = TestHelper.CreateDummyAllele("chr2", 116380048, "AAA", "New", 1000, 156);
+            var originalVcfVariant4 = TestHelper.CreateDummyAllele("chr7", 116380051, "A", "New", 1000, 156);
+            var originalVcfVariant5 = TestHelper.CreateDummyAllele("chr7", 116380052, "AC", "New", 1000, 156);
 
             var vs1 = new VariantSite((originalVcfVariant1));
             var vs2 = new VariantSite((originalVcfVariant2));
@@ -108,9 +108,9 @@ namespace VariantPhasing.Tests.Logic
         [Fact]
         public void GetAcceptedVariants_MergeNull()
         {
-            var originalVcfVariant = PhasedVariantTestUtilities.CreateDummyAllele("chr1", 123, "A", "T", 1000, 156);
-            var originalVcfVariant2 = PhasedVariantTestUtilities.CreateDummyAllele("chr1", 124, "A", "T", 1000, 156);
-            var originalVcfVariant3 = PhasedVariantTestUtilities.CreateDummyAllele("chr1", 234, "A", "T", 1000, 156);
+            var originalVcfVariant = TestHelper.CreateDummyAllele("chr1", 123, "A", "T", 1000, 156);
+            var originalVcfVariant2 = TestHelper.CreateDummyAllele("chr1", 124, "A", "T", 1000, 156);
+            var originalVcfVariant3 = TestHelper.CreateDummyAllele("chr1", 234, "A", "T", 1000, 156);
             var stagedVcfVariants = new List<CalledAllele> { originalVcfVariant, originalVcfVariant2, originalVcfVariant3 };
           
             var variantsUsedByCaller = new List<CalledAllele>() { originalVcfVariant, originalVcfVariant2 };
@@ -202,10 +202,10 @@ namespace VariantPhasing.Tests.Logic
         [Fact]
         public void GetAcceptedVariants_MergeVariants()
         {
-            var originalVcfVariant = PhasedVariantTestUtilities.CreateDummyAllele("chr1", 123, "A", "T", 1000, 156);
-            var originalVcfVariant2 = PhasedVariantTestUtilities.CreateDummyAllele("chr1", 124, "A", "T", 1000, 156);
-            var originalVcfVariant3 = PhasedVariantTestUtilities.CreateDummyAllele("chr1", 234, "A", "T", 1000, 156);
-            var originalVcfVariant4 = PhasedVariantTestUtilities.CreateDummyAllele("chr1", 234, "A", "C", 1000, 156);
+            var originalVcfVariant = TestHelper.CreateDummyAllele("chr1", 123, "A", "T", 1000, 156);
+            var originalVcfVariant2 = TestHelper.CreateDummyAllele("chr1", 124, "A", "T", 1000, 156);
+            var originalVcfVariant3 = TestHelper.CreateDummyAllele("chr1", 234, "A", "T", 1000, 156);
+            var originalVcfVariant4 = TestHelper.CreateDummyAllele("chr1", 234, "A", "C", 1000, 156);
 
             var vcfVariant0asRef = new VcfVariant()
             {
@@ -287,7 +287,7 @@ namespace VariantPhasing.Tests.Logic
             Assert.Equal(baseline.ReferencePosition, test.ReferencePosition);
 
             int numAlts = (baseline.VariantAlleles[0] == ".") ? 0 : baseline.VariantAlleles.Length;
-            Assert.Equal(Pisces.IO.Extensions.MapGTString(baseline.Genotypes[0]["GT"], numAlts), test.Genotype);
+            Assert.Equal(VcfVariantUtilities.MapGTString(baseline.Genotypes[0]["GT"], numAlts), test.Genotype);
         }
 
         public static void CheckVariantsMatch(CalledAllele baseline, CalledAllele test)

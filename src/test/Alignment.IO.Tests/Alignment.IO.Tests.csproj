@@ -10,33 +10,28 @@
     <GenerateAssemblyConfigurationAttribute>false</GenerateAssemblyConfigurationAttribute>
     <GenerateAssemblyCompanyAttribute>false</GenerateAssemblyCompanyAttribute>
     <GenerateAssemblyProductAttribute>false</GenerateAssemblyProductAttribute>
-    <Version>5.2.5.20</Version>
+    <Version>5.2.7.47</Version>
     <Copyright>Copyright © Illumina 2017</Copyright>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" />
 
-  <ItemGroup>
-    <None Include="..\..\..\redist\FileCompression.dll" Link="FileCompression.dll">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    <ItemGroup>
+    <None Update="..\..\redist\libFileCompression.so">
+      <Link>libFileCompression.so</Link>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
     </None>
-    <None Include="..\..\..\redist\libFileCompression.so" Link="libFileCompression.so">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    <None Update="..\..\..\redist\FileCompression.dll">
+      <Link>FileCompression.dll</Link>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </None>
+    <None Update="FileCompression.dll;libFileCompression.so">
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
     </None>
   </ItemGroup>
 
   <ItemGroup>
-    <None Update="..\..\redist\libFileCompression.so">
-      <Link>libFileCompression.so</Link>
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Update="..\..\redist\FileCompression.dll">
-      <Link>FileCompression.dll</Link>
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Update="FileCompression.dll;libFileCompression.so;TestData\*">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
+    <Content Include="..\..\..\redist\*" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup>
@@ -57,6 +52,15 @@
 
   <ItemGroup>
     <Service Include="{82a7f48d-3b50-4b1e-b82e-3ada8210c358}" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Update="..\..\..\redist\FileCompression.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Update="..\..\..\redist\libFileCompression.so">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
 
 </Project>

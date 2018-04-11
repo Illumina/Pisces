@@ -20,6 +20,24 @@ namespace Pisces.IO.Tests.UnitTests
             Assert.Equal(resultVariant.ReferenceName, "chr1");
             Assert.Equal(resultVariant.ReferenceAllele, "A");
             Assert.Equal(resultVariant.VariantAlleles.First(), ".");
+
+            //Note, we have seen this assert below fail for specific user configurations
+            //When it fails the error mesg is as below:
+            //Assert.Equal() Failure
+            //Expected: 1428
+            //Actual: 1452
+            //If this happens to you, check your git attributes config file.
+            //You might be handling vcf text file line endings differently so the whie space counts differently in this test. 
+            // In that case, the fail is purley cosmetic.
+            //
+            //try: Auto detect text files and perform LF normalization
+            //# http://davidlaing.com/2012/09/19/customise-your-gitattributes-to-become-a-git-ninja/
+            //*text = auto
+            //*.cs     diff = csharp
+            //*.bam binary
+            //*.vcf text
+            //.fa text eol = crlf
+
             Assert.Equal(vr.Position(), 1452);
 
             var resultStringArray = new string[] {};

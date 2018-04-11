@@ -41,7 +41,7 @@ namespace VariantPhasing.Logic
             if (!worked)
                 return new List<CalledAllele>();
           
-            return (Extensions.Convert(new List<VcfVariant> { vcfVar }));
+            return (VcfVariantUtilities.Convert(new List<VcfVariant> { vcfVar }));
         }
 
 
@@ -225,7 +225,7 @@ namespace VariantPhasing.Logic
             foreach (var mnvsLeft in foundMNVS)
                 mergedVariantList.AddRange(mnvsLeft.Value);
 
-            var comparer = new AlleleComparer();
+            var comparer = new AlleleCompareByLoci();
             mergedVariantList.Sort(comparer);
 
 

@@ -36,13 +36,24 @@ namespace Alignment.Domain.Sequencing
             return overlap;
         }
 
+        /// <summary>
+        /// Returns the "one-based position" of the alignment (Isas BamAlignment is zero-based). 
+        /// </summary>
+        /// <param name="alignment"></param>
+        /// <returns></returns>
         public static int OneBasedPosition(this BamAlignment alignment)
         {
             return alignment.Position + 1;
         }
 
+        /// <summary>
+        /// Returns the "one-based end position", which is the end position of the alignment + 1 (Isas BamAlignment is zero-based). Note that this will return a different value (-1) than before the update to Isas BamAlignment.
+        /// </summary>
+        /// <param name="alignment"></param>
+        /// <returns></returns>
         public static int OneBasedEndPosition(this BamAlignment alignment)
         {
+            // NOTE this will return a different value (-1) than before the update to Isas BamAlignment. Nothing internal to Pisces is using it. 
             return alignment.GetEndPosition() + 1;
         }
 
@@ -87,9 +98,14 @@ namespace Alignment.Domain.Sequencing
                 (endInclusive ? alignment.GetLastBasePosition() >= position : alignment.GetLastBasePosition() > position);
         }
 
+        /// <summary>
+        /// Return the position of the last base in the read. Note that this is equivalent to the result before the update to Isas BamAlignment at c348f98 in PICS-847.
+        /// </summary>
+        /// <param name="alignment"></param>
+        /// <returns></returns>
         public static int GetLastBasePosition(this BamAlignment alignment)
         {
-            return alignment.GetEndPosition() - 1;
+            return alignment.GetEndPosition();
         }
 
         public static bool OverlapsAlignment(this BamAlignment read1, BamAlignment read2)

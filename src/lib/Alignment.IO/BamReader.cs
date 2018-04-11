@@ -263,21 +263,25 @@ namespace Alignment.IO.Sequencing
 			_index = new BamIndex();
 		}
 
-		/// <summary>
-		///     returns true if the alignment overlaps with the specified interval
-		/// </summary>
-		private bool IsOverlap(int begin, int end, BamAlignment alignment)
-		{
-			int alignmentBegin = alignment.Position;
-			int alignmentEnd = alignment.GetEndPosition();
-			return (alignmentEnd >= begin) && (alignmentBegin < end);
-		}
+	    /// <summary>
+	    ///     returns true if the alignment overlaps with the specified interval [<paramref name="begin"/>,<paramref name="end"/>)
+	    /// </summary>
+	    /// <param name="begin">Start of the interval. By default inclusive.</param>
+	    /// <param name="end">End of the interval. By default exclusive.</param>
+	    /// <param name="alignment"></param>
+	    /// <param name="inclusiveEnd">If true, test overlap in the interval [<paramref name="begin"/>,<paramref name="end"/>] </param>
+	    private bool IsOverlap(int begin, int end, BamAlignment alignment, bool inclusiveEnd = false)
+	    {
+	        int alignmentBegin = alignment.Position;
+	        int alignmentEnd = alignment.GetEndPosition();
+	        return (alignmentEnd >= begin) && ((inclusiveEnd && alignmentBegin <= end) || (!inclusiveEnd && alignmentBegin < end));
+	    }
 
-		/// <summary>
-		///     jumps to the specified position in the BAM file
-		/// </summary>
-		/// <returns>true if we were successfully able to jump to the requested position</returns>
-		public bool Jump(string referenceName, int position)
+        /// <summary>
+        ///     jumps to the specified position in the BAM file
+        /// </summary>
+        /// <returns>true if we were successfully able to jump to the requested position</returns>
+        public bool Jump(string referenceName, int position)
 		{
 			int referenceIndex;
 			if (!_referenceNameToIndex.TryGetValue(referenceName, out referenceIndex))
@@ -344,10 +348,13 @@ namespace Alignment.IO.Sequencing
 	        return Jump(refID, position, false);
 	    }
 
+
         public bool JumpForward(int refID, int position)
         {
+            // TODO investigate whether anyone uses this. Consider deprecating so we don't have to maintain it.
             return Jump(refID, position, true);
         }
+
 
         private bool Jump(int refID, int position, bool forwardOnly)
 		{

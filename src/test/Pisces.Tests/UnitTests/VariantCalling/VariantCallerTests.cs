@@ -199,8 +199,8 @@ namespace Pisces.Tests.UnitTests
             variantCaller = new AlleleCaller(config);
             BaseCalledAlleles = variantCaller.Call(new CandidateBatch(candidateVariants), mockAlleleCountSource).Values.SelectMany(v => v);
             Assert.Equal(2, BaseCalledAlleles.Count());
-            Assert.True(BaseCalledAlleles.Any(v => MatchVariants(v, passingVariant)));
-            Assert.False(BaseCalledAlleles.Any(v => MatchVariants(v, passingVariant2)));
+            Assert.True(BaseCalledAlleles.Any(v => MatchVariants(v, passingVariant2)));
+            Assert.False(BaseCalledAlleles.Any(v => MatchVariants(v, passingVariant)));
             Assert.False(BaseCalledAlleles.Any(v => MatchVariants(v, lowFreqVariant)));
             Assert.True(BaseCalledAlleles.Any(v => MatchVariants(v, lowCoverageVariant)));
             Assert.False(BaseCalledAlleles.Any(v => MatchVariants(v, lowqVariant)));

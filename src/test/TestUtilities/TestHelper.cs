@@ -1,6 +1,7 @@
-﻿using System.Collections.Generic;
-using System.IO;
+﻿using System.IO;
+using System.Collections.Generic;
 using Alignment.Domain.Sequencing;
+using Pisces.IO.Sequencing;
 using Pisces.Domain.Models;
 using Pisces.Domain.Models.Alleles;
 using Pisces.Domain.Types;
@@ -43,6 +44,39 @@ namespace TestUtilities
                 Type = Pisces.Domain.Types.AlleleCategory.Snv,
                 ReferenceSupport = depth - altCalls,
                 VariantQscore = 100
+            };
+        }
+
+   
+
+        public static VcfVariant CreateDummyVariant(
+            string chrom, int position, string refAllele, string altAllele, int depth, int altCalls)
+        {
+            return new VcfVariant()
+            {
+                ReferenceName = chrom,
+                ReferencePosition = position,
+                ReferenceAllele = refAllele,
+                VariantAlleles = new[] { altAllele },
+                GenotypeTagOrder = new[] { "GT", "GQ", "AD", "DP", "VF", "NL", "SB", "NC" },
+                InfoTagOrder = new[] { "DP" },
+                Genotypes = new List<Dictionary<string, string>>()
+                {
+                    new Dictionary<string, string>()
+                    {
+                        {"GT", "0/1"},
+                        {"GQ", "100"},
+                        {"AD", (depth-altCalls).ToString() +"," + altCalls.ToString()},//"6830,156"
+                        {"DP", depth.ToString()},
+                        { "VF", "0.156" },//"0.05"},
+                        {"NL", "20"},
+                        {"SB", "-100.0000"},
+                        {"NC","0.0100"}
+                    }
+                },
+                InfoFields = new Dictionary<string, string>() { { "DP", depth.ToString() } }, //
+                Filters = "PASS",
+                Identifier = ".",
             };
         }
 
@@ -149,5 +183,22 @@ namespace TestUtilities
             return calledAllele;
         }
 
+        public static void CompareFiles(string testfile, string expectedFile)
+        {
+            Assert.True(File.Exists(testfile), "Looking for: " + testfile);
+
+            var observedLines = File.ReadAllLines(testfile);
+            var expectedLines = File.ReadAllLines(expectedFile);
+            Assert.Equal(expectedLines.Length, observedLines.Length);
+
+            for (int i = 0; i < expectedLines.Length; i++)
+            {
+                 //Note, skip anything that contains a version number, test path, or date. These are expected to vary.
+                if (!expectedLines[i].ToLower().Contains("filedate")
+                    && !expectedLines[i].ToLower().Contains("cmdline")
+                    && !expectedLines[i].ToLower().Contains("psara"))
+                    Assert.Equal(expectedLines[i], observedLines[i]);
+            }
+        }
     }
 }

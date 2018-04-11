@@ -132,11 +132,10 @@ namespace TestUtilities
                 Bases = Directions.EndsWith("F") ? new string('A', readLength) : new string('T', readLength),
                 Qualities = Enumerable.Repeat(qualityForAll, readLength).ToArray()
             };
-
+            alignment.MapQuality = 30;
             var read = new Read("chr1", alignment);
             var di = new DirectionInfo(Directions);
             read.SequencedBaseDirectionMap = di.ToDirectionMap();
-
             return read;
         }
     }

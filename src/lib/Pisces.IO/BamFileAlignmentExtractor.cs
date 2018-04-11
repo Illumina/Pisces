@@ -17,10 +17,7 @@ namespace Pisces.IO
         private int _bamIndexFilter = -1;
         private BamAlignment _rawAlignment = null;
         private string _bamFilePath;
-        private Dictionary<string, List<Region>> _remainingIntervals;
-        private bool _shouldCheckJumpForCurrentInterval = true;
         private List<GenomeMetadata.SequenceMetadata> _references;
-        private IAlignmentMateFinder _mateFinder;
         private bool _bamIsStitched;
 
         public bool SourceIsCollapsed { get; private set; }
@@ -41,9 +38,7 @@ namespace Pisces.IO
             }
         }
 
-        public BamFileAlignmentExtractor(string bamFilePath, string chromosomeFilter = null, 
-            Dictionary<string, List<Region>> bamIntervals = null,
-            IAlignmentMateFinder mateFinder = null)
+        public BamFileAlignmentExtractor(string bamFilePath, string chromosomeFilter = null)
         {
             if (!File.Exists(bamFilePath))
                 throw new ArgumentException(string.Format("Bam file '{0}' does not exist.", bamFilePath));
@@ -52,8 +47,6 @@ namespace Pisces.IO
                 throw new ArgumentException(string.Format("Bai file '{0}.bai' does not exist.", bamFilePath));
 
             _bamFilePath = bamFilePath;
-            _remainingIntervals = bamIntervals == null ? null : Copy(bamIntervals);
-            _mateFinder = mateFinder;
             InitializeReader(chromosomeFilter);
         }
 
@@ -108,12 +101,7 @@ namespace Pisces.IO
                 ? chromosomeFilter
                 : _references.First().Name;
 
-            var position = 0;
-            if (_remainingIntervals != null && _remainingIntervals.ContainsKey(chrToStart))
-            {
-                position = _remainingIntervals[chrToStart][0].StartPosition - 1;
-            }
-            Jump(chrToStart, position);
+            Jump(chrToStart);
         }
 
         public static bool CheckIfBamHasBeenCollapsed(string header)
@@ -178,16 +166,6 @@ namespace Pisces.IO
                     return false;
                 }
 
-                var currentChrIntervals = GetIntervalsForChr(_rawAlignment.RefID);
-                if (currentChrIntervals != null) // null signals not to apply interval jumping
-                {
-                    if (!JumpIfNeeded(currentChrIntervals, out currentInterval))
-                    {
-                        Dispose();
-                        return false;
-                    }
-                }
-
                 if (currentInterval == null || _rawAlignment.Position < currentInterval.EndPosition)
                 {
                     var reference = _references.FirstOrDefault(r => r.Index == _rawAlignment.RefID);
@@ -204,75 +182,6 @@ namespace Pisces.IO
         {
             var chrIndex = _references.First(r => r.Name == chromosomeName).Index;
             return _bamReader.Jump(chrIndex, positionIndex);
-        }
-
-        public bool JumpIfNeeded(List<Region> chrIntervals)
-        {
-            Region r;
-            return JumpIfNeeded(chrIntervals, out r);
-        }
-
-        private bool JumpIfNeeded(List<Region> chrIntervals, out Region currentRegion)
-        {
-            var completedIntervals = new List<Region>();
-
-            for (var i = 0; i < chrIntervals.Count; i++)
-            {
-                var interval = chrIntervals[i];
-                if ((_rawAlignment.Position + 1) > interval.EndPosition)  // bam alignment is 0-based, interval is 1-based
-                {
-                    completedIntervals.Add(interval);
-                    _shouldCheckJumpForCurrentInterval = true;
-                }
-                else
-                {
-                    break;
-                }
-            }
-
-            foreach (var completedInterval in completedIntervals)
-                chrIntervals.Remove(completedInterval);
-
-            // if done with intervals, jump to next chromosome
-            if (!chrIntervals.Any())
-            {
-                currentRegion = null;
-                if (_rawAlignment.RefID == _references.Count - 1)
-                    return false;
-                if (_mateFinder == null || _mateFinder.NextMatePosition == null)
-                    return _bamReader.Jump(_rawAlignment.RefID + 1, 0);
-                return true;
-            }
-            currentRegion = chrIntervals[0];
-            
-            // if far from next interval, jump forward.  leave small buffer so we dont accidentally re-read already read alignments if there's not much gap inbetween 
-            if (_shouldCheckJumpForCurrentInterval)
-            {
-                var targetInterval = currentRegion;
-                const int buffer = 100;
-                var refMaxIndex = (int) (_references.First(r => r.Index == _rawAlignment.RefID).Length - 1);
-                var jumpToThreshold = Math.Min(Math.Max(0, targetInterval.StartPosition - buffer), refMaxIndex);
-
-                if (_mateFinder != null)
-                {
-                    var nextMate = _mateFinder.NextMatePosition;
-                    if (nextMate != null && nextMate.Value < jumpToThreshold)
-                        jumpToThreshold = nextMate.Value;
-                    else
-                        _shouldCheckJumpForCurrentInterval = false;
-                }
-                else
-                {
-                    _shouldCheckJumpForCurrentInterval = false;
-                }
-                
-                if ((_rawAlignment.GetEndPosition() - _rawAlignment.CigarData.GetSuffixClip()) < jumpToThreshold)
-                {
-                    return _bamReader.JumpForward(_rawAlignment.RefID, Math.Min(Math.Max(0, targetInterval.StartPosition - 1), refMaxIndex));
-                }
-            }
-
-            return true;
         }
 
         public void Reset()
@@ -299,35 +208,5 @@ namespace Pisces.IO
             }
         }
 
-        private List<Region> GetIntervalsForChr(int chrIndex)
-        {
-            if (_remainingIntervals != null)
-            {
-                var chrName = _bamReader.GetReferenceNameByID(chrIndex);
-
-                if (!_remainingIntervals.ContainsKey(chrName))
-                    return new List<Region>() {new Region(1, 1)}; // return tiny interval of 1 so we essentially skip the chr
-
-                return _remainingIntervals[chrName];
-            }
-
-            return null; // return null to signal that we shouldn't apply any interval optimization
-        }
-
-        private Dictionary<string, List<Region>> Copy(Dictionary<string, List<Region>> bamIntervals)
-        {
-            var copied = new Dictionary<string, List<Region>>();
-
-            foreach (var lookup in bamIntervals)
-            {
-                var copiedList = new List<Region>();
-                copied[lookup.Key] = copiedList;
-
-                foreach (var region in lookup.Value)
-                    copiedList.Add(region);
-            }
-
-            return copied;
-        }
     }
 }

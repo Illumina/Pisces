@@ -1,5 +1,6 @@
-﻿using System.Collections.Generic;
+﻿using System;
 using System.IO;
+using System.Collections.Generic;
 using System.Text;
 using System.Linq;
 using Pisces.Domain.Interfaces;
@@ -54,12 +55,12 @@ namespace VariantPhasing.Logic
                 if (ShouldSkipRead(read, neighborhood))
                 {
 
-                    WriteToReadLog(debugLog,(string.Join("\t", read.Name, "skipped", read.IsFirstMate, read.CigarData.ToString(), read.Position)));
+                    //WriteToReadLog(debugLog,(string.Join("\t", read.Name, "skipped", read.IsFirstMate, read.CigarData.ToString(), read.Position)));
                     continue;
                 }
                 if (PastNeighborhood(read, neighborhood))
                 {
-                    WriteToReadLog(debugLog,(string.Join("\t", read.Name, "past nbhd", read.IsFirstMate, read.CigarData.ToString(), read.Position)));
+                    //WriteToReadLog(debugLog,(string.Join("\t", read.Name, "past nbhd", read.IsFirstMate, read.CigarData.ToString(), read.Position)));
                     break;
                 }
 
@@ -71,7 +72,8 @@ namespace VariantPhasing.Logic
                 else
                     readName += "rev_" + read.Position;
 
-                WriteToReadLog(debugLog, (string.Join("\t", read.Name, "will use", read.IsFirstMate, read.CigarData.ToString(), read.Position)));
+                WriteToReadLog(debugLog, (string.Join("\t", read.Name, "will use", read.IsFirstMate, read.CigarData.ToString(), 
+                    read.Position, read.Sequence, string.Join(",",read.Qualities))));
 
                 //map from bases to ref position
                 var vead = new Vead(readName, veadMaker.FindVariantResults(neighbors, read));
@@ -128,10 +130,7 @@ namespace VariantPhasing.Logic
         {
             if (_debugMode)
             {
-                using (StreamWriter sw = new StreamWriter(new FileStream(debugLog, FileMode.OpenOrCreate)))
-                {
-                    sw.WriteLine(msg);
-                }
+                File.AppendAllText(debugLog, msg + Environment.NewLine);
             }
         }
 

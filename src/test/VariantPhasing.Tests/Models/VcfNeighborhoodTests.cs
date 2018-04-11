@@ -7,6 +7,7 @@ using VariantPhasing.Interfaces;
 using Pisces.Domain.Options;
 using Pisces.Domain.Models.Alleles;
 using Pisces.Domain.Types;
+using TestUtilities;
 using Xunit;
 
 namespace VariantPhasing.Tests.Models
@@ -130,9 +131,9 @@ namespace VariantPhasing.Tests.Models
         public void CreateMnvsFromClusters_TakeUpRefCount()
         {
 
-            var originalVcfVariant1 = PhasedVariantTestUtilities.CreateDummyAllele("chr1", 123, "ACG", "AT", 1000, 156);
-            var originalVcfVariant2 = PhasedVariantTestUtilities.CreateDummyAllele("chr1", 123, "A", "TTTTTT", 1000, 200);
-            var originalVcfVariant3 = PhasedVariantTestUtilities.CreateDummyAllele("chr1", 123, "AC", "TT", 1000, 100);
+            var originalVcfVariant1 = TestHelper.CreateDummyAllele("chr1", 123, "ACG", "AT", 1000, 156);
+            var originalVcfVariant2 = TestHelper.CreateDummyAllele("chr1", 123, "A", "TTTTTT", 1000, 200);
+            var originalVcfVariant3 = TestHelper.CreateDummyAllele("chr1", 123, "AC", "TT", 1000, 100);
 
             var vs1 = new VariantSite(originalVcfVariant1);
             var vs2 = new VariantSite(originalVcfVariant2);

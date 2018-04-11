@@ -186,6 +186,27 @@ namespace Pisces.Domain.Models
             return false;
         }
 
+        public bool ExpandInterval(int lookUpPosition, int newStart)
+        {
+           
+
+            for (var i = _lastIndexCleared + 1; i < Intervals.Count; i++)
+            {
+                var interval = Intervals[i];
+
+                if (interval.StartPosition > lookUpPosition)
+                    return false;
+
+                if (interval.ContainsPosition(lookUpPosition))
+                {
+                    interval.StartPosition = newStart;
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
         public void SetCleared(int position)
         {
             for (var i = _lastIndexCleared + 1; i < Intervals.Count; i ++)

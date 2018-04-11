@@ -332,7 +332,7 @@ namespace Pisces.Tests.FunctionalTests
                 BamFilterParameters = new Domain.Options.BamFilterParameters(),
                 VariantCallingParameters = new Domain.Options.VariantCallingParameters(),
                 CallMNVs = false,
-                OutputFolder = outDir,
+                OutputDirectory = outDir,
                 VcfWritingParameters = new Domain.Options.VcfWritingParameters()
                 {
                     OutputGvcfFile = false,
@@ -354,7 +354,7 @@ namespace Pisces.Tests.FunctionalTests
                 OutputBiasFiles = true,
                 DebugMode = false,
                 CallMNVs = false,
-                OutputFolder = outDir,
+                OutputDirectory = outDir,
                 BamFilterParameters = new Domain.Options.BamFilterParameters()
                 { MinimumBaseCallQuality = 20 },
                 VariantCallingParameters = new Domain.Options.VariantCallingParameters(),
@@ -623,7 +623,7 @@ namespace Pisces.Tests.FunctionalTests
                 CallMNVs = true,
                 UseMNVReallocation = false,
                 MaxSizeMNV = 100,
-                OutputFolder = TestPaths.LocalTestDataDirectory,
+                OutputDirectory = TestPaths.LocalTestDataDirectory,
                 BamFilterParameters = new Domain.Options.BamFilterParameters()
                 { MinimumBaseCallQuality = 20 },
                 VariantCallingParameters = new Domain.Options.VariantCallingParameters()
@@ -656,7 +656,7 @@ namespace Pisces.Tests.FunctionalTests
                 DebugMode = true,
                 CallMNVs = true,
                 UseMNVReallocation = false,
-                OutputFolder = TestPaths.LocalTestDataDirectory,
+                OutputDirectory = TestPaths.LocalTestDataDirectory,
                 VcfWritingParameters = new Domain.Options.VcfWritingParameters()
                 {
                     OutputGvcfFile = false,
@@ -853,7 +853,7 @@ namespace Pisces.Tests.FunctionalTests
                 };
             }
 
-            applicationOptions.OutputFolder = OutputDirectory;
+            applicationOptions.OutputDirectory = OutputDirectory;
 
             var factory = GetFactory(applicationOptions);
 

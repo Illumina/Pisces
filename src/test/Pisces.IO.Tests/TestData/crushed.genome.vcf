@@ -1,7 +1,7 @@
 ##fileformat=VCFv4.1
 ##fileDate=20160622
 ##source=Pisces 1.0.0.0
-##Pisces_cmdline="-B pisces\Bugs\ScyllaCrashed_PICS-302\merged-45.sorted.bam -g \\sDWRK-0001\Genomes\Homo_sapiens\UCSC\hg19\Sequence\WholeGenomeFASTA -MinimumVariantFrequency 0.2 -MinBaseCallQuality 20 -MaxVariantQScore 100 -c 10 -SBFilter 0.5 -MinVariantQScore 20 -VariantQualityFilter 20 -gVCF true -CallMNVs false -MaxMNVLength 3 -MaxGapBetweenMNV 1 -RMxNFilter 5,9 -i pisces\Bugs\ScyllaCrashed_PICS-302\TSAVP_v3_intervals.txt -ploidy diploid -crushvcf true"
+##Pisces_cmdline="-B \\ussd-prd-isi04\pisces\Bugs\ScyllaCrashed_PICS-302\merged-45.sorted.bam -g \\sDWRK-0001\Genomes\Homo_sapiens\UCSC\hg19\Sequence\WholeGenomeFASTA -MinimumVariantFrequency 0.2 -MinBaseCallQuality 20 -MaxVariantQScore 100 -c 10 -SBFilter 0.5 -MinVariantQScore 20 -VariantQualityFilter 20 -gVCF true -CallMNVs false -MaxMNVLength 3 -MaxGapBetweenMNV 1 -RMxNFilter 5,9 -i \\ussd-prd-isi04\pisces\Bugs\ScyllaCrashed_PICS-302\TSAVP_v3_intervals.txt -ploidy diploid -crushvcf true"
 ##reference=\\sDWRK-0001\Genomes\Homo_sapiens\UCSC\hg19\Sequence\WholeGenomeFASTA
 ##INFO=<ID=DP,Number=1,Type=Integer,Description="Total Depth">
 ##FILTER=<ID=q20,Description="Quality score less than 20">

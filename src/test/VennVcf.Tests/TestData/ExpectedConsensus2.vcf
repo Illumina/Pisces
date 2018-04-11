@@ -2,7 +2,7 @@
 ##fileDate=20140830
 ##source=CallSomaticVariants 3.5.1.1
 ##reference=D:\Genomes\Homo_sapiens\UCSC\hg19\Sequence\WholeGenomeFASTA\genome.fa
-##VcfPostProcessor=VennVcf 5.2.5.20
+##VcfPostProcessor=VennVcf 1.0.0.0
 ##INFO=<ID=DP,Number=1,Type=Integer,Description="Total Depth">
 ##INFO=<ID=TI,Number=.,Type=String,Description="Transcript ID">
 ##INFO=<ID=GI,Number=.,Type=String,Description="Gene ID">

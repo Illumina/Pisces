@@ -9,8 +9,7 @@
     <GenerateAssemblyConfigurationAttribute>false</GenerateAssemblyConfigurationAttribute>
     <GenerateAssemblyCompanyAttribute>false</GenerateAssemblyCompanyAttribute>
     <GenerateAssemblyProductAttribute>false</GenerateAssemblyProductAttribute>
-    <PostBuildEvent>copy $(SolutionDir)\redist $(OutDir)</PostBuildEvent>
-    <Version>5.2.5.20</Version>
+    <Version>5.2.7.47</Version>
     <Copyright>Copyright © Illumina 2017</Copyright>
   </PropertyGroup>
 

@@ -355,10 +355,9 @@ namespace Pisces.Tests.UnitTests
             {
                 BAMPaths = new[] {_bamChr19, _bamChr17Chr19, _bamChr17Chr19Dup},
                 IntervalPaths = new[] {_intervalsChr17, _intervalsChr19, null},
-                GenomePaths = new[] {_genomeChr17Chr19}
+                GenomePaths = new[] {_genomeChr17Chr19},
+                VcfWritingParameters = new VcfWritingParameters() { OutputGvcfFile = true }
             };
-            var gVCFOption = new[] {"-gVCF", "true"};
-            appOptions.UpdateOptions(gVCFOption);
 
             var factory = new Factory(appOptions);
 
@@ -396,11 +395,10 @@ namespace Pisces.Tests.UnitTests
             {
                 BAMPaths = new[] {_bamChr19, _bamChr17Chr19, _bamChr17Chr19Dup},
                 IntervalPaths = new[] {_intervalsChr17, _intervalsChr19, null},
-                GenomePaths = new[] {_genomeChr17Chr19}
+                GenomePaths = new[] {_genomeChr17Chr19},
+                VcfWritingParameters = new VcfWritingParameters() { OutputGvcfFile = true }
             };
-            var gVCFOption = new[] {"-gVCF", "true"};
-            appOptions.UpdateOptions(gVCFOption);
-
+          
             var factory = new Factory(appOptions);
 
             var context = new VcfWriterInputContext
@@ -434,18 +432,19 @@ namespace Pisces.Tests.UnitTests
         [Trait("ReqID", "SDS-26")]
         public void InvalidVcfOutputFolder()
         {
-            var appOptions = new PiscesApplicationOptions
-            {
-                BAMPaths = new[] {_bamChr19, _bamChr17Chr19, _bamChr17Chr19Dup},
-                IntervalPaths = new[] {_intervalsChr17, _intervalsChr19, null},
-                GenomePaths = new[] {_genomeChr17Chr19}
-            };
+
             Assert.False(Directory.Exists("56:\\Illumina\\OutputFolder"));
             var outputFolder = Path.Combine("56:\\Illumina\\OutputFolder");
-//            var outputFile = Path.Combine(outputFolder, "VcfFileWriterTests.vcf");
-            var outputFileOptions = new[] {"-OutFolder", outputFolder};
-            appOptions.UpdateOptions(outputFileOptions);
-            Assert.Throws<ArgumentException>(() => appOptions.Validate());
+           
+            var appOptions = new PiscesApplicationOptions
+            {
+                BAMPaths = new[] { _bamChr19, _bamChr17Chr19, _bamChr17Chr19Dup },
+                IntervalPaths = new[] { _intervalsChr17, _intervalsChr19, null },
+                GenomePaths = new[] { _genomeChr17Chr19 },
+                OutputDirectory = outputFolder
+            };
+         
+            Assert.Throws<ArgumentException>(() => appOptions.ValidateAndSetDerivedValues());
         }
     }
 }

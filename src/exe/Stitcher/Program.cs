@@ -1,61 +1,45 @@
 ﻿using System;
 using System.IO;
-using System.Reflection;
-using NDOptions;
-using Pisces.Domain.Utility;
 using Common.IO.Utility;
-using Common.IO;
+using CommandLine.IO.Utilities;
+using CommandLine.IO;
+using CommandLine.VersionProvider;
 
 namespace Stitcher
 {
-    public class Program
+    public class Program : BaseApplication
     {
-        static void Main(string[] args)
+        private ApplicationOptions _programOptions;
+        static string _commandlineExample = "--bam <bam path> ";
+        static string _programDescription = "Stitcher: read stitcher";
+
+        public Program(string programDescription, string commandLineExample, string programAuthors, IVersionProvider versionProvider = null) : base(programDescription, commandLineExample, programAuthors, versionProvider = null) { }
+
+
+        public static int Main(string[] args)
         {
-            var programOptions = new ApplicationOptions(args);
 
-	        if (programOptions.ShowVersion)
-	        {
-		        ShowVersion();
-		        return;
-	        }
+            Program stitcher = new Program(_programDescription, _commandlineExample, UsageInfoHelper.GetWebsite());
+            stitcher.DoParsing(args);
+            stitcher.Execute();
 
-            if (string.IsNullOrEmpty(programOptions.OutFolder))
-            {
-                programOptions.OutFolder = Path.GetDirectoryName(programOptions.InputBam);
-            }
+            return stitcher.ExitCode;
+        }
 
-            if (!Directory.Exists(programOptions.OutFolder))
-            {
-                try
-                {
-                    //lets be nice...
-                    Directory.CreateDirectory(programOptions.OutFolder);
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine("Validation Error: Unable to create the OutFolder.");
-                    Console.WriteLine(ex);
-                }
-            }
-
-            var doExit = programOptions.InputBam == null || programOptions.OutFolder == null || !File.Exists(programOptions.InputBam) || !Directory.Exists(programOptions.OutFolder);
-
-            if (doExit)
-            {
-                ShowHelp(programOptions.OptionSet);
-                var userException = new ArgumentException("Validation Error: You must supply a valid Bam and OutFolder.");
-				Logger.WriteExceptionToLog(userException);
-	            throw userException;
-            }
-
-
-            InitializeLog(programOptions.OutFolder, string.Join(" ", args), programOptions.StitcherOptions.LogFileName);
-
+        public void DoParsing(string[] args)
+        {
+            ApplicationOptionParser = new StitcherApplicationOptionsParser();
+            ApplicationOptionParser.ParseArgs(args);
+            _programOptions = ((StitcherApplicationOptionsParser)ApplicationOptionParser).ProgramOptions;
+            _programOptions.CommandLineArguments = ApplicationOptionParser.CommandLineArguments;
+        }
+        protected override void ProgramExecution()
+        {
+           
             try
             {
-                var processor = programOptions.StitcherOptions.ThreadByChromosome ? (IStitcherProcessor)new GenomeProcessor(programOptions.InputBam) : new BamProcessor();
-                processor.Process(programOptions.InputBam, programOptions.OutFolder, programOptions.StitcherOptions);
+                var processor = _programOptions.StitcherOptions.ThreadByChromosome ? (IStitcherProcessor)new GenomeProcessor(_programOptions.InputBam) : new BamProcessor();
+                processor.Process(_programOptions.InputBam, _programOptions.OutFolder, _programOptions.StitcherOptions);
             }
             catch (Exception ex)
             {
@@ -64,36 +48,22 @@ namespace Stitcher
 
                 throw wrappedException;
             }
-            finally
-            {
-                Logger.CloseLog();
-            }
-
-
         }
 
-        static void ShowHelp(OptionSet options)
+        protected override void Close()
         {
-            Console.WriteLine("Usage: Stitcher.exe [PARAMETERS]");
-            Console.WriteLine();
-            Console.WriteLine("Parameters:");
-            options.WriteOptionDescriptions(Console.Out);
+            Logger.CloseLog();
         }
 
-	    static void ShowVersion()
-	    {
-            var currentAssemblyName = FileUtilities.LocalAssemblyName<Program>();
-            var currentAssemblyVersion = FileUtilities.LocalAssemblyVersion<Program>();
-            Console.WriteLine(currentAssemblyName + " " + currentAssemblyVersion);
-			Console.WriteLine(UsageInfoHelper.GetWebsite());
-			Console.WriteLine();
-		}
-
-        static void InitializeLog(string outputDirectory, string commandLine, string logFileName)
+        protected override void Init()
         {
-            Logger.OpenLog(outputDirectory, logFileName);
+
+            Logger.OpenLog(_programOptions.LogFolder, _programOptions.StitcherOptions.LogFileName);
             Logger.WriteToLog("Command-line arguments: ");
-            Logger.WriteToLog(commandLine);
+            Logger.WriteToLog(_programOptions.QuotedCommandLineArgumentsString);
+
+            _programOptions.Save(Path.Combine(_programOptions.LogFolder, "StitcherOptions.used.json"));
+
         }
     }
 }

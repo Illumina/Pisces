@@ -333,7 +333,7 @@ namespace Pisces.Domain.Tests.UnitTests.Models
         [InlineData(ReadCollapsedType.DuplexStitched)]
         public void GetReadCollapsedType(ReadCollapsedType readCollapsedType)
         {
-            var readpair = ReadTestHelper.CreateReadPair("test", 6, readCollapsedType, pos: 10, matePos: 15, minBaseQuality: 30);
+            var readpair = ReadTestHelper.CreateProperReadPair("test", 6, readCollapsedType, pos: 10, matePos: 15, minBaseQuality: 30);
             for (int i = 0; i <= 5; i++)
             {
                 DirectionType direction = readpair.Item1.SequencedBaseDirectionMap[i];

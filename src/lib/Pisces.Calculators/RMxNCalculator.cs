@@ -70,7 +70,7 @@ namespace Pisces.Calculators
                     var newBackPeekPosition = backPeekPosition - bookend.Length;
                     if (newBackPeekPosition < 0) break;
 
-                    if (!Extensions.CompareSubstring(bookend, referenceBases, newBackPeekPosition)) break;
+                    if (!VcfVariantUtilities.CompareSubstring(bookend, referenceBases, newBackPeekPosition)) break;
 
                     backPeekPosition = newBackPeekPosition;
                 }
@@ -82,7 +82,7 @@ namespace Pisces.Calculators
                 {
                     if (currentPosition + bookend.Length > referenceBases.Length) break;
 
-                    if (!Extensions.CompareSubstring(bookend, referenceBases, currentPosition)) break;
+                    if (!VcfVariantUtilities.CompareSubstring(bookend, referenceBases, currentPosition)) break;
 
                     repeatCount++;
                     currentPosition += bookend.Length;

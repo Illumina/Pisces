@@ -28,9 +28,9 @@ namespace Pisces.Calculators
             float noiseHomRef = 0.05f;
             float noiseHomAlt = 0.075f;
             float noiseHetAlt = 0.10f;
-            float expectedHetFreq = 0.40f;  //a reaf 50% typically shows up at <50%, more like 40% or 45%
+            float expectedHetFreq = 0.40f;  //a ref 50% typically shows up at <50%, more like 40% or 45%
             float depth = (float) allele.TotalCoverage;
-            float support = (float)allele.AlleleSupport;
+            float support = (float)allele.AlleleSupport; 
 
             //distributions
             var poissonHomRefNoise = new MathNet.Numerics.Distributions.Poisson(noiseHomRef*depth);
@@ -91,6 +91,15 @@ namespace Pisces.Calculators
             */
 
             var qScore = (int)Math.Floor(10.0 * Math.Log10(Math.E) * (LnPofH0GT - LnPofH1GT));
+
+            if ((LnPofH1GT <= int.MinValue) && (LnPofH0GT > LnPofH1GT)) //H1 infinitely more likely
+                return maxQScore;
+
+
+            if ((LnPofH0GT <= int.MinValue) && (LnPofH0GT < LnPofH1GT)) //H0 infinitely more likely
+                return minQScore;
+
+
 
             return Math.Max( Math.Min(qScore,maxQScore),minQScore);
         }

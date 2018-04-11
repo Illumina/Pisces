@@ -4,29 +4,27 @@
     <TargetFramework>netcoreapp2.0</TargetFramework>
     <AssemblyName>Scylla.Tests</AssemblyName>
     <PackageId>Scylla.Tests</PackageId>
-    
-    
     <GenerateAssemblyConfigurationAttribute>false</GenerateAssemblyConfigurationAttribute>
     <GenerateAssemblyCompanyAttribute>false</GenerateAssemblyCompanyAttribute>
     <GenerateAssemblyProductAttribute>false</GenerateAssemblyProductAttribute>
-    <Version>5.2.5.20</Version>
-    <Copyright>Copyright © Illumina 2017</Copyright>
+    <Version>5.2.7.47</Version>
+    <Copyright>Copyright © Illumina 2018</Copyright>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" />
 
   <ItemGroup>
     <None Include="..\..\..\redist\FileCompression.dll" Link="FileCompression.dll">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Include="..\..\..\redist\libFileCompression.so" Link="libFileCompression.so">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Include="..\SharedData\Bams\small_S1.bam" Link="SharedData\Bams\small_S1.bam">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Include="..\SharedData\Bams\small_S1.bam.bai" Link="SharedData\Bams\small_S1.bam.bai">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
   </ItemGroup>
 
@@ -39,8 +37,26 @@
       <Link>FileCompression.dll</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="FileCompression.dll;libFileCompression.so;TestData\*">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    <None Update="TestData\chr21_11085587_S1.bam">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="TestData\chr21_11085587_S1.bam.bai">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="TestData\chr21_11085587_S1.genome.vcf">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="TestData\chr21_11085587_S1.out.genome.vcf">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="TestData\small_S1.genome.vcf">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="TestData\small_S1.out.diploid.genome.vcf">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="TestData\small_S1.out.somatic.genome.vcf">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
   </ItemGroup>
 
@@ -49,7 +65,6 @@
     <ProjectReference Include="..\..\lib\Alignment.IO\Alignment.IO.csproj" />
     <ProjectReference Include="..\..\lib\Common.IO\Common.IO.csproj" />
     <ProjectReference Include="..\..\lib\Pisces.Calculators\Pisces.Calculators.csproj" />
-    <ProjectReference Include="..\..\lib\Pisces.Domain\Pisces.Domain.csproj" />
     <ProjectReference Include="..\..\lib\Pisces.Processing\Pisces.Processing.csproj" />
     <ProjectReference Include="..\..\lib\Pisces.IO\Pisces.IO.csproj" />
     <ProjectReference Include="..\TestUtilities\TestUtilities.csproj" />

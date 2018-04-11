@@ -11,6 +11,7 @@
         IndelRepeatLength,
         MultiAllelicSite,
         RMxN,
-		ForcedReport
+		ForcedReport,
+        OffTarget
     }
 }

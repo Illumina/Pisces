@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using TestUtilities;
 using Xunit;
 using Pisces.IO;
 using Pisces.IO.Sequencing;
@@ -250,10 +249,10 @@ namespace VennVcf.Tests
             parameters.ConsensusFileName = OutputPath;
 
             string VcfPath_PoolA = Path.Combine(VcfPathRoot, "09H-03403-MT1-1_S7.genome.vcf");
-            List<CalledAllele> PoolAVariants = Extensions.Convert(VcfReader.GetAllVariantsInFile(VcfPath_PoolA)).ToList();
+            List<CalledAllele> PoolAVariants = VcfVariantUtilities.Convert(VcfReader.GetAllVariantsInFile(VcfPath_PoolA)).ToList();
 
             string VcfPath_PoolB = Path.Combine(VcfPathRoot, "09H-03403-MT1-1_S8.genome.vcf");
-            List<CalledAllele> PoolBVariants = Extensions.Convert(VcfReader.GetAllVariantsInFile(VcfPath_PoolB)).ToList();
+            List<CalledAllele> PoolBVariants = VcfVariantUtilities.Convert(VcfReader.GetAllVariantsInFile(VcfPath_PoolB)).ToList();
 
             CalledAllele VariantA =  PoolAVariants[0];
             CalledAllele VariantB = PoolBVariants[0];

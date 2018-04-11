@@ -1,7 +1,7 @@
 ##fileformat=VCFv4.1
 ##fileDate=20160119
-##source=Pisces 5.2.5.20
-##Pisces_cmdline="-B pisces\Bugs\PICS-120_add_unit_tests_around_scylla_double_counting\chr21_11085587_S1.bam -g \\sdwrk-0001\Genomes\Homo_sapiens\UCSC\hg19\Sequence\WholeGenomeFASTA -f 0.01 -fo False -b 20 -q 100 -c 10 -s 0.5 -a 20 -F 20 -gVCF True -PhaseSNPs true -i pisces\Bugs\PICS-120_add_unit_tests_around_scylla_double_counting\Intervals_1.picard"
+##source=Pisces 1.0.0.0
+##Pisces_cmdline="-B \\ussd-prd-isi04\pisces\Bugs\PICS-120_add_unit_tests_around_scylla_double_counting\chr21_11085587_S1.bam -g \\sdwrk-0001\Genomes\Homo_sapiens\UCSC\hg19\Sequence\WholeGenomeFASTA -f 0.01 -fo False -b 20 -q 100 -c 10 -s 0.5 -a 20 -F 20 -gVCF True -PhaseSNPs true -i \\ussd-prd-isi04\pisces\Bugs\PICS-120_add_unit_tests_around_scylla_double_counting\Intervals_1.picard"
 ##reference=\\sdwrk-0001\Genomes\Homo_sapiens\UCSC\hg19\Sequence\WholeGenomeFASTA
 ##INFO=<ID=DP,Number=1,Type=Integer,Description="Total Depth">
 ##FILTER=<ID=LowDP,Description="Low coverage (DP tag), therefore no genotype called">

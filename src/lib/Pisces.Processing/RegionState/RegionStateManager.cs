@@ -50,6 +50,7 @@ namespace Pisces.Processing.RegionState
             {
                 var block = GetBlock(candidateVariant.ReferencePosition);
                 block.AddCandidate(candidateVariant, _trackOpenEnded);
+                block.AddCandidateGroup(candidateVariants);
             }
         }
 

@@ -9,6 +9,8 @@
     <GenerateAssemblyConfigurationAttribute>false</GenerateAssemblyConfigurationAttribute>
     <GenerateAssemblyCompanyAttribute>false</GenerateAssemblyCompanyAttribute>
     <GenerateAssemblyProductAttribute>false</GenerateAssemblyProductAttribute>
+    <Version>5.2.7.47</Version>
+    <Copyright>Copyright © Illumina 2018</Copyright>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" />
@@ -17,6 +19,27 @@
     <Content Include="..\SharedData\Genomes\chr19\GenomeSize.xml" Link="SharedData\Genomes\chr19\GenomeSize.xml">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\..\..\redist\FileCompression.dll" Link="FileCompression.dll">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="..\..\..\redist\libFileCompression.so" Link="libFileCompression.so">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="..\SharedData\Genomes\chr19\chr19.dict" Link="SharedData\Genomes\chr19\chr19.dict">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="..\SharedData\Genomes\chr19\chr19.fa" Link="SharedData\Genomes\chr19\chr19.fa">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="..\SharedData\Genomes\chr19\chr19.fa.bwt" Link="SharedData\Genomes\chr19\chr19.fa.bwt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="..\SharedData\Genomes\chr19\chr19.fa.fai" Link="SharedData\Genomes\chr19\chr19.fa.fai">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 
   <ItemGroup>
@@ -62,33 +85,12 @@
     <Folder Include="SharedData\Genomes\chr19\" />
   </ItemGroup>
 
-  <ItemGroup>
-    <None Include="..\..\..\redist\FileCompression.dll" Link="FileCompression.dll">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Include="..\..\..\redist\libFileCompression.so" Link="libFileCompression.so">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Include="..\SharedData\Genomes\chr19\chr19.dict" Link="SharedData\Genomes\chr19\chr19.dict">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Include="..\SharedData\Genomes\chr19\chr19.fa" Link="SharedData\Genomes\chr19\chr19.fa">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Include="..\SharedData\Genomes\chr19\chr19.fa.bwt" Link="SharedData\Genomes\chr19\chr19.fa.bwt">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Include="..\SharedData\Genomes\chr19\chr19.fa.fai" Link="SharedData\Genomes\chr19\chr19.fa.fai">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-  </ItemGroup>
-
   <PropertyGroup>
     <PreBuildEvent></PreBuildEvent>
     <PostBuildEvent>
       
 </PostBuildEvent>
-    <Version>5.2.5.20</Version>
+    <Version>1.0.0.0</Version>
     <Copyright>Copyright © Illumina 2017</Copyright>
   </PropertyGroup>
 
