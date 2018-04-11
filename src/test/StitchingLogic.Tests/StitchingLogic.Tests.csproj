@@ -4,11 +4,11 @@
     <TargetFramework>netcoreapp2.0</TargetFramework>
     <AssemblyName>StitchingLogic.Tests</AssemblyName>
     <PackageId>StitchingLogic.Tests</PackageId>
-    
-    
     <GenerateAssemblyConfigurationAttribute>false</GenerateAssemblyConfigurationAttribute>
     <GenerateAssemblyCompanyAttribute>false</GenerateAssemblyCompanyAttribute>
     <GenerateAssemblyProductAttribute>false</GenerateAssemblyProductAttribute>
+    <Version>5.2.7.47</Version>
+    <Copyright>Copyright © Illumina 2018</Copyright>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" />
@@ -32,7 +32,6 @@
     <ProjectReference Include="..\..\lib\Alignment.IO\Alignment.IO.csproj" />
     <ProjectReference Include="..\..\lib\Common.IO\Common.IO.csproj" />
     <ProjectReference Include="..\..\lib\Pisces.Calculators\Pisces.Calculators.csproj" />
-    <ProjectReference Include="..\..\lib\Pisces.Domain\Pisces.Domain.csproj" />
     <ProjectReference Include="..\..\lib\Pisces.IO\Pisces.IO.csproj" />
     <ProjectReference Include="..\..\lib\Pisces.Processing\Pisces.Processing.csproj" />
     <ProjectReference Include="..\..\lib\StitchingLogic\StitchingLogic.csproj" />
@@ -99,7 +98,7 @@
     <PreBuildEvent></PreBuildEvent>
     <PostBuildEvent>
 </PostBuildEvent>
-    <Version>5.2.5.20</Version>
+    <Version>1.0.0.0</Version>
     <Copyright>Copyright © Illumina 2017</Copyright>
   </PropertyGroup>
 

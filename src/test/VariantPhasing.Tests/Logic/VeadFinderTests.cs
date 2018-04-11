@@ -37,9 +37,9 @@ namespace VariantPhasing.Tests.Logic
 
             ExecuteTest(read, 0, vsFromVcf, (foundVariants) =>
             {
-                Assert.Equal(foundVariants[SomaticVariantType.SNP].Count, 1);
-                Assert.Equal(foundVariants[SomaticVariantType.Insertion].Count, 0);
-                Assert.Equal(foundVariants[SomaticVariantType.Deletion].Count, 0);
+                Assert.Equal(foundVariants[SubsequenceType.MatchOrMismatchSequence].Count, 1);
+                Assert.Equal(foundVariants[SubsequenceType.InsertionSquence].Count, 0);
+                Assert.Equal(foundVariants[SubsequenceType.DeletionSequence].Count, 0);
 
             }, (matchedVariants) =>
             {
@@ -77,16 +77,39 @@ namespace VariantPhasing.Tests.Logic
             vs2.VcfReferenceAllele = "TARR";
             vs2.VcfAlternateAllele = "CGTA";
 
-            var vsFromVcf = new List<VariantSite>() { vs1, vs2 };
+            var vs3 = new VariantSite();
+            vs3.VcfReferencePosition = 4;
+            vs3.VcfReferenceAllele = "T";
+            vs3.VcfAlternateAllele = "T";
+
+            var vs4 = new VariantSite();
+            vs4.VcfReferencePosition = 4;
+            vs4.VcfReferenceAllele = "TA";
+            vs4.VcfAlternateAllele = "T";
+
+            var vs5 = new VariantSite();
+            vs5.VcfReferencePosition = 4;
+            vs5.VcfReferenceAllele = "T";
+            vs5.VcfAlternateAllele = "TAAA";
+
+            var vsFromVcf = new List<VariantSite>() { vs1, vs2, vs3, vs4, vs5 };
             vsFromVcf.Sort();
 
             //given a variant site, is it in the read? none of these bases should pass
 
+            //in this test "foundVariants" are the ones we found in the input vcf, and "matched varaints" 
+            //are the ones that we found in the the read.
+            //IE, we have 4 passing varaints in the input vcf. We want to know which of them are supported by a given read.
+            //Those 4 input variants represent 4 separate queries to the read. Each query has an answer (a variant site vs)
+            //that might be reference, indeterminate, or the variant the algorithm was looking for.
+            //N means the query was indeterminate. 
+
+
             ExecuteTest(read, 10, vsFromVcf, (foundVariants) =>
             {
-                Assert.Equal(foundVariants[SomaticVariantType.SNP].Count, 1);
-                Assert.Equal(foundVariants[SomaticVariantType.Insertion].Count, 0);
-                Assert.Equal(foundVariants[SomaticVariantType.Deletion].Count, 0);
+                Assert.Equal(foundVariants[SubsequenceType.MatchOrMismatchSequence].Count, 1);
+                Assert.Equal(foundVariants[SubsequenceType.InsertionSquence].Count, 0);
+                Assert.Equal(foundVariants[SubsequenceType.DeletionSequence].Count, 0);
 
             }, (matchedVariants) =>
             {
@@ -94,9 +117,23 @@ namespace VariantPhasing.Tests.Logic
                 Assert.Equal(matchedVariants[0].VcfReferenceAllele, "N");
                 Assert.Equal(matchedVariants[0].VcfAlternateAllele, "N");
 
-                Assert.Equal(matchedVariants[1].VcfReferencePosition, 4);  //a deletion not supported by the reads
-                Assert.Equal(matchedVariants[1].VcfReferenceAllele, "N");  //to we just return T>T, a reference call at this loci.
+                Assert.Equal(matchedVariants[1].VcfReferencePosition, 4);  //a MNV not supported by the reads
+                Assert.Equal(matchedVariants[1].VcfReferenceAllele, "N");
                 Assert.Equal(matchedVariants[1].VcfAlternateAllele, "N");
+
+                Assert.Equal(matchedVariants[2].VcfReferencePosition, 4);  //a reference not supported by the reads
+                Assert.Equal(matchedVariants[2].VcfReferenceAllele, "N");
+                Assert.Equal(matchedVariants[2].VcfAlternateAllele, "N");
+
+                //this, below, would fail prior to PICS-837 bugfix
+
+                Assert.Equal(matchedVariants[3].VcfReferencePosition, 4);  //an insertion not supported by the reads
+                Assert.Equal(matchedVariants[3].VcfReferenceAllele, "N");
+                Assert.Equal(matchedVariants[3].VcfAlternateAllele, "N");
+
+                Assert.Equal(matchedVariants[4].VcfReferencePosition, 4);  //a deletion not supported by the reads
+                Assert.Equal(matchedVariants[4].VcfReferenceAllele, "N");
+                Assert.Equal(matchedVariants[4].VcfAlternateAllele, "N");
 
             });
         }
@@ -132,9 +169,9 @@ namespace VariantPhasing.Tests.Logic
 
             ExecuteTest(read, 0, vsFromVcf, (foundVariants) =>
             {
-                Assert.Equal(foundVariants[SomaticVariantType.SNP].Count, 1);
-                Assert.Equal(foundVariants[SomaticVariantType.Insertion].Count, 0);
-                Assert.Equal(foundVariants[SomaticVariantType.Deletion].Count, 0);
+                Assert.Equal(foundVariants[SubsequenceType.MatchOrMismatchSequence].Count, 1);
+                Assert.Equal(foundVariants[SubsequenceType.InsertionSquence].Count, 0);
+                Assert.Equal(foundVariants[SubsequenceType.DeletionSequence].Count, 0);
 
             }, (matchedVariants) =>
             {
@@ -182,9 +219,9 @@ namespace VariantPhasing.Tests.Logic
 
             ExecuteTest(read, 0, vsFromVcf, (foundVariants) =>
             {
-                Assert.Equal(foundVariants[SomaticVariantType.SNP].Count, 1);
-                Assert.Equal(foundVariants[SomaticVariantType.Insertion].Count, 0);
-                Assert.Equal(foundVariants[SomaticVariantType.Deletion].Count, 0);
+                Assert.Equal(foundVariants[SubsequenceType.MatchOrMismatchSequence].Count, 1);
+                Assert.Equal(foundVariants[SubsequenceType.InsertionSquence].Count, 0);
+                Assert.Equal(foundVariants[SubsequenceType.DeletionSequence].Count, 0);
 
             }, (matchedVariants) =>
             {
@@ -230,9 +267,9 @@ namespace VariantPhasing.Tests.Logic
 
             ExecuteTest(read, 0, vsFromVcf, (foundVariants) =>
             {
-                Assert.Equal(foundVariants[SomaticVariantType.SNP].Count, 1);
-                Assert.Equal(foundVariants[SomaticVariantType.Insertion].Count, 0);
-                Assert.Equal(foundVariants[SomaticVariantType.Deletion].Count, 0);
+                Assert.Equal(foundVariants[SubsequenceType.MatchOrMismatchSequence].Count, 1);
+                Assert.Equal(foundVariants[SubsequenceType.InsertionSquence].Count, 0);
+                Assert.Equal(foundVariants[SubsequenceType.DeletionSequence].Count, 0);
 
             }, (matchedVariants) =>
             {
@@ -278,9 +315,9 @@ namespace VariantPhasing.Tests.Logic
 
             ExecuteTest(read, 0, vsFromVcf, (foundVariants) =>
             {
-                Assert.Equal(foundVariants[SomaticVariantType.SNP].Count, 1);
-                Assert.Equal(foundVariants[SomaticVariantType.Insertion].Count, 0);
-                Assert.Equal(foundVariants[SomaticVariantType.Deletion].Count, 0);
+                Assert.Equal(foundVariants[SubsequenceType.MatchOrMismatchSequence].Count, 1);
+                Assert.Equal(foundVariants[SubsequenceType.InsertionSquence].Count, 0);
+                Assert.Equal(foundVariants[SubsequenceType.DeletionSequence].Count, 0);
 
             }, (matchedVariants) =>
             {
@@ -389,9 +426,9 @@ namespace VariantPhasing.Tests.Logic
 
             ExecuteTest(r1, 0, vsFromVcf, (fv) =>
             {
-                Assert.Equal(fv[SomaticVariantType.SNP].Count, 2);
-                Assert.Equal(fv[SomaticVariantType.Insertion].Count, 0);
-                Assert.Equal(fv[SomaticVariantType.Deletion].Count, 1);
+                Assert.Equal(fv[SubsequenceType.MatchOrMismatchSequence].Count, 2);
+                Assert.Equal(fv[SubsequenceType.InsertionSquence].Count, 0);
+                Assert.Equal(fv[SubsequenceType.DeletionSequence].Count, 1);
             },
             (mv) =>
             {
@@ -413,9 +450,9 @@ namespace VariantPhasing.Tests.Logic
 
             ExecuteTest(r1, 10, vsFromVcf, (foundVariants) =>
             {
-                Assert.Equal(foundVariants[SomaticVariantType.SNP].Count, 2);
-                Assert.Equal(foundVariants[SomaticVariantType.Insertion].Count, 0);
-                Assert.Equal(foundVariants[SomaticVariantType.Deletion].Count, 1);                
+                Assert.Equal(foundVariants[SubsequenceType.MatchOrMismatchSequence].Count, 2);
+                Assert.Equal(foundVariants[SubsequenceType.InsertionSquence].Count, 0);
+                Assert.Equal(foundVariants[SubsequenceType.DeletionSequence].Count, 1);
             },
                 (matchedVariants) =>
                 {
@@ -437,9 +474,9 @@ namespace VariantPhasing.Tests.Logic
 
             ExecuteTest(r2, 0, vsFromVcf, (foundVariants) =>
             {
-                Assert.Equal(foundVariants[SomaticVariantType.SNP].Count, 1);
-                Assert.Equal(foundVariants[SomaticVariantType.Insertion].Count, 0);
-                Assert.Equal(foundVariants[SomaticVariantType.Deletion].Count, 0);
+                Assert.Equal(foundVariants[SubsequenceType.MatchOrMismatchSequence].Count, 1);
+                Assert.Equal(foundVariants[SubsequenceType.InsertionSquence].Count, 0);
+                Assert.Equal(foundVariants[SubsequenceType.DeletionSequence].Count, 0);
 
             }, (matchedVariants) =>
             {
@@ -464,9 +501,9 @@ namespace VariantPhasing.Tests.Logic
 
             ExecuteTest(r3, 0, vsFromVcf, (foundVariants) =>
             {
-                Assert.Equal(foundVariants[SomaticVariantType.SNP].Count, 1);
-                Assert.Equal(foundVariants[SomaticVariantType.Insertion].Count, 0);
-                Assert.Equal(foundVariants[SomaticVariantType.Deletion].Count, 0);
+                Assert.Equal(foundVariants[SubsequenceType.MatchOrMismatchSequence].Count, 1);
+                Assert.Equal(foundVariants[SubsequenceType.InsertionSquence].Count, 0);
+                Assert.Equal(foundVariants[SubsequenceType.DeletionSequence].Count, 0);
             },
                 (matchedVariants) =>
                 {
@@ -478,9 +515,9 @@ namespace VariantPhasing.Tests.Logic
 
             ExecuteTest(r4, 0, vsFromVcf, (foundVariants) =>
             {
-                Assert.Equal(foundVariants[SomaticVariantType.SNP].Count, 1);
-                Assert.Equal(foundVariants[SomaticVariantType.Insertion].Count, 0);
-                Assert.Equal(foundVariants[SomaticVariantType.Deletion].Count, 0);                
+                Assert.Equal(foundVariants[SubsequenceType.MatchOrMismatchSequence].Count, 1);
+                Assert.Equal(foundVariants[SubsequenceType.InsertionSquence].Count, 0);
+                Assert.Equal(foundVariants[SubsequenceType.DeletionSequence].Count, 0);
             },
                 (matchedVariants) =>
                 {
@@ -502,9 +539,9 @@ namespace VariantPhasing.Tests.Logic
 
             ExecuteTest(r5, 0, vsFromVcf, (foundVariants) =>
             {
-                Assert.Equal(foundVariants[SomaticVariantType.SNP].Count, 2);
-                Assert.Equal(foundVariants[SomaticVariantType.Insertion].Count, 1);
-                Assert.Equal(foundVariants[SomaticVariantType.Deletion].Count, 0);
+                Assert.Equal(foundVariants[SubsequenceType.MatchOrMismatchSequence].Count, 2);
+                Assert.Equal(foundVariants[SubsequenceType.InsertionSquence].Count, 1);
+                Assert.Equal(foundVariants[SubsequenceType.DeletionSequence].Count, 0);
 
             },
                 (matchedVariants) =>
@@ -525,10 +562,12 @@ namespace VariantPhasing.Tests.Logic
 
             //test r6
 
-            ExecuteTest(r6, 0, vsFromVcf, (fv)=>{ 
-                Assert.Equal(fv[SomaticVariantType.SNP].Count, 2);
-                Assert.Equal(fv[SomaticVariantType.Insertion].Count, 1);
-                Assert.Equal(fv[SomaticVariantType.Deletion].Count, 0);},
+            ExecuteTest(r6, 0, vsFromVcf, (fv) =>
+            {
+                Assert.Equal(fv[SubsequenceType.MatchOrMismatchSequence].Count, 2);
+                Assert.Equal(fv[SubsequenceType.InsertionSquence].Count, 1);
+                Assert.Equal(fv[SubsequenceType.DeletionSequence].Count, 0);
+            },
                 (mv) =>
                 {
                     Assert.Equal(mv[2].VcfReferenceAllele, "C");
@@ -563,9 +602,9 @@ namespace VariantPhasing.Tests.Logic
 
             ExecuteTest(read, 0, vsFromVcf, (foundVariants) =>
             {
-                Assert.Equal(foundVariants[SomaticVariantType.SNP].Count, 2);
-                Assert.Equal(foundVariants[SomaticVariantType.Insertion].Count, 0);
-                Assert.Equal(foundVariants[SomaticVariantType.Deletion].Count, 1);
+                Assert.Equal(foundVariants[SubsequenceType.MatchOrMismatchSequence].Count, 2);
+                Assert.Equal(foundVariants[SubsequenceType.InsertionSquence].Count, 0);
+                Assert.Equal(foundVariants[SubsequenceType.DeletionSequence].Count, 1);
 
             },
                 (matchedVariants) =>
@@ -604,9 +643,9 @@ namespace VariantPhasing.Tests.Logic
             //given a variant site, is it in the read?
             ExecuteTest(read, 0, vsFromVcf, (foundVariants) =>
             {
-                Assert.Equal(foundVariants[SomaticVariantType.SNP].Count, 2);
-                Assert.Equal(foundVariants[SomaticVariantType.Insertion].Count, 1);
-                Assert.Equal(foundVariants[SomaticVariantType.Deletion].Count, 0);
+                Assert.Equal(foundVariants[SubsequenceType.MatchOrMismatchSequence].Count, 2);
+                Assert.Equal(foundVariants[SubsequenceType.InsertionSquence].Count, 1);
+                Assert.Equal(foundVariants[SubsequenceType.DeletionSequence].Count, 0);
 
             }, (matchedVariants) =>
             {
@@ -616,7 +655,7 @@ namespace VariantPhasing.Tests.Logic
             });
         }
 
-        private void ExecuteTest(BamAlignment read, int minBaseCallQuality, List<VariantSite> vsFromVcf, Action<Dictionary<SomaticVariantType, List<VariantSite>>> setCandidatesAssertions = null,
+        private void ExecuteTest(BamAlignment read, int minBaseCallQuality, List<VariantSite> vsFromVcf, Action<Dictionary<SubsequenceType, List<VariantSite>>> setCandidatesAssertions = null,
             Action<VariantSite[]> matchVariantsAssertions = null)
         {
             var readProcessor = new VeadFinder(new BamFilterParameters() { MinimumBaseCallQuality = minBaseCallQuality });
@@ -624,21 +663,410 @@ namespace VariantPhasing.Tests.Logic
             var foundVariants
                 = readProcessor.SetCandidateVariantsFoundInRead(minBaseCallQuality, read, out lastPos);
 
-            if (setCandidatesAssertions != null)
-            {
-                setCandidatesAssertions(foundVariants);
-            }
+            //if (setCandidatesAssertions != null)
+            //{
+            setCandidatesAssertions(foundVariants);
+            //}
 
             var matchedVariants
                        = readProcessor.MatchReadVariantsWithVcfVariants(vsFromVcf, foundVariants, read.Position + 1, lastPos);
 
-            if (matchVariantsAssertions != null)
-            {
-                matchVariantsAssertions(matchedVariants);
-            }
+            //if (matchVariantsAssertions != null)
+            //{
+            matchVariantsAssertions(matchedVariants);
+            //}
 
             readProcessor.FindVariantResults(vsFromVcf, read);
 
+        }
+
+        [Fact]
+        /// This is a test for the "CheckVariantSequenceForMatchInVariantSiteFromRead" fxn, where
+        /// we are looking for evidence for a variant in the mismatch string we picked up from a read.
+        public void CheckVariantSequenceForMatchInVariantSiteFromReadTest()
+        {
+            //go through the 4 cases that might be input to this method. (indels are managed a different way)
+
+            CheckWeCanFindASnpInARead();
+            CheckWeCanFindAnMNVInARead_healthyMNV();
+            CheckWeCanFindAnMNVInARead_pathologicalMNV();
+            CheckWeCanFindARefInARead();
+       
+        }
+
+        private static void CheckWeCanFindASnpInARead()
+        {
+            var vcfSNP = new VariantSite();
+            vcfSNP.VcfReferencePosition = 4;
+            vcfSNP.VcfReferenceAllele = "T";
+            vcfSNP.VcfAlternateAllele = "C";
+
+            //a VS mined from a read that indeed contains the SNP
+            var vs1 = new VariantSite();
+            vs1.VcfReferencePosition = 2;
+            vs1.VcfReferenceAllele = "AATAA";
+            vs1.VcfAlternateAllele = "AACAA";
+
+            Assert.Equal(VeadFinder.StateOfPhasingSiteInRead.FoundThisVariant, VeadFinder.CheckVariantSequenceForMatchInVariantSiteFromRead(vcfSNP, vs1));
+
+            //a VS mined from a shorter read that also contains the SNP
+            var vs2 = new VariantSite();
+            vs2.VcfReferencePosition = 4;
+            vs2.VcfReferenceAllele = "T";
+            vs2.VcfAlternateAllele = "C";
+
+            Assert.Equal(VeadFinder.StateOfPhasingSiteInRead.FoundThisVariant, VeadFinder.CheckVariantSequenceForMatchInVariantSiteFromRead(vcfSNP, vs2));
+
+            //a VS mined from a read that contains a different SNP
+            var vs3 = new VariantSite();
+            vs3.VcfReferencePosition = 2;
+            vs3.VcfReferenceAllele = "AATAA";
+            vs3.VcfAlternateAllele = "AAGAA";
+
+            Assert.Equal(VeadFinder.StateOfPhasingSiteInRead.FoundDifferentVariant, VeadFinder.CheckVariantSequenceForMatchInVariantSiteFromRead(vcfSNP, vs3));
+
+            //a VS mined from a shorter read with a different SNP
+            var vs4 = new VariantSite();
+            vs4.VcfReferencePosition = 4;
+            vs4.VcfReferenceAllele = "T";
+            vs4.VcfAlternateAllele = "G";
+
+            Assert.Equal(VeadFinder.StateOfPhasingSiteInRead.FoundDifferentVariant, VeadFinder.CheckVariantSequenceForMatchInVariantSiteFromRead(vcfSNP, vs4));
+
+            //a VS mined from a read that contains a ref
+            var vs5 = new VariantSite();
+            vs5.VcfReferencePosition = 2;
+            vs5.VcfReferenceAllele = "AATAA";
+            vs5.VcfAlternateAllele = "AATAA";
+
+            Assert.Equal(VeadFinder.StateOfPhasingSiteInRead.FoundReferenceVariant, VeadFinder.CheckVariantSequenceForMatchInVariantSiteFromRead(vcfSNP, vs5));
+
+            //a VS mined from a shorter read with a ref
+            var vs6 = new VariantSite();
+            vs6.VcfReferencePosition = 4;
+            vs6.VcfReferenceAllele = "T";
+            vs6.VcfAlternateAllele = "T";
+
+            Assert.Equal(VeadFinder.StateOfPhasingSiteInRead.FoundReferenceVariant, VeadFinder.CheckVariantSequenceForMatchInVariantSiteFromRead(vcfSNP, vs6));
+
+
+            //a VS mined from a read that contains a no-call / base that failed filters
+            var vs7 = new VariantSite();
+            vs7.VcfReferencePosition = 2;
+            vs7.VcfReferenceAllele = "AATAA";
+            vs7.VcfAlternateAllele = "AANAA";
+
+            Assert.Equal(VeadFinder.StateOfPhasingSiteInRead.HaveInsufficientData, VeadFinder.CheckVariantSequenceForMatchInVariantSiteFromRead(vcfSNP, vs7));
+
+            //a VS mined from a shorter read with a no-call / base that failed filters
+            var vs8 = new VariantSite();
+            vs8.VcfReferencePosition = 4;
+            vs8.VcfReferenceAllele = "T";
+            vs8.VcfAlternateAllele = "N";
+
+            Assert.Equal(VeadFinder.StateOfPhasingSiteInRead.HaveInsufficientData, VeadFinder.CheckVariantSequenceForMatchInVariantSiteFromRead(vcfSNP, vs8));
+        }
+
+        private static void CheckWeCanFindAnMNVInARead_healthyMNV()
+        {
+            var vcfSNP = new VariantSite();
+            vcfSNP.VcfReferencePosition = 4;
+            vcfSNP.VcfReferenceAllele = "TA";
+            vcfSNP.VcfAlternateAllele = "CC";
+
+            //a VS mined from a read that indeed contains the MNV
+            var vs1 = new VariantSite();
+            vs1.VcfReferencePosition = 2;
+            vs1.VcfReferenceAllele = "AATAA";
+            vs1.VcfAlternateAllele = "AACCAA";
+
+            Assert.Equal(VeadFinder.StateOfPhasingSiteInRead.FoundThisVariant, VeadFinder.CheckVariantSequenceForMatchInVariantSiteFromRead(vcfSNP, vs1));
+
+            //a VS mined from a shorter read that also contains the MNV
+            var vs2 = new VariantSite();
+            vs2.VcfReferencePosition = 4;
+            vs2.VcfReferenceAllele = "TA";
+            vs2.VcfAlternateAllele = "CC";
+
+            Assert.Equal(VeadFinder.StateOfPhasingSiteInRead.FoundThisVariant, VeadFinder.CheckVariantSequenceForMatchInVariantSiteFromRead(vcfSNP, vs2));
+
+            //a VS mined from a read that contains a different MNV
+            var vs3 = new VariantSite();
+            vs3.VcfReferencePosition = 2;
+            vs3.VcfReferenceAllele = "AATAAA";
+            vs3.VcfAlternateAllele = "AAGCAA";
+
+            Assert.Equal(VeadFinder.StateOfPhasingSiteInRead.FoundDifferentVariant, VeadFinder.CheckVariantSequenceForMatchInVariantSiteFromRead(vcfSNP, vs3));
+
+            //a VS mined from a shorter read with a different MNV
+            var vs4 = new VariantSite();
+            vs4.VcfReferencePosition = 4;
+            vs4.VcfReferenceAllele = "TA";
+            vs4.VcfAlternateAllele = "GC";
+
+            Assert.Equal(VeadFinder.StateOfPhasingSiteInRead.FoundDifferentVariant, VeadFinder.CheckVariantSequenceForMatchInVariantSiteFromRead(vcfSNP, vs4));
+
+            //a VS mined from a read that contains a ref
+            var vs5 = new VariantSite();
+            vs5.VcfReferencePosition = 2;
+            vs5.VcfReferenceAllele = "AATAA";
+            vs5.VcfAlternateAllele = "AATAA";
+
+            Assert.Equal(VeadFinder.StateOfPhasingSiteInRead.FoundReferenceVariant, VeadFinder.CheckVariantSequenceForMatchInVariantSiteFromRead(vcfSNP, vs5));
+
+
+            //a VS mined from a shorter read with a ref
+            var vs6a = new VariantSite();
+            vs6a.VcfReferencePosition = 4;
+            vs6a.VcfReferenceAllele = "TA";
+            vs6a.VcfAlternateAllele = "TA";
+            Assert.Equal(VeadFinder.StateOfPhasingSiteInRead.FoundReferenceVariant, VeadFinder.CheckVariantSequenceForMatchInVariantSiteFromRead(vcfSNP, vs6a));
+
+            //a VS mined from a shorter read with a ref
+            var vs6 = new VariantSite();
+            vs6.VcfReferencePosition = 4;
+            vs6.VcfReferenceAllele = "T";
+            vs6.VcfAlternateAllele = "T";
+
+            //Here we dont claim we found the full reference sequence we are looking for. We run off the end of the read.
+            Assert.Equal(VeadFinder.StateOfPhasingSiteInRead.HaveInsufficientData, VeadFinder.CheckVariantSequenceForMatchInVariantSiteFromRead(vcfSNP, vs6));
+
+            //a VS mined from a read that contains a no-call / base that failed filters. Because of the "N".
+            var vs7 = new VariantSite();
+            vs7.VcfReferencePosition = 2;
+            vs7.VcfReferenceAllele = "AATAA";
+            vs7.VcfAlternateAllele = "AANAA";
+
+            Assert.Equal(VeadFinder.StateOfPhasingSiteInRead.HaveInsufficientData, VeadFinder.CheckVariantSequenceForMatchInVariantSiteFromRead(vcfSNP, vs7));
+
+            //a VS mined from a shorter read with a no-call / base that failed filters
+            var vs8 = new VariantSite();
+            vs8.VcfReferencePosition = 4;
+            vs8.VcfReferenceAllele = "TA";
+            vs8.VcfAlternateAllele = "NN";
+
+            Assert.Equal(VeadFinder.StateOfPhasingSiteInRead.HaveInsufficientData, VeadFinder.CheckVariantSequenceForMatchInVariantSiteFromRead(vcfSNP, vs8));
+        }
+
+        /// <summary>
+        /// Note, this test is deliberately stressing the algorithm over the usecase 
+        /// of a pathological MNV (mnvs do not really have prepended bases inside Pisces/Scylla/ect).
+        /// The point is to demonstrate that the method still check the whole alt allele sequence
+        /// is a match with the read seqeunce being queried.
+        /// </summary>
+        private static void CheckWeCanFindAnMNVInARead_pathologicalMNV()
+        {
+            var vcfSNP = new VariantSite();
+            vcfSNP.VcfReferencePosition = 4;
+            vcfSNP.VcfReferenceAllele = "ATA";
+            vcfSNP.VcfAlternateAllele = "ACG";
+
+            //a VS section mined from a read that indeed contains the MNV (exactly)
+
+            //what we are looking for:
+
+            //                  1 2 3 4 5 6 7 8 9 
+            // looking for ->   - - - A C G - - -
+            // read:       ->   ? ? ? A C G ? ? ?
+
+
+            var vs1 = new VariantSite();
+            vs1.VcfReferencePosition = 4;
+            vs1.VcfReferenceAllele = "ATA";
+            vs1.VcfAlternateAllele = "ACG";  
+
+            Assert.Equal(VeadFinder.StateOfPhasingSiteInRead.FoundThisVariant, VeadFinder.CheckVariantSequenceForMatchInVariantSiteFromRead(vcfSNP, vs1));
+
+            //a VS mined from a longer read that also contains the MNV
+
+            //what we are looking for:
+
+            //                  1 2 3 4 5 6 7 8 9 
+            // looking for  ->  - - - A C G - - -
+            // read:        ->  ? ? A A C G A ? ?
+
+            var vs2 = new VariantSite();
+            vs2.VcfReferencePosition = 3;
+            vs2.VcfReferenceAllele = "AATAA";
+            vs2.VcfAlternateAllele = "AACGA";
+
+            Assert.Equal(VeadFinder.StateOfPhasingSiteInRead.FoundThisVariant, VeadFinder.CheckVariantSequenceForMatchInVariantSiteFromRead(vcfSNP, vs2));
+
+
+            //a VS mined from a shorter read that does NOT prove the existence of the MNV
+            //IN this case (to get a section this short to parse) we must have seen a whacky cigar string with only 1 match (ex, 4I1M8I)
+            //or we are approaching the end of the read and have one base left to check, perhaps the other bases failed filters or got softclipped.
+
+
+            //what we are looking for:
+
+            //                  1 2 3 4 5 6 7 8 9 
+            // looking for  ->  - - - A C G - - -
+            // read:        ->  ? ? ? ? C ? ? ? ?
+
+
+            var vs3 = new VariantSite();
+            vs3.VcfReferencePosition = 5;
+            vs3.VcfReferenceAllele = "T";
+            vs3.VcfAlternateAllele = "C";
+
+            Assert.Equal(VeadFinder.StateOfPhasingSiteInRead.HaveInsufficientData, VeadFinder.CheckVariantSequenceForMatchInVariantSiteFromRead(vcfSNP, vs3));
+
+            //a VS section mined from a read that indeed contain a ref site 
+            var vs4 = new VariantSite();
+            vs4.VcfReferencePosition = 3;
+            vs4.VcfReferenceAllele = "AATAA";
+            vs4.VcfAlternateAllele = "AATAA";
+
+            Assert.Equal(VeadFinder.StateOfPhasingSiteInRead.FoundReferenceVariant, VeadFinder.CheckVariantSequenceForMatchInVariantSiteFromRead(vcfSNP, vs4));
+
+            //a VS section mined from a read that indeed contain a diff MNV site 
+
+
+            //what we are looking for:
+
+            //                  1 2 3 4 5 6 7 8 9 
+            // looking for  ->  - - - A C G - - -
+            // read:        ->  ? ? G G G G G ? ?
+
+
+            var vs5 = new VariantSite();
+            vs5.VcfReferencePosition = 3;
+            vs5.VcfReferenceAllele = "AATAA";
+            vs5.VcfAlternateAllele = "GGGGG";
+
+            Assert.Equal(VeadFinder.StateOfPhasingSiteInRead.FoundDifferentVariant, VeadFinder.CheckVariantSequenceForMatchInVariantSiteFromRead(vcfSNP, vs5));
+
+            //a VS section mined from a read that indeed contain a diff MNV site 
+            var vs6 = new VariantSite();
+            vs6.VcfReferencePosition = 3;
+            vs6.VcfReferenceAllele = "AATAA";
+            vs6.VcfAlternateAllele = "AACAA";
+
+            Assert.Equal(VeadFinder.StateOfPhasingSiteInRead.FoundDifferentVariant, VeadFinder.CheckVariantSequenceForMatchInVariantSiteFromRead(vcfSNP, vs6));
+
+
+            //We are looking for ATA -> ACG , pos 4.
+            //We will never find it in a sequence that starts on position 5 (as in vs7).
+            //We either have found pos 4 ealier, when this method was called on a previous sequence (in which case we would exit before getting here)
+            //~or~ all the bases at postion 4 got clipped or filtered off, which is why we are starting so late in the read.
+            //( -> result should be that the bases in the test sequence for pos 4 must have FailedFilters and were not available to the query method)
+
+            //what we are looking for:
+
+            //                  1 2 3 4 5 6 7 8 9 
+            // looking for ->   - - - A C G - - -
+            // read:       ->   ? ? ? ? C A A ? ?
+
+            var vs7 = new VariantSite();
+            vs7.VcfReferencePosition = 5;
+            vs7.VcfReferenceAllele = "TAA";
+            vs7.VcfAlternateAllele = "CAA";
+
+            Assert.Equal(VeadFinder.StateOfPhasingSiteInRead.HaveInsufficientData, VeadFinder.CheckVariantSequenceForMatchInVariantSiteFromRead(vcfSNP, vs7));
+
+
+            //We are looking for ATA -> ACG , pos 4.
+            //We will never find it in a sequence that starts on position 5 (as in vs8).
+            //We either have found pos 4 ealier, when this method was called on a previous sequence (in which case we would exit before getting here)
+            //~or~ all the bases at postion 4 got clipped or filtered off, which is why we are starting so late in the read.
+            //( -> result should be that the bases in the test sequence for pos 4 must have FailedFilters and were not available to the query method)
+
+
+            //what we are looking for:
+
+            //                  1 2 3 4 5 6 7 8 9 
+            // looking for ->   - - - A C G - - -
+            // read:       ->   ? ? ? ? C G ? ? ?
+
+
+            var vs8 = new VariantSite();
+            vs8.VcfReferencePosition = 5;
+            vs8.VcfReferenceAllele = "TA";
+            vs8.VcfAlternateAllele = "CG";
+
+            Assert.Equal(VeadFinder.StateOfPhasingSiteInRead.HaveInsufficientData, VeadFinder.CheckVariantSequenceForMatchInVariantSiteFromRead(vcfSNP, vs8));
+        }
+
+            private static void CheckWeCanFindARefInARead()
+        {
+            //for this case "found this varaint" or "found reference variant" are interchangeable results.
+            //This variant we are looking for *is* the reference.
+
+            var vcfSNP = new VariantSite();
+            vcfSNP.VcfReferencePosition = 4;
+            vcfSNP.VcfReferenceAllele = "T";
+            vcfSNP.VcfAlternateAllele = "T";
+
+            //a VS mined from a read that indeed contains the ref
+            var vs1 = new VariantSite();
+            vs1.VcfReferencePosition = 2;
+            vs1.VcfReferenceAllele = "AATAA";
+            vs1.VcfAlternateAllele = "AATCAA";
+
+            Assert.Equal(VeadFinder.StateOfPhasingSiteInRead.FoundThisVariant, VeadFinder.CheckVariantSequenceForMatchInVariantSiteFromRead(vcfSNP, vs1));
+
+            //a VS mined from a shorter read that also contains the ref
+            var vs2 = new VariantSite();
+            vs2.VcfReferencePosition = 4;
+            vs2.VcfReferenceAllele = "TA";
+            vs2.VcfAlternateAllele = "TC";
+
+            Assert.Equal(VeadFinder.StateOfPhasingSiteInRead.FoundThisVariant, VeadFinder.CheckVariantSequenceForMatchInVariantSiteFromRead(vcfSNP, vs2));
+
+            //a VS mined from a read that contains a different SNP
+            var vs3 = new VariantSite();
+            vs3.VcfReferencePosition = 2;
+            vs3.VcfReferenceAllele = "AATAAA";
+            vs3.VcfAlternateAllele = "AAGCAA";
+
+            Assert.Equal(VeadFinder.StateOfPhasingSiteInRead.FoundDifferentVariant, VeadFinder.CheckVariantSequenceForMatchInVariantSiteFromRead(vcfSNP, vs3));
+
+            //a VS mined from a shorter read with a different SNP
+            var vs4 = new VariantSite();
+            vs4.VcfReferencePosition = 4;
+            vs4.VcfReferenceAllele = "TA";
+            vs4.VcfAlternateAllele = "GC";
+
+            Assert.Equal(VeadFinder.StateOfPhasingSiteInRead.FoundDifferentVariant, VeadFinder.CheckVariantSequenceForMatchInVariantSiteFromRead(vcfSNP, vs4));
+
+            //a VS mined from a read that contains a ref
+            var vs5 = new VariantSite();
+            vs5.VcfReferencePosition = 2;
+            vs5.VcfReferenceAllele = "AATAA";
+            vs5.VcfAlternateAllele = "AATAA";
+            Assert.Equal(VeadFinder.StateOfPhasingSiteInRead.FoundThisVariant, VeadFinder.CheckVariantSequenceForMatchInVariantSiteFromRead(vcfSNP, vs5));
+
+
+            //a VS mined from a shorter read with a ref
+            var vs6a = new VariantSite();
+            vs6a.VcfReferencePosition = 4;
+            vs6a.VcfReferenceAllele = "TA";
+            vs6a.VcfAlternateAllele = "TA";
+            Assert.Equal(VeadFinder.StateOfPhasingSiteInRead.FoundThisVariant, VeadFinder.CheckVariantSequenceForMatchInVariantSiteFromRead(vcfSNP, vs6a));
+
+            //a VS mined from a shorter read with a ref
+            var vs6 = new VariantSite();
+            vs6.VcfReferencePosition = 4;
+            vs6.VcfReferenceAllele = "T";
+            vs6.VcfAlternateAllele = "T";
+            Assert.Equal(VeadFinder.StateOfPhasingSiteInRead.FoundThisVariant, VeadFinder.CheckVariantSequenceForMatchInVariantSiteFromRead(vcfSNP, vs6));
+
+            //a VS mined from a read that contains a no-call / base that failed filters. Because of the "N".
+            var vs7 = new VariantSite();
+            vs7.VcfReferencePosition = 2;
+            vs7.VcfReferenceAllele = "AATAA";
+            vs7.VcfAlternateAllele = "AANAA";
+
+            Assert.Equal(VeadFinder.StateOfPhasingSiteInRead.HaveInsufficientData, VeadFinder.CheckVariantSequenceForMatchInVariantSiteFromRead(vcfSNP, vs7));
+
+            //a VS mined from a shorter read with a no-call / base that failed filters
+            var vs8 = new VariantSite();
+            vs8.VcfReferencePosition = 4;
+            vs8.VcfReferenceAllele = "TA";
+            vs8.VcfAlternateAllele = "NN";
+
+            Assert.Equal(VeadFinder.StateOfPhasingSiteInRead.HaveInsufficientData, VeadFinder.CheckVariantSequenceForMatchInVariantSiteFromRead(vcfSNP, vs8));
         }
     }
 }

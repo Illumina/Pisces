@@ -15,14 +15,14 @@ namespace VariantPhasing.Logic
         {
         }
 
-        public Dictionary<SomaticVariantType, List<VariantSite>> FindVariantSites(Read read, string chromosomeName)
+        public Dictionary<SubsequenceType, List<VariantSite>> FindVariantSites(Read read, string chromosomeName)
         {
             var pseudoRefChromosome = new string('R', (int) read.CigarData.GetReferenceSpan() + 100);
-            var dict = new Dictionary<SomaticVariantType, List<VariantSite>>()            
+            var dict = new Dictionary<SubsequenceType, List<VariantSite>>()            
             {
-                {SomaticVariantType.Deletion, new List<VariantSite>()},
-                {SomaticVariantType.SNP, new List<VariantSite>()},
-                {SomaticVariantType.Insertion, new List<VariantSite>()}
+                {SubsequenceType.DeletionSequence, new List<VariantSite>()},
+                {SubsequenceType.MatchOrMismatchSequence, new List<VariantSite>()},
+                {SubsequenceType.InsertionSquence, new List<VariantSite>()}
             };
 
             var startIndexInRead = 0;
@@ -32,24 +32,24 @@ namespace VariantPhasing.Logic
             {
                 var operation = read.CigarData[cigarOpIndex];
                 CandidateAllele candidate = null;
-                var type = SomaticVariantType.SNP;
+                var type = SubsequenceType.MatchOrMismatchSequence;
                 var found = false;
                 switch (operation.Type)
                 {
                     case 'I':
                         candidate = ExtractInsertionFromOperation(read, pseudoRefChromosome, startIndexInRead, operation.Length, startIndexInPseudoReference, chromosomeName);
-                        type = SomaticVariantType.Insertion;
+                        type = SubsequenceType.InsertionSquence;
                         found = true;
                         break;
                     case 'D':
                         candidate = ExtractDeletionFromOperation(read, pseudoRefChromosome, startIndexInRead, operation.Length, startIndexInPseudoReference, chromosomeName);
-                        type = SomaticVariantType.Deletion;
+                        type = SubsequenceType.DeletionSequence;
                         found = true;
                         break;
                     case 'M':
                         candidate = ExtractGappedMnv(read, pseudoRefChromosome, startIndexInRead, (int)operation.Length,
                             startIndexInPseudoReference, chromosomeName);
-                        type = SomaticVariantType.SNP;
+                        type = SubsequenceType.MatchOrMismatchSequence;
                         found = true;
                         break;
                 }

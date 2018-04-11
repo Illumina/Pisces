@@ -20,6 +20,25 @@ namespace StitchingLogic.Tests
         }
 
         [Fact]
+
+        public void TryStitchSoftClipBridge()
+        {
+            var merger = new ReadMerger(0, false, false, false, new ReadStatusCounter(), false, true);
+            var stitcher = new BasicStitcher(0, false, false, true, true, false, true, 1024, false);
+
+            // Original bug case PICS-721
+            var read1 = ReadTestHelper.CreateRead("chr1", "GGCTGTGCTGGTCTGTGCTGGGCTGAGCTGGAGCTCTT", 2843726,
+                new CigarAlignment("31M7S"));
+            var read2 = ReadTestHelper.CreateRead("chr1", "CGGCTCCCACCGAGTTCTACACCCTCGGACAGACTCTTTCCCTTGACGACGCTCTTCCTTTTTGGCTGTGCTGGTCTGTGCTGGGCTGAGCTGCATCTCTT", 2843796,
+                new CigarAlignment("63S38M"));
+            var alignmentSet = new AlignmentSet(read1, read2);
+            var stitched = stitcher.TryStitch(alignmentSet);
+            Assert.Equal(false, stitched);
+        }
+
+
+
+
         public void GenerateConsensus_MatchSectionFullyOverlaps()
         {
             //       SSSSSMMMMMSS
@@ -258,6 +277,9 @@ namespace StitchingLogic.Tests
             read1.BamAlignment.SetIsFirstMate(true);
             read2.BamAlignment.SetIsFirstMate(false);
 
+            read1.BamAlignment.MapQuality = 30;
+            read2.BamAlignment.MapQuality = 30;
+
             StitcherTestHelpers.SetReadDirections(read2, DirectionType.Reverse);
 
             var stitcher = new BasicStitcher(10, useSoftclippedBases: useSoftclips, nifyDisagreements: nifyDisagreements, ignoreProbeSoftclips: ignoreProbeSoftclips);
@@ -417,8 +439,9 @@ namespace StitchingLogic.Tests
             Assert.Equal("1S6M", stitchedRead.StitchedCigar.ToString());
             Assert.Equal("NNNNNNN", stitchedRead.Sequence);
             Assert.Equal("1F5S1F", stitchedRead.CigarDirections.ToString());
-
         }
+
+
 
         [Fact]
         public void TryStitch_RealExamples()
@@ -1190,5 +1213,46 @@ namespace StitchingLogic.Tests
         }
 
 
-	}
+
+        /// <summary>
+        /// Tests stitchability (or lack thereof) of different combinations of mapQ of reads with FilterMinMapQ = 20
+        /// </summary>
+        [Fact]
+        public void TryStitch_LowMapQ()
+        {
+            // R1 < MinMapQ, R2 > MinMapQ, should not stitch
+            TestLowMapQScenario(10, 40, false, 20);
+            // R1 > MinMapQ, R2 < MinMapQ, should not stitch
+            TestLowMapQScenario(40, 10, false, 20);
+            // R1 < MinMapQ, R2 < MinMapQ, should not stitch
+            TestLowMapQScenario(10, 10, false, 20);
+            // R1 > MinMapQ, R2 > MinMapQ, should stitch
+            TestLowMapQScenario(40, 40, true, 30);
+            // R1 == MinMapQ, R2 == MinMapQ, should stitch
+            TestLowMapQScenario(20, 20, true, 20);
+            // R1 < MinMapQ, R2 == MinMapQ, should not stitch
+            TestLowMapQScenario(19, 20, false, 20);
+            // R1 == MinMapQ, R2 < MinMapQ, should not stitch
+            TestLowMapQScenario(20, 19, false, 20);
+            // R1 == MinMapQ, R2 == MinMapQ, default MinMapQ=1, should stitch
+            TestLowMapQScenario(1, 1, true);
+            // R1 > MinMapQ, R2 > MinMapQ, default MinMapQ=1, should stitch
+            TestLowMapQScenario(2, 2, true);
+            // R1 == Default MinMapQ, R2 unmaped, default MinMapQ=1, should not stitch
+            TestLowMapQScenario(1, 0, false);
+            }
+
+
+
+        public void TestLowMapQScenario(uint R1MapQ, uint R2MapQ, bool result, uint threshold=1)
+        {
+            var read1 = ReadTestHelper.CreateRead("chr1", "TTTAAATTT", 5, new CigarAlignment("2S7M"), null, 0, 30, false, R1MapQ);
+            var read2 = ReadTestHelper.CreateRead("chr1", "ATTTAAATT", 0, new CigarAlignment("2S7M"), null, 5, 30, false, R2MapQ);
+            var stitcher = StitcherTestHelpers.GetStitcher(10, false, true, true, true, threshold);
+            var alignmentSet = new AlignmentSet(read1, read2);
+            var stitchResult = stitcher.TryStitch(alignmentSet);
+            Assert.Equal(result, stitchResult);
+        }
+
+    }
 }

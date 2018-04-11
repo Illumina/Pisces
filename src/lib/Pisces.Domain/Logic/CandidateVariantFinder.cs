@@ -290,40 +290,44 @@ namespace Pisces.Domain.Logic
             var alleleSupportDirection = GetSupportDirection(candidate, alignment, startIndexInRead);
             candidate.SupportByDirection[(int)alleleSupportDirection]++;
 
-            if (alignment.IsCollapsedRead()) 
+            if (alignment.IsCollapsedRead())
             {
-                switch (alignment.GetReadCollapsedType(alleleSupportDirection))
+                ReadCollapsedType? collapsedType = alignment.GetReadCollapsedType(alleleSupportDirection);
+                if(collapsedType.HasValue) // ignore non-proper read pairs
                 {
-                    case ReadCollapsedType.DuplexNonStitched:
-                        candidate.ReadCollapsedCountsMut[(int) ReadCollapsedType.DuplexNonStitched]++;
-                        break;
-                    case ReadCollapsedType.DuplexStitched:
-                        candidate.ReadCollapsedCountsMut[(int) ReadCollapsedType.DuplexStitched]++;
-                        break;
-                    case ReadCollapsedType.SimplexStitched:
-                        candidate.ReadCollapsedCountsMut[(int) ReadCollapsedType.SimplexStitched]++;
-                        break;
-                    case ReadCollapsedType.SimplexReverseStitched:
-                        candidate.ReadCollapsedCountsMut[(int) ReadCollapsedType.SimplexStitched]++;
-                        candidate.ReadCollapsedCountsMut[(int) ReadCollapsedType.SimplexReverseStitched]++;
-                        break;
-                    case ReadCollapsedType.SimplexForwardStitched:
-                        candidate.ReadCollapsedCountsMut[(int) ReadCollapsedType.SimplexStitched]++;
-                        candidate.ReadCollapsedCountsMut[(int) ReadCollapsedType.SimplexForwardStitched]++;
-                        break;
-                    case ReadCollapsedType.SimplexNonStitched:
-                        candidate.ReadCollapsedCountsMut[(int) ReadCollapsedType.SimplexNonStitched]++;
-                        break;
-                    case ReadCollapsedType.SimplexReverseNonStitched:
-                        candidate.ReadCollapsedCountsMut[(int) ReadCollapsedType.SimplexNonStitched]++;
-                        candidate.ReadCollapsedCountsMut[(int) ReadCollapsedType.SimplexReverseNonStitched]++;
-                        break;
-                    case ReadCollapsedType.SimplexForwardNonStitched:
-                        candidate.ReadCollapsedCountsMut[(int) ReadCollapsedType.SimplexNonStitched]++;
-                        candidate.ReadCollapsedCountsMut[(int) ReadCollapsedType.SimplexForwardNonStitched]++;
-                        break;
-                    default:
-                        throw new Exception();
+                    switch (collapsedType.Value)
+                    {
+                        case ReadCollapsedType.DuplexNonStitched:
+                            candidate.ReadCollapsedCountsMut[(int) ReadCollapsedType.DuplexNonStitched]++;
+                            break;
+                        case ReadCollapsedType.DuplexStitched:
+                            candidate.ReadCollapsedCountsMut[(int) ReadCollapsedType.DuplexStitched]++;
+                            break;
+                        case ReadCollapsedType.SimplexStitched:
+                            candidate.ReadCollapsedCountsMut[(int) ReadCollapsedType.SimplexStitched]++;
+                            break;
+                        case ReadCollapsedType.SimplexReverseStitched:
+                            candidate.ReadCollapsedCountsMut[(int) ReadCollapsedType.SimplexStitched]++;
+                            candidate.ReadCollapsedCountsMut[(int) ReadCollapsedType.SimplexReverseStitched]++;
+                            break;
+                        case ReadCollapsedType.SimplexForwardStitched:
+                            candidate.ReadCollapsedCountsMut[(int) ReadCollapsedType.SimplexStitched]++;
+                            candidate.ReadCollapsedCountsMut[(int) ReadCollapsedType.SimplexForwardStitched]++;
+                            break;
+                        case ReadCollapsedType.SimplexNonStitched:
+                            candidate.ReadCollapsedCountsMut[(int) ReadCollapsedType.SimplexNonStitched]++;
+                            break;
+                        case ReadCollapsedType.SimplexReverseNonStitched:
+                            candidate.ReadCollapsedCountsMut[(int) ReadCollapsedType.SimplexNonStitched]++;
+                            candidate.ReadCollapsedCountsMut[(int) ReadCollapsedType.SimplexReverseNonStitched]++;
+                            break;
+                        case ReadCollapsedType.SimplexForwardNonStitched:
+                            candidate.ReadCollapsedCountsMut[(int) ReadCollapsedType.SimplexNonStitched]++;
+                            candidate.ReadCollapsedCountsMut[(int) ReadCollapsedType.SimplexForwardNonStitched]++;
+                            break;
+                        default:
+                            throw new Exception();
+                    }
                 }
             }
             return candidate;

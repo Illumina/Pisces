@@ -37,9 +37,9 @@ namespace Pisces.IO
                 BufferLimit = bufferLimit;
                 BufferList = new List<T>(BufferLimit);
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                throw new IOException(String.Format("Failed to create {0} in the specified folder.", outputFilePath));
+                throw new IOException(String.Format("Failed to create {0} in the specified folder. Ex {1}", outputFilePath, ex));
             }
 
         }
@@ -56,7 +56,7 @@ namespace Pisces.IO
             }
         }
 
-        protected void FlushBuffer(IRegionMapper mapper = null)
+        public void FlushBuffer(IRegionMapper mapper = null)
         {
 
             if (AllowMultipleVcfLinesPerLoci)

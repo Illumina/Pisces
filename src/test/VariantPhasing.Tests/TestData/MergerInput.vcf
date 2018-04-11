@@ -1,8 +1,8 @@
 ﻿##fileformat=VCFv4.1
 ##fileDate=20160310
-##source=Pisces 5.2.5.20
-##Pisces_cmdline="-B pisces\Bugs\Scylla_PerfomanceOnHighlyMutatedData_PICS-195\1221.bam -g igenomes\Homo_sapiens\UCSC\hg19\Sequence\WholeGenomeFasta -f 0.01 -fo False -b 20 -q 100 -c 10 -s 0.5 -a 20 -F 20 -gVCF True -StitchPairedReads False -ReportNoCalls True -t 16 -Collapse True -v 0.026 -VariantQualityFilter 30 -RepeatFilter 8 -OutFolder pisces\Bugs\Scylla_PerfomanceOnHighlyMutatedData_PICS-195\pisces -ChrFilter chr7"
-##reference=igenomes\Homo_sapiens\UCSC\hg19\Sequence\WholeGenomeFasta
+##source=Pisces 1.0.0.0
+##Pisces_cmdline="-B \\ussd-prd-isi04\pisces\Bugs\Scylla_PerfomanceOnHighlyMutatedData_PICS-195\1221.bam -g \\ussd-prd-isi04\igenomes\Homo_sapiens\UCSC\hg19\Sequence\WholeGenomeFasta -f 0.01 -fo False -b 20 -q 100 -c 10 -s 0.5 -a 20 -F 20 -gVCF True -StitchPairedReads False -ReportNoCalls True -t 16 -Collapse True -v 0.026 -VariantQualityFilter 30 -RepeatFilter 8 -OutFolder \\ussd-prd-isi04\pisces\Bugs\Scylla_PerfomanceOnHighlyMutatedData_PICS-195\pisces -ChrFilter chr7"
+##reference=\\ussd-prd-isi04\igenomes\Homo_sapiens\UCSC\hg19\Sequence\WholeGenomeFasta
 ##INFO=<ID=DP,Number=1,Type=Integer,Description="Total Depth">
 ##FILTER=<ID=q30,Description="Quality score less than 30">
 ##FILTER=<ID=LowDP,Description="Low coverage (DP tag), therefore no genotype called">

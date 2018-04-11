@@ -1,13 +1,15 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Xml;
+using System.Security.Cryptography;
 
 namespace Common.IO.Sequencing
 {
+    //This is old isas code, and could do with enhanced unit testing.
+
     public class GenomeMetadata
     {
         #region Members
@@ -59,6 +61,48 @@ namespace Common.IO.Sequencing
             Sequences = new List<SequenceMetadata>();
             IndexRegex = new Regex(@"^(\d+)\t>(.+)$", RegexOptions.Compiled);
         }
+
+        /// <summary>
+        /// Adds a new reference sequence to the Sequences list
+        /// </summary>
+        private void AddReferenceSequence(string name, long length, string fastaPath, FastaHeaderMetadata header,
+            ref HashSet<string> referenceNames, long knownBaseLength)
+        {
+            // sanity check
+            if (referenceNames.Contains(name))
+            {
+                throw new ArgumentException(string.Format(
+                    "An attempt was made to load two reference sequences with the same exact names ({0})", name));
+            }
+            referenceNames.Add(name);
+
+            // add the reference sequence
+            SequenceMetadata sequence = new SequenceMetadata
+            {
+                FastaPath = fastaPath,
+                Length = length,
+                Name = name,
+                Build = header.Build,
+                Checksum = header.Checksum,
+                IsCircular = header.IsCircular,
+                Ploidy = header.Ploidy,
+                Species = header.Species,
+                KnownBases = knownBaseLength
+            };
+
+            // update species and build from fasta path if in iGenomes format
+            IGenomesReferencePath iGenomesReference = IGenomesReferencePath.GetReferenceFromFastaPath(sequence.FastaPath);
+            if (iGenomesReference != null)
+            {
+                if (string.IsNullOrEmpty(sequence.Build))
+                    sequence.Build = iGenomesReference.Build;
+                if (string.IsNullOrEmpty(sequence.Species))
+                    sequence.Species = iGenomesReference.Species;
+            }
+
+            Sequences.Add(sequence);
+        }
+
 
         static public SequenceType ParseSequenceType(string type)
         {
@@ -167,6 +211,57 @@ namespace Common.IO.Sequencing
             }
         }
 
+
+        /// <summary>
+        /// Serializes the genome metadata to an XML file
+        /// </summary>
+        public void Serialize(string outputFilename)
+        {
+            using (var writer = File.CreateText(outputFilename))
+            {
+
+                var xmlWriterSettings = new XmlWriterSettings() { Indent = true, IndentChars = "\t" };
+                var xmlWriter = XmlWriter.Create(writer, xmlWriterSettings);
+                xmlWriter.WriteStartDocument();
+
+                // write all of our sequences
+                xmlWriter.WriteStartElement("sequenceSizes");
+                if (!string.IsNullOrEmpty(Name)) xmlWriter.WriteAttributeString("genomeName", Name);
+
+                foreach (SequenceMetadata refSeq in Sequences)
+                {
+                    //check the  basics.
+                    if ((refSeq == null) || (refSeq.Name == null))
+                        continue;
+
+                    xmlWriter.WriteStartElement("chromosome");
+
+                    if (refSeq.FastaPath != null) xmlWriter.WriteAttributeString("fileName", Path.GetFileName(refSeq.FastaPath));
+                    if (refSeq.Name != null) xmlWriter.WriteAttributeString("contigName", refSeq.Name);
+
+                    xmlWriter.WriteAttributeString("totalBases", refSeq.Length.ToString());
+
+                    // additional attributes for MiSeq
+                    if (!string.IsNullOrEmpty(refSeq.Build)) xmlWriter.WriteAttributeString("build", refSeq.Build);
+                    xmlWriter.WriteAttributeString("isCircular", (refSeq.IsCircular ? "true" : "false"));
+                    if (!string.IsNullOrEmpty(refSeq.Checksum)) xmlWriter.WriteAttributeString("md5", refSeq.Checksum);
+                    xmlWriter.WriteAttributeString("ploidy", refSeq.Ploidy.ToString());
+                    if (!string.IsNullOrEmpty(refSeq.Species))
+                        xmlWriter.WriteAttributeString("species", refSeq.Species);
+                    //KnownBases mever null)
+                    xmlWriter.WriteAttributeString("knownBases", refSeq.KnownBases.ToString());
+                    //type never null
+                    xmlWriter.WriteAttributeString("type", refSeq.Type.ToString());
+
+                    xmlWriter.WriteEndElement();
+                }
+                xmlWriter.WriteEndElement();
+                xmlWriter.WriteEndDocument();
+                // close the XML file
+                xmlWriter.Dispose();
+            }
+        }
+
         /// <summary>
         /// Scans the reference sequence list and returns the specified sequence metadata
         /// TODO: nulls are evil. throw an exception rather than return null. have them use TryGetSequence instead
@@ -201,7 +296,7 @@ namespace Common.IO.Sequencing
             return false;
         }
 
-     
+
 
         /// <summary>
         ///     Retrieves the FASTA filenames from the specified directory
@@ -340,7 +435,7 @@ namespace Common.IO.Sequencing
             Other, // currently only chrEBV has this classification
         }
 
-       
+
         public class SequenceMetadata : IComparable<SequenceMetadata>
         {
             #region member variables
@@ -614,6 +709,503 @@ namespace Common.IO.Sequencing
                 }
             }
         }
+
+
+        public void ImportFromFastaFilesAndCreateIndexAndDict(string fastaDirectory, string outDirectory)
+        {
+            // initialize
+            fastaDirectory = Path.GetFullPath(fastaDirectory);
+            List<string> fastaFilenames = GetFastaFilenames(fastaDirectory);
+            HashSet<string> referenceNames = new HashSet<string>();
+
+            // Index the FASTA file:
+            foreach (string fastaPath in fastaFilenames)
+            {
+                List<FastaHeaderMetadata> metadataList = new List<FastaHeaderMetadata>();
+
+                List<RefIndexEntry> referenceIndexes = new List<RefIndexEntry>();
+                ReferenceIndexer.CreateFASTAIndexFiles(fastaPath, metadataList, referenceIndexes, outDirectory);
+                for (int chromosomeIndex = 0; chromosomeIndex < metadataList.Count; chromosomeIndex++)
+                {
+                    AddReferenceSequence(referenceIndexes[chromosomeIndex].Name, referenceIndexes[chromosomeIndex].Length,
+                        Path.Combine(fastaDirectory, fastaPath), metadataList[chromosomeIndex], ref referenceNames,
+                        referenceIndexes[chromosomeIndex].KnownBasesLength);
+                }
+            }
+
+            // set the genome information
+            Name = Path.GetFileName(fastaDirectory);
+            if (Name.ToLowerInvariant() == "chromosomes" || Name.ToLowerInvariant() == "wholegenomefasta")
+            {
+                // Try to give a unique name rather than generic "chromosomes" or "wholegenomefasta":
+                var iGenomes = "igenomes";
+                Name = Path.GetDirectoryName(fastaDirectory);
+                int position = Name.ToLowerInvariant().IndexOf(iGenomes);
+                if (position != -1)
+                {
+                    Name = Name.Substring(position + iGenomes.Length);
+                    if (Name[0] == '\\') Name = Name.Substring(1);
+                }
+            }
+
+            Length = 0;
+            KnownBases = 0;
+            foreach (SequenceMetadata refSeq in Sequences)
+            {
+                Length += refSeq.Length;
+                KnownBases += refSeq.KnownBases;
+            }
+        }
+
     }
 
+    /// <summary>
+    ///     Stores additional information used by BOLT but not by ELAND
+    /// </summary>
+    public class FastaHeaderMetadata
+    {
+        public bool IsCircular = false;
+
+        public FastaHeaderMetadata()
+        {
+            Ploidy = 2;
+        }
+
+        public int Ploidy { get; set; }
+        public string Build { get; set; }
+        public string Checksum { get; set; }
+        public string Species { get; set; }
+    }
+
+    /// <summary>
+    ///     Used to store the indices in the FASTA index (fai) file.
+    ///     N.B. This is what samtools and BOLT uses as an index
+    /// </summary>
+    public class RefIndexEntry
+    {
+        public string Checksum;
+        public string FilePath;
+        public long KnownBasesLength;
+        public long Length;
+        public int LineLength;
+        public string Name;
+        public int NonWSLineLength;
+        public long Offset;
+    }
+
+    /// <summary>
+    ///     Parses a FASTA reference file and creates index (.fai), dictionary (.dict)
+    /// </summary>
+    public class ReferenceIndexer
+    {
+        #region Members
+        private const int BufferSize = 10485760;
+        private const string CircularTag = "CIRCULAR";
+        private const byte NonCanonicalBase = 4;
+        private readonly byte[] _convertBaseToNumber;
+        private readonly byte[] _convertBaseToUpper;
+        private readonly Regex _referenceBuildRegex = new Regex(@"BUILD\(([^\)]+)\)", RegexOptions.Compiled);
+        private readonly Regex _referenceNameRegex = new Regex(@"^(\S+)", RegexOptions.Compiled);
+        private readonly Regex _referencePloidyRegex = new Regex(@"PLOIDY\(([^\)]+)\)", RegexOptions.Compiled);
+        private readonly Regex _referenceSpeciesRegex = new Regex(@"SPECIES\(([^\)]+)\)", RegexOptions.Compiled);
+        private List<byte> _basesList = new List<byte>();
+        private int _currentKnownBaseLineLen;
+        private int _currentLineLength;
+        private long _currentPosition;
+        private string _fastaPath;
+        private bool _inValidRegion;
+        private bool _isFirstFastaEntry;
+        private long _knownBaseRefLen;
+        private HashSet<int> _lineLengths;
+        private List<FastaHeaderMetadata> _metadataList;
+        private long _numValidBases;
+        private FileStream _reader;
+        private List<RefIndexEntry> _referenceIndexes;
+        private long _referenceLength;
+        private int _referenceLineLength;
+        private int _referenceLineLengthNoWhitespace;
+        private string _referenceName = string.Empty;
+        private long _referenceOffset;
+        private uint _regionBegin;
+        private uint _regionEnd;
+        // global variable to keep the known bases (non-N) in ref seq in each group (that is reset with > in fasta file)
+        #endregion
+
+        public ReferenceIndexer()
+        {
+            // create our base to number lookup table
+            _convertBaseToNumber = new byte[256];
+            for (int i = 0; i < 256; i++) _convertBaseToNumber[i] = NonCanonicalBase;
+            _convertBaseToNumber['a'] = 0;
+            _convertBaseToNumber['A'] = 0;
+            _convertBaseToNumber['c'] = 1;
+            _convertBaseToNumber['C'] = 1;
+            _convertBaseToNumber['g'] = 2;
+            _convertBaseToNumber['G'] = 2;
+            _convertBaseToNumber['t'] = 3;
+            _convertBaseToNumber['T'] = 3;
+
+            _convertBaseToUpper = new byte[256];
+            for (int i = 0; i < 256; i++) _convertBaseToUpper[i] = (byte)i;
+            _convertBaseToUpper['a'] = (byte)'A';
+            _convertBaseToUpper['c'] = (byte)'C';
+            _convertBaseToUpper['g'] = (byte)'G';
+            _convertBaseToUpper['t'] = (byte)'T';
+            _convertBaseToUpper['n'] = (byte)'N';
+        }
+
+        private void Initialize()
+        {
+            _isFirstFastaEntry = true;
+            _inValidRegion = false;
+            _regionBegin = 0;
+            _regionEnd = 0;
+            _currentPosition = 0;
+            _numValidBases = 0;
+            _referenceName = string.Empty;
+            _referenceLength = 0;
+            _referenceOffset = 0;
+            _referenceLineLength = 0;
+            _referenceLineLengthNoWhitespace = 0;
+            _currentLineLength = 0;
+            _basesList = new List<byte>();
+            _lineLengths = new HashSet<int>();
+            _knownBaseRefLen = 0;
+            _currentKnownBaseLineLen = 0;
+        }
+
+        /// <summary>
+        ///     Adds the MD5 checksum to our FASTA header metadata list
+        /// </summary>
+        private static void AddMD5Checksum(ref List<byte> basesList, List<FastaHeaderMetadata> metadataList)
+        {
+            // compute the checksum
+            // var md5 = System.Security.Cryptography.MD5.Create();
+            //md5.ComputeHash()
+            //MD5CryptoServiceProvider md5Provider = new MD5CryptoServiceProvider();
+            var md5Provider = MD5.Create();
+            byte[] data = basesList.ToArray();
+            basesList.Clear();
+            data = md5Provider.ComputeHash(data);
+
+            // add the checksum to the last metadata entry
+            StringBuilder sb = new StringBuilder();
+            for (int i = 0; i < data.Length; i++) sb.Append(data[i].ToString("x2").ToLower());
+            metadataList[metadataList.Count - 1].Checksum = sb.ToString();
+        }
+
+        private static string ReadLine(FileStream fs)
+        {
+            StringBuilder sb = new StringBuilder();
+
+            // keep reading until we hit a carriage return
+            while (true)
+            {
+                int i = fs.ReadByte();
+                if (i == -1)
+                {
+                    throw new ArgumentException(
+                        string.Format("EOF encountered before the end of the FASTA header in {0}", fs.Name));
+                }
+                if (IsEOL(i)) break;
+                sb.Append((char)i);
+            }
+
+            return sb.ToString();
+        }
+
+        private static void UpdateValidRegions(ref bool inValidRegion, ref long numValidBases,
+            long currentPosition, uint regionBegin)
+        {
+            if (inValidRegion)
+            {
+                uint regionEnd = (uint)(currentPosition - 1);
+                numValidBases += regionEnd - regionBegin + 1;
+                inValidRegion = false;
+            }
+        }
+
+        private static void AddReferenceIndexEntry(ref List<RefIndexEntry> indices, string name, long length,
+                                                   long offset, int lineLength)
+        {
+            RefIndexEntry ri = new RefIndexEntry
+            {
+                Length = length,
+                LineLength = lineLength + 1,
+                Name = name,
+                NonWSLineLength = lineLength,
+                Offset = offset
+            };
+            indices.Add(ri);
+        }
+
+        private void HandleRecordStart()
+        {
+            // handle the FASTA header
+            if (!_isFirstFastaEntry)
+            {
+                AddMD5Checksum(ref _basesList, _metadataList);
+                UpdateValidRegions(ref _inValidRegion, ref _numValidBases, _currentPosition, _regionBegin);
+
+                if (_lineLengths.Count > 2)
+                {
+                    throw new ArgumentException(string.Format("Found inconsistent line lengths in reference {0} in file {1}", _referenceName,
+                        _fastaPath));
+                }
+
+                // add the reference index information
+                RefIndexEntry indexEntry = new RefIndexEntry
+                {
+                    Length = _referenceLength,
+                    LineLength = _referenceLineLength,
+                    Name = _referenceName,
+                    NonWSLineLength = _referenceLineLengthNoWhitespace,
+                    Offset = _referenceOffset,
+                    Checksum = _metadataList[_metadataList.Count - 1].Checksum,
+                    FilePath = _fastaPath,
+                    KnownBasesLength = _knownBaseRefLen
+                };
+                _referenceIndexes.Add(indexEntry);
+            }
+
+            // look for empty headers
+            string header = ReadLine(_reader);
+            if (string.IsNullOrEmpty(header))
+            {
+                throw new ArgumentException(string.Format("Empty FASTA header found in {0}", _fastaPath));
+            }
+
+            // extract the reference name
+            Match headerMatch = _referenceNameRegex.Match(header);
+            if (!headerMatch.Success)
+            {
+                throw new ArgumentException(
+                    string.Format("Unable to extract the reference name in {0} from line: {1}", _fastaPath, header));
+            }
+
+            _referenceName = headerMatch.Groups[1].Value;
+            _referenceOffset = -1;
+            _referenceLength = 0;
+            _knownBaseRefLen = 0; // reset
+            _lineLengths.Clear();
+
+            // extract our metadata
+            FastaHeaderMetadata fhm = new FastaHeaderMetadata();
+
+            Match referenceBuildMatch = _referenceBuildRegex.Match(header);
+            Match referenceSpeciesMatch = _referenceSpeciesRegex.Match(header);
+            Match referencePloidyMatch = _referencePloidyRegex.Match(header);
+
+            if (referenceBuildMatch.Success) fhm.Build = referenceBuildMatch.Groups[1].Value;
+            if (referenceSpeciesMatch.Success) fhm.Species = referenceSpeciesMatch.Groups[1].Value;
+            if (referencePloidyMatch.Success) fhm.Ploidy = int.Parse(referencePloidyMatch.Groups[1].Value);
+
+            if (header.IndexOf(CircularTag) != -1) fhm.IsCircular = true;
+            _metadataList.Add(fhm);
+
+            if (_isFirstFastaEntry) _isFirstFastaEntry = false;
+        }
+
+        public void IndexFASTAFile(string inputFastaPath, List<FastaHeaderMetadata> metadata,
+            List<RefIndexEntry> refIndexes, string outputDirectory)
+        {
+            // check that our FASTA file exists
+            _fastaPath = Path.GetFullPath(inputFastaPath);
+            if (!File.Exists(_fastaPath))
+            {
+                throw new ArgumentException(string.Format("Cannot open the FASTA file ({0}) for reading.", _fastaPath));
+            }
+
+            //string outputDirectory = Path.GetDirectoryName(_fastaPath);
+            _metadataList = metadata;
+            _referenceIndexes = refIndexes;
+            Initialize();
+
+            try
+            {
+                using (_reader = new FileStream(_fastaPath, FileMode.Open, FileAccess.Read, FileShare.Read, BufferSize))
+                {
+                    int b = 0;
+                    while (true)
+                    {
+                        // grab the next byte
+                        int previousChar = b;
+                        b = _reader.ReadByte();
+                        if (b == -1) break; // End of file
+
+                        if (IsEOL(b))
+                        {
+                            if (_currentLineLength > 0)
+                            {
+                                if (_referenceLength == 0)
+                                {
+                                    _referenceLineLength = _currentLineLength + 1;
+                                    _referenceLineLengthNoWhitespace = _currentLineLength;
+                                }
+                                _lineLengths.Add(_currentLineLength);
+                                _referenceLength += _currentLineLength;
+                                _knownBaseRefLen += _currentKnownBaseLineLen;
+                                _currentLineLength = 0;
+                                _currentKnownBaseLineLen = 0; // reset;
+                            }
+                            else if (IsEOL(previousChar) && _referenceLength == _referenceLineLengthNoWhitespace)
+                            {
+                                // Second EOL character, on the first line of the reference:
+                                _referenceLineLength++;
+                            }
+                            continue;
+                        }
+                        if (b == '>')
+                        {
+                            HandleRecordStart();
+                        }
+                        else
+                        {
+                            if (_referenceOffset == -1) _referenceOffset = _reader.Position - 1;
+                            // handle the bases
+                            _currentLineLength++;
+
+                            // handle the unknown base (N)
+                            // this is not elegant like Reg expresion, but it's faster
+                            switch (b)
+                            {
+                                case 'A':
+                                case 'a':
+                                case 'C':
+                                case 'c':
+                                case 'G':
+                                case 'g':
+                                case 'T':
+                                case 't':
+                                    _currentKnownBaseLineLen++;
+                                    break;
+                            }
+
+                            uint num = _convertBaseToNumber[b];
+                            _basesList.Add(_convertBaseToUpper[b]);
+
+                            if (num == NonCanonicalBase)
+                            {
+                                num = 0; // A
+
+                                if (_inValidRegion)
+                                {
+                                    _regionEnd = (uint)(_currentPosition - 1);
+                                    _numValidBases += _regionEnd - _regionBegin + 1;
+                                    _inValidRegion = false;
+                                }
+                            }
+                            else
+                            {
+                                if (!_inValidRegion)
+                                {
+                                    _regionBegin = (uint)_currentPosition;
+                                    _inValidRegion = true;
+                                }
+                            }
+
+                            _currentPosition++;
+
+                        }
+                    } // Loop over bytes b
+
+
+                    // write the last valid region
+                    if (_currentLineLength > 0)
+                    {
+                        if (_referenceLength == 0)
+                        {
+                            // This case triggers for a single-line reference (all bases on same line, so no trailing whitespace):
+                            _referenceLineLength = _currentLineLength;
+                            _referenceLineLengthNoWhitespace = _currentLineLength;
+                        }
+                        _lineLengths.Add(_currentLineLength);
+                        _referenceLength += _currentLineLength;
+                        _knownBaseRefLen += _currentKnownBaseLineLen;
+                    }
+
+                    if (_lineLengths.Count > 2)
+                    {
+                        throw new ArgumentException(string.Format(
+                            "Found inconsistent line lengths in reference {0} in file {1}", _referenceName, _fastaPath));
+                    }
+
+                    AddMD5Checksum(ref _basesList, _metadataList);
+                    UpdateValidRegions(ref _inValidRegion, ref _numValidBases, _currentPosition, _regionBegin);
+
+                    // add the reference index information
+                    RefIndexEntry rie = new RefIndexEntry
+                    {
+                        Length = _referenceLength,
+                        LineLength = _referenceLineLength,
+                        Name = _referenceName,
+                        NonWSLineLength = _referenceLineLengthNoWhitespace,
+                        Offset = _referenceOffset,
+                        Checksum = _metadataList[_metadataList.Count - 1].Checksum,
+                        FilePath = _fastaPath,
+                        KnownBasesLength = _knownBaseRefLen
+                    };
+                    _referenceIndexes.Add(rie);
+                }
+
+                // create the FASTA index (fai) and GATK dict files
+                WriteDictFile(outputDirectory);
+                WriteIndexFile(outputDirectory);
+            }
+            catch (Exception e)
+            {
+                throw new ArgumentException(
+                    string.Format("An exception occurred when packing the reference sequences: {0}", e.Message));
+            }
+        }
+
+        private void WriteIndexFile(string outputDirectory)
+        {
+            string faiFilename = Path.Combine(outputDirectory, Path.GetFileName( _fastaPath) + ".fai");
+            using (StreamWriter faiWriter = new StreamWriter(new FileStream(faiFilename, FileMode.Create)))
+            {
+                faiWriter.NewLine = "\n";
+                foreach (RefIndexEntry ri in _referenceIndexes)
+                {
+                    faiWriter.WriteLine("{0}\t{1}\t{2}\t{3}\t{4}",
+                        ri.Name, ri.Length, ri.Offset, ri.NonWSLineLength, ri.LineLength);
+                }
+            }
+        }
+
+        private void WriteDictFile(string outputDirectory)
+        {
+            string dictFilename = Path.Combine(outputDirectory, Path.GetFileNameWithoutExtension(_fastaPath)) + ".dict";
+            using (StreamWriter dictWriter = new StreamWriter(new FileStream(dictFilename, FileMode.Create)))
+            {
+                dictWriter.NewLine = "\n";
+                dictWriter.WriteLine("@HD\tVN:1.0\tSO:unsorted");
+                foreach (RefIndexEntry ri in _referenceIndexes)
+                {
+                    dictWriter.WriteLine("@SQ\tSN:{0}\tLN:{1}\tUR:file:{2}\tM5:{3}",
+                        ri.Name, ri.Length, ri.FilePath, ri.Checksum);
+                }
+            }
+        }
+
+        /// <summary>
+        ///     Create .fai and .dict files for the specified FASTA reference file.  
+        /// </summary>
+        public static void CreateFASTAIndexFiles(string fastaPath, List<FastaHeaderMetadata> metadataList,
+            List<RefIndexEntry> referenceIndexes, string outputDir)
+        {
+            ReferenceIndexer indexer = new ReferenceIndexer();
+            indexer.IndexFASTAFile(fastaPath, metadataList, referenceIndexes, outputDir);
+        }
+
+        /// <summary>
+        ///     Detects if a character represents the end of the line
+        /// </summary>
+        /// <returns>true if the character is a carriage return or line feed</returns>
+        public static bool IsEOL(int b)
+        {
+            if ((b == '\n') || (b == '\r')) return true;
+            return false;
+        }
+    }
 }

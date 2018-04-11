@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<sequenceSizes genomeName="Bacillus cereus ATCC 10987 (NCBI 2004-02-13)">
+	<chromosome fileName="genome.fa" contigName="chr" totalBases="5224283" build="Bacillus_cereus" isCircular="false" md5="c68afda9d3e16a6bd4ee7c9ef6859984" ploidy="2" species="SharedData" knownBases="5223909" type="Unknown" />
+	<chromosome fileName="genome.fa" contigName="plasmid_pBc10987" totalBases="208369" build="Bacillus_cereus" isCircular="false" md5="36e8bcb84a607fdd15871cbefc52e968" ploidy="2" species="SharedData" knownBases="208351" type="Unknown" />
+</sequenceSizes>

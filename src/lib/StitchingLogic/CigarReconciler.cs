@@ -217,7 +217,7 @@ namespace StitchingLogic
                     r2StretchIndex = j;
                 }
 
-                                StitchableItem r1Item = null;
+                StitchableItem r1Item = null;
                 StitchableItem r2Item = null;
 
                 CigarOp? r1Op = null;

@@ -1,0 +1,73 @@
+##fileformat=VCFv4.1
+##fileDate=20171221
+##source=Pisces 5.2.5.20
+##Pisces_cmdline="-BAMFolder /illumina/bs -CallMNVs false -crushvcf true -g /illumina/development/Isis/Genomes/Homo_sapiens/UCSC/hg19/Sequence/WholeGenomeFasta -gVCF false -ploidy diploid -OutFolder /out"
+##reference=/illumina/development/Isis/Genomes/Homo_sapiens/UCSC/hg19/Sequence/WholeGenomeFasta
+##ALT=<ID=<M>,Description="There is an overlapping other allele that has been called in a separate VCF record">
+##INFO=<ID=DP,Number=1,Type=Integer,Description="Total Depth">
+##FILTER=<ID=q30,Description="Quality score less than 30">
+##FILTER=<ID=SB,Description="Variant strand bias too high">
+##FILTER=<ID=MultiAllelicSite,Description="Variant does not conform to diploid model">
+##FILTER=<ID=R5x9,Description="Repeats of part or all of the variant allele (max repeat length 5) in the reference greater than or equal to 9">
+##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">
+##FORMAT=<ID=GQ,Number=1,Type=Integer,Description="Genotype Quality">
+##FORMAT=<ID=AD,Number=.,Type=Integer,Description="Allele Depth">
+##FORMAT=<ID=DP,Number=1,Type=Integer,Description="Total Depth Used For Variant Calling">
+##FORMAT=<ID=VF,Number=.,Type=Float,Description="Variant Frequency">
+##FORMAT=<ID=NL,Number=1,Type=Integer,Description="Applied BaseCall Noise Level">
+##FORMAT=<ID=SB,Number=1,Type=Float,Description="StrandBias Score">
+##contig=<ID=chrM,length=16571>
+##contig=<ID=chr1,length=249250621>
+##contig=<ID=chr2,length=243199373>
+##contig=<ID=chr3,length=198022430>
+##contig=<ID=chr4,length=191154276>
+##contig=<ID=chr5,length=180915260>
+##contig=<ID=chr6,length=171115067>
+##contig=<ID=chr7,length=159138663>
+##contig=<ID=chr8,length=146364022>
+##contig=<ID=chr9,length=141213431>
+##contig=<ID=chr10,length=135534747>
+##contig=<ID=chr11,length=135006516>
+##contig=<ID=chr12,length=133851895>
+##contig=<ID=chr13,length=115169878>
+##contig=<ID=chr14,length=107349540>
+##contig=<ID=chr15,length=102531392>
+##contig=<ID=chr16,length=90354753>
+##contig=<ID=chr17,length=81195210>
+##contig=<ID=chr18,length=78077248>
+##contig=<ID=chr19,length=59128983>
+##contig=<ID=chr20,length=63025520>
+##contig=<ID=chr21,length=48129895>
+##contig=<ID=chr22,length=51304566>
+##contig=<ID=chrX,length=155270560>
+##contig=<ID=chrY,length=59373566>
+#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	MGL4-04_S1.bam
+chr4	178359960	.	G	C	100	PASS	DP=1242	GT:GQ:AD:DP:VF:NL:SB	1/1:100:0,1242:1242:1.000:20:-100.0000
+chr4	187195551	.	T	A	100	PASS	DP=1348	GT:GQ:AD:DP:VF:NL:SB	0/1:100:647,701:1348:0.520:20:-100.0000
+chr5	149361221	.	A	T	100	PASS	DP=2667	GT:GQ:AD:DP:VF:NL:SB	0/1:100:1160,1507:2667:0.565:20:-100.0000
+chr6	81053642	.	G	A	100	PASS	DP=818	GT:GQ:AD:DP:VF:NL:SB	1/1:100:0,818:818:1.000:20:-100.0000
+chr7	92131029	.	A	G	100	PASS	DP=2081	GT:GQ:AD:DP:VF:NL:SB	0/1:100:1122,959:2081:0.461:20:-100.0000
+chr7	92132493	.	T	C	100	PASS	DP=765	GT:GQ:AD:DP:VF:NL:SB	0/1:100:365,400:765:0.523:20:-100.0000
+chr7	117243826	.	G	A	100	PASS	DP=3103	GT:GQ:AD:DP:VF:NL:SB	0/1:100:1586,1517:3103:0.489:20:-100.0000
+chr7	117305631	.	A	G	100	PASS	DP=398	GT:GQ:AD:DP:VF:NL:SB	0/1:100:238,160:398:0.402:20:-100.0000
+chr8	87679303	.	A	C	100	PASS	DP=283	GT:GQ:AD:DP:VF:NL:SB	0/1:100:143,140:283:0.495:20:-100.0000
+chr10	56077209	.	G	A	100	PASS	DP=380	GT:GQ:AD:DP:VF:NL:SB	1/1:100:0,380:380:1.000:20:-100.0000
+chr11	2189185	.	G	A	100	PASS	DP=713	GT:GQ:AD:DP:VF:NL:SB	0/1:100:301,412:713:0.578:20:-100.0000
+chr11	5247791	.	C	G	100	PASS	DP=1481	GT:GQ:AD:DP:VF:NL:SB	1/1:100:0,1481:1481:1.000:20:-100.0000
+chr11	5248243	.	A	G	100	PASS	DP=2329	GT:GQ:AD:DP:VF:NL:SB	1/1:100:0,2329:2329:1.000:20:-100.0000
+chr11	6415434	.	G	T	100	PASS	DP=772	GT:GQ:AD:DP:VF:NL:SB	0/1:100:409,362:772:0.469:20:-100.0000
+chr11	6415463	.	G	A	100	PASS	DP=761	GT:GQ:AD:DP:VF:NL:SB	0/1:100:392,369:761:0.485:20:-100.0000
+chr11	6415639	.	G	C	100	PASS	DP=761	GT:GQ:AD:DP:VF:NL:SB	0/1:100:392,369:761:0.485:20:-100.0000
+chr11	6415639	.	CCGC	C	100	PASS	DP=761	GT:GQ:AD:DP:VF:NL:SB	0/1:100:478,283:761:0.372:20:-100.0000
+chr11	6415641	.	G	C	100	PASS	DP=761	GT:GQ:AD:DP:VF:NL:SB	0/1:100:392,369:761:0.485:20:-100.0000
+chr11	6415767	.	CC	AG	100	PASS	DP=761	GT:GQ:AD:DP:VF:NL:SB	0/1:100:478,283:761:0.372:20:-100.0000
+chr11	6415768	.	CCGC	C	100	PASS	DP=761	GT:GQ:AD:DP:VF:NL:SB	0/1:100:478,283:761:0.372:20:-100.0000
+chr11	17417504	.	A	G	100	PASS	DP=1214	GT:GQ:AD:DP:VF:NL:SB	1/1:100:5,1209:1214:0.996:20:-100.0000
+chr11	47354068	.	G	A	100	PASS	DP=559	GT:GQ:AD:DP:VF:NL:SB	0/1:100:320,239:559:0.428:20:-20.0000
+chr11	47354787	.	C	T	100	PASS	DP=669	GT:GQ:AD:DP:VF:NL:SB	0/1:100:401,266:669:0.398:20:-100.0000
+chr15	72663932	.	GA	G	100	PASS	DP=160	GT:GQ:AD:DP:VF:NL:SB	0/1:21:121,39:160:0.244:20:-100.0000
+chr20	29449353	.	T	C	100	PASS	DP=1858	GT:GQ:AD:DP:VF:NL:SB	1/1:100:435,1422:1858:0.765:20:-100.0000
+chr20	29449417	.	A	C	100	PASS	DP=1848	GT:GQ:AD:DP:VF:NL:SB	1/1:100:441,1407:1848:0.761:20:-100.0000
+chr20	29449453	.	A	G	100	PASS	DP=1859	GT:GQ:AD:DP:VF:NL:SB	1/1:100:441,1418:1859:0.763:20:-100.0000
+chr22	51065524	.	C	A	100	PASS	DP=1633	GT:GQ:AD:DP:VF:NL:SB	0/1:100:806,827:1633:0.506:20:-42.6562
+chr22	51065562	.	G	A	34	PASS	DP=14	GT:GQ:AD:DP:VF:NL:SB	0/1:0:10,3:14:0.214:20:-100.0000

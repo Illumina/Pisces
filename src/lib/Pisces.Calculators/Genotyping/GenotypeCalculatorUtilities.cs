@@ -62,6 +62,7 @@ namespace Pisces.Calculators
 	double minFreqThreshold)
 		{
 			var variantAlleles = new List<CalledAllele>();
+            var comparer = new AlleleCompareByLociAndAllele();
 
 			foreach (var allele in alleles)
 			{
@@ -76,9 +77,9 @@ namespace Pisces.Calculators
 				}
 			}
 
-			variantAlleles = variantAlleles.OrderByDescending(p => p.Frequency).ToList();
-
-			return variantAlleles;
+            variantAlleles = variantAlleles.OrderByDescending(p => p.Frequency).ThenBy(a => a, comparer).ToList();
+            //variantAlleles = variantAlleles.OrderByDescending(p => p.Frequency).ToList();
+            return variantAlleles;
 		}
 
 

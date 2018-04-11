@@ -1,9 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.IO;
+﻿using System.IO;
 using Common.IO.Utility;
-using VariantPhasing;
 using Xunit;
 
 namespace Scylla.Tests
@@ -28,7 +24,7 @@ namespace Scylla.Tests
         [Fact]
         public void TestSomaticExecution()
         {
-            var inBam = Path.Combine(TestPaths.LocalTestDataDirectory, "small_S1.bam");
+            var inBam = Path.Combine(TestPaths.SharedBamDirectory, "small_S1.bam");
             var inVcf = Path.Combine(TestPaths.LocalTestDataDirectory, "small_S1.genome.vcf");
             var expSomaticVcf = Path.Combine(TestPaths.LocalTestDataDirectory, "small_S1.out.somatic.genome.vcf");
             var outDir = Path.Combine(TestPaths.LocalScratchDirectory, "SomaticExecution");
@@ -42,7 +38,7 @@ namespace Scylla.Tests
         [Fact]
         public void TestDiploidExecution()
         {
-            var inBam = Path.Combine(TestPaths.LocalTestDataDirectory, "small_S1.bam");
+            var inBam = Path.Combine(TestPaths.SharedBamDirectory, "small_S1.bam");
             var inVcf = Path.Combine(TestPaths.LocalTestDataDirectory, "small_S1.genome.vcf");
             var expDiploidVcf = Path.Combine(TestPaths.LocalTestDataDirectory, "small_S1.out.diploid.genome.vcf");
             var outDir = Path.Combine(TestPaths.LocalScratchDirectory, "DiploidExecution");
@@ -57,15 +53,8 @@ namespace Scylla.Tests
         {
             args[1] = inBam;
             args[3] = inVcf;
-
-            //Logger.OpenLog(args[5], "ScyllaTestLog.txt", true);
-
-            var options = new PhasingApplicationOptions();
-            if (!CommandLineParameters.ParseAndValidateCommandLine(args, options))
-                return;
-            Program.Execute(options);
-
-            Logger.CloseLog();
+           
+            Program.Main(args);
 
             var outFileLines = File.ReadAllLines(outVcf);
             var expFileLines = File.ReadAllLines(expVcf);

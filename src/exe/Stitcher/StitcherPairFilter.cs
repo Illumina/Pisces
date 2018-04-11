@@ -11,13 +11,14 @@ namespace Stitcher
         private readonly bool _skipDuplicates;
         private readonly bool _filterForProperPairs;
         private readonly IDuplicateIdentifier _dupIdentifier;
-        private readonly int _minMapQuality;
+        private readonly uint _minMapQuality;
         private readonly int _maxPairGap;
         private readonly ReadStatusCounter _statusCounter;
+        private readonly bool _filterForUnmappedReads;
         private readonly bool _shouldSkipFusions;
 
         public StitcherPairFilter(bool skipDuplicates, bool filterForProperPairs, IDuplicateIdentifier dupIdentifier, ReadStatusCounter statusCounter,
-            bool shouldSkipFusions = true, int minMapQuality = 0, int maxPairGap = 500) : base(true, new StitchingReadPairEvaluator(true,true, false), false)
+           bool shouldSkipFusions = true, uint minMapQuality = 0, int maxPairGap = 500, bool filterForUnmappedReads = false) : base(true, new StitchingReadPairEvaluator(true, true, false), false)
         {
             _skipDuplicates = skipDuplicates;
             _filterForProperPairs = filterForProperPairs;
@@ -26,15 +27,17 @@ namespace Stitcher
             _minMapQuality = minMapQuality;
             _maxPairGap = maxPairGap;
             _statusCounter = statusCounter;
+            _filterForUnmappedReads = filterForUnmappedReads;
         }
 
         protected override bool ShouldSkipRead(BamAlignment alignment)
         {
             if (!alignment.IsMapped())
             {
-                _statusCounter.AddDebugStatusCount("Skipped not mapped");
+                _statusCounter.AddDebugStatusCount("Skipped unmapped");
                 return true;
             }
+
             if (alignment.IsSupplementaryAlignment())
             {
                 _statusCounter.AddDebugStatusCount("Skipped supplementary");
@@ -45,15 +48,9 @@ namespace Stitcher
                 _statusCounter.AddDebugStatusCount("Skipped improper pair");
                 return true;
             }
-            if (alignment.MapQuality < _minMapQuality)
-            {
-                _statusCounter.AddDebugStatusCount("Skipped low map quality");
-                return true;
-            }
 
             return false;
         }
-
         private bool MayOverlapMate(BamAlignment alignment)
         {
             if (!alignment.IsMateMapped()) return false;
@@ -80,8 +77,26 @@ namespace Stitcher
             return false;
         }
 
+        
+
         protected override bool ShouldBlacklistReadIndexer(BamAlignment alignment)
         {
+            if (_filterForUnmappedReads)
+            {
+
+                if (!alignment.IsMapped())
+                {
+                    _statusCounter.AddDebugStatusCount("Skipped not mapped");
+                    return true;
+                }
+                if (!alignment.IsMateMapped())
+                {
+                    _statusCounter.AddDebugStatusCount("Skipped mate not mapped");
+                    return true;
+                }
+            }
+
+
             // Only check if read is duplicate once (otherwise de novo dup finder will falsely mark dup because it has seen this read before!)
             // Blacklist rather than just skipping because if one mate is duplicate, we presume the other one is too.
             // Note: This breaks down is if we have a fusion read and the first mate we see is not a duplicate and the second mate is. In our case, 

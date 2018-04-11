@@ -16,6 +16,7 @@ namespace Pisces.Processing.RegionState
         private List<ReadCoverageSummary>[] _coverageSummaries;
         protected int[,,] _alleleCounts;
         protected double[,,] _sumOfAlleleBaseQualities;
+        private HashSet<Tuple<string, string, string>> _indelCandidateGroups;
 
         public int MaxAlleleEndpoint { get; private set; }
 
@@ -46,7 +47,8 @@ namespace Pisces.Processing.RegionState
             _candidateVariantsLookup = new List<CandidateAllele>[regionSize];
             _coverageSummaries = new List<ReadCoverageSummary>[regionSize];
 			_sumOfAlleleBaseQualities = new double[regionSize, Constants.NumAlleleTypes, Constants.NumDirectionTypes];
-		}
+            _indelCandidateGroups = new HashSet<Tuple<string, string, string>>();
+        }
 
         /// <summary>
         /// Reset object to new region
@@ -116,6 +118,29 @@ namespace Pisces.Processing.RegionState
             }
 
             UpdateMaxPosition(candidate);
+        }
+
+        public void AddCandidateGroup(IEnumerable<CandidateAllele> candidateVariants)
+        {
+            if (candidateVariants.Count() == 2)
+            {
+                var orderedCandidateVariants = candidateVariants.OrderBy(g => g.ReferencePosition).ThenBy(t => t.ReferenceAllele).Select(x => x.ToString()).ToList();
+                _indelCandidateGroups.Add(new Tuple<string, string, string>(orderedCandidateVariants[0], orderedCandidateVariants[1], null));
+            }
+            else if (candidateVariants.Count() == 3)
+            {
+                var orderedCandidateVariants = candidateVariants.OrderBy(g => g.ReferencePosition).ThenBy(t => t.ReferenceAllele).Select(x => x.ToString()).ToList();
+                _indelCandidateGroups.Add(new Tuple<string, string, string>(orderedCandidateVariants[0], orderedCandidateVariants[1], orderedCandidateVariants[2]));
+                _indelCandidateGroups.Add(new Tuple<string, string, string>(orderedCandidateVariants[0], orderedCandidateVariants[1], null));
+                _indelCandidateGroups.Add(new Tuple<string, string, string>(orderedCandidateVariants[1], orderedCandidateVariants[2], null));
+
+            }
+      
+        }
+
+        public HashSet<Tuple<string, string, string>> GetBlockCandidateGroup()
+        {
+            return _indelCandidateGroups;
         }
 
         private void UpdateMaxPosition(CandidateAllele candidate)

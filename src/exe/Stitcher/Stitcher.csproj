@@ -10,8 +10,9 @@
     <GenerateAssemblyConfigurationAttribute>false</GenerateAssemblyConfigurationAttribute>
     <GenerateAssemblyCompanyAttribute>false</GenerateAssemblyCompanyAttribute>
     <GenerateAssemblyProductAttribute>false</GenerateAssemblyProductAttribute>
-    <Version>5.2.5.20</Version>
-    <Copyright>Copyright © Illumina 2017</Copyright>
+    <Version>5.2.7.47</Version>
+    <Copyright>Copyright © Illumina 2018</Copyright>
+    <RepositoryUrl>https://github.com/Illumina/Pisces</RepositoryUrl>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" />
@@ -58,13 +59,23 @@
     <ProjectReference Include="..\..\lib\Alignment.Domain\Alignment.Domain.csproj" />
     <ProjectReference Include="..\..\lib\Alignment.IO\Alignment.IO.csproj" />
     <ProjectReference Include="..\..\lib\Alignment.Logic\Alignment.Logic.csproj" />
+    <ProjectReference Include="..\..\lib\CommandLine.IO\CommandLine.IO.csproj" />
+    <ProjectReference Include="..\..\lib\CommandLine.Options\CommandLine.Options.csproj" />
     <ProjectReference Include="..\..\lib\Common.IO\Common.IO.csproj" />
-    <ProjectReference Include="..\..\lib\NDOptions\NDOptions.csproj" />
     <ProjectReference Include="..\..\lib\Pisces.Calculators\Pisces.Calculators.csproj" />
     <ProjectReference Include="..\..\lib\Pisces.Domain\Pisces.Domain.csproj" />
     <ProjectReference Include="..\..\lib\Pisces.IO\Pisces.IO.csproj" />
     <ProjectReference Include="..\..\lib\Pisces.Processing\Pisces.Processing.csproj" />
     <ProjectReference Include="..\..\lib\StitchingLogic\StitchingLogic.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Update="..\..\..\redist\FileCompression.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Update="..\..\..\redist\libFileCompression.so">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
 
 </Project>

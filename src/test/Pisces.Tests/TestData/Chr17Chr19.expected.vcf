@@ -1,8 +1,8 @@
 ##fileformat=VCFv4.1
 ##fileDate=20160727
-##source=Pisces 5.2.5.20
+##source=Pisces 1.0.0.0
 ##Pisces_cmdline=""
-##reference=C:\Projects_tdunn\git\Pisces5_Ent\Pisces5\src\Pisces.Tests\bin\x64\Release\TestData\Genomes\fourChrs
+##reference=C:\Projects\git\Pisces5_Ent\Pisces5\src\Pisces.Tests\bin\x64\Release\TestData\Genomes\fourChrs
 ##INFO=<ID=DP,Number=1,Type=Integer,Description="Total Depth">
 ##FILTER=<ID=q30,Description="Quality score less than 30">
 ##FILTER=<ID=SB,Description="Variant strand bias too high">

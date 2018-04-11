@@ -1299,24 +1299,29 @@ new CandidateVariantsTest(_readStartPos, "TTT" + "TTTT" + "TTT", cigarString, "A
             // N N N V N N N N N N     Variant Position
             // 0 1 2 3 4 5 6 7 8 9     Index In Read
             alignment = testSetup.GetAlignmentWithCoverageDirections(3, 4, 3, 0);
-            alignment.BamAlignment.TagData = ReadTestHelper.GetReadCountsTagData(1, 10); // duplex with 10 supporting reads
-            ExecuteSupportDirectionTest(alignment, new[] { 0, 0, 1 }, expectedReadCounts: new[] { 0, 0, 1, 0, 0, 0, 0, 0 });
+            alignment.BamAlignment.TagData = ReadTestHelper.GetReadCountsTagData(0, 10); // simplex with 10 supporting reads
+            alignment.BamAlignment.AppendTagData(ReadTestHelper.GetXDXRTagData($"{alignment.ReadLength}S","FR")); 
+            // SimplexForwardStitched case, so both SimplexForwardStitched and SimplexStitched counts shall be incremented.                                                                     
+            ExecuteSupportDirectionTest(alignment, new[] { 0, 0, 1 }, expectedReadCounts: new[] { 0, 0, 1, 0, 1, 0, 0, 0 });
 
             //Variant starts immediately after stitched region - should be reverse
             // 0 2 2 1 1 1 1 1 1 1     CoverageDirection
             // N N N V N N N N N N     Variant Position
             // 0 1 2 3 4 5 6 7 8 9     Index In Read
             alignment = testSetup.GetAlignmentWithCoverageDirections(1, 2, 7, 0);
-            alignment.BamAlignment.TagData = ReadTestHelper.GetReadCountsTagData(1, 10); // duplex with 10 supporting reads
-            ExecuteSupportDirectionTest(alignment, new[] { 0, 1, 0 }, expectedReadCounts: new[] { 0, 0, 0, 1, 0, 0, 0, 0 });
-
+            alignment.BamAlignment.TagData = ReadTestHelper.GetReadCountsTagData(0, 10); // simplex with 10 supporting reads
+            alignment.BamAlignment.AppendTagData(ReadTestHelper.GetXDXRTagData(null, "RF"));
+            // ReadCollapsedType.SimplexReverseNonStitched case, so both SimplexNonStitched and SimplexReverseNonStitched counts shall be incremented
+            ExecuteSupportDirectionTest(alignment, new[] { 0, 1, 0 }, expectedReadCounts: new[] { 0, 0, 0, 1, 0, 0, 0, 1 });
             //Variant starts immediately before stitched region - should be forward
             // 0 0 0 0 2 2 2 1 1 1     CoverageDirection
             // N N N V N N N N N N     Variant Position
             // 0 1 2 3 4 5 6 7 8 9     Index In Read
             alignment = testSetup.GetAlignmentWithCoverageDirections(4, 3, 3, 0);
-            alignment.BamAlignment.TagData = ReadTestHelper.GetReadCountsTagData(1, 10); // duplex with 10 supporting reads
-            ExecuteSupportDirectionTest(alignment, new[] { 1, 0, 0 }, expectedReadCounts: new[] { 0, 0, 0, 1, 0, 0, 0, 0 });
+            alignment.BamAlignment.TagData = ReadTestHelper.GetReadCountsTagData(0, 10); // simplex with 10 supporting reads
+            alignment.BamAlignment.AppendTagData(ReadTestHelper.GetXDXRTagData(null, "FR"));
+            // ReadCollapsedType.SimplexForwardNonStitched case, so both SimplexForwardNonStitched and SimplexNonStitched counts shall be incremented
+            ExecuteSupportDirectionTest(alignment, new[] { 1, 0, 0 }, expectedReadCounts: new[] { 0, 0, 0, 1, 0, 1, 0, 0 });
         }
 
         [Fact]

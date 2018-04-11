@@ -2,7 +2,7 @@
 ##fileDate=20170227
 ##source=dotnet-test-xunit 99.99.99.0
 ##dotnet-test-xunit_cmdline=""
-##reference=C:\Projects_tdunn\git\Pisces5_Ent\Pisces5\src\test\Pisces.Tests\TestData\Genomes\chr17chr19
+##reference=C:\Projects\git\Pisces5_Ent\Pisces5\src\test\Pisces.Tests\TestData\Genomes\chr17chr19
 ##INFO=<ID=DP,Number=1,Type=Integer,Description="Total Depth">
 ##FILTER=<ID=q30,Description="Quality score less than 30">
 ##FILTER=<ID=LowDP,Description="Low coverage (DP tag), therefore no genotype called">

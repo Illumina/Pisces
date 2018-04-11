@@ -334,5 +334,101 @@ namespace Pisces.Calculators.Tests
             Assert.Equal(expectedGenotype, variant.Genotype);
         }
 
+        [Fact]
+        public void DiploidScenariosWithIndels()
+        {
+            // what if the frequencies of co-located variants are identical?
+            //PICS-845 Handling co-located indels
+            //chr19   3543478 rs763885961 GCC     G       45      LowDP DP = 6; GT: GQ: AD: DP: VF: NL: SB: NC./.:0:3,3:6:0.500:20:-100.0000:0.0000
+            //chr19   3543478 rs752455174 GC      G       45      LowDP DP = 6;  GT: GQ: AD: DP: VF: NL: SB: NC./.:0:3,3:6:0.500:20:-100.0000:0.0000
+
+            var indel1 = TestHelper.CreatePassingVariant(false);
+            indel1.ReferenceAllele = "GCC";
+            indel1.AlternateAllele = "G";
+            indel1.TotalCoverage = 7;
+            indel1.AlleleSupport = 3;
+
+            var indel2 = TestHelper.CreatePassingVariant(false);
+            indel2.ReferenceAllele = "GC";
+            indel2.AlternateAllele = "G";
+            indel2.TotalCoverage = 7;
+            indel2.AlleleSupport = 3;
+
+            var GTC = new DiploidGenotypeCalculator();
+            var allelesToPrune = GTC.SetGenotypes(new List<CalledAllele> { indel1, indel2 });
+
+            Assert.Equal(0, allelesToPrune.Count);
+            Assert.Equal(Genotype.HeterozygousAlt1Alt2, indel1.Genotype);
+            Assert.Equal(Genotype.HeterozygousAlt1Alt2, indel2.Genotype);
+
+            //check order does not matter
+            allelesToPrune = GTC.SetGenotypes(new List<CalledAllele> { indel2, indel1 });
+
+            Assert.Equal(0, allelesToPrune.Count);
+            Assert.Equal(Genotype.HeterozygousAlt1Alt2, indel1.Genotype);
+            Assert.Equal(Genotype.HeterozygousAlt1Alt2, indel2.Genotype);
+
+            var comparer = new AlleleCompareByLociAndAllele();
+            Assert.Equal(1, comparer.Compare(indel1, indel2));
+            Assert.Equal(-1, comparer.Compare(indel2, indel1));
+
+            //lets make double-sure this is deterministic
+            var SortedList1 = GenotypeCalculatorUtilities.FilterAndOrderAllelesByFrequency(
+                new List<CalledAllele> { indel1, indel2 }, allelesToPrune, 0.01);
+
+            var SortedList2 = GenotypeCalculatorUtilities.FilterAndOrderAllelesByFrequency(
+                new List<CalledAllele> { indel2, indel1 }, allelesToPrune, 0.01);
+
+            Assert.Equal(SortedList1[0], SortedList2[0]);
+            Assert.Equal(SortedList1[1], SortedList2[1]);
+        }
+
+
+        [Fact]
+        public void DiploidScenariosWithMNVs()
+        {
+            // what if the frequencies of co-located variants are identical?
+            //PICS-845 Handling co-located indels (same issue could happen with MNVs, so lets check that)
+            
+            var mnv1 = TestHelper.CreatePassingVariant(false);
+            mnv1.ReferenceAllele = "GCC";
+            mnv1.AlternateAllele = "GAG";
+            mnv1.TotalCoverage = 7;
+            mnv1.AlleleSupport = 3;
+
+            var mnv2 = TestHelper.CreatePassingVariant(false);
+            mnv2.ReferenceAllele = "GCC";
+            mnv2.AlternateAllele = "GCG";
+            mnv2.TotalCoverage = 7;
+            mnv2.AlleleSupport = 3;
+
+            var GTC = new DiploidGenotypeCalculator();
+            var allelesToPrune = GTC.SetGenotypes(new List<CalledAllele> { mnv1, mnv2 });
+
+            Assert.Equal(0, allelesToPrune.Count);
+            Assert.Equal(Genotype.HeterozygousAlt1Alt2, mnv1.Genotype);
+            Assert.Equal(Genotype.HeterozygousAlt1Alt2, mnv2.Genotype);
+
+            //check order does not matter
+            allelesToPrune = GTC.SetGenotypes(new List<CalledAllele> { mnv2, mnv1 });
+
+            Assert.Equal(0, allelesToPrune.Count);
+            Assert.Equal(Genotype.HeterozygousAlt1Alt2, mnv1.Genotype);
+            Assert.Equal(Genotype.HeterozygousAlt1Alt2, mnv2.Genotype);
+
+            var comparer = new AlleleCompareByLociAndAllele();
+            Assert.Equal(-1, comparer.Compare(mnv1, mnv2));
+            Assert.Equal(1, comparer.Compare(mnv2, mnv1));
+
+            //lets make double-sure this is deterministic
+            var SortedList1 = GenotypeCalculatorUtilities.FilterAndOrderAllelesByFrequency(
+                new List<CalledAllele> { mnv1, mnv2 }, allelesToPrune, 0.01);
+
+            var SortedList2 = GenotypeCalculatorUtilities.FilterAndOrderAllelesByFrequency(
+                new List<CalledAllele> { mnv2, mnv1 }, allelesToPrune, 0.01);
+
+            Assert.Equal(SortedList1[0], SortedList2[0]);
+            Assert.Equal(SortedList1[1], SortedList2[1]);
+        }
     }
 }

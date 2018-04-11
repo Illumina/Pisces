@@ -3,7 +3,7 @@ namespace Stitcher
     public class StitcherOptions
     {
         public int MinBaseCallQuality = 20;
-        public int FilterMinMapQuality = 1;
+        public uint FilterMinMapQuality = 1;
         public bool FilterDuplicates = true;
         public bool FilterForProperPairs = false;
         public bool FilterUnstitchablePairs = false;

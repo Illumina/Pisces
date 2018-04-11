@@ -11,6 +11,7 @@ namespace StitchingLogic
         private readonly bool _useSoftclippedBases;
         private readonly bool _debug;
         private ReadStatusCounter _statusCounter;
+        private uint _minMapQuality;
         private readonly bool _nifyUnstitchablePairs;
         private readonly bool _ignoreProbeSoftclips;
         private readonly CigarReconciler _cigarReconciler;
@@ -19,12 +20,13 @@ namespace StitchingLogic
 
         public BasicStitcher(int minBaseCallQuality, bool nifyDisagreements = true, bool useSoftclippedBases = true, bool debug = false, 
             bool nifyUnstitchablePairs = false, bool allowRescuedInsertionBaseDisagreement = false, bool ignoreProbeSoftclips = true, int maxReadLength = 1024, 
-            bool ignoreReadsAboveMaxLength = false) 
+            bool ignoreReadsAboveMaxLength = false, uint minMapQuality = 1) 
         {
             _nifyUnstitchablePairs = nifyUnstitchablePairs;
             _ignoreProbeSoftclips = ignoreProbeSoftclips;
             _useSoftclippedBases = useSoftclippedBases;
             _debug = debug;
+            _minMapQuality = minMapQuality;
             _statusCounter = new ReadStatusCounter();
             _cigarReconciler = new CigarReconciler(_statusCounter, _useSoftclippedBases, _debug, _ignoreProbeSoftclips, maxReadLength, minBaseCallQuality, ignoreReadsAboveMaxStitchedLength: ignoreReadsAboveMaxLength, nifyDisagreements: nifyDisagreements);
             _readMerger = new ReadMerger(minBaseCallQuality, allowRescuedInsertionBaseDisagreement, _useSoftclippedBases, 
@@ -38,7 +40,7 @@ namespace StitchingLogic
                 if (set.PartnerRead1 == null || set.PartnerRead2 == null)
                     throw new ArgumentException("Set has missing read.");
 
-                if (IsStitchable(set))
+                if (IsViableOverlappingPair(set))
                 {
                     // Assumption is that exactly one read is first mate
                     var r1IsFirstMate = !set.PartnerRead2.IsFirstMate;
@@ -88,7 +90,7 @@ namespace StitchingLogic
                     Logger.WriteToLog("Stitching failed on read " + set.PartnerRead1.Name);
                 }
 
-                if (_nifyUnstitchablePairs && IsStitchable(set))
+                if (_nifyUnstitchablePairs && IsViableOverlappingPair(set))
                 {
                     // Give a merged, Nified read if the pairs are stitchable (i.e. overlap) but conflicting
                     var mergedRead = _readMerger.GenerateNifiedMergedRead(set, _useSoftclippedBases);
@@ -126,11 +128,19 @@ namespace StitchingLogic
             _statusCounter = counter;
         }
 
-        private bool IsStitchable(AlignmentSet set)
+        private bool IsViableOverlappingPair(AlignmentSet set)
         {
+            if (!BothReadsAboveQual(set)) return false;
+
             return (set.PartnerRead1.Chromosome == set.PartnerRead2.Chromosome) &&
                    (_useSoftclippedBases ? set.PartnerRead1.ClipAdjustedEndPosition >= set.PartnerRead2.ClipAdjustedPosition : set.PartnerRead1.EndPosition >= set.PartnerRead2.Position);
         }
 
+        private bool BothReadsAboveQual(AlignmentSet set)
+        {
+            if (set.PartnerRead1.MapQuality < _minMapQuality || set.PartnerRead2.MapQuality < _minMapQuality)
+                return false;
+            return true;
+        }
     }
 }

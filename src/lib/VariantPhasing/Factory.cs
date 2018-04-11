@@ -11,16 +11,16 @@ namespace VariantPhasing
 {
     public class Factory
     {
-        private readonly PhasingApplicationOptions _options;
+        private readonly ScyllaApplicationOptions _options;
         public string VcfPath { get { return _options.VcfPath; } }
         public string FilteredNbhd { get { return _options.PhasableVariantCriteria.FilteredNbhdToProcess; } }
 
-        public Factory(PhasingApplicationOptions options)
+        public Factory(ScyllaApplicationOptions options)
         {
             _options = options;
         }
 
-        public PhasingApplicationOptions Options
+        public ScyllaApplicationOptions Options
         {
             get { return _options; }
         }
@@ -54,11 +54,7 @@ namespace VariantPhasing
         public virtual IVcfFileWriter<CalledAllele> CreatePhasedVcfWriter()
         {
             //Write header. We can do this at the beginning, it's just copying from old vcf.
-            List<string> header;
-            using (var reader = new VcfReader(_options.VcfPath))
-            {
-                header = reader.HeaderLines;
-            }
+            List<string> header = VcfReader.GetAllHeaderLines(_options.VcfPath);
 			
             var originalFileName = Path.GetFileName(_options.VcfPath);
             string outputFileName;
@@ -78,9 +74,9 @@ namespace VariantPhasing
                 throw new InvalidDataException(string.Format("Input file is not a VCF file: '{0}'", originalFileName));
             }
 
-            var outFile = Path.Combine(_options.OutFolder, outputFileName);
+            var outFile = Path.Combine(_options.OutputDirectory, outputFileName);
 
-	        var phasingCommandLine = "##Scylla_cmdline=\"" + _options.CommandLineArguments + "\"";
+            var phasingCommandLine = "##Scylla_cmdline=" + _options.QuotedCommandLineArgumentsString;
 
 			return new PhasedVcfWriter(outFile,
                 new VcfWriterConfig(_options.VariantCallingParams,  _options.VcfWritingParams, _options.BamFilterParams, null, _options.Debug, false), 

@@ -1,25 +1,24 @@
 ﻿using System;
 using System.Collections.Generic;
+using CommandLine.IO.Utilities;
+using CommandLine.IO;
 using Xunit;
 
 namespace VennVcf.Tests
 {
     public class VennVcfOptionsTests
     {
-  
+
         [Fact]
         public void PrintOptionsTest()
         {
-            try
-            {
-                VennVcfOptions.PrintUsageInfo();
-                Assert.True(true);
-            }
-            catch
-            {
-                Assert.True(false);
-            }
+
+            // "help|h" should disply help. At least check it doesnt crash.
+            Assert.Equal((int)ExitCodeType.Success, Program.Main(new string[] { "-h" }));
+            Assert.Equal((int)ExitCodeType.Success, Program.Main(new string[] { "--h" }));
+            Assert.Equal((int)ExitCodeType.Success, Program.Main(new string[] { "-Help" }));
         }
+    
 
         [Fact]
         public void SetOptionsTest()
@@ -31,12 +30,31 @@ namespace VennVcf.Tests
                 expectations += option;
             }
 
-            ExecuteParsingTest(string.Join(" ", optionExpectations.Keys), true, expectations);
+            ExecuteParsingOnlyTest(string.Join(" ", optionExpectations.Keys), true, expectations);
 
          
         }
 
-     
+        private void ExecuteParsingOnlyTest(string arguments, bool shouldPass, Action<VennVcfOptions> assertions = null)
+        {
+            var parser = new VennVcfOptionsParser();
+
+            //skip validation, we dont care if the input files are real or not.
+            //We are strictly testing parsing.
+            parser.ParseArgs(arguments.Split(), false); 
+
+            if (shouldPass)
+            {
+               assertions(parser.Options);
+               Assert.True(parser.HadSuccess);
+            }
+            else //TODO - it would be nice to specify the actual error codes from the parsing result
+            {
+                Assert.True(parser.ParsingFailed);
+                Assert.NotNull(parser.ParsingResult.Exception);
+            }
+        }
+
 
         private Dictionary<string, Action<VennVcfOptions>> GetOptionsExpectations()
         {
@@ -50,19 +68,5 @@ namespace VennVcf.Tests
             return optionsExpectationsDict;
         }
 
-        private void ExecuteParsingTest(string arguments, bool shouldPass, Action<VennVcfOptions> assertions = null)
-        {
-            var options = new VennVcfOptions();
-            options.ParseCommandLine(arguments.Split(' '));
-
-            if (shouldPass)
-            {
-                assertions(options);
-            }
-            else
-            {
-                Assert.Null(options);
-            }
-        }
     }
 }

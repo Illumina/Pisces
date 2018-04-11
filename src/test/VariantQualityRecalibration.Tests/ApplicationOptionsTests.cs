@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using CommandLine.IO.Utilities;
+using CommandLine.IO;
 using Xunit;
 
 namespace VariantQualityRecalibration.Tests
@@ -9,10 +11,13 @@ namespace VariantQualityRecalibration.Tests
         [Fact]
         public void PrintOptionsTest()
         {
+            // "help|h" should disply help. At least check it doesnt crash.
+
             try
             {
-                ApplicationOptions.PrintUsageInfo();
-                Assert.True(true);
+                Assert.Equal((int)ExitCodeType.Success, Program.Main(new string[] { "-h" }));
+                Assert.Equal((int)ExitCodeType.Success, Program.Main(new string[] { "--h" }));
+                Assert.Equal((int)ExitCodeType.Success, Program.Main(new string[] { "-Help" }));
             }
             catch
             {
@@ -23,8 +28,9 @@ namespace VariantQualityRecalibration.Tests
         [Fact]
         public void SetOptionsTest()
         {
+            //test with lower case arguments
             var optionExpectations = GetLowerCaseOptionsExpectations();
-            Action<ApplicationOptions> expectations = null;
+            Action<VQROptions> expectations = null;
             foreach (var option in optionExpectations.Values)
             {
                 expectations += option;
@@ -32,7 +38,18 @@ namespace VariantQualityRecalibration.Tests
 
             ExecuteParsingTest(string.Join(" ", optionExpectations.Keys), true, expectations);
 
+            //test with upper case arguments
             optionExpectations = GetUpperCaseOptionsExpectations();
+            expectations = null;
+            foreach (var option in optionExpectations.Values)
+            {
+                expectations += option;
+            }
+
+            ExecuteParsingTest(string.Join(" ", optionExpectations.Keys), true, expectations);
+
+            //test with "--" hyphen case
+            optionExpectations = GetExtraHyphenExpectations();
             expectations = null;
             foreach (var option in optionExpectations.Values)
             {
@@ -51,7 +68,7 @@ namespace VariantQualityRecalibration.Tests
             ExecuteParsingTest("help me", false);
         }
 
-        private Dictionary<string, Action<ApplicationOptions>> GetLowerCaseOptionsExpectations()
+        private Dictionary<string, Action<VQROptions>> GetLowerCaseOptionsExpectations()
         {
             /*
             Console.WriteLine("Required arguments:");
@@ -65,7 +82,7 @@ namespace VariantQualityRecalibration.Tests
             Console.WriteLine("-Q max Q score, default 100 (if a variant gets recalibrated, when we cap the new Q score");
             */
 
-            var optionsExpectationsDict = new Dictionary<string, Action<ApplicationOptions>>();
+            var optionsExpectationsDict = new Dictionary<string, Action<VQROptions>>();
 
             optionsExpectationsDict.Add("-b 35", (o) => Assert.Equal(35, o.BaseQNoise));
             optionsExpectationsDict.Add("-f 22", (o) => Assert.Equal(22, o.FilterQScore));
@@ -78,14 +95,30 @@ namespace VariantQualityRecalibration.Tests
             return optionsExpectationsDict;
         }
 
-        private Dictionary<string, Action<ApplicationOptions>> GetUpperCaseOptionsExpectations()
+        private Dictionary<string, Action<VQROptions>> GetExtraHyphenExpectations()
         {
            
-            var optionsExpectationsDict = new Dictionary<string, Action<ApplicationOptions>>();
+            var optionsExpectationsDict = new Dictionary<string, Action<VQROptions>>();
+
+            optionsExpectationsDict.Add("--b 31", (o) => Assert.Equal(31, o.BaseQNoise));
+            optionsExpectationsDict.Add("--f 29", (o) => Assert.Equal(29, o.FilterQScore));
+            optionsExpectationsDict.Add("--vcf tesT.vcf", (o) => Assert.Equal("tesT.vcf", o.InputVcf));
+            optionsExpectationsDict.Add("--log myloG.txt", (o) => Assert.Equal("myloG.txt", o.LogFileName));
+            optionsExpectationsDict.Add("--q 1003", (o) => Assert.Equal(1003, o.MaxQScore));
+            optionsExpectationsDict.Add("--o myoutdir", (o) => Assert.Equal("myoutdir", o.OutputDirectory));
+            optionsExpectationsDict.Add("--z 47", (o) => Assert.Equal(47, o.ZFactor));
+            optionsExpectationsDict.Add("--locicount 4200", (o) => Assert.Equal(4200, o.LociCount));
+            return optionsExpectationsDict;
+        }
+
+        private Dictionary<string, Action<VQROptions>> GetUpperCaseOptionsExpectations()
+        {
+           
+            var optionsExpectationsDict = new Dictionary<string, Action<VQROptions>>();
 
             optionsExpectationsDict.Add("-B 350", (o) => Assert.Equal(350, o.BaseQNoise));
             optionsExpectationsDict.Add("-F 220", (o) => Assert.Equal(220, o.FilterQScore));
-            optionsExpectationsDict.Add("-VCF test2.vcf", (o) => Assert.Equal("test2.vcf", o.InputVcf));
+            optionsExpectationsDict.Add("-VCF teSt2.vcf", (o) => Assert.Equal("teSt2.vcf", o.InputVcf));
             optionsExpectationsDict.Add("-LOG myloG.txt", (o) => Assert.Equal("myloG.txt", o.LogFileName));
             optionsExpectationsDict.Add("-Q 2000", (o) => Assert.Equal(2000, o.MaxQScore));
             optionsExpectationsDict.Add("-O myoutDir", (o) => Assert.Equal("myoutDir", o.OutputDirectory));
@@ -95,19 +128,24 @@ namespace VariantQualityRecalibration.Tests
         }
 
 
-        private void ExecuteParsingTest(string arguments, bool shouldPass, Action<ApplicationOptions> assertions = null)
-        {
-            var options = ApplicationOptions.ParseCommandLine(arguments.Split(' '));
 
+
+        private void ExecuteParsingTest(string arguments, bool shouldPass, Action<VQROptions> assertions = null)
+        {
+           var parser = new VQROptionsParser();
+            parser.ParseArgs(arguments.Split());
+        
             if (shouldPass)
-            {               
-                if (assertions != null)
-                    assertions(options);
-            }
-            else
             {
-                Assert.Null(options);
+                assertions(parser.Options);
+            }
+            else //TODO - it would be nice to specify the actual error codes from the parsing result
+            {
+                Assert.True(parser.ParsingFailed);
+                Assert.NotNull(parser.ParsingResult.Exception);
             }
         }
+
+       
     }
 }

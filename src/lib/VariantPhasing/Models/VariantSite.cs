@@ -39,6 +39,20 @@ namespace VariantPhasing.Models
             get { return ((VcfReferenceAllele == "N") && (VcfAlternateAllele == "N")); }
         }
 
+        /// <summary>
+        /// GB: So AC > AC is not reference? 
+        /// TJD: Thats one of the reasons we trim what comes in. We really need to disambiguate these cases.
+        /// I believe we never (internally to pisces) pass around an AC -> AC allele.
+        /// Although it might come in to pisces from some outside source, and then we would consider it as an MNV
+        /// Scylla will emit an AC -> AC call in
+        /// very specific scenarios.
+        /// </summary>
+        public bool IsReference
+        {
+            get { return ((VcfReferenceAllele == VcfAlternateAllele) && VcfAlternateAllele.Length==1); }
+        }
+
+
         public VariantSite() { }
 
         public VariantSite(int refPosition)
@@ -111,13 +125,13 @@ namespace VariantPhasing.Models
             return sb.ToString();
         }
 
-        public SomaticVariantType GetVariantType()
+        public SubsequenceType GetVariantType()
         {
-            var nextVariantType = SomaticVariantType.SNP; //lumpSNP and PhasedSNP together for this.
+            var nextVariantType = SubsequenceType.MatchOrMismatchSequence; //lumpSNP and PhasedSNP together for this.
             if (VcfReferenceAllele.Length > VcfAlternateAllele.Length)
-                nextVariantType = SomaticVariantType.Deletion;
+                nextVariantType = SubsequenceType.DeletionSequence;
             else if (VcfReferenceAllele.Length < VcfAlternateAllele.Length)
-                nextVariantType = SomaticVariantType.Insertion;
+                nextVariantType = SubsequenceType.InsertionSquence;
 
             return nextVariantType;
         }

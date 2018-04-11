@@ -9,11 +9,17 @@
     <GenerateAssemblyConfigurationAttribute>false</GenerateAssemblyConfigurationAttribute>
     <GenerateAssemblyCompanyAttribute>false</GenerateAssemblyCompanyAttribute>
     <GenerateAssemblyProductAttribute>false</GenerateAssemblyProductAttribute>
-    <Version>5.2.5.20</Version>
-    <Copyright>Copyright © Illumina 2017</Copyright>
+    <Version>5.2.7.47</Version>
+    <Copyright>Copyright © Illumina 2018</Copyright>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" />
+
+  <ItemGroup>
+    <Content Include="..\SharedData\Genomes\chr19\GenomeSize.xml" Link="SharedData\Genomes\chr19\GenomeSize.xml">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="xunit" Version="2.2.0" />
@@ -30,6 +36,25 @@
 
   <ItemGroup>
     <Service Include="{82a7f48d-3b50-4b1e-b82e-3ada8210c358}" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="SharedData\Genomes\chr19\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\SharedData\Genomes\chr19\chr19.dict" Link="SharedData\Genomes\chr19\chr19.dict">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="..\SharedData\Genomes\chr19\chr19.fa" Link="SharedData\Genomes\chr19\chr19.fa">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="..\SharedData\Genomes\chr19\chr19.fa.bwt" Link="SharedData\Genomes\chr19\chr19.fa.bwt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="..\SharedData\Genomes\chr19\chr19.fa.fai" Link="SharedData\Genomes\chr19\chr19.fa.fai">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 
 </Project>

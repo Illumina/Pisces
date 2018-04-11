@@ -522,10 +522,20 @@ namespace Pisces.IO.Sequencing
 			return allVariants;
 		}
 
-		/// <summary>
-		///     Returns the actual position within the vcf file (used when making our ad-hoc index)
-		/// </summary>
-		public long Position()
+        public static List<string> GetAllHeaderLines(string vcfPath)
+        {
+            List<string> header;
+            using (var reader = new VcfReader(vcfPath))
+            {
+                header = reader.HeaderLines;
+            }
+
+            return header;
+        }
+/// <summary>
+///     Returns the actual position within the vcf file (used when making our ad-hoc index)
+/// </summary>
+public long Position()
 		{
 			return Reader.GetCurrentPosition();
 		}

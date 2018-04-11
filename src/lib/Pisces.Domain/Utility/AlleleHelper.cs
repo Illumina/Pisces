@@ -48,13 +48,7 @@ namespace Pisces.Domain.Utility
         }
 
         public static CalledAllele Map(CandidateAllele candidate)
-        {
-            /*
-            var calledAllele = candidate.Type == AlleleCategory.Reference
-                ? (BaseCalledAllele)new BaseCalledAllele()
-                : new BaseCalledAllele(candidate.Type);
-                */
-
+        {           
             var calledAllele = new CalledAllele(candidate.Type);
 
             calledAllele.AlternateAllele = candidate.AlternateAllele;
