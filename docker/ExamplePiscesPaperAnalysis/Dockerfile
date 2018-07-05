@@ -1,11 +1,3 @@
- #jFROM microsoft/dotnet:2.1-sdk AS pisces_build
-#
-#COPY --from=happy_build /opt /opt
-#
-#jWORKDIR /app
-#
-##get source
-#
 
 FROM ubuntu:16.04 AS happy_build
 
