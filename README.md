@@ -53,6 +53,10 @@ Load the solution into VS, and build in release, x64 mode. This will create a bi
 
 The component algorithms are intended for developers to re-use and improve them. This version is not commercially supported and provided as is under the GNU GENERAL PUBLIC LICENSE. For first time use, we recommend testing with the example in the "testdata" folder.
 
+# Docker files
+
+https://github.com/Illumina/Pisces/tree/master/docker
+
 # User Guide
 https://github.com/Illumina/Pisces/wiki
 
