@@ -1,7 +1,7 @@
 ï»¿##fileformat=VCFv4.1
 ##fileDate=20151029
 ##source=Pisces 1.0.0.0
-##Pisces_cmdline="-B \\ussd-prd-isi04\OncoBU\users\l\COSMIC\ReadSimulation\MNV_25\MergedBamAll15\MNV-25-var216_S216.bam -g C:\Illumina\MiSeqAnalysisPortal\Genomes\Homo_sapiens\UCSC\hg19\Sequence\WholeGenomeFasta -OutFolder C:\ -gVCF false -StitchPairedReads false -CallMNVs false -OutFolder C:\Users\g\Documents\LiSim\216 -MaxMNVLength 5"
+##Pisces_cmdline="-B \\ussd-prd-isi04\OncoBU\users\COSMIC\ReadSimulation\MNV_25\MergedBamAll15\MNV-25-var216_S216.bam -g C:\Illumina\MiSeqAnalysisPortal\Genomes\Homo_sapiens\UCSC\hg19\Sequence\WholeGenomeFasta -OutFolder C:\ -gVCF false -StitchPairedReads false -CallMNVs false -OutFolder C:\Users\Documents\LiSim\216 -MaxMNVLength 5"
 ##reference=C:\Illumina\MiSeqAnalysisPortal\Genomes\Homo_sapiens\UCSC\hg19\Sequence\WholeGenomeFasta
 ##INFO=<ID=DP,Number=1,Type=Integer,Description="Total Depth">
 ##INFO=<ID=TI,Number=.,Type=String,Description="Transcript ID">

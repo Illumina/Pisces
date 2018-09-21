@@ -2,21 +2,22 @@
 using System.Collections.Generic;
 using System.Linq;
 using RealignIndels.Logic;
-using RealignIndels.Logic.TargetCalling;
-using RealignIndels.Models;
-using RealignIndels.Utlity;
 using Alignment.Domain.Sequencing;
-using Hygea.Logic;
 using Pisces.Domain.Models;
 using Pisces.Domain.Models.Alleles;
 using Pisces.Domain.Types;
+using ReadRealignmentLogic;
+using ReadRealignmentLogic.Models;
+using ReadRealignmentLogic.TargetCalling;
 using Xunit;
+using ReadRealigner = ReadRealignmentLogic.ReadRealigner;
 
 
 namespace RealignIndels.Tests.UnitTests
 {
     public class ReadRealignerTests
     {
+
         [Fact]
         public void Insertion_Scenarios()
         {   
@@ -171,7 +172,7 @@ namespace RealignIndels.Tests.UnitTests
             true, 11, 1, 0, "2I10M");
 
             // --------------
-            // read partially spanning insertion, tested with maskPartialInsertion 
+            // read partially spanning insertion, tested with maskPartialInsertion and/or minimumUnanchoredInsertionLength
             // --------------
             // should expect softclipping of partial insertions if maskPartialInsertion
             TestRead(chrReference, indel, new Read("chr", new BamAlignment
@@ -188,6 +189,22 @@ namespace RealignIndels.Tests.UnitTests
                 Bases = "ACGTACGTACTATAT"
             }),
             true, 1, 0, 0, "10M5S", true, maskPartialInsertion: true);
+            // should expect softclipping of partial insertions if maskPartialInsertion is false and minimumUnanchoredInsertionLength > insertion length
+            TestRead(chrReference, indel, new Read("chr", new BamAlignment
+            {
+                Position = 5, // zero based
+                CigarData = new CigarAlignment("5S5M4D5M"),  // soft clip shouldn't affect anchor
+                Bases = "ACGTACGTACTATAT"
+            }),
+            true, 1, 0, 0, "10M5S", true, minUnanchoredInsertionLength : 7);
+            // should not expect softclipping of partial insertions if maskPartialInsertion is false and minimumUnanchoredInsertionLength <= insertion length
+            TestRead(chrReference, indel, new Read("chr", new BamAlignment
+            {
+                Position = 5, // zero based
+                CigarData = new CigarAlignment("5S5M4D5M"),  // soft clip shouldn't affect anchor
+                Bases = "ACGTACGTACTATAT"
+            }),
+            true, 1, 1, 0, "10M5I", true, minUnanchoredInsertionLength: 6);
             // complete but un-anchored insertions are allowed even if maskPartialInsertion
             TestRead(chrReference, indel, new Read("chr", new BamAlignment
             {
@@ -195,6 +212,7 @@ namespace RealignIndels.Tests.UnitTests
                 CigarData = new CigarAlignment("5S5M4D6M"),  // soft clip shouldn't affect anchor
                 Bases = "ACGTACGTACTATATA"
             }), true, 1, 1, 0, "10M6I", true);
+           
             TestRead(chrReference, indel, new Read("chr", new BamAlignment
             {
                 Position = 5, // zero based
@@ -202,6 +220,29 @@ namespace RealignIndels.Tests.UnitTests
                 Bases = "ACGTACGTACTATATA"
             }),
             true, 1, 1, 0, "10M6I", true, maskPartialInsertion: true);
+
+            // complete but un-anchored insertions are not allowed if minimumUnanchoredInsertionLength > insertion length (maskPartialInsertion is false)
+            TestRead(chrReference, indel, new Read("chr", new BamAlignment
+            {
+                Position = 5, // zero based
+                CigarData = new CigarAlignment("5S5M4D6M"),  // soft clip shouldn't affect anchor
+                Bases = "ACGTACGTACTATATA"
+            }), true, 1, 0, 0, "10M6S", true, minUnanchoredInsertionLength: 7);
+            // complete but un-anchored insertions are not allowed if minimumUnanchoredInsertionLength > insertion length (maskPartialInsertion is true)
+            TestRead(chrReference, indel, new Read("chr", new BamAlignment
+            {
+                Position = 5, // zero based
+                CigarData = new CigarAlignment("5S5M4D6M"),  // soft clip shouldn't affect anchor
+                Bases = "ACGTACGTACTATATA"
+            }), true, 1, 0, 0, "10M6S", true, maskPartialInsertion: true, minUnanchoredInsertionLength: 7);
+            // complete but un-anchored insertions are allowed if minimumUnanchoredInsertionLength <= insertion length
+            TestRead(chrReference, indel, new Read("chr", new BamAlignment
+            {
+                Position = 5, // zero based
+                CigarData = new CigarAlignment("5S5M4D6M"),  // soft clip shouldn't affect anchor
+                Bases = "ACGTACGTACTATATA"
+            }), true, 1, 1, 0, "10M6I", true, minUnanchoredInsertionLength: 6);
+
             // anchored insertions are not affected by maskPartialInsertion
             TestRead(chrReference, indel, new Read("chr", new BamAlignment
             {
@@ -209,6 +250,7 @@ namespace RealignIndels.Tests.UnitTests
                 CigarData = new CigarAlignment("5S5M4D7M"),  // soft clip shouldn't affect anchor
                 Bases = "ACGTACGTACTATATAG"
             }), true, 1, 1, 0, "10M6I1M", true);
+            
             TestRead(chrReference, indel, new Read("chr", new BamAlignment
             {
                 Position = 5, // zero based
@@ -216,6 +258,14 @@ namespace RealignIndels.Tests.UnitTests
                 Bases = "ACGTACGTACTATATAG"
             }),
             true, 1, 1, 0, "10M6I1M", true, maskPartialInsertion: true);
+            // anchored insertions are not affected by maskPartialInsertion or minimumUnanchoredInsertionLength
+            TestRead(chrReference, indel, new Read("chr", new BamAlignment
+            {
+                Position = 5, // zero based
+                CigarData = new CigarAlignment("5S5M4D7M"),  // soft clip shouldn't affect anchor
+                Bases = "ACGTACGTACTATATAG"
+            }), true, 1, 1, 0, "10M6I1M", true, minUnanchoredInsertionLength: 7);
+
             // ...with remasking and maskPartialInsertion, should see N softclip merged with partial insertion softclip
             TestRead(chrReference, indel, new Read("chr", new BamAlignment
             {
@@ -568,6 +618,20 @@ namespace RealignIndels.Tests.UnitTests
                 NumMismatches = 1
             });
 
+            //// unanchored insertion on right
+            tests.Add(new RealignmentTest()
+            {
+                Position = 8,
+                Cigar = "14M",
+                Sequence = "TACGTACGTCCCCC",
+                ShouldAlign = true,
+                NewPosition = 8,
+                NewCigar = "3M5D6M5I",
+                NumIndels = 2,
+                NumMismatches = 0
+            });
+
+
             // --------------
             // Mutant 2
             // --------------
@@ -640,6 +704,21 @@ namespace RealignIndels.Tests.UnitTests
             });
             ExecuteTests(testsMaskPartialInsertion, indels, chrReference, candidateGroups: indelCandidateGroups, maskPartialInsertion: true);
 
+            // test minimumUnanchoredInsertionLength
+            var testsMinUnanchoredInsertion = new List<RealignmentTest>();
+            testsMinUnanchoredInsertion.Add(new RealignmentTest()
+            {
+                Position = 8,
+                Cigar = "14M",
+                Sequence = "TACGTACGTCCCCC",
+                ShouldAlign = true,
+                NewPosition = 8,
+                NewCigar = "3M5D6M5S",
+                NumIndels = 1,
+                NumMismatches = 0
+            });
+            ExecuteTests(testsMinUnanchoredInsertion, indels, chrReference, candidateGroups: indelCandidateGroups, minUnanchoredInsertionLength: 6);
+
             // when two indels don't coexist
             var testNotCoexist = new List<RealignmentTest>();
             testNotCoexist.Add(new RealignmentTest()
@@ -660,6 +739,7 @@ namespace RealignIndels.Tests.UnitTests
             indels.Reverse();
             ExecuteTests(tests, indels, chrReference, candidateGroups: indelCandidateGroups);
             ExecuteTests(testsMaskPartialInsertion, indels, chrReference, candidateGroups: indelCandidateGroups, maskPartialInsertion: true);
+            ExecuteTests(testsMinUnanchoredInsertion, indels, chrReference, candidateGroups: indelCandidateGroups, minUnanchoredInsertionLength: 6);
             ExecuteTests(testNotCoexist, indels, chrReference);
             ExecuteTests(testNotCoexist, indels, chrReference, candidateGroups: indelCandidateGroups2);
 
@@ -803,6 +883,31 @@ namespace RealignIndels.Tests.UnitTests
                 NumMismatches = 0
             });
 
+            // unanchored insertion at the right end
+            tests.Add(new RealignmentTest()
+            {
+                Position = 12,
+                Cigar = "15M",
+                Sequence = "ATATGAAAATCCCCC",
+                ShouldAlign = true,
+                NewPosition = 12,
+                NewCigar = "5M4I1M5I",
+                NumIndels = 2,
+                NumMismatches = 0
+            });
+            // unanchored insertion at the left end
+            tests.Add(new RealignmentTest()
+            {
+                Position = 8,
+                Cigar = "22M",
+                Sequence = "AAAATCCCCCACGTACGTACGT",
+                ShouldAlign = true,
+                NewPosition = 17,
+                NewCigar = "4I1M5I12M",
+                NumIndels = 2,
+                NumMismatches = 0
+            });
+
             ExecuteTests(tests, indels, chrReference, candidateGroups: indelCandidateGroups);
 
             // test MaskPartialInsertion
@@ -833,10 +938,39 @@ namespace RealignIndels.Tests.UnitTests
             });
             ExecuteTests(testsMaskPartialInsertion, indels, chrReference, candidateGroups: indelCandidateGroups, maskPartialInsertion: true);
 
+            // test minimumUnanchoredInsertionLength
+            var testsMinUnanchoredInsertion = new List<RealignmentTest>();
+            // unanchored insertion at the right end, >= minUnanchoredInsertionLength
+            testsMinUnanchoredInsertion.Add(new RealignmentTest()
+            {
+                Position = 12,
+                Cigar = "15M",
+                Sequence = "ATATGAAAATCCCCC",
+                ShouldAlign = true,
+                NewPosition = 12,
+                NewCigar = "5M4I1M5I",
+                NumIndels = 2,
+                NumMismatches = 0
+            });
+            // unanchored insertion at the left end, < minUnanchoredInsertionLength
+            testsMinUnanchoredInsertion.Add(new RealignmentTest()
+            {
+                Position = 8,
+                Cigar = "22M",
+                Sequence = "AAAATCCCCCACGTACGTACGT",
+                ShouldAlign = true,
+                NewPosition = 17,
+                NewCigar = "4S1M5I12M",
+                NumIndels = 1,
+                NumMismatches = 0
+            });
+            ExecuteTests(testsMinUnanchoredInsertion, indels, chrReference, candidateGroups: indelCandidateGroups, minUnanchoredInsertionLength: 5);
+
             // original order of indels shouldnt really matter
             indels.Reverse();
             ExecuteTests(tests, indels, chrReference, candidateGroups: indelCandidateGroups);
             ExecuteTests(testsMaskPartialInsertion, indels, chrReference, candidateGroups: indelCandidateGroups, maskPartialInsertion: true);
+            ExecuteTests(testsMinUnanchoredInsertion, indels, chrReference, candidateGroups: indelCandidateGroups, minUnanchoredInsertionLength: 5);
 
         }
 
@@ -1002,16 +1136,64 @@ namespace RealignIndels.Tests.UnitTests
 
         }
 
-        private void TestRead(string refSequence, CandidateIndel indel, Read read, bool shouldAlign, int position,
-            int numIndels, int numMismatches, string cigar,  bool remaskSoftclip = false, HashSet<Tuple<string, string, string>> candidateGroups = null, bool maskPartialInsertion = false)
+        [Fact]
+        public void HasHighFrequencyIndel()
         {
-            TestRead(refSequence, new List<CandidateIndel>() { indel }, read, shouldAlign, position, numIndels, numMismatches, cigar,  remaskSoftclip, candidateGroups, maskPartialInsertion);
+            // Del @ 10, CTATAT -> C
+            // Ins @ 21, T-> TCCCCC
+            // Ins @ 18, A -> AGG
+
+            // COORD:     123456789012345678901-----234567890123456789012345
+            // WT:        ACGTACGTACTATATGTACGT-----ACGTACGTACGTACGTACGTACGT
+            // MUTANT1:   ACGTACGTAC-----GTACGTCCCCCACGTACGTACGTACGTACGTACGT
+
+            // COORD:     123456789012345678--901234567890123456789012345
+            // WT:        ACGTACGTACTATATGTA--CGTACGTACGTACGTACGTACGTACGT
+            // MUTANT2:   ACGTACGTAC-----GTAGGCGTACGTACGTACGTACGTACGTACGT
+
+            var chrReference = "ACGTACGTACTATATGTACGTACGTACGTACGTACGTACGTACGT";
+
+            var deletion = new CandidateIndel(new CandidateAllele("chr", 10, "CTATAT", "C", AlleleCategory.Deletion));
+            deletion.Frequency = 0.31f;
+            var insertion = new CandidateIndel(new CandidateAllele("chr", 21, "T", "TCCCCC", AlleleCategory.Insertion));
+            insertion.Frequency = 0.29f;
+            var indels = new List<CandidateIndel>() { deletion, insertion };
+            var indelCandidateGroups = new HashSet<Tuple<string, string, string>>() { new Tuple<string, string, string>(deletion.ToString(), insertion.ToString(), null) };
+
+            // two indels, 3M5D6M5I4M
+            var read1 = new Read("chr", new BamAlignment
+            {
+                Position = 7,
+                CigarData = new CigarAlignment("18M"),
+                Bases = "TACGTACGTCCCCCTCGT"
+            });
+            
+            var result1 = new ReadRealigner(new BasicAlignmentComparer(), true, false, false).Realign(read1, indels, chrReference, new IndelRanker(), indelCandidateGroups: indelCandidateGroups);
+            Assert.True(result1.HasHighFrequencyIndel);
+
+            //// one indel, 9M3I
+            var read2 = new Read("chr", new BamAlignment
+            {
+                Position = 12,
+                CigarData = new CigarAlignment("12M"),
+                Bases = "TATGTACGTCCC"
+            });
+
+            var result2 = new ReadRealigner(new BasicAlignmentComparer(), true, false, false).Realign(read2, indels, chrReference, new IndelRanker(), indelCandidateGroups: indelCandidateGroups);
+            Assert.False(result2.HasHighFrequencyIndel);
+
+        }
+
+        private void TestRead(string refSequence, CandidateIndel indel, Read read, bool shouldAlign, int position,
+            int numIndels, int numMismatches, string cigar,  bool remaskSoftclip = false, HashSet<Tuple<string, string, string>> candidateGroups = null, bool maskPartialInsertion = false, int minUnanchoredInsertionLength = 0)
+        {
+            TestRead(refSequence, new List<CandidateIndel>() { indel }, read, shouldAlign, position, numIndels, numMismatches, cigar,  remaskSoftclip, candidateGroups, maskPartialInsertion, minUnanchoredInsertionLength);
         }
 
         private void TestRead(string refSequence, List<CandidateIndel> indels, Read read, bool shouldAlign, int position, int numIndels, int numMismatches,
-            string cigar,  bool remaskSoftclip = false, HashSet<Tuple<string, string, string>> candidateGroups = null, bool maskPartialInsertion = false)
+            string cigar,  bool remaskSoftclip = false, HashSet<Tuple<string, string, string>> candidateGroups = null, bool maskPartialInsertion = false, int minUnanchoredInsertionLength = 0)
         {
-            var result = new ReadRealigner(new BasicAlignmentComparer(), true, remaskSoftclip, maskPartialInsertion).Realign(read, indels, refSequence, new IndelRanker(), indelCandidateGroups:candidateGroups);
+            var result = new ReadRealigner(new BasicAlignmentComparer(), true, remaskSoftclip, maskPartialInsertion, minUnanchoredInsertionLength).Realign(read, indels, refSequence, new IndelRanker(), indelCandidateGroups:candidateGroups);
             
             if (shouldAlign)
             {
@@ -1022,7 +1204,7 @@ namespace RealignIndels.Tests.UnitTests
             }
         }
 
-        private void ExecuteTests(List<RealignmentTest> tests, List<CandidateIndel> indels, string chrReference, HashSet<Tuple<string, string, string>> candidateGroups = null, bool maskPartialInsertion = false)
+        private void ExecuteTests(List<RealignmentTest> tests, List<CandidateIndel> indels, string chrReference, HashSet<Tuple<string, string, string>> candidateGroups = null, bool maskPartialInsertion = false, int minUnanchoredInsertionLength = 0)
         {
             foreach (var test in tests)
             {
@@ -1032,7 +1214,7 @@ namespace RealignIndels.Tests.UnitTests
                     CigarData = new CigarAlignment(test.Cigar),
                     Bases = test.Sequence
                 }),
-            test.ShouldAlign, test.NewPosition, test.NumIndels, test.NumMismatches, test.NewCigar, candidateGroups: candidateGroups, maskPartialInsertion : maskPartialInsertion);
+            test.ShouldAlign, test.NewPosition, test.NumIndels, test.NumMismatches, test.NewCigar, candidateGroups: candidateGroups, maskPartialInsertion : maskPartialInsertion, minUnanchoredInsertionLength: minUnanchoredInsertionLength);
             }
         }
 

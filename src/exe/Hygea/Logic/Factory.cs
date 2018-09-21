@@ -2,9 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using Hygea.Logic;
 using RealignIndels.Interfaces;
-using RealignIndels.Logic.TargetCalling;
 using Pisces.IO.Sequencing;
 using Pisces.Domain.Interfaces;
 using Pisces.Domain.Models;
@@ -13,7 +11,9 @@ using Pisces.Domain.Types;
 using Pisces.IO;
 using Pisces.Processing;
 using Pisces.Processing.RegionState;
-using RealignIndels.Models;
+using ReadRealignmentLogic;
+using ReadRealignmentLogic.Interfaces;
+using ReadRealignmentLogic.TargetCalling;
 
 namespace RealignIndels.Logic
 {
@@ -89,7 +89,7 @@ namespace RealignIndels.Logic
                 _options.TryThree,
                 skipDuplicates: _options.SkipDuplicates,
                 skipAndRemoveDuplicates: _options.SkipAndRemoveDuplicates,
-                remaskSoftclips: _options.RemaskSoftclips, maskPartialInsertion: _options.MaskPartialInsertion, allowRescoringOrig0: _options.AllowRescoringOrigZero,
+                remaskSoftclips: _options.RemaskSoftclips, maskPartialInsertion: _options.MaskPartialInsertion, minimumUnanchoredInsertionLength: _options.MinimumUnanchoredInsertionLength, allowRescoringOrig0: _options.AllowRescoringOrigZero,
                 maxRealignShift: _options.MaxRealignShift,
                 tryRealignCleanSoftclippedReads: _options.TryRealignSoftclippedReads,
                 alignmentScorer: alignmentScorer,
@@ -101,7 +101,7 @@ namespace RealignIndels.Logic
 
         public virtual IAlignmentExtractor CreateAlignmentExtractor(string bamFilePath, string chromosomeName)
         {
-            return new BamFileAlignmentExtractor(bamFilePath, chromosomeName);
+            return new BamFileAlignmentExtractor(bamFilePath, false, chromosomeName);
         }
 
         public virtual IIndelCandidateFinder CreateCandidateFinder()

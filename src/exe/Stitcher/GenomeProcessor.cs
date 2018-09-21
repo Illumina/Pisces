@@ -4,6 +4,7 @@ using System.IO;
 using Pisces.Processing.Utility;
 using Alignment.IO.Sequencing;
 using Alignment.Domain.Sequencing;
+using BamStitchingLogic;
 using Common.IO.Sequencing;
 using Common.IO.Utility;
 

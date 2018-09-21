@@ -4,7 +4,7 @@ using System.Linq;
 using System.IO;
 using Pisces.Domain.Types;
 using VariantPhasing;
-using CommandLine.IO.Utilities;
+using CommandLine.Util;
 using Xunit;
 
 namespace Scylla.Tests

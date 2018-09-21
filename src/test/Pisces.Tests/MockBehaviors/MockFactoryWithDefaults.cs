@@ -29,9 +29,9 @@ namespace Pisces.Tests.MockBehaviors
 
         public MockFactoryWithDefaults(PiscesApplicationOptions options) : base(options) { }
 
-        protected override IAlignmentSource CreateAlignmentSource(ChrReference chrReference, string bamFilePath, List<string> chrsToProcess)
+        protected override IAlignmentSource CreateAlignmentSource(ChrReference chrReference, string bamFilePath, bool expectStitchedDirections, List < string> chrsToProcess)
         {
-            return MockAlignmentSource != null ? MockAlignmentSource.Object : base.CreateAlignmentSource(chrReference, bamFilePath, chrsToProcess);
+            return MockAlignmentSource != null ? MockAlignmentSource.Object : base.CreateAlignmentSource(chrReference, bamFilePath, expectStitchedDirections, chrsToProcess);
         }
 
         protected override ICandidateVariantFinder CreateVariantFinder()

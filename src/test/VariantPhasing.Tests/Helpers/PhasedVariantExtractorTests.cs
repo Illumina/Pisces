@@ -9,118 +9,6 @@ namespace VariantPhasing.Tests.Helpers
         string referenceSequence = "AGAAGTACTCATTATCTGAGGAGCCGGTCACCTGTACCA";
         string chromosome = "chr13";
 
-
-        //This is an example where the true ref allele is effective empty after trimming for parsimony
-        //(PICS-929 bug). Used to give: ArgumentOutOfRangeException : Length cannot be less than zero.
-        [Fact]
-        public void CheckInsertionsInHomopolymerStretches()
-        {
-            //(1) The exact case of the original bug
-
-            string referenceSequenceWithRepeats = "TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT";
-            var allele = new Pisces.Domain.Models.Alleles.CalledAllele();
-            var clusterVariantSites = new VariantSite[] {
-                new VariantSite(28608285), new VariantSite(28608288) , new VariantSite(28608289)  };
-
-            var neighborhoodDepthAtSites = new int[] { 100, 200, 200 };
-            var neighborhoodNoCallsAtSites = new int[] { 0, 0, 0 };
-            var clusterCountsAtSites = new int[] { 90, 190, 190 };
-
-            clusterVariantSites[0].VcfReferenceAllele = "T";
-            clusterVariantSites[0].VcfAlternateAllele = "T";
-
-            clusterVariantSites[1].VcfReferenceAllele = "T";
-            clusterVariantSites[1].VcfAlternateAllele = "TTTT";
-
-            clusterVariantSites[2].VcfReferenceAllele = "T";
-            clusterVariantSites[2].VcfAlternateAllele = "TTTTTTT";
-
-            var refsToRemove = PhasedVariantExtractor.Extract(
-                out allele, clusterVariantSites, referenceSequenceWithRepeats,
-                neighborhoodDepthAtSites, neighborhoodNoCallsAtSites, clusterCountsAtSites, chromosome, 20, 100);
-
-            Assert.Equal("T", allele.ReferenceAllele);
-            Assert.Equal("TTTTTTTTTT", allele.AlternateAllele);
-            Assert.Equal(28608288, allele.ReferencePosition);
-
-            //(2) A similar, contrived case (N's instead of ref) that would cause the problem.
- 
-            clusterVariantSites[0].VcfReferenceAllele = "N";
-            clusterVariantSites[0].VcfAlternateAllele = "N";
-
-            clusterVariantSites[1].VcfReferenceAllele = "T";
-            clusterVariantSites[1].VcfAlternateAllele = "TTTT";
-
-            clusterVariantSites[2].VcfReferenceAllele = "T";
-            clusterVariantSites[2].VcfAlternateAllele = "TTTTTTT";
-
-             refsToRemove = PhasedVariantExtractor.Extract(
-                out allele, clusterVariantSites, referenceSequenceWithRepeats,
-                neighborhoodDepthAtSites, neighborhoodNoCallsAtSites, clusterCountsAtSites, chromosome, 20, 100);
-
-            Assert.Equal("T", allele.ReferenceAllele);
-            Assert.Equal("TTTTTTTTTT", allele.AlternateAllele);
-            Assert.Equal(28608288, allele.ReferencePosition);
-
-            //(3) Another contrived case that would cause the problem.
-
-            clusterVariantSites[0].VcfReferenceAllele = "G";
-            clusterVariantSites[0].VcfAlternateAllele = "GT";
-
-            clusterVariantSites[1].VcfReferenceAllele = "T";
-            clusterVariantSites[1].VcfAlternateAllele = "TTTT";
-
-            clusterVariantSites[2].VcfReferenceAllele = "T";
-            clusterVariantSites[2].VcfAlternateAllele = "TTTTTTT";
-
-            refsToRemove = PhasedVariantExtractor.Extract(
-               out allele, clusterVariantSites, referenceSequenceWithRepeats,
-               neighborhoodDepthAtSites, neighborhoodNoCallsAtSites, clusterCountsAtSites, chromosome, 20, 100);
-
-            Assert.Equal("T", allele.ReferenceAllele);
-            Assert.Equal("TTTTTTTTTTT", allele.AlternateAllele); // <- (note, alt alt allele now has one extra T)
-            Assert.Equal(28608285, allele.ReferencePosition);    // left shifting, all the insetion joins to the first variant
-
-            //(4) A case that would NOT cause the problem. (the A insertion doesnt make the repeat section
-            //in the reference sequence, so that saves it.
-
-            clusterVariantSites[0].VcfReferenceAllele = "G";
-            clusterVariantSites[0].VcfAlternateAllele = "GA";
-
-            clusterVariantSites[1].VcfReferenceAllele = "T";
-            clusterVariantSites[1].VcfAlternateAllele = "TTTT";
-
-            clusterVariantSites[2].VcfReferenceAllele = "T";
-            clusterVariantSites[2].VcfAlternateAllele = "TTTTTTT";
-
-            refsToRemove = PhasedVariantExtractor.Extract(
-               out allele, clusterVariantSites, referenceSequenceWithRepeats,
-               neighborhoodDepthAtSites, neighborhoodNoCallsAtSites, clusterCountsAtSites, chromosome, 20, 100);
-
-            Assert.Equal("T", allele.ReferenceAllele);
-            Assert.Equal("TATTTTTTTTT", allele.AlternateAllele);
-            Assert.Equal(28608285, allele.ReferencePosition);
-                    
-            //(5) Another case that might cause the problem
-
-            clusterVariantSites[0].VcfReferenceAllele = "TTT";
-            clusterVariantSites[0].VcfAlternateAllele = "T";
-
-            clusterVariantSites[1].VcfReferenceAllele = "T";
-            clusterVariantSites[1].VcfAlternateAllele = "TTTT";
-
-            clusterVariantSites[2].VcfReferenceAllele = "T";
-            clusterVariantSites[2].VcfAlternateAllele = "TTTTTTT";
-
-            refsToRemove = PhasedVariantExtractor.Extract(
-               out allele, clusterVariantSites, referenceSequenceWithRepeats,
-               neighborhoodDepthAtSites, neighborhoodNoCallsAtSites, clusterCountsAtSites, chromosome, 20, 100);
-
-            Assert.Equal("T", allele.ReferenceAllele);
-            Assert.Equal("TTTTTTTT", allele.AlternateAllele);
-            Assert.Equal(28608285, allele.ReferencePosition);
-        }
-
         [Fact]
         public void CheckInsertions()
         {
@@ -216,7 +104,7 @@ namespace VariantPhasing.Tests.Helpers
             //algorithm: the VS must be in order of their true position (first base of difference).
 
             Assert.Equal("A", allele.ReferenceAllele);
-            Assert.Equal("ATTTTTTTTTTTTT", allele.AlternateAllele); 
+            Assert.Equal("ATTTTTTTTTTTTT", allele.AlternateAllele);
             Assert.Equal(28608285, allele.ReferencePosition);
 
             //
@@ -230,7 +118,7 @@ namespace VariantPhasing.Tests.Helpers
 
             clusterVariantSites[0].VcfReferenceAllele = "A";
             clusterVariantSites[0].VcfAlternateAllele = "AGGAA";
-         
+
             //here we put the alleles in the wrong order with the insertion first.
             clusterVariantSites[1].VcfReferenceAllele = "G";
             clusterVariantSites[1].VcfAlternateAllele = "GGG";
@@ -374,6 +262,118 @@ namespace VariantPhasing.Tests.Helpers
             clusterVariantSites = new VariantSite[] {
                 new VariantSite(28608285), new VariantSite(28608285)  };
         }
+
+        //This is an example where the true ref allele is effective empty after trimming for parsimony
+        //(PICS-929 bug). Used to give: ArgumentOutOfRangeException : Length cannot be less than zero.
+        [Fact]
+        public void CheckInsertionsInHomopolymerStretches()
+        {
+            //(1) The exact case of the original bug
+
+            string referenceSequenceWithRepeats = "TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT";
+            var allele = new Pisces.Domain.Models.Alleles.CalledAllele();
+            var clusterVariantSites = new VariantSite[] {
+                new VariantSite(28608285), new VariantSite(28608288) , new VariantSite(28608289)  };
+
+            var neighborhoodDepthAtSites = new int[] { 100, 200, 200 };
+            var neighborhoodNoCallsAtSites = new int[] { 0, 0, 0 };
+            var clusterCountsAtSites = new int[] { 90, 190, 190 };
+
+            clusterVariantSites[0].VcfReferenceAllele = "T";
+            clusterVariantSites[0].VcfAlternateAllele = "T";
+
+            clusterVariantSites[1].VcfReferenceAllele = "T";
+            clusterVariantSites[1].VcfAlternateAllele = "TTTT";
+
+            clusterVariantSites[2].VcfReferenceAllele = "T";
+            clusterVariantSites[2].VcfAlternateAllele = "TTTTTTT";
+
+            var refsToRemove = PhasedVariantExtractor.Extract(
+                out allele, clusterVariantSites, referenceSequenceWithRepeats,
+neighborhoodDepthAtSites, neighborhoodNoCallsAtSites, clusterCountsAtSites, chromosome, 20, 100);
+
+            Assert.Equal("T", allele.ReferenceAllele);
+            Assert.Equal("TTTTTTTTTT", allele.AlternateAllele);
+            Assert.Equal(28608288, allele.ReferencePosition);
+
+            //(2) A similar, contrived case (N's instead of ref) that would cause the problem.
+ 
+            clusterVariantSites[0].VcfReferenceAllele = "N";
+            clusterVariantSites[0].VcfAlternateAllele = "N";
+
+            clusterVariantSites[1].VcfReferenceAllele = "T";
+            clusterVariantSites[1].VcfAlternateAllele = "TTTT";
+
+            clusterVariantSites[2].VcfReferenceAllele = "T";
+            clusterVariantSites[2].VcfAlternateAllele = "TTTTTTT";
+
+             refsToRemove = PhasedVariantExtractor.Extract(
+                out allele, clusterVariantSites, referenceSequenceWithRepeats,
+                neighborhoodDepthAtSites, neighborhoodNoCallsAtSites, clusterCountsAtSites, chromosome, 20, 100);
+
+            Assert.Equal("T", allele.ReferenceAllele);
+            Assert.Equal("TTTTTTTTTT", allele.AlternateAllele);
+            Assert.Equal(28608288, allele.ReferencePosition);
+
+            //(3) Another contrived case that would cause the problem.
+
+            clusterVariantSites[0].VcfReferenceAllele = "G";
+            clusterVariantSites[0].VcfAlternateAllele = "GT";
+
+            clusterVariantSites[1].VcfReferenceAllele = "T";
+            clusterVariantSites[1].VcfAlternateAllele = "TTTT";
+
+            clusterVariantSites[2].VcfReferenceAllele = "T";
+            clusterVariantSites[2].VcfAlternateAllele = "TTTTTTT";
+
+            refsToRemove = PhasedVariantExtractor.Extract(
+               out allele, clusterVariantSites, referenceSequenceWithRepeats,
+               neighborhoodDepthAtSites, neighborhoodNoCallsAtSites, clusterCountsAtSites, chromosome, 20, 100);
+
+            Assert.Equal("T", allele.ReferenceAllele);
+            Assert.Equal("TTTTTTTTTTT", allele.AlternateAllele); // <- (note, alt alt allele now has one extra T)
+            Assert.Equal(28608285, allele.ReferencePosition);    // left shifting, all the insetion joins to the first variant
+
+            //(4) A case that would NOT cause the problem. (the A insertion doesnt make the repeat section
+            //in the reference sequence, so that saves it.
+
+            clusterVariantSites[0].VcfReferenceAllele = "G";
+            clusterVariantSites[0].VcfAlternateAllele = "GA";
+
+            clusterVariantSites[1].VcfReferenceAllele = "T";
+            clusterVariantSites[1].VcfAlternateAllele = "TTTT";
+
+            clusterVariantSites[2].VcfReferenceAllele = "T";
+            clusterVariantSites[2].VcfAlternateAllele = "TTTTTTT";
+
+            refsToRemove = PhasedVariantExtractor.Extract(
+               out allele, clusterVariantSites, referenceSequenceWithRepeats,
+               neighborhoodDepthAtSites, neighborhoodNoCallsAtSites, clusterCountsAtSites, chromosome, 20, 100);
+
+            Assert.Equal("T", allele.ReferenceAllele);
+            Assert.Equal("TATTTTTTTTT", allele.AlternateAllele);
+            Assert.Equal(28608285, allele.ReferencePosition);
+                    
+            //(5) Another case that might cause the problem
+
+            clusterVariantSites[0].VcfReferenceAllele = "TTT";
+            clusterVariantSites[0].VcfAlternateAllele = "T";
+
+            clusterVariantSites[1].VcfReferenceAllele = "T";
+            clusterVariantSites[1].VcfAlternateAllele = "TTTT";
+
+            clusterVariantSites[2].VcfReferenceAllele = "T";
+            clusterVariantSites[2].VcfAlternateAllele = "TTTTTTT";
+
+            refsToRemove = PhasedVariantExtractor.Extract(
+               out allele, clusterVariantSites, referenceSequenceWithRepeats,
+               neighborhoodDepthAtSites, neighborhoodNoCallsAtSites, clusterCountsAtSites, chromosome, 20, 100);
+
+            Assert.Equal("T", allele.ReferenceAllele);
+            Assert.Equal("TTTTTTTT", allele.AlternateAllele);
+            Assert.Equal(28608285, allele.ReferencePosition);
+        }
+
 
         [Fact]
         public void CheckDeletionsWithAnchoring()
@@ -541,7 +541,7 @@ namespace VariantPhasing.Tests.Helpers
 
         }
 
-        //We had a bug with homopolymer regions and insertions (PICS-929). This is a test to make sure nothing 
+         //We had a bug with homopolymer regions and insertions (PICS-929). This is a test to make sure nothing 
         // similar can happen with deletions
         [Fact]
         public void CheckDeletionsInHomopolymerStretches()
@@ -549,7 +549,7 @@ namespace VariantPhasing.Tests.Helpers
             //(1) 
 
             string referenceSequenceWithRepeats = "TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT";
-            //Where deletions occure:           = "TTTTXXXTTTXXXXXXTTTTTTTTTTTTTTTTTTTTTT";
+            //Where deletions occur:           = "TTTTXXXTTTXXXXXXTTTTTTTTTTTTTTTTTTTTTT";
             //Expected result:                  = TTTTTTTTTT -> T
 
             var allele = new Pisces.Domain.Models.Alleles.CalledAllele();
@@ -571,7 +571,7 @@ namespace VariantPhasing.Tests.Helpers
 
             var refsToRemove = PhasedVariantExtractor.Extract(
                 out allele, clusterVariantSites, referenceSequenceWithRepeats,
-                neighborhoodDepthAtSites, neighborhoodNoCallsAtSites, clusterCountsAtSites, chromosome, 20, 100);
+neighborhoodDepthAtSites, neighborhoodNoCallsAtSites, clusterCountsAtSites, chromosome, 20, 100);
 
             Assert.Equal("TTTTTTTTTT", allele.ReferenceAllele);
             Assert.Equal("T", allele.AlternateAllele);

@@ -114,7 +114,7 @@ namespace Pisces.IO.Tests.UnitTests
 
             var context = new VcfWriterInputContext
             {
-                CommandLine = new[] { "myCommandLine" },
+                QuotedCommandLineString = "myCommandLine",
                 SampleName = "mySample",
                 ReferenceName = "myReference",
                 ContigsByChr = new List<Tuple<string, long>>

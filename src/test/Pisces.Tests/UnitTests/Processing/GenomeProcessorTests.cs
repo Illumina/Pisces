@@ -50,6 +50,7 @@ namespace Pisces.Tests.UnitTests.Processing
                 OutputDirectory = outDir
             };
 
+            options.SetIODirectories("Pisces");
             var logFile = Path.Combine(options.LogFolder, options.LogFileName);
             if (File.Exists(logFile))
                 File.Delete(logFile);

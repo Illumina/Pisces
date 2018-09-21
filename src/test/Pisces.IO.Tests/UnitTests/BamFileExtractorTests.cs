@@ -9,6 +9,25 @@ namespace Pisces.IO.Tests
     public class BamFileExtractorTests
     {
         [Fact]
+        public void ReadFileAsStitched()
+        {
+            var smallBam = Path.Combine(TestPaths.LocalTestDataDirectory, "small.bam");
+
+            //we claim its not stitched
+            var extractor = new BamFileAlignmentExtractor(smallBam, false);
+            var read = new Read();
+            extractor.GetNextAlignment(read);
+            Assert.False(extractor.SourceIsStitched);
+
+
+            //we claim its stitched
+            extractor = new BamFileAlignmentExtractor(smallBam, true);
+            read = new Read();       
+            extractor.GetNextAlignment(read);
+            Assert.True(extractor.SourceIsStitched);
+        }
+
+        [Fact]
         public void ReadFile()
         {
             var smallBam = Path.Combine(TestPaths.LocalTestDataDirectory, "small.bam");
@@ -132,24 +151,24 @@ namespace Pisces.IO.Tests
             //test to be robust to crazy bams.
 
             Assert.Equal(false,
-            BamFileAlignmentExtractor.CheckIfBamHasBeenStitched(""));
+            BamFileAlignmentExtractor.CheckBamHeaderIfBamHasBeenStitched(""));
 
             Assert.Equal(false,
-            BamFileAlignmentExtractor.CheckIfBamHasBeenStitched("@PG @PG"));
+            BamFileAlignmentExtractor.CheckBamHeaderIfBamHasBeenStitched("@PG @PG"));
 
             Assert.Equal(false,
-            BamFileAlignmentExtractor.CheckIfBamHasBeenStitched("blah"));
+            BamFileAlignmentExtractor.CheckBamHeaderIfBamHasBeenStitched("blah"));
 
             Assert.Equal(false,
-            BamFileAlignmentExtractor.CheckIfBamHasBeenStitched(null));
+            BamFileAlignmentExtractor.CheckBamHeaderIfBamHasBeenStitched(null));
 
             //test some real normal headers
 
             Assert.Equal(true,
-            BamFileAlignmentExtractor.CheckIfBamHasBeenStitched(GetPiscesStitchedHeader()));
+            BamFileAlignmentExtractor.CheckBamHeaderIfBamHasBeenStitched(GetPiscesStitchedHeader()));
 
             Assert.Equal(false,
-                BamFileAlignmentExtractor.CheckIfBamHasBeenStitched(GetRegularHeader()));
+                BamFileAlignmentExtractor.CheckBamHeaderIfBamHasBeenStitched(GetRegularHeader()));
         }
 
         [Fact]

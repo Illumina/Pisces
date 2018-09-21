@@ -1,5 +1,5 @@
 ﻿using System;
-using Pisces.Domain.Utility;
+using Pisces.Domain.Options;
 using Xunit;
 
 namespace Pisces.Domain.Tests.UnitTests.Utility

@@ -26,7 +26,8 @@ namespace Pisces.Calculators
     public class GenotypeCreator
     {
         public static IGenotypeCalculator CreateGenotypeCalculator(PloidyModel ploidyModel, float minimumFrequencyFilter,
-             int minEmitDepth, DiploidThresholdingParameters parameters, int minGQscore, int maxGQscore, float targetLODVariantFrequency,
+             int minEmitDepth, DiploidThresholdingParameters snvParameters, DiploidThresholdingParameters indelParameters, 
+             int minGQscore, int maxGQscore, float targetLODVariantFrequency,
              float minimumEmitFrequency=0, 
              string refName=null,bool? isMale=null)
         {
@@ -35,19 +36,19 @@ namespace Pisces.Calculators
 			        minimumEmitFrequency, targetLODVariantFrequency);
 
 			if(isMale == null)
-				return new DiploidGenotypeCalculator(parameters, minEmitDepth, minGQscore, maxGQscore);
+				return new DiploidGenotypeCalculator(snvParameters, indelParameters, minEmitDepth, minGQscore, maxGQscore);
 
 			if (isMale.Value &&(refName=="chrY" || refName== "chrX"))
-				return new HaploidGenotyeCalculator(minEmitDepth,minGQscore,maxGQscore,parameters.MinorVF,parameters.MajorVF);
+				return new HaploidGenotyeCalculator(minEmitDepth,minGQscore,maxGQscore,snvParameters.MinorVF,snvParameters.MajorVF);
 
 	        if (!isMale.Value && refName == "chrY")
 	        {
 		        Common.IO.Utility.Logger.WriteWarningToLog("chrY exists in Female samples");
-                return new HaploidGenotyeCalculator(minEmitDepth, minGQscore, maxGQscore, parameters.MinorVF, parameters.MajorVF);
+                return new HaploidGenotyeCalculator(minEmitDepth, minGQscore, maxGQscore, snvParameters.MinorVF, snvParameters.MajorVF);
 			}
 
 
-			return new DiploidGenotypeCalculator(parameters, minEmitDepth, minGQscore, maxGQscore);
+			return new DiploidGenotypeCalculator(snvParameters, snvParameters, minEmitDepth, minGQscore, maxGQscore);
 
         }
     }

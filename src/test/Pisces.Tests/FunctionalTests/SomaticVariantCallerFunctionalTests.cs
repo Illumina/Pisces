@@ -138,7 +138,7 @@ namespace Pisces.Tests.FunctionalTests
             var contigs1Expected = GetContigs(readerExp1);
             var vcf1Expected = readerExp1.GetVariants().ToList();
 
-            Assert.Equal(3, filters1Results.Count);
+            Assert.Equal(4, filters1Results.Count);
             Assert.Equal(1, contigs1Results.Count);
             Assert.Equal(1, vcf1Results.Count);
 
@@ -843,13 +843,15 @@ namespace Pisces.Tests.FunctionalTests
                     MaxGapBetweenMNV = 10,
                     MaxSizeMNV = 15,
                     Collapse = collapse,
-                    BamFilterParameters = new Domain.Options.BamFilterParameters()
+                    BamFilterParameters = new BamFilterParameters()
                     { MinimumBaseCallQuality = 20 },
-                    VariantCallingParameters = new Domain.Options.VariantCallingParameters(),
-                    VcfWritingParameters = new Domain.Options.VcfWritingParameters()
+                    VariantCallingParameters = new VariantCallingParameters(),
+                    VcfWritingParameters = new VcfWritingParameters()
                     {
                         OutputGvcfFile = doCheckReferences,
-                    }
+                    },
+                    CommandLineArguments = new string[] {"some","cmds" }
+                    
                 };
             }
 

@@ -87,7 +87,7 @@ namespace VariantPhasing.Logic
             var referenceBases = refChromosome.Substring(opStartIndexInReference + 1, operationLength);
 
             return Create(AlleleCategory.Mnv, chromosomeName, opStartIndexInReference + 1, referenceBases, readseq, alignment,
-                opStartIndexInRead);
+                opStartIndexInRead, 0);
 
         }
 

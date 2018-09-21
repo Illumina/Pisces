@@ -1,5 +1,5 @@
 ﻿using System.IO;
-using CommandLine.IO.Utilities;
+using CommandLine.Util;
 using Common.IO.Utility;
 using Pisces.Domain.Options;
 using Xunit;

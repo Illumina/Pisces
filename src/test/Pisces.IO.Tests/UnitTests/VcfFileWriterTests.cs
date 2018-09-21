@@ -100,7 +100,7 @@ namespace Pisces.IO.Tests
 
             var context = new VcfWriterInputContext
             {
-                CommandLine = new[] { "myCommandLine" },
+                QuotedCommandLineString = "myCommandLine" ,
                 SampleName = "mySample",
                 ReferenceName = "myReference",
                 ContigsByChr = new List<Tuple<string, long>>
@@ -166,7 +166,7 @@ namespace Pisces.IO.Tests
 
             var context = new VcfWriterInputContext
             {
-                CommandLine = new [] { "myCommandLine"},
+                QuotedCommandLineString = "myCommandLine" ,
                 SampleName = "mySample",
                 ReferenceName = "myReference",
                 ContigsByChr = new List<Tuple<string, long>>
@@ -283,7 +283,7 @@ namespace Pisces.IO.Tests
 
             var context = new VcfWriterInputContext
             {
-                CommandLine = new [] { "myCommandLine"},
+                QuotedCommandLineString = "myCommandLine",
                 SampleName = "mySample",
                 ReferenceName = "myReference",
                 ContigsByChr = new List<Tuple<string, long>>
@@ -371,7 +371,7 @@ namespace Pisces.IO.Tests
             // Test -OutFolder works for pre-existing folders.
             var context = new VcfWriterInputContext
             {
-                CommandLine = new [] { "myCommandLine"},
+                QuotedCommandLineString = "myCommandLine",
                 SampleName = "mySample",
                 ReferenceName = "myReference",
                 ContigsByChr = new List<Tuple<string, long>>
@@ -404,7 +404,7 @@ namespace Pisces.IO.Tests
             // Test -OutFolder for entirely new directories.
             context = new VcfWriterInputContext
             {
-                CommandLine = new [] { "myCommandLine"},
+                QuotedCommandLineString = "myCommandLine" ,
                 SampleName = "mySample",
                 ReferenceName = "myReference",
                 ContigsByChr = new List<Tuple<string, long>>
@@ -431,7 +431,7 @@ namespace Pisces.IO.Tests
 
             var context = new VcfWriterInputContext
             {
-                CommandLine = new [] { "myCommandLine"},
+                QuotedCommandLineString = "myCommandLine",
                 SampleName = "mySample",
                 ReferenceName = "myReference",
                 ContigsByChr = new List<Tuple<string, long>>
@@ -475,7 +475,7 @@ namespace Pisces.IO.Tests
 
             var context = new VcfWriterInputContext
             {
-                CommandLine = new [] { "myCommandLine"},
+                QuotedCommandLineString = "myCommandLine",
                 SampleName = "mySample",
                 ReferenceName = "myReference",
                 ContigsByChr = new List<Tuple<string, long>>
@@ -583,7 +583,7 @@ namespace Pisces.IO.Tests
 
             var context = new VcfWriterInputContext
             {
-                CommandLine = new [] { "myCommandLine"},
+                QuotedCommandLineString = "myCommandLine",
                 SampleName = "mySample",
                 ReferenceName = "myReference",
                 ContigsByChr = new List<Tuple<string, long>>
@@ -608,7 +608,8 @@ namespace Pisces.IO.Tests
                     PloidyModel = PloidyModel.Diploid,
                     GenotypeQualityFilterThreshold = 25,
                     RMxNFilterMaxLengthRepeat = 5,
-                    RMxNFilterMinRepetitions = 9
+                    RMxNFilterMinRepetitions = 9,
+                    NoCallFilterThreshold = 0.4f
                 };
 
             var writer = new VcfFileWriter(outputFilePath, config, context);
@@ -646,7 +647,7 @@ namespace Pisces.IO.Tests
 
             var context = new VcfWriterInputContext
             {
-                CommandLine = new [] { "myCommandLine"},
+                QuotedCommandLineString = "myCommandLine",
                 SampleName = "mySample",
                 ReferenceName = "myReference",
                 ContigsByChr = new List<Tuple<string, long>>
@@ -699,7 +700,7 @@ namespace Pisces.IO.Tests
 
             var context = new VcfWriterInputContext
             {
-                CommandLine = new [] { "myCommandLine"},
+                QuotedCommandLineString = "myCommandLine",
                 SampleName = "mySample",
                 ReferenceName = "myReference",
                 ContigsByChr = new List<Tuple<string, long>>
@@ -745,7 +746,7 @@ namespace Pisces.IO.Tests
 
             var context = new VcfWriterInputContext
             {
-                CommandLine = new [] { "myCommandLine"},
+                QuotedCommandLineString = "myCommandLine",
                 SampleName = "mySample",
                 ReferenceName = "myReference",
                 ContigsByChr = new List<Tuple<string, long>>
@@ -819,7 +820,7 @@ namespace Pisces.IO.Tests
 
             var context = new VcfWriterInputContext
             {
-                CommandLine = new [] { "myCommandLine"},
+                QuotedCommandLineString = "myCommandLine",
                 SampleName = "mySample",
                 ReferenceName = "myReference",
                 ContigsByChr = new List<Tuple<string, long>>
@@ -909,7 +910,7 @@ namespace Pisces.IO.Tests
             File.Delete(outputFilePath);
             var context = new VcfWriterInputContext
             {
-                CommandLine = new [] { "myCommandLine"},
+                QuotedCommandLineString = "myCommandLine" ,
                 SampleName = "mySample",
                 ReferenceName = "myReference",
                 ContigsByChr = new List<Tuple<string, long>>
@@ -951,7 +952,7 @@ namespace Pisces.IO.Tests
 
             var context = new VcfWriterInputContext
             {
-                CommandLine = new [] { "myCommandLine"},
+                QuotedCommandLineString = "myCommandLine",
                 SampleName = "mySample",
                 ReferenceName = "myReference",
                 ContigsByChr = new List<Tuple<string, long>>
@@ -994,7 +995,7 @@ namespace Pisces.IO.Tests
 
             var context = new VcfWriterInputContext
             {
-                CommandLine = new [] { "myCommandLine"},
+                QuotedCommandLineString = "myCommandLine",
                 SampleName = "mySample",
                 ReferenceName = "myReference",
                 ContigsByChr = new List<Tuple<string, long>>
@@ -1026,7 +1027,7 @@ namespace Pisces.IO.Tests
 
             var context = new VcfWriterInputContext
             {
-                CommandLine = new [] { "myCommandLine"},
+                QuotedCommandLineString = "myCommandLine",
                 SampleName = "mySample",
                 ReferenceName = "myReference"
             };
@@ -1058,7 +1059,7 @@ namespace Pisces.IO.Tests
 
             var context = new VcfWriterInputContext
             {
-                CommandLine = new [] { "myCommandLine"},
+                QuotedCommandLineString = "myCommandLine",
                 SampleName = "mySample",
                 ReferenceName = "myReference"
             };
@@ -1105,7 +1106,7 @@ namespace Pisces.IO.Tests
         {
             // Time to read the header
             var testFile = File.ReadAllLines(outputFile);
-            bool formatLowDP = false, formatQ = false, formatSB = false, formatLowFreq = false, formatLowGQ = false, formatMulti = false, formatRepeat = false, formatRMxN = false;
+            bool formatLowDP = false, formatQ = false, formatSB = false, formatLowFreq = false, formatLowGQ = false, formatMulti = false, formatRepeat = false, formatRMxN = false, formatNC = false;
             foreach (var x in testFile.Where(x => Regex.IsMatch(x, "##FILTER=")))
             {
                 switch (x.Split(',')[0])
@@ -1125,6 +1126,11 @@ namespace Pisces.IO.Tests
                             Assert.True(false, "StrandBias filter header does not match any expected filter.");
 
                         formatSB = true;                 
+                        break;
+                    case "##FILTER=<ID=NC":
+                        if (config.NoCallFilterThreshold.HasValue && config.NoCallFilterThreshold != 1)
+                            Assert.True(Regex.IsMatch(x, string.Format("^##FILTER=<ID=NC,Description=\"No-call rate is above {0}\">$", config.NoCallFilterThreshold)));
+                        formatNC = true;
                         break;
                     case "##FILTER=<ID=LowVariantFreq":
                         formatLowFreq = true;
@@ -1173,6 +1179,8 @@ namespace Pisces.IO.Tests
             Assert.Equal(formatRepeat, config.IndelRepeatFilterThreshold.HasValue);
 
             Assert.Equal(formatRMxN, config.RMxNFilterMaxLengthRepeat.HasValue && config.RMxNFilterMinRepetitions.HasValue);
+
+            Assert.Equal(formatNC, config.NoCallFilterThreshold.HasValue && config.NoCallFilterThreshold != 1);
         }
 
         // Utility function to test the format of Vcf files.
@@ -1410,8 +1418,8 @@ namespace Pisces.IO.Tests
 
 			var context = new VcfWriterInputContext
 			{
-				CommandLine = new[] { "myCommandLine" },
-				SampleName = "mySample",
+				QuotedCommandLineString = "myCommandLine",
+                SampleName = "mySample",
 				ReferenceName = "myReference",
 				ContigsByChr = new List<Tuple<string, long>>
 				{

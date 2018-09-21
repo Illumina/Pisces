@@ -16,7 +16,7 @@ namespace Scylla.Tests
             var outDir = Path.Combine(TestPaths.LocalScratchDirectory, "GeneralExecution");
             var outVcf = Path.Combine(outDir, "chr21_11085587_S1.phased.genome.vcf");
 
-            string[] args = new string[] { "-bam", "myBam", "-vcf", "myVcf", "-out", outDir, };
+            string[] args = new string[] { "-bam", "myBam", "-vcf", "myVcf", "-out", outDir, "-ncfilter", "1"};
             CheckIt(inBam, inVcf, expVcf, outVcf, args);
 
         }
@@ -30,7 +30,7 @@ namespace Scylla.Tests
             var outDir = Path.Combine(TestPaths.LocalScratchDirectory, "SomaticExecution");
             var outVcf = Path.Combine(outDir, "small_S1.phased.genome.vcf");
 
-            string[] args = new string[] { "-bam", "myBam", "-vcf", "myVcf", "-out", outDir, "-ploidy", "somatic" };
+            string[] args = new string[] { "-bam", "myBam", "-vcf", "myVcf", "-out", outDir, "-ploidy", "somatic", "-ncfilter", "1" };
             CheckIt(inBam, inVcf, expSomaticVcf, outVcf, args);
 
         }
@@ -44,7 +44,9 @@ namespace Scylla.Tests
             var outDir = Path.Combine(TestPaths.LocalScratchDirectory, "DiploidExecution");
             var outVcf = Path.Combine(outDir, "small_S1.phased.genome.vcf");
 
-            string[] args = new string[] { "-bam", "myBam", "-vcf", "myVcf", "-out", outDir, "-crushvcf", "true", "-ploidy", "diploid", };
+            string[] args = new string[] { "-bam", "myBam", "-vcf", "myVcf", "-out", outDir, "-crushvcf", "true",
+                "-ploidy", "diploid", "-diploidINDELgenotypeparameters", "0.20,0.70,0.80",
+                "-diploidSNVgenotypeparameters", "0.20,0.70,0.80", "-ncfilter", "1" };
             CheckIt(inBam, inVcf, expDiploidVcf, outVcf, args);
 
         }

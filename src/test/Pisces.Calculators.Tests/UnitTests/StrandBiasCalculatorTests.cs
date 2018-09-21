@@ -88,7 +88,207 @@ namespace Pisces.Calculators.Tests
 
 
         /// <summary>
-        /// Verify SB can be calculated on forcedGT varaints that may not (shock!) be present on any strand at the 1% cutoff.
+        /// Verify SB can be calculated differently for Somatic and Diploid cases, with the expected behavior
+        /// </summary>
+        [Fact]
+        public void TestSBCalculationsForSomaticAndDiploidSettings()
+        {
+            double fwdCov = 10000;
+            double revCov = 10000;
+            double testVariantFreqA = 0.05;
+            double testVariantFreqB = 0.25;
+            double testVariantFreqC = 0.020;
+            double testVariantFreqD = 0.005;
+
+            var CoverageByStrandDirection = new int[] { (int)fwdCov, (int)revCov, 0 }; //forward,reverse,stitched
+            var EqualSupportByStrandDirectionA =  new int[] { (int)(fwdCov * testVariantFreqA), (int)(revCov * testVariantFreqA), 0 };
+            var EqualSupportByStrandDirectionB = new int[] { (int)(fwdCov * testVariantFreqB), (int)(revCov * testVariantFreqB), 0 };
+
+            //happy path, no bias
+
+            BiasResults SB_somatic = StrandBiasCalculator.CalculateStrandBiasResults(
+                CoverageByStrandDirection, EqualSupportByStrandDirectionB, 20, 0.01, 0.5, StrandBiasModel.Extended);
+
+            BiasResults SB_diploid = StrandBiasCalculator.CalculateStrandBiasResults(
+           CoverageByStrandDirection, EqualSupportByStrandDirectionB, 20, 0.20, 0.5, StrandBiasModel.Diploid);
+
+            Assert.Equal(SB_somatic.BiasScore, 0);
+            Assert.Equal(SB_somatic.GATKBiasScore, double.NegativeInfinity);
+            Assert.Equal(SB_somatic.BiasAcceptable, true);
+
+            Assert.Equal(SB_diploid.BiasScore, 0);
+            Assert.Equal(SB_diploid.GATKBiasScore, double.NegativeInfinity);
+            Assert.Equal(SB_diploid.BiasAcceptable, true);
+            
+            //bias if you are looking for a 20% variant (only one side is sufficient to call),
+            //but not biased in the somatic case (both show up sufficiently)
+
+            var SupportByStrandDirection_bias20 = new int[] { (int)(fwdCov * testVariantFreqA), (int)(revCov * testVariantFreqB), 0 };
+            SB_somatic = StrandBiasCalculator.CalculateStrandBiasResults(
+                CoverageByStrandDirection, SupportByStrandDirection_bias20, 20, 0.01, 0.5, StrandBiasModel.Extended);
+            SB_diploid = StrandBiasCalculator.CalculateStrandBiasResults(
+                CoverageByStrandDirection, SupportByStrandDirection_bias20, 20, 0.20, 0.5, StrandBiasModel.Diploid);
+
+            Assert.Equal(SB_somatic.BiasScore, 0);
+            Assert.Equal(SB_somatic.GATKBiasScore, double.NegativeInfinity);
+            Assert.Equal(SB_somatic.BiasAcceptable, true);
+
+            Assert.Equal(Math.Log10( SB_diploid.BiasScore), 74.3, 1); // a great big bias
+            Assert.Equal(SB_diploid.GATKBiasScore, 743.5, 1);
+            Assert.Equal(SB_diploid.BiasAcceptable, false);
+
+            //bias if you are looking for even a 1% variant or a 20% variant
+
+            var SupportByStrandDirection_bias01 = new int[] { (int)(fwdCov * testVariantFreqC), (int)(revCov * testVariantFreqD), 0 };
+            SB_somatic = StrandBiasCalculator.CalculateStrandBiasResults(
+                CoverageByStrandDirection, SupportByStrandDirection_bias01, 20, 0.01, 0.5, StrandBiasModel.Extended);
+            SB_diploid = StrandBiasCalculator.CalculateStrandBiasResults(
+                CoverageByStrandDirection, SupportByStrandDirection_bias01, 20, 0.20, 0.5, StrandBiasModel.Diploid);
+
+            Assert.Equal(SB_somatic.BiasScore, 1.000, 3);
+            Assert.Equal(SB_somatic.GATKBiasScore, 0.002, 3);
+            Assert.Equal(SB_somatic.BiasAcceptable, false);
+
+            Assert.Equal(SB_diploid.BiasScore, 1.000, 3);// a great big bias
+            Assert.Equal(SB_diploid.GATKBiasScore, 0.000, 3);
+            Assert.Equal(SB_diploid.BiasAcceptable, false);
+
+        }
+
+        [Fact]
+        public void TestDistributionFxn()
+        {
+
+
+            //trickier case, when we barely see it but we dont have enough reads...
+            var binomialHetAltExpected = new MathNet.Numerics.Distributions.Binomial(0.20, 100);
+
+
+            //sps you saw a variant at {15%,20%,25%}. is that real? given diploid expectations?
+            double ChanceYouGetUpTo15 = binomialHetAltExpected.CumulativeDistribution(15); //should be about half the time
+            double ChanceYouGetUpTo20 = binomialHetAltExpected.CumulativeDistribution(20); //should be about half the time
+            double ChanceYouGetUpTo25 = binomialHetAltExpected.CumulativeDistribution(25); //should be about half the time
+
+            Assert.Equal(ChanceYouGetUpTo15, 0.129, 3);
+            Assert.Equal(ChanceYouGetUpTo20, 0.559, 3);
+            Assert.Equal(ChanceYouGetUpTo25, 0.913, 3);
+        }
+
+        [Fact]
+        public  void TestPopulateDiploidStats()
+        {
+
+            double noiseFreq = 0.01;
+            double diploidThreshold = 0.20;
+
+            //Cases where the variant obviously exisits
+
+            StrandBiasStats stats = new StrandBiasStats(100, 100); //#observations, coverage
+            StrandBiasCalculator.PopulateDiploidStats(stats, noiseFreq, diploidThreshold);
+            Assert.Equal(stats.ChanceFalseNeg, 1, 3); 
+            Assert.Equal(stats.ChanceFalsePos, 0, 3); 
+            Assert.Equal(stats.ChanceVarFreqGreaterThanZero, 1, 3);
+
+
+            stats = new StrandBiasStats(50, 100); //#observations, coverage
+            StrandBiasCalculator.PopulateDiploidStats(stats, noiseFreq, diploidThreshold);
+            Assert.Equal(stats.ChanceFalseNeg, 1, 3);
+            Assert.Equal(stats.ChanceFalsePos, 0, 3); 
+            Assert.Equal(stats.ChanceVarFreqGreaterThanZero, 1, 3);
+
+
+            stats = new StrandBiasStats(20, 100); //#observations, coverage
+            StrandBiasCalculator.PopulateDiploidStats(stats, noiseFreq, diploidThreshold);
+            Assert.Equal(stats.ChanceFalseNeg, 1, 3); 
+            Assert.Equal(stats.ChanceFalsePos, 0, 3); 
+            Assert.Equal(stats.ChanceVarFreqGreaterThanZero, 1, 3);
+
+            //
+
+            //Cases where the variant becomes less obvious
+
+            stats = new StrandBiasStats(15, 100); //#observations, coverage
+            StrandBiasCalculator.PopulateDiploidStats(stats, noiseFreq, diploidThreshold);
+            Assert.Equal(stats.ChanceFalseNeg, 0.129, 3); //Chance this is a real variant ( a false neg if we filtered it)//it could happen that this is still real
+            Assert.Equal(stats.ChanceFalsePos, 0.049, 3); //chance this is due to noise ( a false pos if we left it in). not very likely
+            Assert.Equal(stats.ChanceVarFreqGreaterThanZero, 0.129, 3);
+
+
+            stats = new StrandBiasStats(10, 100); //#observations, coverage
+            StrandBiasCalculator.PopulateDiploidStats(stats, noiseFreq, diploidThreshold);
+            Assert.Equal(stats.ChanceFalseNeg, 0.006, 3); //Chance this is a real variant ( a false neg if we filtered it)//it could happen that this is still real
+            Assert.Equal(stats.ChanceFalsePos, 0.417, 3); //chance this is due to noise ( a false pos if we left it in). not very likely
+            Assert.Equal(stats.ChanceVarFreqGreaterThanZero, 0.006, 3);
+
+
+            stats = new StrandBiasStats(1, 100); //#observations, coverage
+            StrandBiasCalculator.PopulateDiploidStats(stats, noiseFreq, diploidThreshold);
+            Assert.Equal(stats.ChanceFalseNeg, 0, 3); //Chance this is a real variant ( a false neg if we filtered it)//it could happen that this is still real
+            Assert.Equal(stats.ChanceFalsePos, 1, 3); //chance this is due to noise ( a false pos if we left it in). not very likely
+            Assert.Equal(stats.ChanceVarFreqGreaterThanZero, 0, 3);
+
+            //a few pathological cases
+
+            stats = new StrandBiasStats(0, 100); //#observations, coverage
+            StrandBiasCalculator.PopulateDiploidStats(stats, noiseFreq, diploidThreshold);
+            Assert.Equal(stats.ChanceFalseNeg, 0, 3); 
+            Assert.Equal(stats.ChanceFalsePos, 1, 3); 
+            Assert.Equal(stats.ChanceVarFreqGreaterThanZero, 0, 3);
+
+
+            stats = new StrandBiasStats(10, 0); //#observations, coverage
+            StrandBiasCalculator.PopulateDiploidStats(stats, noiseFreq, diploidThreshold);
+            Assert.Equal(stats.ChanceFalseNeg, 1, 3); 
+            Assert.Equal(stats.ChanceFalsePos, 0, 3);
+            Assert.Equal(stats.ChanceVarFreqGreaterThanZero, 1, 3);
+
+
+            stats = new StrandBiasStats(0, 0); //#observations, coverage
+            StrandBiasCalculator.PopulateDiploidStats(stats, noiseFreq, diploidThreshold);
+            Assert.Equal(stats.ChanceFalseNeg, 1, 3);   //not a meaningful answer, but at least nothing explodes.
+            Assert.Equal(stats.ChanceFalsePos, 0, 3); 
+            Assert.Equal(stats.ChanceVarFreqGreaterThanZero, 1, 3);
+
+
+            stats = new StrandBiasStats(101, 100); //#observations, coverage
+            StrandBiasCalculator.PopulateDiploidStats(stats, noiseFreq, diploidThreshold);
+            Assert.Equal(stats.ChanceFalseNeg, 1, 3); 
+            Assert.Equal(stats.ChanceFalsePos, 0, 3); 
+            Assert.Equal(stats.ChanceVarFreqGreaterThanZero, 1, 3);
+
+            //check it reacts properly to depth. Ie, a 15% variant in N of 20 isnt a big deal,
+            //but a 15% varaint in N of 100000 seems rather low.
+
+            stats = new StrandBiasStats((20.0*0.15), 20); //#observations, coverage
+            StrandBiasCalculator.PopulateDiploidStats(stats, noiseFreq, diploidThreshold);
+            Assert.Equal(stats.ChanceFalseNeg, 0.411, 3);  //note, the believability of this variant goes up from 0.129
+            Assert.Equal(stats.ChanceFalsePos, 0.143, 3);   //but its also more possible to be noise. Basically, the whole picture is more murky
+            Assert.Equal(stats.ChanceVarFreqGreaterThanZero, 0.411, 3);
+
+            stats = new StrandBiasStats(15, 100); //#observations, coverage
+            StrandBiasCalculator.PopulateDiploidStats(stats, noiseFreq, diploidThreshold);
+            Assert.Equal(stats.ChanceFalseNeg, 0.129, 3); 
+            Assert.Equal(stats.ChanceFalsePos, 0.049, 3); 
+            Assert.Equal(stats.ChanceVarFreqGreaterThanZero, 0.129, 3);
+
+            //slightly more lilkey to be a variant than noise, but neither hypothesis fits.
+            stats = new StrandBiasStats((500.0 * 0.15), 500); //#observations, coverage
+            StrandBiasCalculator.PopulateDiploidStats(stats, noiseFreq, diploidThreshold);
+            Assert.Equal(stats.ChanceFalseNeg, 0.002, 3);
+            Assert.Equal(stats.ChanceFalsePos, 0, 3);
+            Assert.Equal(stats.ChanceVarFreqGreaterThanZero, 0.002, 3);
+
+            //it doesnt look like noise or a varaint. no hypothesis is reasonable.
+            stats = new StrandBiasStats((100000.0 * 0.15), 100000); //#observations, coverage
+            StrandBiasCalculator.PopulateDiploidStats(stats, noiseFreq, diploidThreshold);
+            Assert.Equal(stats.ChanceFalseNeg, 0, 3); 
+            Assert.Equal(stats.ChanceFalsePos, 0, 3); 
+            Assert.Equal(stats.ChanceVarFreqGreaterThanZero, 0, 3);
+
+        }
+
+        /// <summary>
+        /// Verify SB can be calculated on forcedGT variants that may not (shock!) be present on any strand at the 1% cutoff.
         /// </summary>
         [Fact]
         public void TestSBCalculationsForForcedVariants()
@@ -98,24 +298,11 @@ namespace Pisces.Calculators.Tests
             var SupportByStrandDirection = new int[] { 54,11,0 };
 
             BiasResults SB = StrandBiasCalculator.CalculateStrandBiasResults(
-                CoverageByStrandDirection, SupportByStrandDirection, 20, 0.5, StrandBiasModel.Poisson);
+                CoverageByStrandDirection, SupportByStrandDirection, 20, 0.01, 0.5, StrandBiasModel.Poisson);
 
-            Assert.Equal(SB.BiasScore, double.PositiveInfinity);
+            Assert.Equal(SB.BiasScore, 1.0);
 
-            Assert.Equal(SB.GATKBiasScore, double.PositiveInfinity);
-
-
-            //note:
-            //+infinity is an acceptable result. In the forced GT case 
-            // We are calculating SB for variants whose chance of existing (given the observations)
-            // is zero. (or subltly negative, given numerical limitations of the CDF alg).
-            //Since the SB calculation compares the chance that a variant is present on both strands vs the chance that it is present on exactly one strand, and not on the other.
-            // When a forced allele is very low frequency, the chance that it is one both strands AND the chance that its on exactly one strand are BOTH essentially zero. 
-            //we end up with a zero in the denominator of the liklihood calculation.
-            //This is OK.
-            // P(variant exisits on ZERO strands) >> P (variant exists on exactly one strand) >> P (variant exists on both strands)
-            //
-            //The +infinity bias score will be capped at 0 by the vcf formatting code, since 0 is the max value for the GATK bias score.
+            Assert.Equal(SB.GATKBiasScore, 0);
 
         }
 
@@ -195,7 +382,7 @@ namespace Pisces.Calculators.Tests
                         }
             };
 
-            StrandBiasCalculator.Compute(variant, support, estimatedBaseCallQuality, threshold, model);
+            StrandBiasCalculator.Compute(variant, support, estimatedBaseCallQuality, 0.01, threshold, model);
             Assert.Equal(origForwardSupport + ((float)origStitchedSupport/2), variant.StrandBiasResults.ForwardStats.Support);
             Assert.Equal(origReverseSupport + ((float)origStitchedSupport / 2), variant.StrandBiasResults.ReverseStats.Support);
             return variant.StrandBiasResults;

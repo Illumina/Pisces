@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using BamStitchingLogic;
 using Pisces.Processing.Utility;
 
 namespace Stitcher

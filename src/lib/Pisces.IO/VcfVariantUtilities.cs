@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using Pisces.Domain;
 using Pisces.IO.Sequencing;
 using Pisces.Domain.Models;
 using Pisces.Domain.Models.Alleles;
@@ -136,19 +137,21 @@ namespace Pisces.IO
             return variants;
         }
 
-        public static IEnumerable<CalledAllele> Convert(IEnumerable<VcfVariant> vcfVariants)
+        public static IEnumerable<CalledAllele> Convert(IEnumerable<VcfVariant> vcfVariants, bool shouldOutputRcCounts = false, 
+            bool shouldOutputTsCounts =false, bool shouldTrimComplexAlleles = true)
         {
             var unpackedVariants = UnpackVariants(vcfVariants);
             var alleles = new List<CalledAllele>();
 
             foreach (var unpackedVar in unpackedVariants)
             {
-                alleles.Add(ConvertUnpackedVariant(unpackedVar));
+                alleles.Add(ConvertUnpackedVariant(unpackedVar, shouldOutputRcCounts, shouldOutputTsCounts, shouldTrimComplexAlleles));
             }
 
             return alleles;
         }
-        public static CalledAllele ConvertUnpackedVariant(VcfVariant v)
+        public static CalledAllele ConvertUnpackedVariant(VcfVariant v, bool shouldOutputRcCounts = false,
+            bool shouldOutputTsCounts=false, bool shouldTrimComplexAlleles = true)
         {
             if (v == null)
                 return null;
@@ -168,6 +171,7 @@ namespace Pisces.IO
             var noiseLevel = 1;
             var fractionNocalls = 0f;
             var strandBiasInGATKScaleCoords = -100f;
+            var tsCounts = new List<string>();
 
             if (v.InfoFields.ContainsKey("DP"))
                 totalCoverage = Int32.Parse(v.InfoFields["DP"]);
@@ -200,6 +204,11 @@ namespace Pisces.IO
 
                 referenceSupport = int.Parse(ADstring[0]);
                 altSupport = isRef ? 0 : int.Parse(ADstring[1]);
+                if (shouldOutputRcCounts)
+                {
+                    if (v.Genotypes[0].ContainsKey("US"))
+                        tsCounts = v.Genotypes[0]["US"].Split(',').ToList();
+                }
 
                 if (isRef)
                     numAlts = 0;
@@ -230,15 +239,73 @@ namespace Pisces.IO
                 StrandBiasResults = strandBiasResults,
                 IsForcedToReport = filters.Contains(FilterType.ForcedReport)
             };
-
+           
             allele.SetType();
             allele.ForceFractionNoCalls(fractionNocalls);
 
             //rescue attempt for complex types, ie ACGT -> ACGTGG
-            if (allele.Type == AlleleCategory.Unsupported)
+            if ((allele.Type == AlleleCategory.Unsupported) && shouldTrimComplexAlleles)
                 TrimUnsupportedAlleleType(allele);
 
+            FillInCollapsedReadsCount(shouldOutputRcCounts, shouldOutputTsCounts, allele, tsCounts);
+
             return allele;
+        }
+
+        private static void FillInCollapsedReadsCount(bool shouldOutputRcCounts, bool shouldOutputTsCounts, CalledAllele allele, List<string> tsCounts)
+        {
+            if (shouldOutputRcCounts)
+            {
+                int i = 0;
+                if (shouldOutputTsCounts)
+                {
+                    allele.ReadCollapsedCountsMut[(int) ReadCollapsedType.DuplexStitched] =
+                        System.Convert.ToInt32(tsCounts[i++]);
+                    allele.ReadCollapsedCountsMut[(int) ReadCollapsedType.DuplexNonStitched] =
+                        System.Convert.ToInt32(tsCounts[i++]);
+                    allele.ReadCollapsedCountsMut[(int) ReadCollapsedType.SimplexForwardStitched] =
+                        System.Convert.ToInt32(tsCounts[i++]);
+                    allele.ReadCollapsedCountsMut[(int) ReadCollapsedType.SimplexForwardNonStitched] =
+                        System.Convert.ToInt32(tsCounts[i++]);
+                    allele.ReadCollapsedCountsMut[(int) ReadCollapsedType.SimplexReverseStitched] =
+                        System.Convert.ToInt32(tsCounts[i++]);
+                    allele.ReadCollapsedCountsMut[(int) ReadCollapsedType.SimplexReverseNonStitched] =
+                        System.Convert.ToInt32(tsCounts[i++]);
+                    allele.ReadCollapsedCountTotal[(int) ReadCollapsedType.DuplexStitched] =
+                        System.Convert.ToInt32(tsCounts[i++]);
+                    allele.ReadCollapsedCountTotal[(int) ReadCollapsedType.DuplexNonStitched] =
+                        System.Convert.ToInt32(tsCounts[i++]);
+                    allele.ReadCollapsedCountTotal[(int) ReadCollapsedType.SimplexForwardStitched] =
+                        System.Convert.ToInt32(tsCounts[i++]);
+                    allele.ReadCollapsedCountTotal[(int) ReadCollapsedType.SimplexForwardNonStitched] =
+                        System.Convert.ToInt32(tsCounts[i++]);
+                    allele.ReadCollapsedCountTotal[(int) ReadCollapsedType.SimplexReverseStitched] =
+                        System.Convert.ToInt32(tsCounts[i++]);
+                    allele.ReadCollapsedCountTotal[(int) ReadCollapsedType.SimplexReverseNonStitched] =
+                        System.Convert.ToInt32(tsCounts[i++]);
+                }
+                else
+                {
+                    allele.ReadCollapsedCountsMut[(int) ReadCollapsedType.DuplexStitched] =
+                        System.Convert.ToInt32(tsCounts[i++]);
+                    allele.ReadCollapsedCountsMut[(int) ReadCollapsedType.DuplexNonStitched] =
+                        System.Convert.ToInt32(tsCounts[i++]);
+                    allele.ReadCollapsedCountsMut[(int) ReadCollapsedType.SimplexStitched] =
+                        System.Convert.ToInt32(tsCounts[i++]);
+                    allele.ReadCollapsedCountsMut[(int) ReadCollapsedType.SimplexNonStitched] =
+                        System.Convert.ToInt32(tsCounts[i++]);
+                    allele.ReadCollapsedCountTotal[(int) ReadCollapsedType.DuplexStitched] =
+                        System.Convert.ToInt32(tsCounts[i++]);
+                    allele.ReadCollapsedCountTotal[(int) ReadCollapsedType.DuplexNonStitched] =
+                        System.Convert.ToInt32(tsCounts[i++]);
+                    allele.ReadCollapsedCountTotal[(int) ReadCollapsedType.SimplexStitched] =
+                        System.Convert.ToInt32(tsCounts[i++]);
+                    allele.ReadCollapsedCountTotal[(int) ReadCollapsedType.SimplexNonStitched] =
+                        System.Convert.ToInt32(tsCounts[i++]);
+                }
+                if(tsCounts.Count > i)
+                    throw new ArgumentOutOfRangeException($"{shouldOutputTsCounts} don't match US field {string.Join(" ", tsCounts)}");
+            }
         }
 
         /// <summary>
@@ -376,6 +443,8 @@ namespace Pisces.IO
 
                 else if (filter == "forcedreport")
                     filterAsEnum.Add(FilterType.ForcedReport);
+                else if (filter == "nc")
+                    filterAsEnum.Add(FilterType.NoCall);
 
             }
 

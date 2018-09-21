@@ -3,10 +3,10 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using RealignIndels.Logic.TargetCalling;
-using RealignIndels.Models;
 using Pisces.Domain.Models.Alleles;
 using Pisces.Domain.Types;
+using ReadRealignmentLogic.Models;
+using ReadRealignmentLogic.TargetCalling;
 using Xunit;
 
 namespace RealignIndels.Tests.UnitTests

@@ -12,7 +12,7 @@ namespace Pisces.Calculators.Tests
     {
 
         [Fact]
-        [Trait("ReqID", "SDS-50")]
+        [Trait("ReqID", "PICS-961")]
         public void SomaticGenotypeScenarios()
         {
             ExecuteSomaticGenotypeTest(99, 0.5f, false, Genotype.HeterozygousAltRef, new List<FilterType> { FilterType.LowDepth });
@@ -27,7 +27,7 @@ namespace Pisces.Calculators.Tests
         }
 
         [Fact]
-        [Trait("ReqID", "SDS-??")]
+        [Trait("ReqID", "PICS-961")]
         public void DiploidGenotypeScenarios()
         {
             //https://confluence.illumina.com/display/BIOINFO/Pisces+Germline+Variant+Calling+Requirements
@@ -135,7 +135,8 @@ namespace Pisces.Calculators.Tests
             //set filters for at least one allele. they should affect all results.
             alleles[0].Filters = filters;
 
-            var GTC = new DiploidGenotypeCalculator();
+            DiploidGenotypeCalculator GTC = GetOriginalSettings();
+
             GTC.MinDepthToGenotype = 100;
             var allelesToPrune = GTC.SetGenotypes(alleles);
 
@@ -146,8 +147,16 @@ namespace Pisces.Calculators.Tests
             }
         }
 
+        public static DiploidGenotypeCalculator GetOriginalSettings()
+        {
+            return new DiploidGenotypeCalculator(
+                new Domain.Options.DiploidThresholdingParameters(new float[] { .20F, .70F, .80F }),
+                    new Domain.Options.DiploidThresholdingParameters(new float[] { .20F, .70F, .80F }),
+                    0, 0, 0);
+        }
+
         [Fact]
-        [Trait("ReqID", "SDS-??")]
+        [Trait("ReqID", "PICS-961")]
         private void ExecuteDiploidIndelGenotypeTest()
         {
             //test cases:
@@ -335,6 +344,7 @@ namespace Pisces.Calculators.Tests
         }
 
         [Fact]
+        [Trait("ReqID", "PICS-961")]
         public void DiploidScenariosWithIndels()
         {
             // what if the frequencies of co-located variants are identical?
@@ -354,7 +364,8 @@ namespace Pisces.Calculators.Tests
             indel2.TotalCoverage = 7;
             indel2.AlleleSupport = 3;
 
-            var GTC = new DiploidGenotypeCalculator();
+            var GTC = GetOriginalSettings();
+
             var allelesToPrune = GTC.SetGenotypes(new List<CalledAllele> { indel1, indel2 });
 
             Assert.Equal(0, allelesToPrune.Count);
@@ -385,6 +396,7 @@ namespace Pisces.Calculators.Tests
 
 
         [Fact]
+        [Trait("ReqID", "PICS-961")]
         public void DiploidScenariosWithMNVs()
         {
             // what if the frequencies of co-located variants are identical?
@@ -402,7 +414,8 @@ namespace Pisces.Calculators.Tests
             mnv2.TotalCoverage = 7;
             mnv2.AlleleSupport = 3;
 
-            var GTC = new DiploidGenotypeCalculator();
+            var GTC = GetOriginalSettings();
+
             var allelesToPrune = GTC.SetGenotypes(new List<CalledAllele> { mnv1, mnv2 });
 
             Assert.Equal(0, allelesToPrune.Count);
@@ -430,5 +443,7 @@ namespace Pisces.Calculators.Tests
             Assert.Equal(SortedList1[0], SortedList2[0]);
             Assert.Equal(SortedList1[1], SortedList2[1]);
         }
+
+       
     }
 }

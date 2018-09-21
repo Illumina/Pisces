@@ -11,8 +11,6 @@ namespace RealignIndels
 {
     public class HygeaOptions : BamProcessorOptions
     {
-        public const string DefaultLogFolderName = "Logs";
-        public const string LogFileNameBase = "IndelRealignmentLog.txt";
         public float IndelFreqCutoff = 0.01f;
         public int MinimumBaseCallQuality = 10;
         public int RealignWindowSize = 250;
@@ -22,8 +20,9 @@ namespace RealignIndels
         public int AnchorSizeThreshold = 25;
         public bool SkipDuplicates = false;
         public bool SkipAndRemoveDuplicates = true;
-        public bool RemaskSoftclips = true;
+        public bool RemaskSoftclips = false;
         public bool MaskPartialInsertion = false;
+        public int MinimumUnanchoredInsertionLength = 0;
         public bool AllowRescoringOrigZero = true;
         public int MaxRealignShift = 250;
         public bool TryRealignSoftclippedReads = true;
@@ -54,7 +53,7 @@ namespace RealignIndels
 
 
 
-
+        /*
         public string LogFolder
         {
             get
@@ -62,7 +61,7 @@ namespace RealignIndels
 
                 return OutputDirectory ?? Path.Combine(Path.GetDirectoryName(BAMPaths[0]), DefaultLogFolderName);
             }
-        }
+        }*/
 
         public bool UseAlignmentScorer { get; set; }
 

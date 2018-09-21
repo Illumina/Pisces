@@ -1,0 +1,34 @@
+##fileformat=VCFv4.1
+##fileDate=20180423
+##source=testhost 15.0.0.0
+##testhost_cmdline="""
+##reference=C:git\Pisces5_Clean2\Pisces5\src\test\Pisces.Tests\bin\Debug\netcoreapp2.0\SharedData\Genomes\PhiX\WholeGenomeFasta
+##ALT=<ID=<M>,Description="There is an overlapping other allele that has been called in a separate VCF record">
+##INFO=<ID=DP,Number=1,Type=Integer,Description="Total Depth">
+##FILTER=<ID=q30,Description="Quality score less than 30">
+##FILTER=<ID=LowDP,Description="Low coverage (DP tag), therefore no genotype called">
+##FILTER=<ID=SB,Description="Variant strand bias too high">
+##FILTER=<ID=R5x9,Description="Repeats of part or all of the variant allele (max repeat length 5) in the reference greater than or equal to 9">
+##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">
+##FORMAT=<ID=GQ,Number=1,Type=Integer,Description="Genotype Quality">
+##FORMAT=<ID=AD,Number=.,Type=Integer,Description="Allele Depth">
+##FORMAT=<ID=DP,Number=1,Type=Integer,Description="Total Depth Used For Variant Calling">
+##FORMAT=<ID=VF,Number=.,Type=Float,Description="Variant Frequency">
+##FORMAT=<ID=NL,Number=1,Type=Integer,Description="Applied BaseCall Noise Level">
+##FORMAT=<ID=SB,Number=1,Type=Float,Description="StrandBias Score">
+##contig=<ID=phix,length=5386>
+#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	PhiX_S3.bam
+phix	2	.	A	C	16	q30	DP=248	GT:GQ:AD:DP:VF:NL:SB	0/1:16:246,1:248:0.00403:40:-16.9682
+phix	2	.	AGTTT	GGTTG	16	q30	DP=248	GT:GQ:AD:DP:VF:NL:SB	0/1:16:247,1:248:0.00403:40:-16.9682
+phix	3	.	G	.	100	PASS	DP=248	GT:GQ:AD:DP:VF:NL:SB	0/.:100:247:248:0.00403:40:-100.0000
+phix	4	.	T	G	16	q30	DP=248	GT:GQ:AD:DP:VF:NL:SB	0/1:16:246,1:248:0.00403:40:-16.9682
+phix	5	.	T	G	16	q30	DP=248	GT:GQ:AD:DP:VF:NL:SB	0/1:16:246,1:248:0.00403:40:-16.9682
+phix	6	.	T	.	100	PASS	DP=248	GT:GQ:AD:DP:VF:NL:SB	0/.:100:247:248:0.00403:40:-100.0000
+phix	7	.	T	C	100	PASS	DP=248	GT:GQ:AD:DP:VF:NL:SB	0/0:0:248:248:0.00000:40:-100.0000
+phix	8	.	A	T	16	q30	DP=248	GT:GQ:AD:DP:VF:NL:SB	0/1:16:247,1:248:0.00403:40:-16.9682
+phix	9	.	T	.	100	PASS	DP=248	GT:GQ:AD:DP:VF:NL:SB	0/0:0:248:248:0.00000:40:-100.0000
+phix	10	.	CGCC	TTTT	100	PASS	DP=248	GT:GQ:AD:DP:VF:NL:SB	0/0:0:248:248:0.00000:40:-100.0000
+phix	11	.	G	.	100	PASS	DP=248	GT:GQ:AD:DP:VF:NL:SB	0/0:0:248:248:0.00000:40:-100.0000
+phix	12	.	C	G	16	q30	DP=248	GT:GQ:AD:DP:VF:NL:SB	0/1:16:246,1:248:0.00403:40:-16.9682
+phix	19	.	GACGCAG	TACGCAT	16	q30	DP=248	GT:GQ:AD:DP:VF:NL:SB	0/1:16:247,1:248:0.00403:40:-16.9682
+phix	20	.	A	.	100	PASS	DP=248	GT:GQ:AD:DP:VF:NL:SB	0/.:100:247:248:0.00403:40:-100.0000

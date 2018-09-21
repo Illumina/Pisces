@@ -266,7 +266,7 @@ namespace Pisces.Domain.Utility
         {
             var insertionLength = 0;
             var cigarIndex = cigar.Count - 1;
-
+    
             if (cigar[cigarIndex].Type == 'S')
                 cigarIndex--;
 

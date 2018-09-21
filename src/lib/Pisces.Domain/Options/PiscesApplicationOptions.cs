@@ -40,7 +40,6 @@ namespace Pisces.Domain.Options
 
         #region Serializeable Types and Members
 
-        public string LogFileNameBase = "PiscesLog.txt";
         public VcfWritingParameters VcfWritingParameters = new VcfWritingParameters();
         public VariantCallingParameters VariantCallingParameters = new VariantCallingParameters();
         public BamFilterParameters BamFilterParameters = new BamFilterParameters();
@@ -64,30 +63,8 @@ namespace Pisces.Domain.Options
         public bool ExcludeMNVsFromCollapsing = false;
         public bool SkipNonIntervalAlignments = false;  //keep this off. it currently has bugs, speed issues, and no plan to fix it)
 	    public List<string> ForcedAllelesFileNames = new List<string>();
-
-        public string LogFolder
-        {
-            get
-            {
-                if (BAMPaths == null || BAMPaths.Length == 0)
-                    throw new ArgumentException("Unable to start logging: cannot determine log folder. BamPaths are used to determine default log path, and none were supplied.");
-
-                var firstBamFolder = Path.GetDirectoryName(BAMPaths[0]);
-
-                if (string.IsNullOrEmpty(OutputDirectory))
-                {
-                    if (string.IsNullOrEmpty(firstBamFolder)) //the rare case when the input bam is "mybam.bam" nad has no parent folder
-                        return DefaultLogFolderName;
-                    else
-                        return Path.Combine(firstBamFolder, DefaultLogFolderName); //no output folder was given
-                }
-                else //an output folder was given
-                {
-                    return Path.Combine(OutputDirectory, DefaultLogFolderName);
-
-                }
-            }
-        }
+        public bool UseStitchedXDInfo = false;
+        public uint TrackedAnchorSize = 5;
 
         #endregion
         // ReSharper restore InconsistentNaming
@@ -95,7 +72,7 @@ namespace Pisces.Domain.Options
 
         public void SetDerivedParameters()
         {
-          
+
             int processorCoreCount = Environment.ProcessorCount;
             if (MaxNumThreads > 0)
                 MaxNumThreads = Math.Min(processorCoreCount, MaxNumThreads);
@@ -104,69 +81,5 @@ namespace Pisces.Domain.Options
             VcfWritingParameters.SetDerivedParameters(VariantCallingParameters);
         }
 
-  
-
-        public void ValidateAndSetDerivedValues()
-        {
-            bool bamPathsSpecified = ValidateInputPaths();
-
-            SetDerivedParameters();
-            BamFilterParameters.Validate();
-            VariantCallingParameters.Validate();
-
-            if (CallMNVs)
-            {
-                ValidationHelper.VerifyRange(MaxSizeMNV, 1, RegionSize, "MaxPhaseSNPLength");
-                ValidationHelper.VerifyRange(MaxGapBetweenMNV, 0, int.MaxValue, "MaxGapPhasedSNP");
-            }
-            ValidationHelper.VerifyRange(MaxNumThreads, 1, int.MaxValue, "MaxNumThreads");
-            ValidationHelper.VerifyRange(CollapseFreqThreshold, 0f, float.MaxValue, "CollapseFreqThreshold");
-            ValidationHelper.VerifyRange(CollapseFreqRatioThreshold, 0f, float.MaxValue, "CollapseFreqRatioThreshold");
-
-            if (!string.IsNullOrEmpty(PriorsPath))
-            {
-                if (!File.Exists(PriorsPath))
-                    throw new ArgumentException(string.Format("PriorsPath '{0}' does not exist.", PriorsPath));
-            }
-
-
-
-            if (ThreadByChr && !InsideSubProcess && !string.IsNullOrEmpty(ChromosomeFilter))
-                throw new ArgumentException("Cannot thread by chromosome when filtering on a particular chromosome.");
-
-            if (!string.IsNullOrEmpty(OutputDirectory) && bamPathsSpecified && (BAMPaths.Length > 1))
-            {
-                //make sure none of the input BAMS have the same name. Or else we will have an output collision.
-                for (int i = 0; i < BAMPaths.Length; i++)
-                {
-                    for (int j = i + 1; j < BAMPaths.Length; j++)
-                    {
-                        if (i == j)
-                            continue;
-
-                        var fileA = Path.GetFileName(BAMPaths[i]);
-                        var fileB = Path.GetFileName(BAMPaths[j]);
-
-                        if (fileA == fileB)
-                        {
-                            throw new ArgumentException(string.Format("VCF file name collision. Cannot process two different bams with the same name {0} into the same output folder {1}.", fileA, OutputDirectory));
-                        }
-                    }
-                }
-            }
-
-	        if (ForcedAllelesFileNames!=null && ForcedAllelesFileNames.Count > 0 && !VcfWritingParameters.AllowMultipleVcfLinesPerLoci)
-	        {
-		        throw new ArgumentException("Cannot support forced Alleles when crushing vcf lines, please set -crushvcf false");
-	        }
-        }
-
-
-        private bool ValidateInputPaths()
-        {
-            //will throw if invalid
-            return(ValidateBamProcessorPaths(BAMPaths, GenomePaths, IntervalPaths));
-        }
-         
     }
 }

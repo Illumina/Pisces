@@ -3,15 +3,16 @@ using System.Collections.Generic;
 using System.Linq;
 using Alignment.Domain.Sequencing;
 using RealignIndels.Interfaces;
-using RealignIndels.Models;
-using RealignIndels.Utlity;
 using Pisces.Domain.Interfaces;
 using Pisces.Domain.Models;
 using Pisces.Domain.Models.Alleles;
 using Pisces.Processing.Utility;
 using Common.IO.Utility;
-using Hygea.Logic;
 using Pisces.Processing.Interfaces;
+using ReadRealignmentLogic;
+using ReadRealignmentLogic.Interfaces;
+using ReadRealignmentLogic.Models;
+using ReadRealignmentLogic.Utlity;
 
 namespace RealignIndels.Logic
 {
@@ -44,8 +45,8 @@ namespace RealignIndels.Logic
         public ChrRealigner(ChrReference chrReference, IAlignmentExtractor extractorForCandidates,
             IAlignmentExtractor extractorForRealign, IIndelCandidateFinder indelFinder, IIndelRanker indelRanker,
             ITargetCaller caller, RealignStateManager stateManager, IRealignmentWriter writer,
-            List<CandidateAllele> knownIndels = null, int maxIndelSize = 25, bool tryThree = false, 
-            int anchorSizeThreshold = 10, bool skipDuplicates = false, bool skipAndRemoveDuplicates = false, bool remaskSoftclips = true, bool maskPartialInsertion = false, 
+            List<CandidateAllele> knownIndels = null, int maxIndelSize = 25, bool tryThree = false,
+            int anchorSizeThreshold = 10, bool skipDuplicates = false, bool skipAndRemoveDuplicates = false, bool remaskSoftclips = true, bool maskPartialInsertion = false, int minimumUnanchoredInsertionLength = 0,
             bool tryRealignCleanSoftclippedReads = true, bool allowRescoringOrig0 = true, int maxRealignShift = 250, AlignmentScorer alignmentScorer = null, bool debug = false)
         {
             _chrReference = chrReference;
@@ -76,7 +77,7 @@ namespace RealignIndels.Logic
                 _alignmentComparer = new BasicAlignmentComparer();
             }
 
-            _readRealigner = new ReadRealigner(_alignmentComparer, tryThree, remaskSoftclips, maskPartialInsertion);
+            _readRealigner = new ReadRealigner(_alignmentComparer, tryThree, remaskSoftclips, maskPartialInsertion, minimumUnanchoredInsertionLength);
 
         }
 
@@ -189,8 +190,8 @@ namespace RealignIndels.Logic
                     ) 
                 {
                     bamAlignment.Position = realignResult.Position - 1; // 0 base
-                    bamAlignment.CigarData = realignResult.Cigar;                    
-                    bamAlignment.UpdateIntTagData("NM", realignResult.NumMismatches); // update NM tag
+                    bamAlignment.CigarData = realignResult.Cigar;
+                    bamAlignment.UpdateIntTagData("NM", realignResult.NumMismatches + realignResult.NumIndelBases); // update NM tag (edit distance)
 
                     if (bamAlignment.MapQuality <= 20 && realignResult.NumMismatches == 0 && (_allowRescoringOrig0 || bamAlignment.MapQuality > 0))
                         bamAlignment.MapQuality = 40; // todo what to set this to?  
@@ -225,7 +226,7 @@ namespace RealignIndels.Logic
         }
         private bool RealignmentBetterOrEqual(RealignmentResult realignResult, AlignmentSummary originalAlignmentSummary)
         {
-            return _alignmentComparer.CompareAlignments(realignResult, originalAlignmentSummary) >= 0;
+            return _alignmentComparer.CompareAlignmentsWithOriginal(realignResult, originalAlignmentSummary) >= 0;
         }
 
         private bool RealignmentIsWithinRange(RealignmentResult realignResult, BamAlignment bamAlignment)
@@ -239,7 +240,7 @@ namespace RealignIndels.Logic
 
             if (isRealignableSoftclip) return false;
 
-            if (originalResult.NumMismatches == 0 && originalResult.NumIndels == 0) return true;
+            if (originalResult.NumMismatchesIncludeSoftclip == 0 && originalResult.NumIndels == 0) return true;
 
             // need to try against one of the priors
             // if (originalResult.NumIndels > 0) return false; 

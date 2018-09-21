@@ -14,7 +14,6 @@ using Xunit;
 
 namespace Pisces.Processing.Tests.UnitTests
 {
-
     public class BlockStateManagerTests
     {
         private ChrReference _chrReference;

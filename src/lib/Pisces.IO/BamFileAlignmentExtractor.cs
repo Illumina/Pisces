@@ -38,7 +38,7 @@ namespace Pisces.IO
             }
         }
 
-        public BamFileAlignmentExtractor(string bamFilePath, string chromosomeFilter = null)
+        public BamFileAlignmentExtractor(string bamFilePath, bool commandLineSaysStitched = false, string chromosomeFilter = null)
         {
             if (!File.Exists(bamFilePath))
                 throw new ArgumentException(string.Format("Bam file '{0}' does not exist.", bamFilePath));
@@ -47,6 +47,7 @@ namespace Pisces.IO
                 throw new ArgumentException(string.Format("Bai file '{0}.bai' does not exist.", bamFilePath));
 
             _bamFilePath = bamFilePath;
+            _bamIsStitched = commandLineSaysStitched;
             InitializeReader(chromosomeFilter);
         }
 
@@ -86,7 +87,10 @@ namespace Pisces.IO
         {
             _bamReader = new BamReader(_bamFilePath);
             _references = _bamReader.GetReferences().OrderBy(r => r.Index).ToList();
-            _bamIsStitched = CheckIfBamHasBeenStitched(_bamReader.GetHeader());
+
+            if (!_bamIsStitched)
+                _bamIsStitched = CheckBamHeaderIfBamHasBeenStitched(_bamReader.GetHeader());
+
             SourceIsCollapsed = CheckIfBamHasBeenCollapsed(_bamReader.GetHeader()); 
 
             if (!string.IsNullOrEmpty(chromosomeFilter))
@@ -125,8 +129,9 @@ namespace Pisces.IO
             return false;
         }
 
-        public static bool CheckIfBamHasBeenStitched(string header)
+        public static bool CheckBamHeaderIfBamHasBeenStitched(string header)
         {
+           
             if (string.IsNullOrEmpty(header))
                 return false;
 

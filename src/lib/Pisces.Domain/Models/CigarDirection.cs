@@ -9,14 +9,17 @@ namespace Pisces.Domain.Models
 {
     public class CigarDirection
     {
-        public List<DirectionOp> Directions = new List<DirectionOp>();
+        public List<DirectionOp> Directions { get; private set; }
 
         public CigarDirection()
         {
+            Directions = new List<DirectionOp>();
         }
 
         public CigarDirection(string directionString)
         {
+            Directions = new List<DirectionOp>();
+
             // Similar functionality to cigar string parsing
             int head = 0;
             for (int i = 0; i < directionString.Length; ++i)
@@ -38,37 +41,18 @@ namespace Pisces.Domain.Models
             }
         }
 
+        public CigarDirection(List<DirectionOp> directionOps)
+        {
+            Directions = directionOps;
+        }
+
         /// <summary>
         ///     If duplicated adjacent tags are present, reduce them to one copy
         /// </summary>
         /// <returns>true if cigar was altered by compression</returns>
         public bool Compress()
         {
-            DirectionOp? lastOp = null;
-            var newDirections = new List<DirectionOp>();
-            foreach (var directionOp in Directions)
-            {
-                if (lastOp == null)
-                {
-                    // First time through
-                    lastOp = directionOp;
-                }
-                else if (directionOp.Direction == ((DirectionOp)lastOp).Direction)
-                {
-                    // Add the two ops together
-                    lastOp = new DirectionOp
-                    {
-                        Direction = directionOp.Direction,
-                        Length = directionOp.Length + ((DirectionOp)lastOp).Length
-                    };
-                }
-                else
-                {
-                    newDirections.Add((DirectionOp)lastOp);
-                    lastOp = directionOp;
-                }
-            }
-            newDirections.Add((DirectionOp)lastOp);
+            var newDirections = DirectionHelper.CompressDirections(Directions);
 
             Directions = newDirections;
             return true;

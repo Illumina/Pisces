@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 
-namespace CommandLine.IO.Utilities
+namespace CommandLine.Util
 {
     public static class ExitCodeUtilities
     {

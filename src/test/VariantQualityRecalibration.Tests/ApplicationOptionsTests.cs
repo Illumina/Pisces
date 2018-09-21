@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
-using CommandLine.IO.Utilities;
-using CommandLine.IO;
+using CommandLine.Util;
+using CommandLine.Options;
 using Xunit;
 
 namespace VariantQualityRecalibration.Tests
@@ -137,7 +137,7 @@ namespace VariantQualityRecalibration.Tests
         
             if (shouldPass)
             {
-                assertions(parser.Options);
+                assertions(parser.VQROptions);
             }
             else //TODO - it would be nice to specify the actual error codes from the parsing result
             {

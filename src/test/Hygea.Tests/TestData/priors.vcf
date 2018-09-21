@@ -1,0 +1,22 @@
+##fileformat=VCFv4.1
+##FILTER=<ID=PASS,Description="All filters passed">
+##comment="REF and ALT sequences are both forward strand
+##comment="Missing nucleotide details indicate ambiguity during curation process"
+##comment="URL stub for COSN ID field (use numeric portion of ID)='http://grch37-cancer.sanger.ac.uk/cosmic/ncv/overview?id='"
+##source=COSMICv72
+##reference=GRCh37
+##fileDate=20150331
+##source_20150622.1=vcf-merge(r840) CosmicCodingMuts.vcf.gz CosmicNonCodingVariants.vcf.gz
+##sourceFiles_20150622.1=0:CosmicCodingMuts.vcf.gz,1:CosmicNonCodingVariants.vcf.gz
+##INFO=<ID=GENE,Number=1,Type=String,Description="Gene name">
+##INFO=<ID=STRAND,Number=1,Type=String,Description="Gene strand">
+##INFO=<ID=CDS,Number=1,Type=String,Description="CDS annotation">
+##INFO=<ID=AA,Number=1,Type=String,Description="Peptide annotation">
+##INFO=<ID=CNT,Number=1,Type=Integer,Description="How many samples have this mutation">
+##INFO=<ID=SNP,Number=0,Type=Flag,Description="classified as SNP">
+##INFO=<ID=SF,Number=.,Type=String,Description="Source File (index to sourceFiles, f when filtered)">
+##INFO=<ID=AC,Number=.,Type=Integer,Description="Allele count in genotypes">
+##INFO=<ID=AN,Number=1,Type=Integer,Description="Total number of alleles in called genotypes">
+##INFO=<ID=OLD_VARIANT,Number=.,Type=String,Description="Original chr:pos:ref:alt encoding">
+#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	sim_cosmicIndex_111328_af_0_002
+chr5	112174116	COSM1432228	AT	A	100	PASS	GENE=APC;STRAND=+;CDS=c.2826delT;AA=p.S943fs*12;CNT=2;SF=0;DP=100	GT	0/1

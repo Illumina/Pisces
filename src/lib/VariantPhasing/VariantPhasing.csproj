@@ -4,10 +4,12 @@
     <TargetFramework>netcoreapp2.0</TargetFramework>
     <AssemblyName>VariantPhasing</AssemblyName>
     <PackageId>VariantPhasing</PackageId>
+    
+    
     <GenerateAssemblyConfigurationAttribute>false</GenerateAssemblyConfigurationAttribute>
     <GenerateAssemblyCompanyAttribute>false</GenerateAssemblyCompanyAttribute>
     <GenerateAssemblyProductAttribute>false</GenerateAssemblyProductAttribute>
-    <Version>5.2.7.47</Version>
+    <Version>5.2.9.122</Version>
     <Copyright>Copyright © Illumina 2018</Copyright>
   </PropertyGroup>
 
@@ -16,7 +18,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Alignment.Domain\Alignment.Domain.csproj" />
     <ProjectReference Include="..\Alignment.IO\Alignment.IO.csproj" />
-    <ProjectReference Include="..\CommandLine.IO\CommandLine.IO.csproj" />
+    <ProjectReference Include="..\CommandLine.IO\CommandLine.Util.csproj" />
     <ProjectReference Include="..\Common.IO\Common.IO.csproj" />
     <ProjectReference Include="..\Pisces.Calculators\Pisces.Calculators.csproj" />
     <ProjectReference Include="..\Pisces.Domain\Pisces.Domain.csproj" />

@@ -1,9 +1,6 @@
-﻿using System;
-using System.IO;
+﻿using System.IO;
 using System.Linq;
 using Pisces.Domain.Options;
-using Pisces.Processing;
-using Pisces.Processing.Utility;
 using Common.IO.Utility;
 using Pisces.IO.Sequencing;
 using CallVariants.Logic.Processing;
@@ -78,6 +75,7 @@ namespace Pisces.Tests.UnitTests.Processing
                 }
             };
 
+            options.SetIODirectories("Pisces");
             var factory = new Factory(options);
             foreach (var workRequest in factory.WorkRequests)
             {

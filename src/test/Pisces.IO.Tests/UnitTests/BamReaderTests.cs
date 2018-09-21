@@ -1,4 +1,5 @@
-﻿using System.IO;
+﻿using System;
+using System.IO;
 using Alignment.IO.Sequencing;
 using Alignment.Domain.Sequencing;
 using Xunit;

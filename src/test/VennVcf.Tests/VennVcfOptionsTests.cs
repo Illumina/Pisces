@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using CommandLine.IO.Utilities;
-using CommandLine.IO;
+using CommandLine.Util;
 using Xunit;
 
 namespace VennVcf.Tests
@@ -45,7 +44,7 @@ namespace VennVcf.Tests
 
             if (shouldPass)
             {
-               assertions(parser.Options);
+               assertions(parser.VennOptions);
                Assert.True(parser.HadSuccess);
             }
             else //TODO - it would be nice to specify the actual error codes from the parsing result

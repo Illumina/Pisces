@@ -14,6 +14,9 @@
             Frequency = support / coverage;
             Support = support;
             Coverage = coverage;
+
+            if (coverage == 0)
+                Frequency = 0;
         }
 
         public static StrandBiasStats DeepCopy(StrandBiasStats originalStats)

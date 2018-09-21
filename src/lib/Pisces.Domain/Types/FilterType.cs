@@ -12,6 +12,7 @@
         MultiAllelicSite,
         RMxN,
 		ForcedReport,
-        OffTarget
+        OffTarget,
+        NoCall
     }
 }

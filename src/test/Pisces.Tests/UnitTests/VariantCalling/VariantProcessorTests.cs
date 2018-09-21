@@ -21,7 +21,7 @@ namespace Pisces.Tests.UnitTests.Pisces
         {
             var variant = TestHelper.CreatePassingVariant(false);
             variant.ReferenceSupport = 10;
-            AlleleProcessor.Process(variant, 0.01f, 100, 20, false, 0f, 10f, 0, null, new ChrReference());
+            AlleleProcessor.Process(variant, 0.01f, 100, 20, false, 0f, 10f, 0, null, 0.6f, new ChrReference());
             Assert.False(variant.Filters.Any());
             Assert.Equal(0.02f, variant.FractionNoCalls);
             Assert.Equal(Genotype.HeterozygousAltRef, variant.Genotype);
@@ -43,7 +43,7 @@ namespace Pisces.Tests.UnitTests.Pisces
             variant.NumNoCalls = numNoCalls;
             variant.TotalCoverage = totalCoverage;
 
-            AlleleProcessor.Process(variant, 0.01f, 100, 20, false, 10f, 10f, 8, null, new ChrReference());
+            AlleleProcessor.Process(variant, 0.01f, 100, 20, false, 10f, 10f, 8, null, 0.6f, new ChrReference());
 
             Assert.Equal(expectedFraction, variant.FractionNoCalls);
         }
@@ -61,8 +61,8 @@ namespace Pisces.Tests.UnitTests.Pisces
             ExecuteFilteringTest(500, 30, false, 500, 30, false, 0f, 50f, 0, new List<FilterType>() { }); //FilterType.LowGenotypeQuality not currently supported.
             ExecuteFilteringTest(500, 30, false, 500, 30, false, 0f, 0f, 2, new List<FilterType>() { FilterType.IndelRepeatLength });
             ExecuteFilteringTest(500, 30, false, null, 30, false, null, null, null, new List<FilterType>());
-            ExecuteFilteringTest(0, 0, true, 101, 20, false, 0f, 50f, 2, new List<FilterType>() { FilterType.StrandBias, FilterType.LowDepth, FilterType.IndelRepeatLength });//FilterType.LowGenotypeQuality not currently supported.
-            ExecuteFilteringTest(1, 0, true, 101, 20, false, 0f, 50f, 2, new List<FilterType>() { FilterType.StrandBias, FilterType.LowVariantQscore, FilterType.LowDepth, FilterType.IndelRepeatLength });//FilterType.LowGenotypeQuality not currently supported.
+            ExecuteFilteringTest(0, 0, true, 101, 20, false, 0f, 50f, 2, new List<FilterType>() { FilterType.StrandBias, FilterType.LowDepth, FilterType.IndelRepeatLength, FilterType.NoCall });//FilterType.LowGenotypeQuality not currently supported.
+            ExecuteFilteringTest(1, 0, true, 101, 20, false, 0f, 50f, 2, new List<FilterType>() { FilterType.StrandBias, FilterType.LowVariantQscore, FilterType.LowDepth, FilterType.IndelRepeatLength, FilterType.NoCall });//FilterType.LowGenotypeQuality not currently supported.
 
 
             // Ref alleles should not have filters (except LowDP and q30) even if they would have qualified
@@ -146,7 +146,7 @@ namespace Pisces.Tests.UnitTests.Pisces
                 variant.AlternateAllele = "AA";
 
                 AlleleProcessor.Process(variant, 0.01f, 0, 0,
-                    true, 0, 0, 2, null, chrReference);
+                    true, 0, 0, 2, null, 0.6f, chrReference);
 
                 Assert.Equal(true, variant.Filters.Contains(FilterType.IndelRepeatLength));
 
@@ -161,7 +161,7 @@ namespace Pisces.Tests.UnitTests.Pisces
             variantAtLastPosition.ReferenceAllele = "A";
             variantAtLastPosition.AlternateAllele = "AA";
             AlleleProcessor.Process(variantAtLastPosition, 0.01f, 0, 0,
-                true, 0, 0, 2, null, chrReference);
+                true, 0, 0, 2, null, 0.6f, chrReference);
             Assert.Equal(false, variantAtLastPosition.Filters.Contains(FilterType.IndelRepeatLength));
 
             var variantAtSecondToLastPosition = TestHelper.CreatePassingVariant(false);
@@ -170,7 +170,7 @@ namespace Pisces.Tests.UnitTests.Pisces
             variantAtSecondToLastPosition.ReferenceAllele = "A";
             variantAtSecondToLastPosition.AlternateAllele = "AA";
             AlleleProcessor.Process(variantAtSecondToLastPosition, 0.01f, 0, 0,
-                true, 0, 0, 2, null, chrReference);
+                true, 0, 0, 2, null, 0.6f, chrReference);
             Assert.Equal(false, variantAtSecondToLastPosition.Filters.Contains(FilterType.IndelRepeatLength));
 
 
@@ -184,7 +184,7 @@ namespace Pisces.Tests.UnitTests.Pisces
             variantOutsideOfChromosome.AlternateAllele = "AA";
 
             Assert.Throws<ArgumentOutOfRangeException>(()=>AlleleProcessor.Process(variantOutsideOfChromosome, 0.01f, 0, 0,
-                true, 0, 0, 2, null, chrReference));
+                true, 0, 0, 2, null, 0.6f, chrReference));
 
         }
 
@@ -311,14 +311,14 @@ namespace Pisces.Tests.UnitTests.Pisces
 
             // If expected repeats == N, flag
             AlleleProcessor.Process(allele, 0.01f, 0, 0,
-                true, 0, 0, null, rmxnFilterSettings, new ChrReference() { Sequence = cleanReferenceSequence });
+                true, 0, 0, null, rmxnFilterSettings, 0.6f, new ChrReference() { Sequence = cleanReferenceSequence });
             Assert.True(allele.Filters.Contains(FilterType.RMxN));
 
             // If expected repeats > N, flag
             rmxnFilterSettings.RMxNFilterMinRepetitions = expectedRepeatLength-1;
 
             AlleleProcessor.Process(allele, 0.01f, 0, 0,
-                true, 0, 0, null, rmxnFilterSettings, new ChrReference() { Sequence = cleanReferenceSequence });
+                true, 0, 0, null, rmxnFilterSettings, 0.6f, new ChrReference() { Sequence = cleanReferenceSequence });
 
             Assert.True(allele.Filters.Contains(FilterType.RMxN));
 
@@ -326,7 +326,7 @@ namespace Pisces.Tests.UnitTests.Pisces
             rmxnFilterSettings.RMxNFilterMinRepetitions = expectedRepeatLength + 1;
 
             AlleleProcessor.Process(allele, 0.01f, 0, 0,
-                true, 0, 0, null, rmxnFilterSettings, new ChrReference() { Sequence = cleanReferenceSequence });
+                true, 0, 0, null, rmxnFilterSettings, 0.6f, new ChrReference() { Sequence = cleanReferenceSequence });
 
             Assert.False(allele.Filters.Contains(FilterType.RMxN));
 
@@ -334,7 +334,7 @@ namespace Pisces.Tests.UnitTests.Pisces
             rmxnFilterSettings.RMxNFilterMinRepetitions = expectedRepeatLength + 1;
 
             AlleleProcessor.Process(new CalledAllele() { },   0.01f, 0, 0,
-                true, 0, 0, null, rmxnFilterSettings, new ChrReference() { Sequence = cleanReferenceSequence });
+                true, 0, 0, null, rmxnFilterSettings, 0.6f, new ChrReference() { Sequence = cleanReferenceSequence });
 
             Assert.False(allele.Filters.Contains(FilterType.RMxN));
 
@@ -377,7 +377,7 @@ namespace Pisces.Tests.UnitTests.Pisces
             variant.ReferencePosition = referencePosition;
 
             AlleleProcessor.Process(variant, 0.01f, 0, 0,
-                true, 0, 0, repeatThreshold, null, chrReferenceLong);
+                true, 0, 0, repeatThreshold, null, 0.6f, chrReferenceLong);
 
             Assert.Equal(shouldBeFlagged, variant.Filters.Contains(FilterType.IndelRepeatLength));
         }
@@ -451,7 +451,7 @@ namespace Pisces.Tests.UnitTests.Pisces
 
 
             AlleleProcessor.Process(variant,   0.01f, lowDepthFilter, minQscore, 
-                true, variantFreq, lowGQ, indelRepeat, null, chrRef);
+                true, variantFreq, lowGQ, indelRepeat, null, 0.6f, chrRef);
 
             Assert.Equal(variant.Filters.Count, expectedFilters.Count);
             foreach(var filter in variant.Filters)

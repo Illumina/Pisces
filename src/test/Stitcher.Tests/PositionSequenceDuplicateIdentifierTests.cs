@@ -1,4 +1,5 @@
 using Alignment.Domain.Sequencing;
+using BamStitchingLogic;
 using Xunit;
 
 namespace Stitcher.Tests

@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using CommandLine.NDesk.Options;
-using CommandLine.IO;
+using Common.IO.Utility;
 
 namespace Psara
 {

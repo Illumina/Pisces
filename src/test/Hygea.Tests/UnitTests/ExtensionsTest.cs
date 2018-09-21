@@ -1,10 +1,10 @@
 ﻿using System;
 using System.Linq;
-using RealignIndels.Utlity;
 using Pisces.IO.Sequencing;
 using Alignment.Domain.Sequencing;
 using Pisces.Domain.Models;
 using Pisces.Domain.Types;
+using ReadRealignmentLogic.Utlity;
 using TestUtilities;
 using Xunit;
 
@@ -130,13 +130,15 @@ namespace RealignIndels.Tests.UnitTests
             // no mismatches or indels
             var results = read.GetAlignmentSummary(chrReference);
             Assert.Equal(0, results.NumMismatches);
+            Assert.Equal(0, results.NumMismatchesIncludeSoftclip);
             Assert.Equal(0, results.NumIndels);
-            Assert.Equal(0, results.NumSoftclips);
+            Assert.Equal(0, results.NumSoftclips);            
             Assert.Equal(read.ReadLength, results.AnchorLength);
 
             read.BamAlignment.Position = 4;
             results = read.GetAlignmentSummary(chrReference);
             Assert.Equal(0, results.NumMismatches);
+            Assert.Equal(0, results.NumMismatchesIncludeSoftclip);
             Assert.Equal(0, results.NumIndels);
             Assert.Equal(0, results.NumSoftclips);
             Assert.Equal(read.ReadLength, results.AnchorLength);
@@ -145,6 +147,7 @@ namespace RealignIndels.Tests.UnitTests
             read.BamAlignment.Position = 1;
             results = read.GetAlignmentSummary(chrReference);
             Assert.Equal(8, results.NumMismatches);
+            Assert.Equal(8, results.NumMismatchesIncludeSoftclip);
             Assert.Equal(0, results.NumIndels);
             Assert.Equal(0, results.NumSoftclips);
             Assert.Equal(0, results.AnchorLength);
@@ -154,6 +157,7 @@ namespace RealignIndels.Tests.UnitTests
             read.BamAlignment.CigarData = new CigarAlignment("8I");
             results = read.GetAlignmentSummary(chrReference);
             Assert.Equal(0, results.NumMismatches);
+            Assert.Equal(0, results.NumMismatchesIncludeSoftclip);
             Assert.Equal(1, results.NumIndels);
             Assert.Equal(0, results.NumSoftclips);
             Assert.Equal(0, results.AnchorLength);
@@ -161,6 +165,7 @@ namespace RealignIndels.Tests.UnitTests
             read.BamAlignment.CigarData = new CigarAlignment("2D8M");
             results = read.GetAlignmentSummary(chrReference);
             Assert.Equal(0, results.NumMismatches);
+            Assert.Equal(0, results.NumMismatchesIncludeSoftclip);
             Assert.Equal(1, results.NumIndels);
             Assert.Equal(0, results.NumSoftclips);
             Assert.Equal(0, results.AnchorLength);
@@ -169,6 +174,7 @@ namespace RealignIndels.Tests.UnitTests
             read.BamAlignment.CigarData = new CigarAlignment("4M3I1M");
             results = read.GetAlignmentSummary(chrReference);
             Assert.Equal(5, results.NumMismatches);
+            Assert.Equal(5, results.NumMismatchesIncludeSoftclip);
             Assert.Equal(1, results.NumIndels);
             Assert.Equal(0, results.NumSoftclips);
             Assert.Equal(0, results.AnchorLength);
@@ -177,6 +183,7 @@ namespace RealignIndels.Tests.UnitTests
             read.BamAlignment.CigarData = new CigarAlignment("2M2D2M1D4M");
             results = read.GetAlignmentSummary(chrReference);
             Assert.Equal(6, results.NumMismatches);
+            Assert.Equal(6, results.NumMismatchesIncludeSoftclip);
             Assert.Equal(2, results.NumIndels);
             Assert.Equal(0, results.NumSoftclips);
 
@@ -185,6 +192,7 @@ namespace RealignIndels.Tests.UnitTests
             read.BamAlignment.CigarData = new CigarAlignment("1M3D2M1I2M2D2M");
             results = read.GetAlignmentSummary(chrReference);
             Assert.Equal(4, results.NumMismatches);
+            Assert.Equal(4, results.NumMismatchesIncludeSoftclip);
             Assert.Equal(3, results.NumIndels);
             Assert.Equal(0, results.NumSoftclips);
 
@@ -200,43 +208,122 @@ namespace RealignIndels.Tests.UnitTests
             readWithNSoftclips.BamAlignment.CigarData = new CigarAlignment("3S5I");
             results = readWithNSoftclips.GetAlignmentSummary(chrReference);
             Assert.Equal(0, results.NumMismatches);
+            Assert.Equal(2, results.NumMismatchesIncludeSoftclip);
             Assert.Equal(1, results.NumIndels);
             Assert.Equal(3, results.NumSoftclips);
             Assert.Equal(2, results.NumNonNSoftclips);
+            Assert.Equal(2, results.MismatchesIncludeSoftclip.Count());
+            Assert.True(results.MismatchesIncludeSoftclip.Contains("0_A_C"));
+            Assert.True(results.MismatchesIncludeSoftclip.Contains("1_C_G"));
 
             readWithNSoftclips.BamAlignment.Position = 2;
             readWithNSoftclips.BamAlignment.CigarData = new CigarAlignment("7I1S");
             results = readWithNSoftclips.GetAlignmentSummary(chrReference);
             Assert.Equal(0, results.NumMismatches);
+            Assert.Equal(0, results.NumMismatchesIncludeSoftclip);
             Assert.Equal(1, results.NumIndels);
             Assert.Equal(1, results.NumSoftclips);
             Assert.Equal(0, results.NumNonNSoftclips);
+            Assert.Null(results.MismatchesIncludeSoftclip);
 
             // softclips and matches
             readWithNSoftclips.BamAlignment.Position = 5;
             readWithNSoftclips.BamAlignment.CigarData = new CigarAlignment("1S7M");
             results = readWithNSoftclips.GetAlignmentSummary(chrReference);
             Assert.Equal(0, results.NumMismatches);
+            Assert.Equal(0, results.NumMismatchesIncludeSoftclip);
             Assert.Equal(0, results.NumIndels);
             Assert.Equal(1, results.NumSoftclips);
             Assert.Equal(0, results.NumNonNSoftclips);
+            Assert.Null(results.MismatchesIncludeSoftclip);
 
             readWithNSoftclips.BamAlignment.Position = 4;
             readWithNSoftclips.BamAlignment.CigarData = new CigarAlignment("6M2S");
             results = readWithNSoftclips.GetAlignmentSummary(chrReference);
             Assert.Equal(0, results.NumMismatches);
+            Assert.Equal(0, results.NumMismatchesIncludeSoftclip);
             Assert.Equal(0, results.NumIndels);
             Assert.Equal(2, results.NumSoftclips);
             Assert.Equal(0, results.NumNonNSoftclips);
+            Assert.Null(results.MismatchesIncludeSoftclip);
 
             readWithNSoftclips.BamAlignment.Position = 4;
             readWithNSoftclips.BamAlignment.CigarData = new CigarAlignment("5M3S");
             results = readWithNSoftclips.GetAlignmentSummary(chrReference);
             Assert.Equal(0, results.NumMismatches);
+            Assert.Equal(0, results.NumMismatchesIncludeSoftclip);
             Assert.Equal(0, results.NumIndels);
             Assert.Equal(3, results.NumSoftclips);
             Assert.Equal(1, results.NumNonNSoftclips);
+            Assert.Null(results.MismatchesIncludeSoftclip);
 
+            var readWithNonNSoftclips = new Read("chr1", new BamAlignment
+            {
+                Position = 0,
+                Bases = "TCGTACAT",
+                CigarData = new CigarAlignment("8M")
+            });
+
+            // softclips and indels
+            readWithNonNSoftclips.BamAlignment.Position = 2;
+            readWithNonNSoftclips.BamAlignment.CigarData = new CigarAlignment("3S5I");
+            results = readWithNonNSoftclips.GetAlignmentSummary(chrReference);
+            Assert.Equal(0, results.NumMismatches);
+            Assert.Equal(3, results.NumMismatchesIncludeSoftclip);
+            Assert.Equal(1, results.NumIndels);
+            Assert.Equal(3, results.NumSoftclips);
+            Assert.Equal(3, results.NumNonNSoftclips);
+            Assert.Equal(2, results.MismatchesIncludeSoftclip.Count());
+            Assert.True(results.MismatchesIncludeSoftclip.Contains("0_A_C"));
+            Assert.True(results.MismatchesIncludeSoftclip.Contains("1_C_G"));
+
+            readWithNonNSoftclips.BamAlignment.Position = 2;
+            readWithNonNSoftclips.BamAlignment.CigarData = new CigarAlignment("7I1S");
+            results = readWithNonNSoftclips.GetAlignmentSummary(chrReference);
+            Assert.Equal(0, results.NumMismatches);
+            Assert.Equal(1, results.NumMismatchesIncludeSoftclip);
+            Assert.Equal(1, results.NumIndels);
+            Assert.Equal(1, results.NumSoftclips);
+            Assert.Equal(1, results.NumNonNSoftclips);
+            Assert.Equal(1, results.MismatchesIncludeSoftclip.Count());
+            Assert.True(results.MismatchesIncludeSoftclip.Contains("2_G_T"));
+
+            // softclips and matches
+            readWithNonNSoftclips.BamAlignment.Position = 5;
+            readWithNonNSoftclips.BamAlignment.CigarData = new CigarAlignment("1S7M");
+            results = readWithNonNSoftclips.GetAlignmentSummary(chrReference);
+            Assert.Equal(1, results.NumMismatches);
+            Assert.Equal(2, results.NumMismatchesIncludeSoftclip);
+            Assert.Equal(0, results.NumIndels);
+            Assert.Equal(1, results.NumSoftclips);
+            Assert.Equal(1, results.NumNonNSoftclips);
+            Assert.Equal(2, results.MismatchesIncludeSoftclip.Count());
+            Assert.True(results.MismatchesIncludeSoftclip.Contains("4_A_T"));
+            Assert.True(results.MismatchesIncludeSoftclip.Contains("10_G_A"));
+
+            readWithNonNSoftclips.BamAlignment.Position = 4;
+            readWithNonNSoftclips.BamAlignment.CigarData = new CigarAlignment("6M2S");
+            results = readWithNonNSoftclips.GetAlignmentSummary(chrReference);
+            Assert.Equal(1, results.NumMismatches);
+            Assert.Equal(2, results.NumMismatchesIncludeSoftclip);
+            Assert.Equal(0, results.NumIndels);
+            Assert.Equal(2, results.NumSoftclips);
+            Assert.Equal(2, results.NumNonNSoftclips);
+            Assert.Equal(2, results.MismatchesIncludeSoftclip.Count());
+            Assert.True(results.MismatchesIncludeSoftclip.Contains("4_A_T"));
+            Assert.True(results.MismatchesIncludeSoftclip.Contains("10_G_A"));
+
+            readWithNonNSoftclips.BamAlignment.Position = 4;
+            readWithNonNSoftclips.BamAlignment.CigarData = new CigarAlignment("5M3S");
+            results = readWithNonNSoftclips.GetAlignmentSummary(chrReference);
+            Assert.Equal(1, results.NumMismatches);
+            Assert.Equal(2, results.NumMismatchesIncludeSoftclip);
+            Assert.Equal(0, results.NumIndels);
+            Assert.Equal(3, results.NumSoftclips);
+            Assert.Equal(3, results.NumNonNSoftclips);
+            Assert.Equal(2, results.MismatchesIncludeSoftclip.Count());
+            Assert.True(results.MismatchesIncludeSoftclip.Contains("4_A_T"));
+            Assert.True(results.MismatchesIncludeSoftclip.Contains("10_G_A"));
         }
 
         [Fact]
@@ -420,6 +507,15 @@ namespace RealignIndels.Tests.UnitTests
             result = read.GetAlignmentSummary("CCCCACGTACGTTCCCACGTACGT");
             Assert.Equal(3, result.NumIndels);
             Assert.Equal(6, result.NumMismatches);
+            Assert.Equal(7, result.NumMismatchesIncludeSoftclip);
+
+
+            var read2 = new Read("chr1",
+                            new BamAlignment { Position = 4, Bases = "TTAGGTACGTACGTTTT", CigarData = new CigarAlignment("2S8M4D4M3S") });
+            result = read2.GetAlignmentSummary("CCCCACGTACGTTCCCACGTACGT");
+            Assert.Equal(1, result.NumIndels);
+            Assert.Equal(1, result.NumMismatches);
+            Assert.Equal(6, result.NumMismatchesIncludeSoftclip);
         }
     }
 }

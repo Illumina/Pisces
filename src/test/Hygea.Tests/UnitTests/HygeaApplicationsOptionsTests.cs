@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using Hygea.Tests;
-using CommandLine.IO.Utilities;
+using CommandLine.Util;
 using Xunit;
 
 namespace RealignIndels.Tests.UnitTests
@@ -28,8 +28,9 @@ namespace RealignIndels.Tests.UnitTests
             optionsExpectationsDict.Add(@"-genomeFolders " + _existingGenome, (o) => Assert.Equal(1, o.GenomePaths.Length));  //the num genome paths needs to agree with the num bam paths
             optionsExpectationsDict.Add(@"-outFolder C:\out", (o) => Assert.Equal(@"C:\out", o.OutputDirectory));
             optionsExpectationsDict.Add(@"-maxIndelSize 75", (o) => Assert.Equal(75, o.MaxIndelSize));
-            optionsExpectationsDict.Add(@"-remaskSoftclips false", (o) => Assert.Equal(false, o.RemaskSoftclips));
+            optionsExpectationsDict.Add(@"-remaskSoftclips true", (o) => Assert.Equal(true, o.RemaskSoftclips));
             optionsExpectationsDict.Add(@"-maskPartialInsertion false", (o) => Assert.Equal(false, o.MaskPartialInsertion));
+            optionsExpectationsDict.Add(@"-minimumUnanchoredInsertionLength 3", (o) => Assert.Equal(3, o.MinimumUnanchoredInsertionLength));
             optionsExpectationsDict.Add(@"-allowRescoringOrigZero false", (o) => Assert.Equal(false, o.AllowRescoringOrigZero));
             optionsExpectationsDict.Add(@"-maxRealignShift 500", (o) => Assert.Equal(500, o.MaxRealignShift));
             optionsExpectationsDict.Add(@"-indelCoefficient -10", (o) => Assert.Equal(-10, o.IndelCoefficient));
@@ -235,8 +236,7 @@ namespace RealignIndels.Tests.UnitTests
                 BAMPaths = new string[] { TestPaths.LocalTestDataDirectory },
                 GenomePaths = new[] { _existingGenome },
             };
-            var appOptions = new HygeaOptionParser();
-            appOptions.HygeaOptions = options_3;
+            var appOptions = new HygeaOptionParser() { Options = options_3 };
             appOptions.ValidateOptions();
             Assert.IsType<ArgumentException>(appOptions.ParsingResult.Exception);
         }
@@ -272,10 +272,8 @@ namespace RealignIndels.Tests.UnitTests
 
         private void ExecuteValidationTest(Action<HygeaOptions> testSetup, bool shouldPass)
         {
-            var parser = new HygeaOptionParser();
             var options = GetBasicOptions();
-            parser.HygeaOptions = options;
-
+            var parser = new HygeaOptionParser() { Options=options};
             testSetup(options);
             parser.ValidateOptions();
 
@@ -287,29 +285,36 @@ namespace RealignIndels.Tests.UnitTests
 
         private HygeaOptions GetBasicOptions()
         {
-            return new HygeaOptions()
+           var basicOptions =  new HygeaOptions()
             {
                 BAMPaths = new[] { _existingBamPath },
                 GenomePaths = new[] { _existingGenome }
             };
 
+            basicOptions.SetIODirectories("Hygea");
+
+            return basicOptions;
         }
 
         [Fact]
         public void GetLogFolder()
         {
             var options = GetBasicOptions();
-            Assert.Equal(Path.Combine(Path.GetDirectoryName(_existingBamPath), "Logs"), options.LogFolder);
+            Assert.Equal(Path.Combine(Path.GetDirectoryName(_existingBamPath), "HygeaLogs"), options.LogFolder);
 
             // when multiple bam paths, use first bam file
-            var nonExistingBam = @"C:\Test\nonexistant.bam";
+            options = new HygeaOptions();
+            var nonExistingBam = Path.Combine(TestPaths.LocalScratchDirectory, "nonexistant.bam");
             options.BAMPaths = new[] { nonExistingBam, _existingBamPath };
-            Assert.Equal(Path.Combine(Path.GetDirectoryName(nonExistingBam), "Logs"), options.LogFolder);
+            options.SetIODirectories("Hygea");
+            Assert.Equal(Path.Combine(Path.GetDirectoryName(nonExistingBam), "HygeaLogs"), options.LogFolder);
 
             // use output folder if provided
+            options = new HygeaOptions();
             options.BAMPaths = new[] { _existingBamPath };
             options.OutputDirectory = @"C:\SomeOutput";
-            Assert.Equal(options.OutputDirectory, options.LogFolder);
+            options.SetIODirectories("Hygea");
+            Assert.Equal(Path.Combine(options.OutputDirectory, "HygeaLogs"), options.LogFolder);
         }
 
 

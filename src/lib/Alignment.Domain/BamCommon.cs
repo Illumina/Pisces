@@ -209,9 +209,9 @@ namespace Alignment.Domain.Sequencing
         /// <summary>
         ///  Update Int Tag only
         /// </summary>
-        public void UpdateIntTagData(string s, int value)
+        public void UpdateIntTagData(string s, int value, bool addIfNotFound = false)
         {
-            bool replaced = TagUtils.ReplaceOrAddIntTag(ref TagData, s, value);           
+            bool replaced = TagUtils.ReplaceOrAddIntTag(ref TagData, s, value, addIfNotFound);           
         }
 
         /// <summary>
@@ -1160,12 +1160,16 @@ namespace Alignment.Domain.Sequencing
         /// <param name="tagKey">Name of the tag</param>
         /// <param name="value">Value of the tag</param>
         /// <returns></returns>
-        public static bool ReplaceOrAddIntTag(ref byte[] tagData, string tagKey, int value)
+        public static bool ReplaceOrAddIntTag(ref byte[] tagData, string tagKey, int value, bool addIfNotFound = false)
         {
             bool replaced = true;
             int tagDataBegin = GetTagBeginIndex(tagData, tagKey);
 
-            if (tagDataBegin < 0) {
+            if (tagDataBegin < 0 && addIfNotFound == false) {
+                replaced = false;
+                return replaced;
+            }
+            if (tagDataBegin < 0 && addIfNotFound) {
                 replaced = false;
                 // Make room for the tag
                 byte[] newTagData = new byte[tagData.Length + 7];

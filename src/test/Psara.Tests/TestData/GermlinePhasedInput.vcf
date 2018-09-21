@@ -1,0 +1,51 @@
+##fileformat=VCFv4.1
+##fileDate=20180510
+##source=Pisces 5.2.7.47
+##Pisces_cmdline="-BamPaths /illumina/scratch/STE_DataAnalysis/scratch/bhsu/scratch/TSAW-1696/output1/Temp_03-VariantCalling/stitchedBams/SER844_Rd1_NA12877_S1.bam -GenomePaths /illumina/sync/software/unofficial/Isas/Genomes/Homo_sapiens/UCSC/hg19/Sequence/WholeGenomeFasta -gVCF True -OutFolder /illumina/scratch/STE_DataAnalysis/scratch/bhsu/scratch/TSAW-1696/output1/Temp_03.04-VariantCalling.VariantCalling/SER844_Rd1_NA12877 -i /illumina/scratch/STE_DataAnalysis/scratch/bhsu/scratch/TSAW-1696/output1/Temp_03.04-VariantCalling.VariantCalling/paddedInterval/SER844_Rd1_NA12877_S1.padded.intervals.picard -MinBaseCallQuality 20 -MaxVariantQScore 100 -MinVariantQScore 20 -CrushVcf True -MinDP 10 -ReportNoCalls True -Ploidy diploid -EnableSingleStrandFilter False -MinDPFilter 20 -MaxAcceptableStrandBiasFilter 0.5 -VariantQualityFilter 20 -MinVariantFrequencyFilter 0.2 -RMxNFilter 5,9,0.35 -MaxNumThreads 32 -ThreadByChr True"
+##VariantPhaser=Scylla 5.2.7.47
+##Scylla_cmdline="-bam /illumina/scratch/STE_DataAnalysis/scratch/bhsu/scratch/TSAW-1696/output1/Temp_03-VariantCalling/stitchedBams/SER844_Rd1_NA12877_S1.bam -vcf /illumina/scratch/STE_DataAnalysis/scratch/bhsu/scratch/TSAW-1696/output1/Temp_03.05-VariantCalling.MultipleNucleotideVariantCalling/SER844_Rd1_NA12877/SER844_Rd1_NA12877_S1.genome.vcf -gVCF True -Dist 5 -MinBaseCallQuality 20 -MaxVariantQScore 100 -MinVariantQScore 20 -CrushVcf True -MinDP 10 -ReportNoCalls True -Ploidy diploid -EnableSingleStrandFilter False -MinDPFilter 20 -MaxAcceptableStrandBiasFilter 0.5 -VariantQualityFilter 20 -MinVariantFrequencyFilter 0.2 -RMxNFilter 5,9,0.35 -MaxNumThreads 32"
+##reference=/illumina/sync/software/unofficial/Isas/Genomes/Homo_sapiens/UCSC/hg19/Sequence/WholeGenomeFasta
+##ALT=<ID=<M>,Description="There is an overlapping other allele that has been called in a separate VCF record">
+##INFO=<ID=DP,Number=1,Type=Integer,Description="Total Depth">
+##FILTER=<ID=q20,Description="Quality score less than 20">
+##FILTER=<ID=LowDP,Description="Low coverage (DP tag), therefore no genotype called">
+##FILTER=<ID=SB,Description="Variant strand bias too high">
+##FILTER=<ID=LowVariantFreq,Description="Variant frequency less than 0.200">
+##FILTER=<ID=MultiAllelicSite,Description="Variant does not conform to diploid model">
+##FILTER=<ID=R5x9,Description="Repeats of part or all of the variant allele (max repeat length 5) in the reference greater than or equal to 9">
+##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">
+##FORMAT=<ID=GQ,Number=1,Type=Integer,Description="Genotype Quality">
+##FORMAT=<ID=AD,Number=.,Type=Integer,Description="Allele Depth">
+##FORMAT=<ID=DP,Number=1,Type=Integer,Description="Total Depth Used For Variant Calling">
+##FORMAT=<ID=VF,Number=.,Type=Float,Description="Variant Frequency">
+##FORMAT=<ID=NL,Number=1,Type=Integer,Description="Applied BaseCall Noise Level">
+##FORMAT=<ID=SB,Number=1,Type=Float,Description="StrandBias Score">
+##FORMAT=<ID=NC,Number=1,Type=Float,Description="Fraction of bases which were uncalled or with basecall quality below the minimum threshold">
+##contig=<ID=chr1,length=249250621>
+##contig=<ID=chr2,length=243199373>
+##contig=<ID=chr3,length=198022430>
+##contig=<ID=chr5,length=180915260>
+##contig=<ID=chr7,length=159138663>
+##contig=<ID=chr8,length=146364022>
+##contig=<ID=chr9,length=141213431>
+##contig=<ID=chr11,length=135006516>
+##contig=<ID=chr14,length=107349540>
+##contig=<ID=chr15,length=102531392>
+##contig=<ID=chr18,length=78077248>
+##contig=<ID=chr19,length=59128983>
+##contig=<ID=chr22,length=51304566>
+##contig=<ID=chrX,length=155270560>
+#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	SER844_Rd1_NA12877_S1.bam
+chr2	50765520	.	A	.	100	PASS	DP=22	GT:GQ:AD:DP:VF:NL:SB:NC	0/0:32:21:22:0.05:20:-100.0000:0.0000
+chr2	50765521	.	GGAAGGCT	TGTAGCT,GGAAGG	60	MultiAllelicSite;LowDP	DP=50	GT:GQ:AD:DP:VF:NL:SB:NC	./.:0:5,23:50:0.56:20:-100.0000:0.6852
+chr2	50765522	.	G	.	100	PASS	DP=22	GT:GQ:AD:DP:VF:NL:SB:NC	0/0:44:22:22:0.00:20:-100.0000:0.0000
+chr2	50765523	.	A	.	0	q20	DP=22	GT:GQ:AD:DP:VF:NL:SB:NC	./.:0:0:22:1.00:20:-100.0000:0.0000
+chr2	50765524	.	A	.	0	q20	DP=22	GT:GQ:AD:DP:VF:NL:SB:NC	./.:0:0:22:1.00:20:-100.0000:0.0000
+chr2	50765525	.	G	.	100	PASS	DP=22	GT:GQ:AD:DP:VF:NL:SB:NC	0/.:0:16:22:0.27:20:-39.4467:0.0000
+chr2	50765526	.	G	.	0	q20	DP=51	GT:GQ:AD:DP:VF:NL:SB:NC	./.:0:5:51:0.90:20:-100.0000:0.0000
+chr2	50765527	.	C	.	100	PASS	DP=51	GT:GQ:AD:DP:VF:NL:SB:NC	0/.:0:28:51:0.45:20:-86.0242:0.0000
+chr2	50765528	.	T	.	100	PASS	DP=51	GT:GQ:AD:DP:VF:NL:SB:NC	0/.:0:28:51:0.45:20:-86.0242:0.0000
+chr2	50765529	.	GT	TG,AG	60	MultiAllelicSite;LowDP	DP=50	GT:GQ:AD:DP:VF:NL:SB:NC	./.:0:5,23:50:0.56:20:-100.0000:0.6852
+chr2	50765530	.	C	.	100	PASS	DP=51	GT:GQ:AD:DP:VF:NL:SB:NC	0/0:100:51:51:0.00:20:-86.0242:0.0000
+chr2	50765531	.	ACTCC	AAGGTCA	100	PASS	DP=51	GT:GQ:AD:DP:VF:NL:SB:NC	1/.:0:38,13:51:0.25:20:-100.0000:0.0000
+chr2	50765532	.	C	.	100	PASS	DP=51	GT:GQ:AD:DP:VF:NL:SB:NC	0/.:0:19:51:0.63:20:-100.0000:0.0000

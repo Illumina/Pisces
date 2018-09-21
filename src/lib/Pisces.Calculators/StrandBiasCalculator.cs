@@ -7,10 +7,11 @@ namespace Pisces.Calculators
 {
     public static class StrandBiasCalculator
     {
-        public static void Compute(CalledAllele variant, int[] supportByDirection, int qNoise, double acceptanceCriteria,
+        public static void Compute(CalledAllele variant, int[] supportByDirection, int qNoise, double minVariantFrequency, double acceptanceCriteria,
             StrandBiasModel strandBiasModel)
         {
-            variant.StrandBiasResults = CalculateStrandBiasResults(variant.EstimatedCoverageByDirection, supportByDirection, qNoise, acceptanceCriteria, strandBiasModel);
+            variant.StrandBiasResults = CalculateStrandBiasResults(
+                variant.EstimatedCoverageByDirection, supportByDirection, qNoise,  minVariantFrequency, acceptanceCriteria, strandBiasModel);
         }
 
         /// <summary>
@@ -19,7 +20,7 @@ namespace Pisces.Calculators
         /// </summary>
         public static BiasResults CalculateStrandBiasResults(int[] coverageByStrandDirection,
             int[] supportByStrandDirection,
-            int qNoise, double acceptanceCriteria, StrandBiasModel strandBiasModel)
+            int qNoise, double minVariantFreq, double acceptanceCriteria, StrandBiasModel strandBiasModel)
         {
             var forwardSupport = supportByStrandDirection[(int)DirectionType.Forward];
             var forwardCoverage = coverageByStrandDirection[(int)DirectionType.Forward];
@@ -31,13 +32,13 @@ namespace Pisces.Calculators
             var errorRate = Math.Pow(10, -1*qNoise/10f);
 
             var overallStats = CreateStats(forwardSupport + reverseSupport + stitchedSupport,
-                forwardCoverage + reverseCoverage + stitchedCoverage, errorRate, errorRate, strandBiasModel);
+                forwardCoverage + reverseCoverage + stitchedCoverage, errorRate, minVariantFreq, strandBiasModel);
             var forwardStats = CreateStats(forwardSupport + stitchedSupport / 2,
                 forwardCoverage + stitchedCoverage / 2,
-                errorRate, errorRate, strandBiasModel);
+                errorRate, minVariantFreq, strandBiasModel);
             var reverseStats = CreateStats(reverseSupport + stitchedSupport / 2,
                 reverseCoverage + stitchedCoverage / 2,
-                errorRate, errorRate, strandBiasModel);
+                errorRate, minVariantFreq, strandBiasModel);
 
             var results = new BiasResults
             {
@@ -46,7 +47,7 @@ namespace Pisces.Calculators
                 OverallStats = overallStats
             };
 
-            results.StitchedStats = CreateStats(stitchedSupport, stitchedCoverage, errorRate, errorRate,
+            results.StitchedStats = CreateStats(stitchedSupport, stitchedCoverage, errorRate, minVariantFreq,
                 strandBiasModel);
 
             var biasResults = AssignBiasScore(overallStats, forwardStats, reverseStats);
@@ -91,6 +92,13 @@ namespace Pisces.Calculators
                                  overallStats.ChanceVarFreqGreaterThanZero;
             var reverseBias = (rvsStats.ChanceVarFreqGreaterThanZero * fwdStats.ChanceFalsePos) /
                                  overallStats.ChanceVarFreqGreaterThanZero;
+
+            if (overallStats.ChanceVarFreqGreaterThanZero == 0)
+            {
+                forwardBias = 1;
+                reverseBias = 1;
+            }
+
             var p = Math.Max(forwardBias, reverseBias);
 
             return new[] { p, MathOperations.PtoGATKBiasScale(p) };
@@ -129,10 +137,39 @@ namespace Pisces.Calculators
         public static StrandBiasStats CreateStats(double support, double coverage, double noiseFreq, double minDetectableSNP,
             StrandBiasModel strandBiasModel)
         {
+
+            if (strandBiasModel != StrandBiasModel.Diploid)
+                minDetectableSNP = noiseFreq;
+
             var stats = new StrandBiasStats(support, coverage);
             PopulateStats(stats, noiseFreq, minDetectableSNP, strandBiasModel);
 
             return stats;
+        }
+
+        public static void PopulateDiploidStats(StrandBiasStats stats, double noiseFreq, double minDetectableSNP)
+        {
+            //expectation we ought to see the 20% variant on this strand:
+
+            //save ourself some time here..
+            if (stats.Frequency >= minDetectableSNP)
+            {
+                stats.ChanceFalseNeg = 1; // TP if we called it
+                stats.ChanceFalsePos = 0; //FP if we called if
+                stats.ChanceVarFreqGreaterThanZero = 1;
+                return;
+            }
+
+            //trickier case, when we barely see it but we dont have enough reads...
+            var binomialHetAltExpected = new MathNet.Numerics.Distributions.Binomial(minDetectableSNP, (int)stats.Coverage);
+
+            //this is a real variant ( a false neg if we filtered it)
+            stats.ChanceFalseNeg = Math.Max(binomialHetAltExpected.CumulativeDistribution(stats.Support), 0); //if this was a het variant, would we ever see it this low?
+
+            //chance this is due to noise ( a false pos if we left it in)
+            stats.ChanceFalsePos = Math.Max(0.0, 1 - Poisson.Cdf(stats.Support, stats.Coverage * 0.1)); //chance this varaint is due to noise, we could see this much or more
+
+            stats.ChanceVarFreqGreaterThanZero = stats.ChanceFalseNeg;
         }
 
         public static void PopulateStats(StrandBiasStats stats, double noiseFreq, double minDetectableSNP,
@@ -146,7 +183,7 @@ namespace Pisces.Calculators
                     stats.ChanceVarFreqGreaterThanZero = 0;
                     stats.ChanceFalseNeg = 0;
                 }
-                else if (strandBiasModel == StrandBiasModel.Extended)
+                else if ((strandBiasModel == StrandBiasModel.Extended) || (strandBiasModel == StrandBiasModel.Diploid))
                 {
 
 
@@ -165,16 +202,23 @@ namespace Pisces.Calculators
             }
             else
             {
-                // chance of these observations or less, given min observable variant distribution
-                stats.ChanceVarFreqGreaterThanZero = Math.Max(0,Poisson.Cdf(stats.Support - 1, stats.Coverage * noiseFreq)); //used in SB metric
-                stats.ChanceFalsePos = Math.Max(0,1 - stats.ChanceVarFreqGreaterThanZero); //used in SB metric
-                stats.ChanceFalseNeg = Math.Max(0,Poisson.Cdf(stats.Support, stats.Coverage * minDetectableSNP));
+                if (strandBiasModel == StrandBiasModel.Diploid)
+                {
+                    PopulateDiploidStats(stats, noiseFreq, minDetectableSNP);
+                }
+                else
+                {
+                    // chance of these observations or less, given min observable variant distribution
+                    stats.ChanceVarFreqGreaterThanZero = Math.Max(0, Poisson.Cdf(stats.Support - 1, stats.Coverage * noiseFreq)); //used in SB metric
+                    stats.ChanceFalsePos = Math.Max(0, 1 - stats.ChanceVarFreqGreaterThanZero); //used in SB metric
+                    stats.ChanceFalseNeg = Math.Max(0, Poisson.Cdf(stats.Support, stats.Coverage * minDetectableSNP));
 
-                //NOTE:
-                // Q: Why the Math.Max? 
-                // A: B/c with the forced GT feature, we began calculating SB for variants whose chance of existing (given the observations)
-                // was zero. (or subltly negative, given numerical limitations of the CDF alg).
-                //Since the SB calculation compares the chance that a variant is present on both strands vs the chance that it is present on exactly one strand* not on the other.When a forced allele is very low frequency, the chance that it is one both strands AND the chance that its on exactly one strand are BOTH essentially zero, and the algorithm falls apart.
+                    //NOTE:
+                    // Q: Why the Math.Max? 
+                    // A: B/c with the forced GT feature, we began calculating SB for variants whose chance of existing (given the observations)
+                    // was zero. (or subltly negative, given numerical limitations of the CDF alg).
+                    //Since the SB calculation compares the chance that a variant is present on both strands vs the chance that it is present on exactly one strand* not on the other.When a forced allele is very low frequency, the chance that it is one both strands AND the chance that its on exactly one strand are BOTH essentially zero, and the algorithm falls apart.
+                }
             }
 
             //Note:

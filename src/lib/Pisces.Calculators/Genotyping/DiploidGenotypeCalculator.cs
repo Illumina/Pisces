@@ -12,7 +12,9 @@ namespace Pisces.Calculators
     {
 
        
-        DiploidThresholdingParameters _diploidThresholdingParameters = new DiploidThresholdingParameters();
+        DiploidThresholdingParameters _diploidSnvThresholdingParameters;
+        DiploidThresholdingParameters _diploidIndelThresholdingParameters;
+
         PloidyModel _ploidyModel = PloidyModel.Diploid;
 
         public int MinGQScore { get; set; }
@@ -25,14 +27,26 @@ namespace Pisces.Calculators
 		    MinVarFrequencyFilter = minFreqFilter > MinVarFrequency ? minFreqFilter : MinVarFrequency;
 	    }
 
-	    public DiploidGenotypeCalculator() { }
-        public DiploidGenotypeCalculator(DiploidThresholdingParameters parameters, int minCalledVariantDepth, int minGQscore, int maxGQscore)
+	    public DiploidGenotypeCalculator()
         {
-            _diploidThresholdingParameters = parameters;
+            var defaultParams = new VariantCallingParameters();
+            _diploidSnvThresholdingParameters = defaultParams.DiploidSNVThresholdingParameters;
+            _diploidIndelThresholdingParameters = defaultParams.DiploidINDELThresholdingParameters;
+            MinGQScore = defaultParams.MinimumGenotypeQScore;
+            MaxGQScore = defaultParams.MaximumGenotypeQScore;
+            MinDepthToGenotype = defaultParams.MinimumCoverage;
+            MinVarFrequency = _diploidSnvThresholdingParameters.MinorVF;
+
+        }
+        public DiploidGenotypeCalculator(DiploidThresholdingParameters snvParameters, DiploidThresholdingParameters indelParameters,
+            int minCalledVariantDepth, int minGQscore, int maxGQscore)
+        {
+            _diploidSnvThresholdingParameters = snvParameters;
+            _diploidIndelThresholdingParameters = indelParameters;
             MinGQScore = minGQscore;
             MaxGQScore = maxGQscore;
             MinDepthToGenotype = minCalledVariantDepth;
-	        MinVarFrequency = _diploidThresholdingParameters.MinorVF;
+	        MinVarFrequency = _diploidSnvThresholdingParameters.MinorVF;
         }
 
         public PloidyModel PloidyModel
@@ -43,20 +57,14 @@ namespace Pisces.Calculators
             }
         }
 
-        public DiploidThresholdingParameters Parameters
-        {
-            get
-            {
-                return _diploidThresholdingParameters;
-            }
-        }
 
         public List<CalledAllele> SetGenotypes(IEnumerable<CalledAllele> alleles)
         {
             var allelesToPrune = new List<CalledAllele>();
 
 
-            var singleGTForLoci = CalculateDiploidGenotype(alleles, MinDepthToGenotype, _diploidThresholdingParameters, out allelesToPrune);
+            var singleGTForLoci = CalculateDiploidGenotype(alleles, MinDepthToGenotype,
+                _diploidSnvThresholdingParameters, _diploidIndelThresholdingParameters, out allelesToPrune);
             int phaseSetIndex = 1;  //reserve -1 for unset, and 0 for reference, and 1 and 2 for alts
             foreach (var allele in alleles)
             {
@@ -99,16 +107,28 @@ namespace Pisces.Calculators
 
 
         private static Genotype CalculateDiploidGenotype(IEnumerable<CalledAllele> alleles, 
-            int minDepthToGenotype, DiploidThresholdingParameters thresholdingParameters, out List<CalledAllele> allelesToPrune)
+            int minDepthToGenotype, DiploidThresholdingParameters snvThresholdingParameters,
+            DiploidThresholdingParameters indelThresholdingParameters,
+            out List<CalledAllele> allelesToPrune)
         {
             allelesToPrune = new List<CalledAllele>();
             var singleGTForLoci = Genotype.RefLikeNoCall;
-            var orderedVariants = GenotypeCalculatorUtilities.FilterAndOrderAllelesByFrequency(alleles, allelesToPrune, thresholdingParameters.MinorVF);
-            var referenceFrequency = GenotypeCalculatorUtilities.GetReferenceFrequency(alleles, thresholdingParameters.MinorVF);
-            var refExists = (referenceFrequency >= thresholdingParameters.MinorVF);
+            var orderedVariants = GenotypeCalculatorUtilities.FilterAndOrderAllelesByFrequency(alleles, allelesToPrune, snvThresholdingParameters.MinorVF);
+            var referenceFrequency = GenotypeCalculatorUtilities.GetReferenceFrequency(alleles, snvThresholdingParameters.MinorVF);
+            var refExists = (referenceFrequency >= snvThresholdingParameters.MinorVF);
             var depthIssue = GenotypeCalculatorUtilities.CheckForDepthIssue(alleles, minDepthToGenotype);
             var diploidModelFail = false;  // as in {30%,30%,30%} not {49%,49%,2%},ie, diploid model FAIL.
-            bool refCall = ((orderedVariants.Count == 0) || (orderedVariants[0].Frequency < thresholdingParameters.MinorVF));
+            bool refCall = ((orderedVariants.Count == 0) || (orderedVariants[0].Frequency < snvThresholdingParameters.MinorVF));
+            var parameters = snvThresholdingParameters;
+
+            //do we apply SNP threshholds or indel thresholds?
+            if (!refCall)
+            {
+                var dominantVariant = orderedVariants.Last();
+                if (dominantVariant.Type != AlleleCategory.Snv)
+                    parameters = indelThresholdingParameters;
+
+            }
 
             if (depthIssue)
             {
@@ -130,14 +150,14 @@ namespace Pisces.Calculators
                         var firstAllele = alleles.First();
 
                         //we see too much of something else (unknown) for a clean ref call.
-                        if ((firstAllele.Type == AlleleCategory.Reference) && ((1 - firstAllele.Frequency) > thresholdingParameters.MinorVF))
+                        if ((firstAllele.Type == AlleleCategory.Reference) && ((1 - firstAllele.Frequency) > parameters.MinorVF))
                           singleGTForLoci = Genotype.RefAndNoCall;
                         else
                             singleGTForLoci = Genotype.HomozygousRef;  // being explicit for readability
 
                     }
                 }//else, types of alt calls...
-                else if ((orderedVariants[0].Frequency >= thresholdingParameters.MinorVF) && (orderedVariants[0].Frequency <= thresholdingParameters.MajorVF))
+                else if ((orderedVariants[0].Frequency >= parameters.MinorVF) && (orderedVariants[0].Frequency <= parameters.MajorVF))
                 {
                     if (orderedVariants.Count == 1)
                     {
@@ -149,7 +169,7 @@ namespace Pisces.Calculators
                     else
                     {
                         //is this 0/1, 1/2, or 0/1/2 or 1/2/3/...
-                        diploidModelFail = CheckForTriAllelicIssue(refExists, referenceFrequency, orderedVariants, thresholdingParameters.SumVFforMultiAllelicSite);
+                        diploidModelFail = CheckForTriAllelicIssue(refExists, referenceFrequency, orderedVariants, parameters.SumVFforMultiAllelicSite);
                         if (diploidModelFail)
                         {
                             SetMultiAllelicFilter(alleles);
@@ -171,7 +191,7 @@ namespace Pisces.Calculators
                         }
                     }
                 }
-                else if (orderedVariants[0].Frequency > thresholdingParameters.MajorVF)
+                else if (orderedVariants[0].Frequency > parameters.MajorVF)
                 {
                     singleGTForLoci = Genotype.HomozygousAlt;
                 }
