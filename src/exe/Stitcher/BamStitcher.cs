@@ -7,6 +7,7 @@ using Alignment.IO;
 using Alignment.Logic;
 using Common.IO.Utility;
 using Alignment.IO.Sequencing;
+using BamStitchingLogic;
 using StitchingLogic;
 using Common.IO.Sequencing;
 using Common.IO;
@@ -34,7 +35,7 @@ namespace Stitcher
             var pairHandlers = CreatePairHandlers(readStatuses, _options.NumThreads);
             var stitcherPairFilter = new StitcherPairFilter(_options.FilterDuplicates,
                 _options.FilterForProperPairs, CreateDuplicateIdentifier(), readStatuses,
-                minMapQuality: _options.FilterMinMapQuality);
+                minMapQuality: _options.FilterMinMapQuality, filterPairUnmapped : _options.FilterPairUnmapped, filterPairLowMapQ : _options.FilterPairLowMapQ);
 
             BlockingCollection<Task> taskQueue = null;
             ThreadPool threadPool = null;
@@ -100,7 +101,7 @@ namespace Stitcher
                 }
             }
 
-            if (_options.SortMemoryGB == 0)
+            if (_options.SortMemoryGB <= 0)
             {
                 return new BamWriterMultithreaded(_outBam, bamHeader, bamReferences, _options.NumThreads, 1);
             }
@@ -149,10 +150,9 @@ namespace Stitcher
             for (int i = 0; i < numThreads; ++i)
             {
                 var stitcher = new BasicStitcher(_options.MinBaseCallQuality, useSoftclippedBases: _options.UseSoftClippedBases,
-                    nifyDisagreements: _options.NifyDisagreements, debug: _options.Debug, nifyUnstitchablePairs: _options.NifyUnstitchablePairs, ignoreProbeSoftclips: !_options.StitchProbeSoftclips, maxReadLength: _options.MaxReadLength, ignoreReadsAboveMaxLength: _options.IgnoreReadsAboveMaxLength, minMapQuality: _options.FilterMinMapQuality);
+                    nifyDisagreements: _options.NifyDisagreements, debug: _options.Debug, nifyUnstitchablePairs: _options.NifyUnstitchablePairs, ignoreProbeSoftclips: !_options.StitchProbeSoftclips, maxReadLength: _options.MaxReadLength, ignoreReadsAboveMaxLength: _options.IgnoreReadsAboveMaxLength, minMapQuality: _options.FilterMinMapQuality, dontStitchHomopolymerBridge: _options.DontStitchHomopolymerBridge);
 
-
-                handlers.Add(new PairHandler(refIdMapping, stitcher, _options.FilterUnstitchablePairs, readStatuses));
+                handlers.Add(new PairHandler(refIdMapping, stitcher,  readStatuses, _options.FilterUnstitchablePairs, true));
             }
 
             return handlers;

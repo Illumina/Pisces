@@ -31,7 +31,7 @@ namespace VariantPhasing.Tests.Logic
 
             var context = new VcfWriterInputContext
             {
-                CommandLine = new[] { "myCommandLine" },
+                QuotedCommandLineString = "myCommandLine",
                 SampleName = "mySample",
                 ReferenceName = "myReference",
                 ContigsByChr = new List<Tuple<string, long>>

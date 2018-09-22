@@ -5,7 +5,6 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using RealignIndels.Logic;
-using RealignIndels.Logic.TargetCalling;
 using RealignIndels.Tests.Utilities;
 using Pisces.Domain.Models;
 using Pisces.IO;
@@ -22,8 +21,10 @@ namespace RealignIndels.Tests.FunctionalTests
         [Fact]
         public void BasicTest()
         {
-            ExecuteTest(_bamSmall, _bamSmall.Replace(".bam", ".ri.bam"), 186); // TODO This really needs to be independently verified!!
-            ExecuteTest(_bamSmall, _bamSmall.Replace(".bam", ".ri.bam"), 181, 20); // 5 would have shifts of larger than 20, don't realign those
+            // this number is 186 with 5.2.7
+            ExecuteTest(_bamSmall, _bamSmall.Replace(".bam", ".ri.bam"), 170); // TODO This really needs to be independently verified!!
+            // this number is 181 with 5.2.7, max shift of 20, // 5 would have shifts of larger than 20, don't realign those
+            ExecuteTest(_bamSmall, _bamSmall.Replace(".bam", ".ri.bam"), 169, 15); // 1 would have shifts of larger than 15, don't realign those
         }
 
         public void ExecuteTest(string inputBamFile, string outputBamFile, int expectedNumRealignedReads, int maxShift = 250)

@@ -9,11 +9,11 @@ namespace Pisces.Domain.Interfaces
     {
         void AddCandidates(IEnumerable<CandidateAllele> candidateVariants);
 
-        int GetAlleleCount(int position, AlleleType alleleType, DirectionType directionType);
+        int GetAlleleCount(int position, AlleleType alleleType, DirectionType directionType, int minAnchor = 0, int? maxAnchor = null, bool fromEnd = false, bool symmetric = false);
 
         int GetCollapsedReadCount(int position, ReadCollapsedType type);
 
-		double GetSumOfAlleleBaseQualities(int position, AlleleType alleleType, DirectionType directionType);
+		double GetSumOfAlleleBaseQualities(int position, AlleleType alleleType, DirectionType directionType, int minAnchor = 0, int? maxAnchor = null, bool fromEnd = false, bool symmetric = false);
 		void AddGappedMnvRefCount(Dictionary<int, int> countsByPosition);
 
         int GetGappedMnvRefCount(int position);

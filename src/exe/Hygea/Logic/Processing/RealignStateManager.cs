@@ -6,7 +6,6 @@ using Pisces.Processing.Interfaces;
 using Pisces.Processing.Models;
 using Pisces.Processing.RegionState;
 using MyRegionState = Pisces.Processing.RegionState.RegionState;
-using RealignIndels.Models;
 
 namespace RealignIndels.Logic
 {

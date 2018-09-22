@@ -25,6 +25,9 @@ namespace Pisces.Processing.RegionState
         private bool _trackOpenEnded;
         private bool _trackReadSummaries;
         private int? _readLength;
+        private readonly int _numAnchorTypes;
+        private int WellAnchoredIndex => _numAnchorTypes;
+        private int NumAnchorIndexes => _numAnchorTypes * 2 + 1;
 
         public bool ExpectCollapsedReads { get; protected set; }
         public bool ExpectStitchedReads { get; protected set; }
@@ -32,7 +35,7 @@ namespace Pisces.Processing.RegionState
         public RegionStateManager(bool includeRefAlleles = false, int minBasecallQuality = 20,
             bool expectStitchedReads = false,
             ChrIntervalSet intervalSet = null, int blockSize = 1000,
-            bool trackOpenEnded = false, bool trackReadSummaries = false)
+            bool trackOpenEnded = false, bool trackReadSummaries = false, int numAnchorTypes = 5)
         {
             _regionSize = blockSize;
             _minBasecallQuality = minBasecallQuality;
@@ -42,6 +45,7 @@ namespace Pisces.Processing.RegionState
             _trackReadSummaries = trackReadSummaries;
             ExpectStitchedReads = expectStitchedReads;
             ExpectCollapsedReads = false;
+            _numAnchorTypes = numAnchorTypes;
         }
 
         public void AddCandidates(IEnumerable<CandidateAllele> candidateVariants)
@@ -50,23 +54,64 @@ namespace Pisces.Processing.RegionState
             {
                 var block = GetBlock(candidateVariant.ReferencePosition);
                 block.AddCandidate(candidateVariant, _trackOpenEnded);
-                block.AddCandidateGroup(candidateVariants);
+                if (candidateVariant.Type == AlleleCategory.Deletion || candidateVariant.Type == AlleleCategory.Insertion) {
+                    block.AddCandidateGroup(candidateVariants);
+                }
+                
             }
         }
 
-	    public double GetSumOfAlleleBaseQualities(int position, AlleleType alleleType, DirectionType directionType)
+	    public double GetSumOfAlleleBaseQualities(int position, AlleleType alleleType, DirectionType directionType, int minAnchor = 0, int? maxAnchor = null, bool fromEnd = false, bool symmetric = false)
 	    {
 			var region = GetBlock(position, false);
-          return region?.GetSumOfAlleleBaseQualites(position, alleleType, directionType) ?? 0;
-		}
+	        return region == null ? 0 : region.GetSumOfAlleleBaseQualites(position, alleleType, directionType, minAnchor, maxAnchor, fromEnd);
+        }
 
-	    public void AddGappedMnvRefCount(Dictionary<int, int> supportLookup)
+        public void AddGappedMnvRefCount(Dictionary<int, int> supportLookup)
         {
             foreach (var position in supportLookup.Keys)
             {
                 var block = GetBlock(position);
                 block.AddGappedMnvRefCount(position, supportLookup[position]);
             }
+        }
+
+        private int GetAnchorType(int alignmentEndPosition, int basePosition, int alignmentStartPosition)
+        {
+            // Get the minimum anchor (num mapped bases flanking this one in the read) by looking at both sides
+            var leftAnchor = basePosition - alignmentStartPosition;
+            var rightAnchor = alignmentEndPosition - basePosition;
+
+            bool lessAnchoredOnRight = false;
+
+            
+            var minAnchor = int.MinValue;
+            if (leftAnchor >= rightAnchor)
+            {
+                if (rightAnchor >= _numAnchorTypes)
+                {
+                    return WellAnchoredIndex;
+                }
+
+                minAnchor = NumAnchorIndexes - rightAnchor - 1;
+
+            }
+            else
+            {
+                if (leftAnchor >= _numAnchorTypes)
+                {
+                    return WellAnchoredIndex;
+                }
+                minAnchor = leftAnchor;
+            }
+
+            if (minAnchor < 0)
+            {
+                throw new ArgumentException(
+                    $"Base position {basePosition} does not appear to be mapped in read ({alignmentStartPosition}-{alignmentEndPosition}).");
+            }
+
+            return minAnchor;
         }
 
         public void AddAlleleCounts(Read alignment)
@@ -90,16 +135,23 @@ namespace Pisces.Processing.RegionState
                 lengthBeforeDeletion = (int) (endsInDeletionBeforeSoftclip ? alignment.ReadLength - cigarData[cigarData.Count -1].Length :  alignment.ReadLength);
             }
 
-            for (var positionMapIndex = 0; positionMapIndex < alignment.PositionMap.Length; positionMapIndex++)
+            var positionMapLength = alignment.PositionMap.Length;
+            var alignmentEndPosition = alignment.EndPosition;
+            var alignmentStartPosition = alignment.Position;
+
+            for (var positionMapIndex = 0; positionMapIndex < positionMapLength; positionMapIndex++)
             {
                 DirectionType directionType = alignment.SequencedBaseDirectionMap[positionMapIndex];
+
+
                 if ((endsInDeletionBeforeSoftclip) && positionMapIndex==lengthBeforeDeletion)
                 {
                     if (CandidateVariantFinder.CheckDeletionQuality(alignment, positionMapIndex, _minBasecallQuality))
                     {
                         for (var j = 1; j < deletionLength + 1; j++) // add any terminal deletion counts
                         {
-                            AddAlleleCount(j + lastPosition, AlleleType.Deletion, directionType);
+                            var anchorIndex = NumAnchorIndexes - 1; // Last index
+                            AddAlleleCount(j + lastPosition, AlleleType.Deletion, directionType, anchorIndex);
                             AddCollapsedReadCount(j + lastPosition, alignment, directionType);
                         }
                     }
@@ -111,12 +163,14 @@ namespace Pisces.Processing.RegionState
                     continue; // not mapped to reference
                 }
 
+                var anchorType = GetAnchorType(alignmentEndPosition, position, alignmentStartPosition);
+
                 //if the deletion is of decent quality, add it to the counts matix
                 if (CandidateVariantFinder.CheckDeletionQuality(alignment, positionMapIndex, _minBasecallQuality))
                 {
                     for (var j = lastPosition + 1; j < position; j++) // add any deletion counts
                     {
-                        AddAlleleCount(j, AlleleType.Deletion, directionType);
+                        AddAlleleCount(j, AlleleType.Deletion, directionType, anchorType);
                         AddCollapsedReadCount(j, alignment, directionType);
                     }
                 }
@@ -125,10 +179,10 @@ namespace Pisces.Processing.RegionState
                 if (alignment.Qualities[positionMapIndex] < _minBasecallQuality)
                     alleleType = AlleleType.N; // record this event as a no call
 
-                AddAlleleCount(position, alleleType, directionType);
+                AddAlleleCount(position, alleleType, directionType, anchorType);
                 if (alleleType != AlleleType.N)
                     AddCollapsedReadCount(position, alignment, directionType);
-                AddAlleleBaseQuality(position, alleleType, directionType, Math.Pow(10, -1 * (int)alignment.Qualities[positionMapIndex] / 10f));
+                AddAlleleBaseQuality(position, alleleType, directionType, Math.Pow(10, -1 * (int)alignment.Qualities[positionMapIndex] / 10f), anchorType);
                 lastPosition = position;
             }
 
@@ -140,7 +194,10 @@ namespace Pisces.Processing.RegionState
                     {
                         DirectionType directionType =
                             alignment.SequencedBaseDirectionMap[alignment.SequencedBaseDirectionMap.Length - 1];
-                        AddAlleleCount(j + lastPosition, AlleleType.Deletion, directionType);
+
+                        var anchorIndex = NumAnchorIndexes - 1; // Last index
+
+                        AddAlleleCount(j + lastPosition, AlleleType.Deletion, directionType, anchorIndex); // ends in deletion -> within 1
                         AddCollapsedReadCount(j + lastPosition, alignment, directionType);
                     }
                 }
@@ -156,10 +213,10 @@ namespace Pisces.Processing.RegionState
             }
         }
 
-		public int GetAlleleCount(int position, AlleleType alleleType, DirectionType directionType)
+		public int GetAlleleCount(int position, AlleleType alleleType, DirectionType directionType, int minAnchor = 0, int? maxAnchor = null, bool fromEnd = false, bool symmetric = false)
         {
             var region = GetBlock(position, false);
-            return region == null ? 0 : region.GetAlleleCount(position, alleleType, directionType);
+            return region == null ? 0 : region.GetAlleleCount(position, alleleType, directionType, minAnchor, maxAnchor, fromEnd, symmetric);
         }
 
         public List<ReadCoverageSummary> GetSpanningReadSummaries(int startPosition, int endPosition)
@@ -285,7 +342,7 @@ namespace Pisces.Processing.RegionState
 
         protected virtual RegionState CreateBlock(int startPosition, int endPosition)
         {
-            return new MyRegionState(startPosition, endPosition);
+            return new MyRegionState(startPosition, endPosition, _numAnchorTypes);
         }
         #endregion // virtual
 
@@ -323,16 +380,16 @@ namespace Pisces.Processing.RegionState
 
         #region private 
 
-        private void AddAlleleCount(int position, AlleleType alleleType, DirectionType directionType)
+        private void AddAlleleCount(int position, AlleleType alleleType, DirectionType directionType, int anchorType)
         {
             var block = GetBlock(position);
-            block.AddAlleleCount(position, alleleType, directionType);
+            block.AddAlleleCount(position, alleleType, directionType, anchorType);
         }
 
-        private void AddAlleleBaseQuality(int position, AlleleType alleleType, DirectionType directionType, double baseQuality)
+        private void AddAlleleBaseQuality(int position, AlleleType alleleType, DirectionType directionType, double baseQuality, int anchorType)
         {
             var block = GetBlock(position);
-            block.AddBaseQualites(position, alleleType, directionType, baseQuality);
+            block.AddBaseQualites(position, alleleType, directionType, baseQuality, anchorType);
         }
         /// <summary>
         /// Get block by either reusable one that is available for reuse, or creating a new one if non available for reuse.

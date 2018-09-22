@@ -76,7 +76,7 @@ namespace VariantPhasing
 
             var outFile = Path.Combine(_options.OutputDirectory, outputFileName);
 
-            var phasingCommandLine = "##Scylla_cmdline=" + _options.QuotedCommandLineArgumentsString;
+	        var phasingCommandLine = "##Scylla_cmdline=" + _options.QuotedCommandLineArgumentsString ;
 
 			return new PhasedVcfWriter(outFile,
                 new VcfWriterConfig(_options.VariantCallingParams,  _options.VcfWritingParams, _options.BamFilterParams, null, _options.Debug, false), 
@@ -101,7 +101,7 @@ namespace VariantPhasing
 
         public virtual IVeadGroupSource CreateVeadGroupSource()
         {
-            return new VeadGroupSource(new BamFileAlignmentExtractor(_options.BamPath), _options.BamFilterParams, _options.Debug, _options.LogFolder);
+            return new VeadGroupSource(new BamFileAlignmentExtractor(_options.BamPath, false), _options.BamFilterParams, _options.Debug, _options.LogFolder);
         }
 
     }

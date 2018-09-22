@@ -281,7 +281,7 @@ namespace StitchingLogic.Tests
 
             try
             {
-                var stitcher = new BasicStitcher(10);
+                var stitcher = new BasicStitcher(10, dontStitchHomopolymerBridge: false);
 
                 var inputRead1 = scenario.InputRead1.ToRead();
                 var inputRead2 = scenario.InputRead2.ToRead();

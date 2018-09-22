@@ -136,7 +136,11 @@ namespace Pisces.Domain.Tests.UnitTests.SequencingFiles
             var alignment = new BamAlignment() { TagData = tagData };
 
             // when there was not an NM tag to begin with
+            // do not add if not found
             alignment.UpdateIntTagData("NM", 4);
+            Assert.Equal(null, alignment.GetIntTag("NM"));
+            // add if not found
+            alignment.UpdateIntTagData("NM", 4, true);
             Assert.Equal(4, alignment.GetIntTag("NM"));
 
             // when there was an NM tag to begin with

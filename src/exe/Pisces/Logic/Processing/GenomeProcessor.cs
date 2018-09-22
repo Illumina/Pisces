@@ -41,7 +41,7 @@ namespace CallVariants.Logic.Processing
                     var vcfWriter = _factory.CreateVcfWriter(workRequest.OutputFilePath, new VcfWriterInputContext
                     {
                         ReferenceName = Genome.Directory,
-                        CommandLine = _factory.GetCommandLine(),
+                        QuotedCommandLineString = _factory.GetCommandLine(),
                         SampleName = Path.GetFileName(workRequest.BamFilePath),
                         ContigsByChr = Genome.ChromosomeLengths
                     });
@@ -78,7 +78,7 @@ namespace CallVariants.Logic.Processing
                         var vcfWriter = _factory.CreateVcfWriter(outputPath, new VcfWriterInputContext
                         {
                             ReferenceName = Genome.Directory,
-                            CommandLine = _factory.GetCommandLine(),
+                            QuotedCommandLineString = _factory.GetCommandLine(),
                             SampleName = Path.GetFileName(workRequest.BamFilePath),
                             ContigsByChr = Genome.ChromosomeLengths
                         });
@@ -132,7 +132,7 @@ namespace CallVariants.Logic.Processing
                 using (var vcfWriter = _factory.CreateVcfWriter(workRequest.OutputFilePath, new VcfWriterInputContext
                 {
                     ReferenceName = Genome.Directory,
-                    CommandLine = _factory.GetCommandLine(),
+                    QuotedCommandLineString = _factory.GetCommandLine(),
                     SampleName = Path.GetFileName(workRequest.BamFilePath),
                     ContigsByChr = Genome.ChromosomeLengths
                 }))

@@ -1369,7 +1369,7 @@ new CandidateVariantsTest(_readStartPos, "TTT" + "TTTT" + "TTT", cigarString, "A
             var alternate = "T";
 
             var variant = CandidateVariantFinder.Create(AlleleCategory.Snv, chromosome, coordinate, reference, alternate,
-                alignment, PiscesSupportDirectionTestSetup.VariantStartInRead);
+                alignment, PiscesSupportDirectionTestSetup.VariantStartInRead, 5);
             VerifySupportDirection(variant, expectedSupport);
 
             if (expectedReadCounts != null)

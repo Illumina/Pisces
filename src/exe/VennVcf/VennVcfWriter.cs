@@ -18,13 +18,13 @@ namespace VennVcf
         Dictionary<FilterType, string> _originalFilterLines = new Dictionary<FilterType, string>();
 
         public VennVcfWriter(string outputFilePath, VcfWriterConfig config, VcfWriterInputContext context, 
-            List<string> originalHeader, string phasingCommandLine, int bufferLimit = 2000, bool debugMode =false ) : base(outputFilePath, config, context, bufferLimit)
+            List<string> originalHeader, string vennVcfCommandLine, int bufferLimit = 2000, bool debugMode =false ) : base(outputFilePath, config, context, bufferLimit)
         {
             _originalHeader = originalHeader;
             _originalFilterLines = VcfVariantUtilities.GetFilterStringsByType(originalHeader);
             _formatter = new VennVcfFormatter(config, debugMode);
             AllowMultipleVcfLinesPerLoci = config.AllowMultipleVcfLinesPerLoci;
-            _vennCommandLine = phasingCommandLine;
+            _vennCommandLine = vennVcfCommandLine;
         }
 
 

@@ -210,7 +210,7 @@ namespace VennVcf
 
             ConsensusAllele.Genotype = GT;
             ConsensusAllele.PoolBiasResults = GetProbePoolBiasScore(Case, ConsensusAllele,
-                SampleAggregationOptions.ProbePoolBiasThreshold, AltCountA, AltCountB, DepthA, DepthB, GT, AltChangedToRef);
+                SampleAggregationOptions.ProbePoolBiasThreshold, variantCallingParameters, AltCountA, AltCountB, DepthA, DepthB, GT, AltChangedToRef);
 
             if (SampleAggregationOptions.HowToCombineQScore == SampleAggregationParameters.CombineQScoreMethod.TakeMin)
             {
@@ -399,7 +399,7 @@ namespace VennVcf
 
 
 		private static BiasResults GetProbePoolBiasScore(VariantComparisonCase Case, CalledAllele Consensus,
-			float ProbePoolBiasThreshold, int AltCountA, int AltCountB, int DepthA, int DepthB, Genotype Genotype, bool AltChangeToRef)
+			float ProbePoolBiasThreshold, VariantCallingParameters variantCallingParameters , int AltCountA, int AltCountB, int DepthA, int DepthB, Genotype Genotype, bool AltChangeToRef)
 		{
 			double ProbePoolPScore = 0; //no bias;
 			double ProbePoolGATKBiasScore = -100; //no bias;
@@ -433,10 +433,11 @@ namespace VennVcf
 		            DepthA, DepthB, 0
 		        };
 
+                
                 BiasResults ProbePoolBiasResults = 
                     StrandBiasCalculator.CalculateStrandBiasResults(
-                    covByPool,supportByPool,
-                    NoiseLevel, ProbePoolBiasThreshold, StrandBiasModel.Extended);
+                    covByPool,supportByPool, 
+                    NoiseLevel, variantCallingParameters.MinimumFrequency, ProbePoolBiasThreshold, StrandBiasModel.Extended);
 
 				ProbePoolGATKBiasScore = Math.Min(0, ProbePoolBiasResults.GATKBiasScore); //just cap it at upperbound 0, dont go higher.
 				ProbePoolGATKBiasScore = Math.Max(-100, ProbePoolGATKBiasScore); //just cap it at lowerbound -100, dont go higher.
@@ -527,7 +528,7 @@ namespace VennVcf
             OutputFile =  new VennVcfWriter(_consensusFilePath,
                 new VcfWriterConfig(_options.VariantCallingParams, _options.VcfWritingParams, 
                 _options.BamFilterParams, _options.SampleAggregationParameters, false, false),
-                new VcfWriterInputContext(), originalHeaderLines, _options.CommandLine, debugMode: _options.DebugMode);
+                new VcfWriterInputContext(), originalHeaderLines, _options.QuotedCommandLineArgumentsString, debugMode: _options.DebugMode);
 
             OutputFile.WriteHeader();     
 		}

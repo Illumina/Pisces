@@ -128,6 +128,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
+using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 
@@ -309,6 +310,8 @@ namespace CommandLine.NDesk.Options
         public int OptionIndex { get; set; }
 
         public OptionValueCollection OptionValues { get; }
+
+        public Dictionary<string, string> OptionValuesLookup = new Dictionary<string, string>();
     }
 
     public enum OptionValueType
@@ -607,9 +610,15 @@ namespace CommandLine.NDesk.Options
             return new OptionContext();
         }
 
+        private Dictionary<string, string> _optionsUsed = new Dictionary<string, string>();
+        public Dictionary<string, string> GetOptionsUsed()
+        {
+            return _optionsUsed;
+        }
         public List<string> Parse(IEnumerable<string> arguments)
         {
             OptionContext c = CreateOptionContext();
+
             c.OptionIndex = -1;
             bool process = true;
             var unprocessed = new List<string>();
@@ -635,10 +644,19 @@ namespace CommandLine.NDesk.Options
                     Unprocessed(unprocessed, def, c, argument);
                     continue;
                 }
+
                 if (!Parse(argument, c))
+                {
                     Unprocessed(unprocessed, def, c, argument);
+                }
             }
             c.Option?.Invoke(c);
+
+            foreach (var kvp in c.OptionValuesLookup)
+            {
+                _optionsUsed.Add(kvp.Key, kvp.Value);
+            }
+
             return unprocessed;
         }
 
@@ -684,6 +702,12 @@ namespace CommandLine.NDesk.Options
             if (c.Option != null)
             {
                 ParseValue(argument, c);
+                //if (c.OptionValues.Any())
+                //{
+
+                //}
+                //c.OptionValuesLookup.Add(argument, c.OptionValues.First());
+
                 return true;
             }
 
@@ -727,6 +751,7 @@ namespace CommandLine.NDesk.Options
                                          : new[] { option })
                 {
                     c.OptionValues.Add(o);
+                    c.OptionValuesLookup.Add(c.OptionName, o);
                 }
             if (c.OptionValues.Count == c.Option.MaxValueCount ||
                 c.Option.OptionValueType == OptionValueType.Optional)

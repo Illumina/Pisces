@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.IO;
 using Pisces.IO.Sequencing;
 using Common.IO.Utility;
@@ -18,25 +17,19 @@ namespace VariantQualityRecalibration.Tests
             var outDir = Path.Combine(TestPaths.LocalScratchDirectory, "RecalibrateDirtyVcf");
             var outFile = Path.Combine(outDir, "TestWithArtifacts.vcf.recal");
             var expectedFile = Path.Combine(TestPaths.LocalTestDataDirectory, "ExpectedDirty.vcf.recal");
-            var quotedCmdLineString = "\"-vcf TestWithArtifacts.vcf\"";
 
             if (File.Exists(outFile))
                 File.Delete(outFile);
 
             Logger.OpenLog(outDir, "RecalibrateDirtyVcfLog.txt", true);
-            
-            QualityRecalibration.Recalibrate(vcfPath, countsPath, outDir, 30, 0, 66, -1, quotedCmdLineString);
+
+            QualityRecalibration.Recalibrate(vcfPath, countsPath, outDir, 30, 0, 66, -1, "\"-vcf TestWithArtifacts.vcf\"");
 
             Logger.CloseLog();
 
             Assert.True(File.Exists(outFile));
 
-            var observedLines = File.ReadAllLines(outFile);
-            var expectedLines = File.ReadAllLines(expectedFile);
-            Assert.Equal(expectedLines.Length, observedLines.Length);
-
-            for (int i = 0; i < expectedLines.Length; i++)
-                Assert.Equal(expectedLines[i], observedLines[i]);
+           TestUtilities.TestHelper.CompareFiles(outFile, expectedFile);
 
             //redirect log incase any other thread is logging here.
             var SafeLogDir = TestPaths.LocalScratchDirectory;

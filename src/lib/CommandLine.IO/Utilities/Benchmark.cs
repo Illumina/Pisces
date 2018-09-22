@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace CommandLine.IO.Utilities
+namespace CommandLine.Util
 {
     public sealed class Benchmark
     {

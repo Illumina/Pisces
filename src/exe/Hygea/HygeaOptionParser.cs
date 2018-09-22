@@ -1,23 +1,23 @@
 ﻿using System;
 using System.Linq;
 using System.Collections.Generic;
-using CommandLine.IO;
+using Common.IO.Utility;
 using CommandLine.NDesk.Options;
 using CommandLine.Options;
-using CommandLine.IO.Utilities;
+using CommandLine.Util;
 
 namespace RealignIndels
 {
     public class HygeaOptionParser : BaseOptionParser
     {
 
-        public HygeaOptions HygeaOptions;
-
         public HygeaOptionParser()
         {
-            HygeaOptions = new HygeaOptions();
-        }   
-    
+            Options = new HygeaOptions();
+        }
+
+
+        public HygeaOptions HygeaOptions { get => (HygeaOptions)Options; }
         public override Dictionary<string, OptionSet> GetParsingMethods()
         {
 
@@ -58,7 +58,7 @@ namespace RealignIndels
                 },
                 {
                     "remaskSoftclips=",
-                    OptionTypes.BOOL + " Option to re-apply softclips to portions of the realigned read that were previously softclipped and are now M.  Default value is true.",
+                    OptionTypes.BOOL + " Option to re-apply softclips to portions of the realigned read that were previously softclipped and are now M.  Default value is false.",
                     value => HygeaOptions.RemaskSoftclips = bool.Parse(value)
                 },
                 {
@@ -85,7 +85,7 @@ namespace RealignIndels
                     "tryRealignSoftclippedReads=",
                     OptionTypes.BOOL + " Whether to treat softclips as realignable, making them eligible for realignment of otherwise perfect reads, and counting against alignments when comparing them.",
                     value => HygeaOptions.TryRealignSoftclippedReads = bool.Parse(value)
-                },
+                },                
                 {
                     "useAlignmentScorer=",
                     OptionTypes.BOOL + " When comparing alignments, whether to use the alignment scorer rather than simply prioritizing alignments that minimize mismatch, softclip, and indel in that order. Alignment scoring is a simple additive function with that sums the product of each feature with its specified coefficient. Default scorer coefficients are -1 softclip, -1 indel, -2 mismatch, and 0 for all others, but can be tuned with the Alignment Scorer Parameters as described below.",
@@ -121,6 +121,11 @@ namespace RealignIndels
                     OptionTypes.BOOL + " Option to softclip a partial insertion at the end of a realigned read (a complete but un-anchored insertion is allowed).  Default value is false.",
                     value => HygeaOptions.MaskPartialInsertion = bool.Parse(value)
                 },
+                {
+                    "minimumUnanchoredInsertionLength=",
+                    OptionTypes.INT + " Minimum length of an unanchored insertion (i.e. no flanking reference base on one side) allowed in a realigned read. Insertions shorter than the specified length will be softclipped. Default value is 0, i.e. allowing unanchored insertions of any length. ",
+                    value => HygeaOptions.MinimumUnanchoredInsertionLength = int.Parse(value)
+                },
                 {   "Debug=",
                     OptionTypes.BOOL + " Debug mode",
                     value => HygeaOptions.Debug = bool.Parse(value)
@@ -135,7 +140,7 @@ namespace RealignIndels
                 {OptionSetNames.Common,commonOps },
             };
 
-            BamProcessorParsingMethods.AddBamProcessorArgumentParsing(optionDict, HygeaOptions);
+            BamProcessorParsingUtils.AddBamProcessorArgumentParsing(optionDict, HygeaOptions);
             return optionDict;
         }
 
@@ -145,7 +150,7 @@ namespace RealignIndels
 
             try
             {
-                BamProcessorParsingMethods.ValidateBamProcessorPaths(HygeaOptions.BAMPaths, HygeaOptions.GenomePaths, null);
+                BamProcessorParsingUtils.ValidateBamProcessorPaths(HygeaOptions.BAMPaths, HygeaOptions.GenomePaths, null);
             }
             catch (Exception ex)
             {

@@ -6,6 +6,7 @@ using Pisces.IO.Sequencing;
 using Pisces.Calculators;
 using Pisces.Domain.Types;
 using Common.IO.Utility;
+using Common.IO;
 using Pisces.IO;
 
 namespace VariantQualityRecalibration
@@ -14,7 +15,7 @@ namespace VariantQualityRecalibration
     {
         private const int VcfHeaderOffset = 4;
         public static void Recalibrate(string vcfIn, string countsFileIn, string outDir,
-            int baselineQNoise, double zFactor, int maxQscore, int filterQScore,string commandLineArgument)
+            int baselineQNoise, double zFactor, int maxQscore, int filterQScore,string quotedCmdLineString)
         {
 
             string vcfFileName = Path.GetFileName(vcfIn);
@@ -25,7 +26,7 @@ namespace VariantQualityRecalibration
 
             try
             {
-                DoRecalibrationWork(vcfIn, vcfOut, countsFileIn, baselineQNoise, zFactor, maxQscore, filterQScore,commandLineArgument);
+                DoRecalibrationWork(vcfIn, vcfOut, countsFileIn, baselineQNoise, zFactor, maxQscore, filterQScore,quotedCmdLineString);
 
                 if (File.Exists(vcfOut))
                 {
@@ -43,7 +44,7 @@ namespace VariantQualityRecalibration
         }
 
         private static void DoRecalibrationWork(string vcfIn, string vcfOut, string sampleCountsFileName, 
-            int baselineQNoise, double zFactor, int maxQscore, int filterQScore,string commandLineArgumentString)
+            int baselineQNoise, double zFactor, int maxQscore, int filterQScore,string quotedCommandLineString)
         {
             
             if (!File.Exists(sampleCountsFileName))
@@ -70,7 +71,7 @@ namespace VariantQualityRecalibration
             {
                 writer.NewLine = "\n";
                 List<string> headerLines = reader.HeaderLines;
-                WriteHeaders(writer,headerLines, commandLineArgumentString);
+                WriteHeaders(writer,headerLines, quotedCommandLineString);
                 
 
                 var originalVar = new VcfVariant();
@@ -89,13 +90,16 @@ namespace VariantQualityRecalibration
             }
         }
 
-        private static void WriteHeaders(StreamWriter writer, List<string> headerLines, string commandLineArgumentString)
+        private static void WriteHeaders(StreamWriter writer, List<string> headerLines, string quotedCommandLineString)
         {
             foreach (string headerLine in headerLines.Take(VcfHeaderOffset))
                 writer.WriteLine(headerLine);
 
-            if(!string.IsNullOrEmpty(commandLineArgumentString))
-                writer.WriteLine("##VQR_cmdline=" + commandLineArgumentString);
+            var currentVersion = FileUtilities.LocalAssemblyVersion<QualityRecalibration>();
+            writer.WriteLine("##VariantQualityRecalibration=VQR " + currentVersion);
+
+            if (!string.IsNullOrEmpty(quotedCommandLineString))
+                writer.WriteLine("##VQR_cmdline=" + quotedCommandLineString );
 
             for(var i=VcfHeaderOffset;i<headerLines.Count;i++)
                 writer.WriteLine(headerLines[i]);

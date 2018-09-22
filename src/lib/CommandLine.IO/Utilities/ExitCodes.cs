@@ -1,4 +1,4 @@
-﻿namespace CommandLine.IO.Utilities
+﻿namespace CommandLine.Util
 {
     /// <summary>
     /// Common Windows Error Codes: https://msdn.microsoft.com/en-us/library/windows/desktop/ms681382(v=vs.85).aspx

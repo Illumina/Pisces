@@ -85,6 +85,12 @@ namespace Pisces.Domain.Models
 
     public struct DirectionOp
     {
+        public DirectionOp(DirectionType direction, int length)
+        {
+            Length = length;
+            Direction = direction;
+        }
+
         public int Length;
         public DirectionType Direction;
     }

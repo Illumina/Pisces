@@ -17,13 +17,13 @@ namespace Psara
         private readonly string _psaraCommandLine;
         Dictionary<FilterType, string> _originalFilterLines = new Dictionary<FilterType, string>();
 
-        public PsaraVcfWriter(string outputFilePath, VcfWriterConfig config, VcfWriterInputContext context, List<string> originalHeader, string phasingCommandLine, int bufferLimit = 2000) : base(outputFilePath, config, context, bufferLimit)
+        public PsaraVcfWriter(string outputFilePath, VcfWriterConfig config, VcfWriterInputContext context, List<string> originalHeader, string psaraCommandLine, int bufferLimit = 2000) : base(outputFilePath, config, context, bufferLimit)
         {
             _originalHeader = originalHeader;
             _originalFilterLines = VcfVariantUtilities.GetFilterStringsByType(originalHeader);
             _formatter = new VcfFormatter(config);
             AllowMultipleVcfLinesPerLoci = config.AllowMultipleVcfLinesPerLoci;
-            _psaraCommandLine = phasingCommandLine;
+            _psaraCommandLine = psaraCommandLine;
         }
 
 

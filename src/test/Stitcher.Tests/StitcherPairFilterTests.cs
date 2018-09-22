@@ -1,6 +1,7 @@
 ﻿using System.Linq;
 using Moq;
 using Alignment.Domain.Sequencing;
+using BamStitchingLogic;
 using StitchingLogic;
 using Xunit;
 
@@ -46,23 +47,37 @@ namespace Stitcher.Tests
             // Should be able to get both of these reads back with unpaired
             Assert.Equal(2, filter.GetFlushableUnpairedReads().Count());
 
-            // Realistic Cases
-            // R1 Unmapped, R1 Mate Unmapped, R2 Unmapped, R2 Mate Unmapped
-            MappedReadTest(true, true, true, true);
-            // R1 Unmapped, R1 Mate Mapped, R2 Mapped, R2 Mate Unmapped
-            MappedReadTest(true, false, false, true);
-            // R1 Mapped, R1 Mate Unmapped, R2 Unmapped, R2 Mate Mapped
-            MappedReadTest(false, true, true, false);
 
-            // Theoretical Cases
-            // R1 Unmapped, R1 Mate Unmapped, R2 Unmapped, R2 Mate Mapped(*)
-            MappedReadTest(true, true, true, false);
-            // R1 Unmapped, R1 Mate Mapped(*), R2 Unmapped, R2 Mate Unmapped
-            MappedReadTest(true, false, true, true);
-            // R1 Mapped, R1 Mate Mapped(*), R2 Unmapped, R2 Mate Mapped
-            MappedReadTest(false, false, true, false);
-            // R1 Mapped, R1 Mate Unmapped, R2 Unmapped, R2 Mate Unmapped(*)
-            MappedReadTest(false, true, true, true);
+
+            ///
+            /// LowMapQ filter tests both the filterPairLowMapQ and the minmapquality setting
+            /// If filterPairLowMapQ == true, and one or both reads below mapQ both read pairs should be filtered and have 0 FlushableUnpairedReads
+            /// If filterPairLowMapQ == false, and one read below mapQ, only one read should be filtered and have 1 FlushableUnpairedReads
+            /// 
+
+            // HappyCase, both reads mapQ = 30, filterPair on, Stitched so 0 flushable reads, minMapQ = 20
+            LowMapQualityTest(30, 30, true, 0, 20, true);
+            // r1MapQ = 10, r2MapQ = 30, filterPair on, expected to throw out both reads, minMapQ = 20)
+            LowMapQualityTest(10, 30, true, 0, 20, false);
+            // r1MapQ = 30, r2MapQ = 10, filterPair on, expected to throw out both reads, minMapQ = 20)
+            LowMapQualityTest(10, 30, true, 0, 20, false);
+            // r1MapQ = 30, r2MapQ = 10, filterPair off, expected to throw out 1 read, minMapQ = 20)
+            LowMapQualityTest(10, 30, false, 1, 20, false);
+            // r1MapQ = 10, r2MapQ = 30, filterPair off, expected to throw out 1 read, minMapQ = 20)
+            LowMapQualityTest(10, 30, false, 1, 20, false);
+            // r1MapQ = 3, r2MapQ = 20, filterPair on, expected to throw out both reads, minMapQ = 5)
+            LowMapQualityTest(3, 20, true, 0, 5, false);
+            // r1MapQ = 10, r2MapQ = 10, filterPair on, expected to throw out both reads, minMapQ = 20)
+            LowMapQualityTest(10, 10, true, 0, 20, false);
+            // r1MapQ = 10, r2MapQ = 10, filterPair off, expected to throw out both reads, minMapQ = 20)
+            LowMapQualityTest(10, 10, false, 0, 20, false);
+            // r1MapQ = 19, r2MapQ = 20, filterPair on, expected to throw out both reads, minMapQ = 20)
+            LowMapQualityTest(19, 20, true, 0, 20, false);
+            // r1MapQ = 19, r2MapQ = 20, filterPair off, expected to throw out 1 reads, minMapQ = 20)
+            LowMapQualityTest(19, 20, false, 1, 20, false);
+
+
+
 
             // Non-overlapping pairs should be treated as incomplete (like a singleton)
             Assert.Equal(0, filter.GetFlushableUnpairedReads().Count());
@@ -96,7 +111,7 @@ namespace Stitcher.Tests
         private static void MappedReadTest(bool r1UnMapped, bool r1MateUnMapped, bool r2UnMapped, bool r2MateUnMapped)
         {
             var dupIdentifier = new Mock<IDuplicateIdentifier>();
-            var filter = new StitcherPairFilter(false, false, dupIdentifier.Object, new ReadStatusCounter(), filterForUnmappedReads: true);
+            var filter = new StitcherPairFilter(false, false, dupIdentifier.Object, new ReadStatusCounter(),filterPairUnmapped:true);
             var unmappedRead = CreateAlignment("case1", true, 0, "3M", r1UnMapped, r1MateUnMapped);
             var mappedRead = CreateAlignment("case1", true, 0, "3M", r2UnMapped, r2MateUnMapped);
             var pair = filter.TryPair(mappedRead);
@@ -104,6 +119,20 @@ namespace Stitcher.Tests
             pair = filter.TryPair(unmappedRead);
             Assert.Null(pair);
             Assert.Equal(0, filter.GetFlushableUnpairedReads().Count());
+        }
+
+        private static void LowMapQualityTest(uint r1MapQ, uint r2MapQ, bool filterPair, int expectedFragmentCount, uint MinMapQuality, bool shouldStitch)
+        {
+            var dupIdentifier = new Mock<IDuplicateIdentifier>();
+            var filter = new StitcherPairFilter(false, false, dupIdentifier.Object, new ReadStatusCounter(), filterPairLowMapQ: filterPair, minMapQuality : MinMapQuality);
+            var r1 = CreateAlignment("LowMap", true, 0, "3M", false, mapQ: r1MapQ);
+            var r2 = CreateAlignment("LowMap", true, 0, "3M", false, mapQ: r2MapQ);
+            var pair = filter.TryPair(r1);
+            Assert.Null(pair);
+            pair = filter.TryPair(r2);
+            if (shouldStitch) Assert.NotNull(pair);
+            else Assert.Null(pair);
+            Assert.Equal(expectedFragmentCount, filter.GetFlushableUnpairedReads().Count());
         }
     }
 }

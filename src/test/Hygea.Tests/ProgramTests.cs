@@ -1,5 +1,6 @@
 ﻿using System.IO;
-using CommandLine.IO.Utilities;
+using CommandLine.Util;
+using System.Collections.Generic;
 using Common.IO.Utility;
 using RealignIndels;
 using Xunit;
@@ -61,10 +62,50 @@ namespace Hygea.Tests
 
         [Fact]
         public void CheckCommandLineArgumentHandling_UnsupportedArguments()
-        {
-           
+        {          
             Assert.Equal((int)ExitCodeType.UnknownCommandLineOption, Program.Main(new string[] { "-bam", _existingBamPath, "-blah", "won't work" }));
-
         }
+
+        [Fact]
+        public void CheckCommandLineArgumentHandling_HappyPathTest()
+        {
+
+            var priorPath = Path.Combine(TestPaths.LocalTestDataDirectory, "priors.vcf");
+            var genomePath = Path.Combine(TestPaths.SharedGenomesDirectory, "chr19");
+            var outFolder = Path.Combine(TestPaths.LocalScratchDirectory, "HygeaHappyPath");
+
+            var arguments = new string[] { "-bam", _existingBamPath, "-priorsFile",
+                priorPath, "-genomefolders", genomePath , "-o", outFolder  };
+
+
+            var expectedOutputFiles = new List<string>()
+            {
+                   Path.Combine(outFolder, "var123var35.bam"),
+                   Path.Combine(outFolder, "var123var35.bam.bai"),
+                   Path.Combine(outFolder, "HygeaLogs", "HygeaOptions.used.json"),
+                   Path.Combine(outFolder, "HygeaLogs", "HygeaLog.txt")
+            };
+
+            foreach (var file in expectedOutputFiles)
+            {
+                if (File.Exists(file))
+                    File.Delete(file);
+            }
+
+            Assert.Equal((int)ExitCodeType.Success, Program.Main(arguments));
+            Assert.True(Directory.Exists(outFolder));
+
+            foreach (var file in expectedOutputFiles)
+            {
+                Assert.True(File.Exists(file)); 
+            }
+
+            foreach (var file in expectedOutputFiles)
+            {
+                if (File.Exists(file))
+                    File.Delete(file);
+            }
+        }
+
     }
 }

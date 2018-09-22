@@ -1,7 +1,7 @@
 ##fileformat=VCFv4.1
 ##fileDate=20171221
 ##source=Pisces 5.2.5.20
-##Pisces_cmdline="-BAMFolder /illumina/bs -CallMNVs false -crushvcf true -g /illumina/development/Isis/Genomes/Homo_sapiens/UCSC/hg19/Sequence/WholeGenomeFasta -gVCF true -ploidy diploid -OutFolder /out"
+##Pisces_cmdline="-BAMFolder /illumina/bs -CallMNVs false -crushvcf false -g /illumina/development/Isis/Genomes/Homo_sapiens/UCSC/hg19/Sequence/WholeGenomeFasta -gVCF true -ploidy diploid -OutFolder /out"
 ##reference=/illumina/development/Isis/Genomes/Homo_sapiens/UCSC/hg19/Sequence/WholeGenomeFasta
 ##ALT=<ID=<M>,Description="There is an overlapping other allele that has been called in a separate VCF record">
 ##INFO=<ID=DP,Number=1,Type=Integer,Description="Total Depth">

@@ -49,7 +49,8 @@ namespace Psara
                     {
                         if (incomingBatch.Count == 0)
                         {
-                            incomingBatch = moreVariantsInVcf ? VcfVariantUtilities.Convert(new List<VcfVariant> { backLogVcfVariant }).ToList() : null;
+                            incomingBatch = moreVariantsInVcf ? VcfVariantUtilities.Convert(new List<VcfVariant> { backLogVcfVariant },
+                                                                config.ShouldOutputRcCounts,config.ShouldOutputTsCounts, false).ToList() : null;
                             moreVariantsInVcf = reader.GetNextVariant(backLogVcfVariant);
                         }
                         if ((coLocatedAlleles.Count == 0) || AreColocated(coLocatedAlleles, incomingBatch))
@@ -91,21 +92,18 @@ namespace Psara
         {
             alleles = filter.DoFiltering(alleles);
 
-            foreach (var allele in alleles)
+           
+            try
             {
-
-                try
-                {
-                    writer.Write(new List<CalledAllele>() { allele });
-                }
-                catch (Exception ex)
-                {
-                    Logger.WriteWarningToLog("Problem writing " + allele.ToString());
-                    Logger.WriteExceptionToLog(ex);
-                    return;
-                }
+                writer.Write(alleles);
             }
-
+            catch (Exception ex)
+            {
+                Logger.WriteWarningToLog("Problem writing alleles to vcf.");
+                Logger.WriteExceptionToLog(ex);
+                return;
+            }
+            
             writer.FlushBuffer();
 
         }

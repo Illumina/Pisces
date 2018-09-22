@@ -4,6 +4,6 @@
     {
         Forward = 0,
         Reverse = 1,
-        Stitched = 2
+        Stitched = 2,
     }
 }

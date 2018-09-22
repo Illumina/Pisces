@@ -13,7 +13,7 @@ namespace Pisces.Tests.UnitTests.VariantCalling
 		[Fact]
 		public void ChrMGenotypeCalculatorTests()
 		{
-			var genotypeCaculator = GenotypeCreator.CreateGenotypeCalculator(PloidyModel.Diploid, 0.05f, 30, null, 0, 100, 0.05f, 0.02f, "chrM");
+			var genotypeCaculator = GenotypeCreator.CreateGenotypeCalculator(PloidyModel.Diploid, 0.05f, 30, null, null, 0, 100, 0.05f, 0.02f, "chrM");
 			
 			Assert.True( genotypeCaculator is SomaticGenotypeCalculator);
 			Assert.Equal(0.02f,genotypeCaculator.MinVarFrequency);
@@ -28,7 +28,7 @@ namespace Pisces.Tests.UnitTests.VariantCalling
 		public void ChrXFemaleGenotypeCalculatorTests()
 		{
 			var diploidPars = new DiploidThresholdingParameters(new float[] { 0.2f, 0.7f, 0.8f });
-			var genotypeCaculator = GenotypeCreator.CreateGenotypeCalculator(PloidyModel.Diploid, 0.05f, 30, diploidPars, 0, 100, 0.05f, 0.02f, "chrX",false);
+			var genotypeCaculator = GenotypeCreator.CreateGenotypeCalculator(PloidyModel.Diploid, 0.05f, 30, diploidPars, diploidPars, 0, 100, 0.05f, 0.02f, "chrX",false);
 
 			Assert.True(genotypeCaculator is DiploidGenotypeCalculator);
 			Assert.Equal(0.2f, genotypeCaculator.MinVarFrequency);
@@ -44,7 +44,7 @@ namespace Pisces.Tests.UnitTests.VariantCalling
 		public void ChrXMaleGenotypeCalculatorTests()
 		{
 			var diploidPars = new DiploidThresholdingParameters(new float[] { 0.2f, 0.7f, 0.8f });
-			var genotypeCaculator = GenotypeCreator.CreateGenotypeCalculator(PloidyModel.Diploid, 0.05f, 30, diploidPars, 0, 100, 0.05f, 0.02f, "chrX", true);
+			var genotypeCaculator = GenotypeCreator.CreateGenotypeCalculator(PloidyModel.Diploid, 0.05f, 30, diploidPars, diploidPars, 0, 100, 0.05f, 0.02f, "chrX", true);
 
 			Assert.True(genotypeCaculator is HaploidGenotyeCalculator);
 			Assert.Equal(0.2f, genotypeCaculator.MinVarFrequency);
@@ -60,7 +60,7 @@ namespace Pisces.Tests.UnitTests.VariantCalling
 		public void ChrXUnknownGenderTests()
 		{
 			var diploidPars = new DiploidThresholdingParameters(new float[] { 0.2f, 0.7f, 0.8f });
-			var genotypeCaculator = GenotypeCreator.CreateGenotypeCalculator(PloidyModel.Diploid, 0.05f, 30, diploidPars, 0, 100, 0.05f, 0.02f, "chrX");
+			var genotypeCaculator = GenotypeCreator.CreateGenotypeCalculator(PloidyModel.Diploid, 0.05f, 30, diploidPars, diploidPars, 0, 100, 0.05f, 0.02f, "chrX");
 
 			Assert.True(genotypeCaculator is DiploidGenotypeCalculator);
 		}
@@ -69,7 +69,7 @@ namespace Pisces.Tests.UnitTests.VariantCalling
 		public void ChrYUnknownGenderTests()
 		{
 			var diploidPars = new DiploidThresholdingParameters(new float[] { 0.2f, 0.7f, 0.8f });
-			var genotypeCaculator = GenotypeCreator.CreateGenotypeCalculator(PloidyModel.Diploid, 0.05f, 30, diploidPars, 0, 100, 0.05f, 0.02f, "chrY");
+			var genotypeCaculator = GenotypeCreator.CreateGenotypeCalculator(PloidyModel.Diploid, 0.05f, 30, diploidPars, diploidPars, 0, 100, 0.05f, 0.02f, "chrY");
 
 			Assert.True(genotypeCaculator is DiploidGenotypeCalculator);
 		}
@@ -78,7 +78,7 @@ namespace Pisces.Tests.UnitTests.VariantCalling
 		public void ChrYMaleTests()
 		{
 			var diploidPars = new DiploidThresholdingParameters(new float[] { 0.2f, 0.7f, 0.8f });
-			var genotypeCaculator = GenotypeCreator.CreateGenotypeCalculator(PloidyModel.Diploid, 0.05f, 30, diploidPars, 0, 100, 0.05f, 0.02f, "chrY",true);
+			var genotypeCaculator = GenotypeCreator.CreateGenotypeCalculator(PloidyModel.Diploid, 0.05f, 30, diploidPars, diploidPars, 0, 100, 0.05f, 0.02f, "chrY",true);
 
 			Assert.True(genotypeCaculator is HaploidGenotyeCalculator);
 		}

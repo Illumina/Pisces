@@ -1,7 +1,8 @@
 ﻿using System;
 using System.IO;
 using System.Collections.Generic;
-using CommandLine.IO;
+using Common.IO.Utility;
+using CommandLine.Options;
 using CommandLine.NDesk.Options;
 
 namespace Psara
@@ -9,13 +10,12 @@ namespace Psara
     public class PsaraOptionsParser : BaseOptionParser
     {
 
-        public PsaraOptions PsaraOptions;
-
         public PsaraOptionsParser()
         {
-            PsaraOptions = new PsaraOptions();
+            Options = new PsaraOptions();
         }
 
+        public PsaraOptions PsaraOptions { get => (PsaraOptions)Options; }
 
         public override Dictionary<string, OptionSet> GetParsingMethods()
         {
@@ -70,6 +70,7 @@ namespace Psara
 
         public override void ValidateOptions()
         {
+
             if ((PsaraOptions.InputVcf == null) || !(File.Exists(PsaraOptions.InputVcf)))
             {
                 throw new ArgumentException(string.Format("Input vcf file is required. {0}", PsaraOptions.InputVcf));
@@ -83,13 +84,8 @@ namespace Psara
 
             if ((PsaraOptions.OutputDirectory != null) && !(Directory.Exists(PsaraOptions.OutputDirectory)))
             {
-
                 Directory.CreateDirectory(PsaraOptions.OutputDirectory);
-
-                if (!(Directory.Exists(PsaraOptions.OutputDirectory)))
-                    throw new ArgumentException(string.Format("Unable to create output folder. {0}", PsaraOptions.OutputDirectory));
             }
-
             PsaraOptions.GeometricFilterParameters.Validate();
 
         }

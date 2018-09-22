@@ -21,6 +21,7 @@ namespace Pisces.IO
         public string StrandBiasFormat = "SB";
         public string ProbeBiasFormat = "PB";
         public string FractionNoCallFormat = "NC";
+        public string FractionSuspiciousCoverageFormat = "SC";
         public string DepthInfo = "DP";
         public string FrequencySigFigFormat;
         public const string PassFilter = "PASS";
@@ -120,6 +121,9 @@ namespace Pisces.IO
                 if (!_config.FrequencyFilterThreshold.HasValue)
                     filterStringsForHeader.Add(FilterType.LowVariantFrequency, string.Format("##FILTER=<ID=LowVariantFreq,Description=\"Variant frequency less than {0}\">", _config.MinFrequencyThreshold.ToString(FrequencySigFigFormat)));
             }
+
+            if (_config.NoCallFilterThreshold.HasValue && _config.NoCallFilterThreshold != 1f)
+                filterStringsForHeader.Add(FilterType.NoCall, string.Format("##FILTER=<ID={0},Description=\"No-call rate is above {1}\">", FractionNoCallFormat, _config.NoCallFilterThreshold));
                 
             return filterStringsForHeader;
         }
@@ -160,6 +164,8 @@ namespace Pisces.IO
                     return "MultiAllelicSite";
                 case FilterType.ForcedReport:
                     return "ForcedReport";
+                case FilterType.NoCall:
+                    return FractionNoCallFormat;
                 default:
                     return "";
             }
@@ -242,6 +248,18 @@ namespace Pisces.IO
                 formatStringBuilder.Append(":NC");
                 sampleStringBuilder.Append(string.Format(":{0}", noCallFractionString));
             }
+
+            if (_config.ShouldOutputSuspiciousCoverageFraction)
+            {
+                var suspiciousCoverageString = string.Join(";",
+                    variants.Select(v =>
+                        $"{v.ConfidentCoverageStart},{v.SuspiciousCoverageStart},{v.ConfidentCoverageEnd},{v.SuspiciousCoverageEnd}," +
+                        $"{v.AlleleSupport},{v.WellAnchoredSupport},{v.UnanchoredCoverageWeight}"));
+
+                formatStringBuilder.Append(":" + FractionSuspiciousCoverageFormat);
+                sampleStringBuilder.Append(string.Format(":{0}", suspiciousCoverageString));
+            }
+
 
             if (_config.ShouldOutputRcCounts)
             {

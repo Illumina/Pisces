@@ -38,8 +38,8 @@ namespace VariantPhasing.Logic
         /// <param name="anchorPosition">if we are forcing the allele to be at a given position, instead of the poisition it would naturally be at in the VCF file</param>
         /// <returns></returns>
         public static Dictionary<int, SuckedUpRefRecord> Extract(out CalledAllele allele,
-            VariantSite[] clusterVariantSites, string referenceSequence, int[] neighborhoodDepthAtSites, int[] neighborhoodNoCallsAtSites, int[] clusterCountsAtSites,
-            string chromosome, int qNoiselevel, int maxQscore, int anchorPosition = -1)
+               VariantSite[] clusterVariantSites, string referenceSequence, int[] neighborhoodDepthAtSites, int[] neighborhoodNoCallsAtSites, int[] clusterCountsAtSites,
+               string chromosome, int qNoiselevel, int maxQscore, int anchorPosition = -1)
         {
             if (clusterVariantSites.Length != neighborhoodDepthAtSites.Length || neighborhoodDepthAtSites.Length != clusterCountsAtSites.Length)
             {
@@ -64,7 +64,7 @@ namespace VariantPhasing.Logic
             var lastRefBaseSitePosition = clusterVariantSites[0].VcfReferencePosition;
             var firstVariantSitePosition = clusterVariantSites[0].VcfReferencePosition;
             var differenceStarted = false;
-            
+
             bool usingAnchor = (anchorPosition != -1);
 
             if (usingAnchor)

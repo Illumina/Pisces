@@ -68,7 +68,7 @@ namespace Pisces.Logic.VariantCalling
             {
                 var variant = AlleleHelper.Map(candidate);
 
-                if (variant.Type == AlleleCategory.Mnv)
+                if (variant.Type == AlleleCategory.Mnv) 
                 {
                     ProcessVariant(source, variant);
                     if (IsCallable(variant))
@@ -77,7 +77,7 @@ namespace Pisces.Logic.VariantCalling
                     }
                     else
                     {
-                        failedMnvs.Add(variant);
+                        failedMnvs.Add(variant);                   
                     }
                 }
 
@@ -93,6 +93,16 @@ namespace Pisces.Logic.VariantCalling
             source.AddGappedMnvRefCount(GetRefSupportFromGappedMnvs(callableAlleles));
 
             var calledAllelesByPosition = new SortedList<int, List<CalledAllele>>(); //
+
+            foreach (var failedMNV in failedMnvs)
+            {
+                //if any of these failed MNVs was an injected ForcedGT varaint, we need to spike it back in,
+                //so it still gets reported to the VCF
+                if (IsForcedAllele(failedMNV))
+                {
+                    callableAlleles.Add(failedMNV);
+                }
+            }
 
             // need to re-process variants since they may have additional support
             foreach (var baseCalledAllele in callableAlleles)
@@ -210,14 +220,14 @@ namespace Pisces.Logic.VariantCalling
 					VariantQualityCalculator.Compute(variant, _config.MaxVariantQscore, _config.NoiseLevelUsedForQScoring);
 				}
 
-				StrandBiasCalculator.Compute(variant, variant.SupportByDirection, _config.NoiseLevelUsedForQScoring,
+				StrandBiasCalculator.Compute(variant, variant.SupportByDirection, _config.NoiseLevelUsedForQScoring, _config.MinFrequency,
                     _config.StrandBiasFilterThreshold, _config.StrandBiasModel);
             }
 
             // set genotype, filter, etc
             AlleleProcessor.Process(variant, _config.MinFrequency, _config.LowDepthFilter,
                 _config.VariantQscoreFilterThreshold, _config.FilterSingleStrandVariants, _config.VariantFreqFilter, _config.LowGTqFilter, _config.IndelRepeatFilter, 
-                _config.RMxNFilterSettings, _config.ChrReference, source.ExpectStitchedReads);
+                _config.RMxNFilterSettings, _config.NoCallFilterThreshold, _config.ChrReference, source.ExpectStitchedReads);
         }
 
         private bool IsCallable(CalledAllele allele)
@@ -260,6 +270,7 @@ namespace Pisces.Logic.VariantCalling
         public int MaxVariantQscore { get; set; }
         public int MinVariantQscore { get; set; }
         public int? VariantQscoreFilterThreshold { get; set; }
+        public float? NoCallFilterThreshold { get; set; }
         public int NoiseLevelUsedForQScoring { get; set; }
         public float StrandBiasFilterThreshold { get; set; }
         public bool FilterSingleStrandVariants { get; set; }

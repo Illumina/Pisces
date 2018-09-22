@@ -62,9 +62,9 @@ namespace StitchingLogic.Tests
                 Assert.Equal(expectedDirections[i], actualDirections[i]);
         }
 
-        public static IAlignmentStitcher GetStitcher(int minBaseCallQuality, bool xcStitcher = false, bool nifyDisagreements = false, bool useSoftclippedBases = true, bool ignoreProbeSoftclips = true, uint minMapQuality = 20)
+        public static IAlignmentStitcher GetStitcher(int minBaseCallQuality, bool xcStitcher = false, bool nifyDisagreements = false, bool useSoftclippedBases = true, bool ignoreProbeSoftclips = true, uint minMapQuality = 20, bool DontStitchHomopolymerBridge = false)
         {
-            return new BasicStitcher(minBaseCallQuality, nifyDisagreements: nifyDisagreements, useSoftclippedBases: useSoftclippedBases, ignoreProbeSoftclips: ignoreProbeSoftclips, minMapQuality: minMapQuality);
+            return new BasicStitcher(minBaseCallQuality, nifyDisagreements: nifyDisagreements, useSoftclippedBases: useSoftclippedBases, ignoreProbeSoftclips: ignoreProbeSoftclips, minMapQuality: minMapQuality, dontStitchHomopolymerBridge: DontStitchHomopolymerBridge);
         }
 
         public static void CompareQuality(byte[] q1, byte[] q2)

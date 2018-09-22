@@ -1,17 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using CallVariants.Logic.Processing;
-using Pisces.IO.Sequencing;
-using TestUtilities;
-using TestUtilities.MockBehaviors;
-using Pisces.Domain.Interfaces;
-using Pisces.Domain.Models;
 using Pisces.Domain.Models.Alleles;
 using Pisces.Domain.Types;
 using Pisces.Domain.Options;
-using Common.IO.Utility;
 using Xunit;
 
 namespace Pisces.Tests.FunctionalTests
@@ -77,7 +68,7 @@ namespace Pisces.Tests.FunctionalTests
             appOptions.GenomePaths = new string[] { functionalTestRunner.GenomeDirectory };
             appOptions.OutputDirectory = functionalTestRunner.OutputDirectory;
             appOptions.VariantCallingParameters.NoiseLevelUsedForQScoring = 1000;
-
+            
             var vcfFilePath = Path.Combine(TestPaths.LocalScratchDirectory, "Bcereus_S4.genome.vcf");
 
             // without reference calls

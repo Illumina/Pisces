@@ -1,7 +1,7 @@
 ﻿using System;
 using System.IO;
 
-namespace CommandLine.IO.Utilities
+namespace CommandLine.Util
 {
     public static class OutputHelper
     {

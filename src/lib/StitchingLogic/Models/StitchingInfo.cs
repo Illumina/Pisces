@@ -13,6 +13,8 @@ namespace StitchingLogic.Models
         public int InsertionAdjustment = 0;
         public int IgnoredProbePrefixBases = 0;
         public int IgnoredProbeSuffixBases = 0;
+        public bool IsSimple;
+        public int NumDisagreeingBases = 0;
 
         public StitchingInfo()
         {

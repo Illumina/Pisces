@@ -1,57 +1,39 @@
 ﻿using System;
-using System.IO;
 using Common.IO.Utility;
 using CommandLine.VersionProvider;
-using CommandLine.IO;
-using CommandLine.IO.Utilities;
+using CommandLine.Application;
+using CommandLine.Util;
 
 namespace VariantQualityRecalibration
 {
-    public class Program : BaseApplication
+    public class Program : BaseApplication<VQROptions>
     {
        
-        private VQROptions _options;
         static string _commandlineExample = "--vcf <vcf path>";
         static string _programDescription = "VQR: variant quality recalibrator";
-
-        public Program(string programDescription, string commandLineExample, string programAuthors, IVersionProvider versionProvider = null) : base(programDescription, commandLineExample, programAuthors, versionProvider = null) { }
+        static string _programName = "VQR";
+        public Program(string programDescription, string commandLineExample, string programAuthors, string programName,
+          IVersionProvider versionProvider = null) : base(programDescription, commandLineExample, programAuthors, programName, versionProvider = null)
+        {
+            _options = new VQROptions();
+            _appOptionParser = new VQROptionsParser();
+        }
 
 
         public static int Main(string[] args)
         {
 
-            Program vqr = new Program(_programDescription, _commandlineExample, UsageInfoHelper.GetWebsite());
+            Program vqr = new Program(_programDescription, _commandlineExample, UsageInfoHelper.GetWebsite(), _programName);
             vqr.DoParsing(args);
             vqr.Execute();
 
             return vqr.ExitCode;
         }
 
-        public void DoParsing(string[] args)
-        {
-            ApplicationOptionParser = new VQROptionsParser();
-            ApplicationOptionParser.ParseArgs(args);
-            _options = ((VQROptionsParser)ApplicationOptionParser).Options;
-
-            //We could tuck this line into the OptionsParser() constructor if we had a base options class.
-            _options.CommandLineArguments = ApplicationOptionParser.CommandLineArguments;
-        }
-
-        protected override void Init()
-        {
-            Logger.OpenLog(_options.OutputDirectory, _options.LogFileName);
-            Logger.WriteToLog("Command-line arguments: " + _options.QuotedCommandLineArgumentsString);
-            _options.Save(Path.Combine(_options.OutputDirectory, "VariantQualityRecalibrationOptions.used.json"));
-
-        }
-
-        protected override void Close()
-        {
-            Logger.CloseLog();
-        }
-
+      
         protected override void ProgramExecution()
         {
+           
             Logger.WriteToLog("Generating counts file");
             string countsFile = Counts.WriteCountsFile(_options.InputVcf, _options.OutputDirectory, _options.LociCount);
 
@@ -71,11 +53,5 @@ namespace VariantQualityRecalibration
             Logger.WriteToLog("Work complete.");
         }
 
-        
-        public void RegularResetMain()
-        {
-            _options = new VQROptions();
-            Logger.CloseLog();
-        }
     }
 }

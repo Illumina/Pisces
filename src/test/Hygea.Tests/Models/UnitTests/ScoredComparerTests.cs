@@ -1,5 +1,5 @@
-﻿using Hygea.Logic;
-using RealignIndels.Models;
+﻿using ReadRealignmentLogic;
+using ReadRealignmentLogic.Models;
 using Xunit;
 
 namespace RealignIndels.Tests.UnitTests

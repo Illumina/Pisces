@@ -8,11 +8,12 @@ using Pisces.Domain.Models;
 using Pisces.Domain.Models.Alleles;
 using Pisces.Domain.Types;
 using Pisces.Processing.Interfaces;
+using ReadRealignmentLogic.Interfaces;
+using ReadRealignmentLogic.Models;
+using ReadRealignmentLogic.TargetCalling;
 using RealignIndels.Interfaces;
 using RealignIndels.Logic;
-using RealignIndels.Models;
 using Xunit;
-using RealignIndels.Logic.TargetCalling;
 
 namespace RealignIndels.Tests.UnitTests
 {    public class ChrRealignerTests
@@ -68,13 +69,13 @@ namespace RealignIndels.Tests.UnitTests
         public void UpdateNMTag()
         {
             // should not be realigned and wrong NM will be kept 
-            var hasIndelsWrongNM = new Read("chr", CreateAlignment("hasIndelsWrongNM", 0, "2M1I3M", "AATAAA", 2));
-            var expectZeroMismatch = new Read("chr", CreateAlignment("expectZeroMismatch", 0, "6M", "AATAAA", 1));
-            var expectOneMismatch = new Read("chr", CreateAlignment("expectOneMismatch", 0, "6M", "AATAAZ", 2));
+            var hasIndelsWrongNM = new Read("chr", CreateAlignment("hasIndelsWrongNM", 0, "2M4I3M", "AATTTTAAA", 2));
+            var expectZeroMismatch = new Read("chr", CreateAlignment("expectZeroMismatch", 0, "9M", "AATTTTAAA", 1));
+            var expectOneMismatch = new Read("chr", CreateAlignment("expectOneMismatch", 0, "9M", "AATTTTAAC", 2));
             // realignment will fix wrong NM
-            var ExpectOneMismatchWrongNM = new Read("chr", CreateAlignment("ExpectOneMismatchWrongNM", 0, "6M", "AATAAZ", 0));
+            var ExpectOneMismatchWrongNM = new Read("chr", CreateAlignment("ExpectOneMismatchWrongNM", 0, "9M", "AATTTTAAC", 0));
             // No NM tag to start with and new NM tag will be added
-            var noNMTag = new Read("chr", CreateAlignment("noNMTag", 0, "6M", "AATAAZ"));
+            var noNMTag = new Read("chr", CreateAlignment("noNMTag", 0, "9M", "AATTTTAAC"));
 
             var extractorForRealign = new MockExtractor(new List<Read>
             {
@@ -120,19 +121,19 @@ namespace RealignIndels.Tests.UnitTests
                         }
                         if (read.Name == expectZeroMismatch.Name)
                         {
-                            Assert.Equal(0, read.GetIntTag("NM"));
+                            Assert.Equal(4, read.GetIntTag("NM"));
                         }
                         if (read.Name == expectOneMismatch.Name)
                         {
-                            Assert.Equal(1, read.GetIntTag("NM"));
+                            Assert.Equal(5, read.GetIntTag("NM"));
                         }                        
                         if (read.Name == ExpectOneMismatchWrongNM.Name)
                         {
-                            Assert.Equal(1, read.GetIntTag("NM"));
+                            Assert.Equal(5, read.GetIntTag("NM"));
                         }
                         if (read.Name == noNMTag.Name)
                         {
-                            Assert.Equal(1, read.GetIntTag("NM"));
+                            Assert.Equal(null, read.GetIntTag("NM"));
                         }
                     }
                 });
@@ -143,14 +144,14 @@ namespace RealignIndels.Tests.UnitTests
         public void CandidateExtractFilter()
         {
             // do not take candidates from reads with MapQ of zero, or secondary alignments
-            var highMapQ = new Read("chr", CreateAlignment("highMapQ", 0, "2M1I3M", "AAGAAA"));
-            var lowMapQ = new Read("chr", CreateAlignment("lowMapQ", 0, "2M1I3M", "AATAAA", mapq: 0));
-            var secondaryRead = new Read("chr", CreateAlignment("secondaryRead", 0, "2M1I3M", "AACAAA"));
+            var highMapQ = new Read("chr", CreateAlignment("highMapQ", 0, "2M2I3M", "AAGGAAA"));
+            var lowMapQ = new Read("chr", CreateAlignment("lowMapQ", 0, "2M2I3M", "AATTAAA", mapq: 0));
+            var secondaryRead = new Read("chr", CreateAlignment("secondaryRead", 0, "2M2I3M", "AACCAAA"));
             secondaryRead.BamAlignment.SetIsSecondaryAlignment(true);
 
-            var testIndel1 = new Read("chr", CreateAlignment("testIndel1", 0, "6M", "AAGAAA"));
-            var testIndel2 = new Read("chr", CreateAlignment("testIndel2", 0, "6M", "AATAAA"));
-            var testIndel3 = new Read("chr", CreateAlignment("testIndel2", 0, "6M", "AACAAA"));
+            var testIndel1 = new Read("chr", CreateAlignment("testIndel1", 0, "7M", "AAGGAAA"));
+            var testIndel2 = new Read("chr", CreateAlignment("testIndel2", 0, "7M", "AATTAAA"));
+            var testIndel3 = new Read("chr", CreateAlignment("testIndel2", 0, "7M", "AACCAAA"));
 
             var extractorForRealign = new MockExtractor(new List<Read>
             {
@@ -198,9 +199,9 @@ namespace RealignIndels.Tests.UnitTests
             // If realignment results in same alignment, don't count it as realigned
             // If realignment results in different cigar and same position, count it as realigned
             // If realignment results in same cigar and different position, count it as realigned -- having trouble recreating this situation...
-            var hasIndels = new Read("chr", CreateAlignment("hasIndels", 2, "2M1I3M", "ZATAAZ"));
-            var hasIndels2 = new Read("chr", CreateAlignment("hasIndels2", 2, "2M1I3M", "ZATAAZ"));
-            var realignSamePosNewCigar = new Read("chr", CreateAlignment("candidateForRealignmentGoesToSamePos", 2, "6M", "ZATAAZ"));
+            var hasIndels = new Read("chr", CreateAlignment("hasIndels", 1, "2M2I3M", "ZATTAAZ"));
+            var hasIndels2 = new Read("chr", CreateAlignment("hasIndels2", 1, "2M2I3M", "ZATTAAZ"));
+            var realignSamePosNewCigar = new Read("chr", CreateAlignment("candidateForRealignmentGoesToSamePos", 1, "7M", "ZATTAAZ"));
 
             var extractorForRealign = new MockExtractor(new List<Read>
             {
@@ -234,8 +235,8 @@ namespace RealignIndels.Tests.UnitTests
         private void RealignAndCheckQuality(uint initialQuality, bool hasMismatches, uint expectedQuality, bool allowRescoringOrig0 = true)
         {
             
-            var hasIndels = new Read("chr", CreateAlignment("hasIndels", 0, "2M1I3M", "AATAAA"));
-            var candidateForRealignment = new Read("chr", CreateAlignment("uniqCandidate", 0, "6M", hasMismatches ? "AATAAZ" : "AATAAA"));
+            var hasIndels = new Read("chr", CreateAlignment("hasIndels", 0, "2M4I3M", "AATTTTAAA"));
+            var candidateForRealignment = new Read("chr", CreateAlignment("uniqCandidate", 0, "9M", hasMismatches ? "AATTTTAAZ" : "AATTTTAAA"));
             candidateForRealignment.BamAlignment.MapQuality = initialQuality;
 
             var extractorForRealign = new MockExtractor(new List<Read>
@@ -379,11 +380,11 @@ namespace RealignIndels.Tests.UnitTests
             // 1 unique read and 1 duplicate read have indels 
             // With duplicates not considered in the evidence counting
             // the frequency in this case should be 1 (uniq read with indel) / 3 (total uniq reads) = 33.3333333%
-            var hasIndels = new Read("chr", CreateAlignment("hasIndels", 0, "2M1I3M", "AATAAA"));
-            var uniqRef = new Read("chr", CreateAlignment("uniqRef", 0, "6M", "AAAAAA"));
-            var uniqCandidate = new Read("chr", CreateAlignment("uniqCandidate", 0, "6M", "AATAAA"));
-            var dupWithIndel = new Read("chr", CreateAlignment("dupWithIndels", 0, "2M1I3M", "AATAAA"));
-            var dupRef = new Read("chr", CreateAlignment("dubRef", 0, "6M", "AAAAAA"));
+            var hasIndels = new Read("chr", CreateAlignment("hasIndels", 0, "2M2I3M", "AATTAAA"));
+            var uniqRef = new Read("chr", CreateAlignment("uniqRef", 0, "7M", "AAAAAAA"));
+            var uniqCandidate = new Read("chr", CreateAlignment("uniqCandidate", 0, "7M", "AATTAAA"));
+            var dupWithIndel = new Read("chr", CreateAlignment("dupWithIndels", 0, "2M2I3M", "AATTAAA"));
+            var dupRef = new Read("chr", CreateAlignment("dubRef", 0, "7M", "AAAAAAA"));
             dupWithIndel.BamAlignment.SetIsDuplicate(true);
             dupRef.BamAlignment.SetIsDuplicate(true);
 
@@ -422,11 +423,11 @@ namespace RealignIndels.Tests.UnitTests
             // 1 unique read and 1 duplicate read have indels 
             // With duplicates not considered in the evidence counting
             // the frequency in this case should be 1 (uniq read with indel) / 3 (total uniq reads) = 33.3333333%
-            var hasIndels = new Read("chr", CreateAlignment("hasIndels", 0, "2M1I3M", "AATAAA"));
-            var uniqRef = new Read("chr", CreateAlignment("uniqRef", 0, "6M", "AAAAAA"));
-            var uniqCandidate = new Read("chr", CreateAlignment("uniqCandidate", 0, "6M", "AATAAA"));
-            var dupWithIndel = new Read("chr", CreateAlignment("dupWithIndels", 0, "2M1I3M", "AATAAA"));
-            var dupRef = new Read("chr", CreateAlignment("dubRef", 0, "6M", "AAAAAA"));
+            var hasIndels = new Read("chr", CreateAlignment("hasIndels", 0, "2M2I3M", "AATTAAA"));
+            var uniqRef = new Read("chr", CreateAlignment("uniqRef", 0, "7M", "AAAAAAA"));
+            var uniqCandidate = new Read("chr", CreateAlignment("uniqCandidate", 0, "7M", "AATTAAA"));
+            var dupWithIndel = new Read("chr", CreateAlignment("dupWithIndels", 0, "2M2I3M", "AATTAAA"));
+            var dupRef = new Read("chr", CreateAlignment("dubRef", 0, "7M", "AAAAAAA"));
             dupWithIndel.BamAlignment.SetIsDuplicate(true);
             dupRef.BamAlignment.SetIsDuplicate(true);
 
@@ -465,11 +466,11 @@ namespace RealignIndels.Tests.UnitTests
             // 1 unique read and 1 duplicate read have indels 
             // With duplicates considered in the evidence counting
             // the frequency in this case should be 2 (uniq & dup reads with indel) / 5 (total reads) = 40%
-            var hasIndels = new Read("chr", CreateAlignment("hasIndels", 0, "2M1I3M", "AATAAA"));
-            var uniqRef = new Read("chr", CreateAlignment("uniqRef", 0, "6M", "AAAAAA"));
-            var uniqCandidate = new Read("chr", CreateAlignment("uniqCandidate", 0, "6M", "AATAAA"));
-            var dupWithIndel = new Read("chr", CreateAlignment("dupWithIndels", 0, "2M1I3M", "AATAAA"));
-            var dupRef = new Read("chr", CreateAlignment("dubRef", 0, "6M", "AAAAAA"));
+            var hasIndels = new Read("chr", CreateAlignment("hasIndels", 0, "2M2I3M", "AATTAAA"));
+            var uniqRef = new Read("chr", CreateAlignment("uniqRef", 0, "7M", "AAAAAAA"));
+            var uniqCandidate = new Read("chr", CreateAlignment("uniqCandidate", 0, "7M", "AATTAAA"));
+            var dupWithIndel = new Read("chr", CreateAlignment("dupWithIndels", 0, "2M2I3M", "AATTAAA"));
+            var dupRef = new Read("chr", CreateAlignment("dubRef", 0, "7M", "AAAAAAA"));
             dupWithIndel.BamAlignment.SetIsDuplicate(true);
             dupRef.BamAlignment.SetIsDuplicate(true);
 
@@ -509,11 +510,11 @@ namespace RealignIndels.Tests.UnitTests
             // 1 unique read and 1 duplicate read have indels 
             // With duplicates considered in the evidence counting
             // the frequency in this case should be 2 (uniq & dup reads with indel) / 5 (total reads) = 40%
-            var hasIndels = new Read("chr", CreateAlignment("hasIndels", 0, "2M1I3M", "AATAAA"));
-            var uniqRef = new Read("chr", CreateAlignment("uniqRef", 0, "6M", "AAAAAA"));
-            var uniqCandidate = new Read("chr", CreateAlignment("uniqCandidate", 0, "6M", "AATAAA"));
-            var dupWithIndel = new Read("chr", CreateAlignment("dupWithIndels", 0, "2M1I3M", "AATAAA"));
-            var dupRef = new Read("chr", CreateAlignment("dubRef", 0, "6M", "AAAAAA"));
+            var hasIndels = new Read("chr", CreateAlignment("hasIndels", 0, "2M2I3M", "AATTAAA"));
+            var uniqRef = new Read("chr", CreateAlignment("uniqRef", 0, "7M", "AAAAAAA"));
+            var uniqCandidate = new Read("chr", CreateAlignment("uniqCandidate", 0, "7M", "AATTAAA"));
+            var dupWithIndel = new Read("chr", CreateAlignment("dupWithIndels", 0, "2M2I3M", "AATTAAA"));
+            var dupRef = new Read("chr", CreateAlignment("dubRef", 0, "7M", "AAAAAAA"));
             dupWithIndel.BamAlignment.SetIsDuplicate(true);
             dupRef.BamAlignment.SetIsDuplicate(true);
 
@@ -552,11 +553,11 @@ namespace RealignIndels.Tests.UnitTests
             // 1 unique read and 1 duplicate read have indels 
             // With duplicates considered in the evidence counting
             // the frequency in this case should be 2 (uniq & dup reads with indel) / 5 (total reads) = 40%
-            var hasIndels = new Read("chr", CreateAlignment("hasIndels", 0, "2M1I3M", "AATAAA"));
-            var uniqRef = new Read("chr", CreateAlignment("uniqRef", 0, "6M", "AAAAAA"));
-            var uniqCandidate = new Read("chr", CreateAlignment("uniqCandidate", 0, "6M", "AATAAA"));
-            var dupWithIndel = new Read("chr", CreateAlignment("dupWithIndels", 0, "2M1I3M", "AATAAA"));
-            var dupRef = new Read("chr", CreateAlignment("dubRef", 0, "6M", "AAAAAA"));
+            var hasIndels = new Read("chr", CreateAlignment("hasIndels", 0, "2M2I3M", "AATTAAA"));
+            var uniqRef = new Read("chr", CreateAlignment("uniqRef", 0, "7M", "AAAAAAA"));
+            var uniqCandidate = new Read("chr", CreateAlignment("uniqCandidate", 0, "7M", "AATTAAA"));
+            var dupWithIndel = new Read("chr", CreateAlignment("dupWithIndels", 0, "2M2I3M", "AATTAAA"));
+            var dupRef = new Read("chr", CreateAlignment("dubRef", 0, "7M", "AAAAAAA"));
             dupWithIndel.BamAlignment.SetIsDuplicate(true);
             dupRef.BamAlignment.SetIsDuplicate(true);
 
@@ -596,11 +597,11 @@ namespace RealignIndels.Tests.UnitTests
             // 1 unique read and 1 duplicate read have indels 
             // With duplicates considered in the evidence counting
             // the frequency in this case should be 2 (uniq & dup reads with indel) / 5 (total reads) = 40%
-            var hasIndels = new Read("chr", CreateAlignment("hasIndels", 0, "2M1I3M", "AATAAA"));
-            var uniqRef = new Read("chr", CreateAlignment("uniqRef", 0, "6M", "AAAAAA"));
-            var uniqCandidate = new Read("chr", CreateAlignment("uniqCandidate", 0, "6M", "AATAAA"));
-            var dupWithIndel = new Read("chr", CreateAlignment("dupWithIndels", 0, "2M1I3M", "AATAAA"));
-            var dupRef = new Read("chr", CreateAlignment("dubRef", 0, "6M", "AAAAAA"));
+            var hasIndels = new Read("chr", CreateAlignment("hasIndels", 0, "2M2I3M", "AATTAAA"));
+            var uniqRef = new Read("chr", CreateAlignment("uniqRef", 0, "7M", "AAAAAAA"));
+            var uniqCandidate = new Read("chr", CreateAlignment("uniqCandidate", 0, "7M", "AATTAAA"));
+            var dupWithIndel = new Read("chr", CreateAlignment("dupWithIndels", 0, "2M2I3M", "AATTAAA"));
+            var dupRef = new Read("chr", CreateAlignment("dubRef", 0, "7M", "AAAAAAA"));
             dupWithIndel.BamAlignment.SetIsDuplicate(true);
             dupRef.BamAlignment.SetIsDuplicate(true);
 

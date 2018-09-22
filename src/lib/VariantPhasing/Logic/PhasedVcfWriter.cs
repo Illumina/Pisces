@@ -66,6 +66,7 @@ namespace VariantPhasing.Logic
             //So we only write them to header if Pisces already has them in the header.
             scyllaFilterLines.Remove(FilterType.RMxN);
             scyllaFilterLines.Remove(FilterType.IndelRepeatLength);
+            scyllaFilterLines.Remove(FilterType.NoCall);
 
             int lastFilterIndex = _originalHeader.FindLastIndex(x=> x.Contains("##FILTER"));
 

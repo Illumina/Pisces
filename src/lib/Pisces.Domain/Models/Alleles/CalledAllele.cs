@@ -32,11 +32,18 @@ namespace Pisces.Domain.Models.Alleles
         // collapsed counts - optionally used
         public int[] ReadCollapsedCountTotal { get; set; }
         public int[] SupportByDirection { get; set; }
+        public int[] WellAnchoredSupportByDirection { get; set; }
         public int AlleleSupport { get; set; }
         public int NumNoCalls { get; set; }
         public float FractionNoCalls { get; set; }
 		public bool IsForcedToReport { get; set; }
-      
+        public int ConfidentCoverageStart { get; set; }
+        public int SuspiciousCoverageStart { get; set; }
+        public int ConfidentCoverageEnd { get; set; }
+        public int SuspiciousCoverageEnd { get; set; }
+        public int WellAnchoredSupport { get; set; }
+        public double UnanchoredCoverageWeight { get; set; }
+
         public float Frequency
         {
             get { return TotalCoverage == 0 ? 0f : Math.Min((float)AlleleSupport / TotalCoverage, 1); }
@@ -115,6 +122,7 @@ namespace Pisces.Domain.Models.Alleles
             EstimatedCoverageByDirection = new int[Constants.NumDirectionTypes];
             StrandBiasResults = new BiasResults();
             SupportByDirection = new int[Constants.NumDirectionTypes];
+            WellAnchoredSupportByDirection= new int[Constants.NumDirectionTypes];
             ReadCollapsedCountsMut = new int[Constants.NumReadCollapsedTypes];
             ReadCollapsedCountTotal = new int[Constants.NumReadCollapsedTypes];
             Genotype = Genotype.HomozygousRef;
@@ -127,6 +135,7 @@ namespace Pisces.Domain.Models.Alleles
             EstimatedCoverageByDirection = new int[Constants.NumDirectionTypes];
             StrandBiasResults = new BiasResults();
             SupportByDirection = new int[Constants.NumDirectionTypes];
+            WellAnchoredSupportByDirection = new int[Constants.NumDirectionTypes];
             ReadCollapsedCountsMut = new int[Constants.NumReadCollapsedTypes];
             ReadCollapsedCountTotal = new int[Constants.NumReadCollapsedTypes];
             Genotype = Genotype.HeterozygousAltRef;
@@ -148,13 +157,21 @@ namespace Pisces.Domain.Models.Alleles
             NoiseLevelApplied = originalAllele.NoiseLevelApplied;
             TotalCoverage = originalAllele.TotalCoverage;
             AlleleSupport = originalAllele.AlleleSupport;
+            WellAnchoredSupport = originalAllele.WellAnchoredSupport;
             ReferenceSupport = originalAllele.ReferenceSupport;
             Type = originalAllele.Type;
             SupportByDirection = new int[Constants.NumDirectionTypes];
+            WellAnchoredSupportByDirection = new int[Constants.NumDirectionTypes];
             EstimatedCoverageByDirection = new int[Constants.NumDirectionTypes];
             ReadCollapsedCountsMut = new int[Constants.NumReadCollapsedTypes];
             ReadCollapsedCountTotal = new int[Constants.NumReadCollapsedTypes];
             StrandBiasResults = BiasResults.DeepCopy(originalAllele.StrandBiasResults);
+            UnanchoredCoverageWeight = originalAllele.UnanchoredCoverageWeight;
+            ConfidentCoverageStart = originalAllele.ConfidentCoverageStart;
+            ConfidentCoverageEnd = originalAllele.ConfidentCoverageEnd;
+            SuspiciousCoverageStart = originalAllele.SuspiciousCoverageStart;
+            SuspiciousCoverageEnd = originalAllele.SuspiciousCoverageEnd;
+
             Filters = new List<FilterType>();
             
             foreach (var filter in originalAllele.Filters)
@@ -163,6 +180,7 @@ namespace Pisces.Domain.Models.Alleles
             for (int i = 0; i < Constants.NumDirectionTypes; i++)
             {
                 SupportByDirection[i] = originalAllele.SupportByDirection[i];
+                WellAnchoredSupportByDirection[i] = originalAllele.WellAnchoredSupportByDirection[i];
                 EstimatedCoverageByDirection[i] = originalAllele.EstimatedCoverageByDirection[i];
             }
 
