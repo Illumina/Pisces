@@ -37,6 +37,7 @@ namespace Pisces.Domain.Utility
                 called.AlternateAllele, called.Type);
 
             Array.Copy(called.SupportByDirection, candidateAllele.SupportByDirection, called.SupportByDirection.Length);
+            Array.Copy(called.WellAnchoredSupportByDirection, candidateAllele.WellAnchoredSupportByDirection, called.WellAnchoredSupportByDirection.Length);
 
             if (called.Type != AlleleCategory.Reference)
             {
@@ -56,7 +57,11 @@ namespace Pisces.Domain.Utility
             calledAllele.Chromosome = candidate.Chromosome;
             calledAllele.ReferencePosition = candidate.ReferencePosition;
             calledAllele.AlleleSupport = candidate.Support;
+            calledAllele.WellAnchoredSupport = candidate.WellAnchoredSupport;
+            calledAllele.IsForcedToReport = candidate.IsForcedAllele;
+
             Array.Copy(candidate.SupportByDirection, calledAllele.SupportByDirection, candidate.SupportByDirection.Length);
+            Array.Copy(candidate.WellAnchoredSupportByDirection, calledAllele.WellAnchoredSupportByDirection, candidate.WellAnchoredSupportByDirection.Length);
 
             if (candidate.Type != AlleleCategory.Reference)
             {

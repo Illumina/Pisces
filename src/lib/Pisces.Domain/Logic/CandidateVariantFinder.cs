@@ -16,13 +16,15 @@ namespace Pisces.Domain.Logic
         private readonly int _maxLengthMnv;
         private readonly int _maxLengthInterveningRef;
         private readonly bool _callMnvs;
+        private readonly int _welllAnchoredAnchorSize;
 
-        public CandidateVariantFinder(int qualityCutoff, int maxLengthMnv, int maxLengthInterveningRef, bool callMnvs)
+        public CandidateVariantFinder(int qualityCutoff, int maxLengthMnv, int maxLengthInterveningRef, bool callMnvs, int welllAnchoredAnchorSize = 5)
         {
             _minimumBaseCallQuality = qualityCutoff;
             _maxLengthMnv = maxLengthMnv;
             _maxLengthInterveningRef = maxLengthInterveningRef;
             _callMnvs = callMnvs;
+            _welllAnchoredAnchorSize = welllAnchoredAnchorSize;
         }
 
         public IEnumerable<CandidateAllele> FindCandidates(Read read, string refChromosome, string chromosomeName)
@@ -67,7 +69,14 @@ namespace Pisces.Domain.Logic
                     startIndexInReference += (int)operation.Length;
             }
 
-            Annotate(candidates, alignment);
+            try
+            {
+                Annotate(candidates, alignment);
+            }
+            catch
+            {
+                throw new Exception($"Failed to process variants for {alignment.Name} ... {alignment.CigarData}");
+            }
 
             return candidates;
         }
@@ -198,8 +207,8 @@ namespace Pisces.Domain.Logic
             var variantLength = referenceBases.Length;
 
             var variant = variantLength > 1 ?
-                Create(AlleleCategory.Mnv, chromosomeName, variantStartIndexInReference + 1, referenceBases, readBases, alignment, variantStartIndexInRead)
-                : Create(AlleleCategory.Snv, chromosomeName, variantStartIndexInReference + 1, referenceBases, readBases, alignment, variantStartIndexInRead);
+                Create(AlleleCategory.Mnv, chromosomeName, variantStartIndexInReference + 1, referenceBases, readBases, alignment, variantStartIndexInRead, _welllAnchoredAnchorSize)
+                : Create(AlleleCategory.Snv, chromosomeName, variantStartIndexInReference + 1, referenceBases, readBases, alignment, variantStartIndexInRead, _welllAnchoredAnchorSize);
 
             return variant;
         }
@@ -222,7 +231,7 @@ namespace Pisces.Domain.Logic
             if (!qualityGoodEnough)
                 return null;
 
-            var candidate = Create(AlleleCategory.Insertion, chromosome, coordinate, reference, alternate, alignment, opStartIndexInRead);
+            var candidate = Create(AlleleCategory.Insertion, chromosome, coordinate, reference, alternate, alignment, opStartIndexInRead, _welllAnchoredAnchorSize);
 
             return candidate;
         }
@@ -246,7 +255,7 @@ namespace Pisces.Domain.Logic
             var reference = referenceBases;
             var alternate = readBases;
 
-            var candidate = Create(AlleleCategory.Deletion, chromosome, coordinate, reference, alternate, alignment, opStartIndexInRead);
+            var candidate = Create(AlleleCategory.Deletion, chromosome, coordinate, reference, alternate, alignment, opStartIndexInRead, _welllAnchoredAnchorSize);
 
             return candidate;
         }
@@ -282,13 +291,19 @@ namespace Pisces.Domain.Logic
         /// <param name="alternate"></param>
         /// <param name="alignment"></param>
         /// <param name="startIndexInRead"></param>
+        /// <param name="wellAnchoredAnchorSize"></param>
         /// <returns></returns>
         public static CandidateAllele Create(AlleleCategory type, string chromosome, int coordinate, string reference,
-            string alternate, Read alignment, int startIndexInRead)
+            string alternate, Read alignment, int startIndexInRead, int wellAnchoredAnchorSize)
         {
             var candidate = new CandidateAllele(chromosome, coordinate, reference, alternate, type);
             var alleleSupportDirection = GetSupportDirection(candidate, alignment, startIndexInRead);
             candidate.SupportByDirection[(int)alleleSupportDirection]++;
+            var anchor = Math.Min(coordinate - alignment.Position, alignment.EndPosition - coordinate);
+            if (anchor > Math.Min(wellAnchoredAnchorSize - 1, alternate.Length -1))
+            {
+                candidate.WellAnchoredSupportByDirection[(int) alleleSupportDirection]++;
+            }
 
             if (alignment.IsCollapsedRead())
             {

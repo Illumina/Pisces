@@ -2,11 +2,9 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using Pisces;
 using Pisces.Domain.Options;
 using Pisces.Domain.Types;
-using CommandLine.IO.Utilities;
-using CommandLine.IO;
+using CommandLine.Util;
 using CommandLine.Options;
 using Xunit;
 
@@ -38,7 +36,7 @@ namespace Pisces.Domain.Tests
                 },
                 OutputDirectory = outDir
             };
-
+            options.SetIODirectories("Pisces");
             Assert.Equal(Path.Combine(outDir, defaultLogFolder), options.LogFolder);
 
             //check when a bam is specified w/no out folder
@@ -51,7 +49,7 @@ namespace Pisces.Domain.Tests
                     OutputGvcfFile = false
                 },
             };
-
+            options.SetIODirectories("Pisces");
             Assert.Equal(Path.Combine(TestPaths.SharedBamDirectory, defaultLogFolder), options.LogFolder);
 
             //check when a bam parent folder does not exist
@@ -64,9 +62,8 @@ namespace Pisces.Domain.Tests
                     OutputGvcfFile = false
                 },
             };
-
+            options.SetIODirectories("Pisces");
             Assert.Equal(defaultLogFolder, options.LogFolder);
-
 
         }
 
@@ -106,6 +103,8 @@ namespace Pisces.Domain.Tests
             optionsExpectationsDict.Add("-ReportNoCalls true", (o) => Assert.True(o.VcfWritingParameters.ReportNoCalls));
             optionsExpectationsDict.Add(@"-OutFolder C:\out", (o) => Assert.Equal(@"C:\out", o.OutputDirectory));
             optionsExpectationsDict.Add("-ThreadByChr true", (o) => Assert.Equal(true, o.ThreadByChr));
+            optionsExpectationsDict.Add("-usestitchedXD true", (o) => Assert.Equal(true, o.UseStitchedXDInfo));
+         
             return optionsExpectationsDict;
         }
 
@@ -140,6 +139,7 @@ namespace Pisces.Domain.Tests
             optionsExpectationsDict.Add("-ThreadByChr true", (o) => Assert.Equal(true, o.ThreadByChr));
             optionsExpectationsDict.Add("-InsideSubProcess true", (o) => Assert.Equal(true, o.InsideSubProcess));
             optionsExpectationsDict.Add("-BaseLogName newlogname.txt", (o) => Assert.Equal("newlogname.txt", o.LogFileNameBase));
+            optionsExpectationsDict.Add("--UseStitchedXD false", (o) => Assert.Equal(false, o.UseStitchedXDInfo));
 
             return optionsExpectationsDict;
         }
@@ -221,15 +221,13 @@ namespace Pisces.Domain.Tests
             ExecuteParsingOnlyTest(@"-Collapse true", true, (o) => Assert.True(o.Collapse));
             ExecuteParsingOnlyTest(@"-Collapse false", true, (o) => Assert.False(o.Collapse));
 
-            //ExecuteParsingOnlyTest(@"-CollapseExcludeMNVs true", true, (o) => Assert.True(o.ExcludeMNVsFromCollapsing)); <- removed support for this option
-            //ExecuteParsingOnlyTest(@"-CollapseExcludeMNVs false", true, (o) => Assert.False(o.ExcludeMNVsFromCollapsing; <- removed support for this option
-
+            
             ExecuteParsingOnlyTest(@"  -PriorsPath C:\path", true, (o) => Assert.Equal(@"C:\path", o.PriorsPath));
-            ExecuteParsingOnlyTest(@"  -DiploidGenotypeParameters 0.10,0.20,0.78", true, (o) =>
+            ExecuteParsingOnlyTest(@"  -DiploidSNVGenotypeParameters 0.10,0.20,0.78", true, (o) =>
                     Assert.True(
-                        (0.10f == o.VariantCallingParameters.DiploidThresholdingParameters.MinorVF) &&
-                        (0.20f == o.VariantCallingParameters.DiploidThresholdingParameters.MajorVF) &&
-                        (0.78f == o.VariantCallingParameters.DiploidThresholdingParameters.SumVFforMultiAllelicSite)));
+                        (0.10f == o.VariantCallingParameters.DiploidSNVThresholdingParameters.MinorVF) &&
+                        (0.20f == o.VariantCallingParameters.DiploidSNVThresholdingParameters.MajorVF) &&
+                        (0.78f == o.VariantCallingParameters.DiploidSNVThresholdingParameters.SumVFforMultiAllelicSite)));
             ExecuteParsingOnlyTest(@"-RMxNFilter false", true, (o) => Assert.True(
                         (null == o.VariantCallingParameters.RMxNFilterMaxLengthRepeat) &&
                         (null == o.VariantCallingParameters.RMxNFilterMinRepetitions)));
@@ -251,6 +249,9 @@ namespace Pisces.Domain.Tests
             ExecuteParsingOnlyTest(@"-Mono boo", false );//  < -removed support for this option
             ExecuteParsingOnlyTest(@"-mono boo2", false);// < -removed support for this option
             ExecuteParsingOnlyTest(@"-SkipNonIntervalAlignments meh", false);  //<- change after argument refactor. We are no longer being kind to unsupported arguments.
+
+            ExecuteParsingOnlyTest(@"-ncfilter 0.4", true, (o) => Assert.True(0.4f == o.VariantCallingParameters.NoCallFilterThreshold));
+            ExecuteParsingOnlyTest(@"-ncfilter true", false);
         }
 
         [Fact]
@@ -331,7 +332,7 @@ namespace Pisces.Domain.Tests
             //Happy Path
             var options_1 = new PiscesApplicationOptions()
             {
-                BAMPaths = BamProcessorOptions.UpdateBamPathsWithBamsFromFolder(BAMFolder),
+                BAMPaths = BamProcessorParsingUtils.UpdateBamPathsWithBamsFromFolder(BAMFolder),
                 GenomePaths = new[] { _existingGenome },
                 IntervalPaths = new[] { _existingInterval }
             };
@@ -344,8 +345,11 @@ namespace Pisces.Domain.Tests
             {
                 GenomePaths = new[] { _existingGenome },
             };
+
+            var parser = new PiscesOptionsParser() { Options = options_3 };
             Assert.Null(options_3.BAMPaths);
-            Assert.Throws<ArgumentException>(() => options_3.ValidateAndSetDerivedValues());
+
+            Assert.Throws<ArgumentException>(() => parser.ValidateAndSetDerivedValues());
         }
 
         [Fact]
@@ -373,7 +377,8 @@ namespace Pisces.Domain.Tests
             // verify default should be valid
             // ---------------------
             var option = GetBasicOptions();
-            option.ValidateAndSetDerivedValues();
+            var parser = new PiscesOptionsParser() { Options = option };
+            parser.ValidateAndSetDerivedValues();
 
             // ---------------------
             // verify log folder
@@ -413,7 +418,7 @@ namespace Pisces.Domain.Tests
             }, false);
             ExecuteValidationTest(o =>
             {
-                o.BAMPaths = BamProcessorOptions.UpdateBamPathsWithBamsFromFolder( TestPaths.SharedBamDirectory );
+                o.BAMPaths = BamProcessorParsingUtils.UpdateBamPathsWithBamsFromFolder( TestPaths.SharedBamDirectory );
                 o.GenomePaths = new[] { _existingGenome };
                 o.IntervalPaths = new[] { _existingInterval };
             }, true);
@@ -615,6 +620,12 @@ namespace Pisces.Domain.Tests
                 o.ThreadByChr = true;
                 o.ChromosomeFilter = "chr1";
             }, false);
+
+            // Validate ncfilter
+            ExecuteValidationTest((o) => { o.VariantCallingParameters.NoCallFilterThreshold = 0f; }, true);
+            ExecuteValidationTest((o) => { o.VariantCallingParameters.NoCallFilterThreshold = 1f; }, true);
+            ExecuteValidationTest((o) => { o.VariantCallingParameters.NoCallFilterThreshold = -1f; }, false);
+            ExecuteValidationTest((o) => { o.VariantCallingParameters.NoCallFilterThreshold = 2f; }, false);
         }
 
         [Fact]
@@ -628,10 +639,9 @@ namespace Pisces.Domain.Tests
                 File.Delete(applicationOptionsFile);
 
             var commandLine1 = string.Format("-minvq 40 -minbq 40 -BAMpaths {0} -t 1000 -g {1} -vqfilter 40", bamFolder, _existingGenome);
-            var options1 = GetParsedOptions(commandLine1);
+            var optionsParser1 = GetParsedAndValidatedApplicationOptions(commandLine1);
 
-            options1.ValidateAndSetDerivedValues();
-            options1.Save(applicationOptionsFile);
+            optionsParser1.Options.Save(applicationOptionsFile);
             Assert.True(File.Exists(applicationOptionsFile));
         }
 
@@ -651,6 +661,41 @@ namespace Pisces.Domain.Tests
             {
                 Assert.True(false);
             }
+        }
+
+
+        // If the -OutFolder option uses an invalid folder, execution must end and inform the user of the failure.
+        // This could come into play due to permissions issues. Test moved over from FactoryTests
+        [Fact]
+        [Trait("ReqID", "SDS-26")]
+        public void InvalidVcfOutputFolder()
+        {
+
+            Assert.False(Directory.Exists("56:\\Illumina\\OutputFolder"));
+            var outputFolder = Path.Combine("56:\\Illumina\\OutputFolder");
+
+            string bamChr19 = Path.Combine(TestPaths.LocalTestDataDirectory, "Chr19.bam");
+            string bamChr17Chr19 = Path.Combine(TestPaths.LocalTestDataDirectory, "Chr17Chr19.bam");
+            string bamChr17Chr19Dup = Path.Combine(TestPaths.LocalTestDataDirectory, "Chr17Chr19_removedSQlines.bam");
+
+            string intervalsChr19 = Path.Combine(TestPaths.LocalTestDataDirectory, "Chr19.picard");
+
+            string intervalsChr17 = Path.Combine(TestPaths.LocalTestDataDirectory, "chr17only.picard");
+
+            string genomeChr19 = Path.Combine(TestPaths.SharedGenomesDirectory, "chr19");
+
+
+            var appOptions = new PiscesApplicationOptions
+            {
+                BAMPaths = new[] { bamChr19, bamChr17Chr19, bamChr17Chr19Dup },
+                IntervalPaths = new[] { intervalsChr17, intervalsChr19, null },
+                GenomePaths = new[] { genomeChr19 },
+                OutputDirectory = outputFolder
+            };
+
+            var parser = new PiscesOptionsParser() { Options = appOptions };
+            Assert.Throws<ArgumentException>(() => parser.ValidateAndSetDerivedValues());
+
         }
 
         [Fact]
@@ -724,25 +769,29 @@ namespace Pisces.Domain.Tests
 
         private void ExecuteValidationTest(Action<PiscesApplicationOptions> testSetup, bool shouldPass)
         {
-            var options = GetBasicOptions();
-
+            var options = GetBasicOptions();        
             testSetup(options);
-
+            var parser = new PiscesOptionsParser() { Options = options };
+           
             if (shouldPass)
-                options.ValidateAndSetDerivedValues();
+                parser.ValidateAndSetDerivedValues();
             else
             {
-                Assert.Throws<ArgumentException>(() => options.ValidateAndSetDerivedValues());
+                Assert.Throws<ArgumentException>(() => parser.ValidateAndSetDerivedValues());
             }
         }
 
         private PiscesApplicationOptions GetBasicOptions()
         {
-            return new PiscesApplicationOptions()
+            var options = new PiscesApplicationOptions()
             {
                 BAMPaths = new[] { _existingBamPath },
                 GenomePaths = new[] { _existingGenome }
             };
+
+            options.SetIODirectories("Pisces");
+
+            return (options);
         }
 
     }

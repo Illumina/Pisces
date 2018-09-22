@@ -711,11 +711,11 @@ namespace Common.IO.Sequencing
         }
 
 
-        public void ImportFromFastaFilesAndCreateIndexAndDict(string fastaDirectory, string outDirectory)
+        public void ImportFromFastaFiles(string inputFastaDirectory, string outputDirectory)
         {
             // initialize
-            fastaDirectory = Path.GetFullPath(fastaDirectory);
-            List<string> fastaFilenames = GetFastaFilenames(fastaDirectory);
+            inputFastaDirectory = Path.GetFullPath(inputFastaDirectory);
+            List<string> fastaFilenames = GetFastaFilenames(inputFastaDirectory);
             HashSet<string> referenceNames = new HashSet<string>();
 
             // Index the FASTA file:
@@ -724,22 +724,22 @@ namespace Common.IO.Sequencing
                 List<FastaHeaderMetadata> metadataList = new List<FastaHeaderMetadata>();
 
                 List<RefIndexEntry> referenceIndexes = new List<RefIndexEntry>();
-                ReferenceIndexer.CreateFASTAIndexFiles(fastaPath, metadataList, referenceIndexes, outDirectory);
+                ReferenceIndexer.CreateFASTAIndexFiles(fastaPath, metadataList, referenceIndexes, outputDirectory);
                 for (int chromosomeIndex = 0; chromosomeIndex < metadataList.Count; chromosomeIndex++)
                 {
                     AddReferenceSequence(referenceIndexes[chromosomeIndex].Name, referenceIndexes[chromosomeIndex].Length,
-                        Path.Combine(fastaDirectory, fastaPath), metadataList[chromosomeIndex], ref referenceNames,
+                        Path.Combine(inputFastaDirectory, fastaPath), metadataList[chromosomeIndex], ref referenceNames,
                         referenceIndexes[chromosomeIndex].KnownBasesLength);
                 }
             }
 
             // set the genome information
-            Name = Path.GetFileName(fastaDirectory);
+            Name = Path.GetFileName(inputFastaDirectory);
             if (Name.ToLowerInvariant() == "chromosomes" || Name.ToLowerInvariant() == "wholegenomefasta")
             {
                 // Try to give a unique name rather than generic "chromosomes" or "wholegenomefasta":
                 var iGenomes = "igenomes";
-                Name = Path.GetDirectoryName(fastaDirectory);
+                Name = Path.GetDirectoryName(inputFastaDirectory);
                 int position = Name.ToLowerInvariant().IndexOf(iGenomes);
                 if (position != -1)
                 {
@@ -1016,7 +1016,6 @@ namespace Common.IO.Sequencing
                 throw new ArgumentException(string.Format("Cannot open the FASTA file ({0}) for reading.", _fastaPath));
             }
 
-            //string outputDirectory = Path.GetDirectoryName(_fastaPath);
             _metadataList = metadata;
             _referenceIndexes = refIndexes;
             Initialize();
@@ -1161,7 +1160,7 @@ namespace Common.IO.Sequencing
 
         private void WriteIndexFile(string outputDirectory)
         {
-            string faiFilename = Path.Combine(outputDirectory, Path.GetFileName( _fastaPath) + ".fai");
+            string faiFilename = Path.Combine(outputDirectory, Path.GetFileName(_fastaPath) + ".fai");
             using (StreamWriter faiWriter = new StreamWriter(new FileStream(faiFilename, FileMode.Create)))
             {
                 faiWriter.NewLine = "\n";
@@ -1192,10 +1191,10 @@ namespace Common.IO.Sequencing
         ///     Create .fai and .dict files for the specified FASTA reference file.  
         /// </summary>
         public static void CreateFASTAIndexFiles(string fastaPath, List<FastaHeaderMetadata> metadataList,
-            List<RefIndexEntry> referenceIndexes, string outputDir)
+            List<RefIndexEntry> referenceIndexes, string outputDirectory)
         {
             ReferenceIndexer indexer = new ReferenceIndexer();
-            indexer.IndexFASTAFile(fastaPath, metadataList, referenceIndexes, outputDir);
+            indexer.IndexFASTAFile(fastaPath, metadataList, referenceIndexes, outputDirectory);
         }
 
         /// <summary>

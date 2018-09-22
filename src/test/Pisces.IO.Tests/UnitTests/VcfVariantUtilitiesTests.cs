@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using Alignment.Domain.Sequencing;
 using Pisces.IO.Sequencing;
 using Pisces.Domain.Types;
 using TestUtilities;
@@ -171,6 +172,76 @@ namespace Pisces.IO.Tests.UnitTests
             Assert.Equal(AlleleCategory.Snv, allele.Type);
             Assert.Equal(0.0100f, allele.FractionNoCalls);
 
+            // no US filed
+            Assert.Null(Record.Exception(() => VcfVariantUtilities.ConvertUnpackedVariant(vcfVar)));
+
+            // exception case if US field doesn't match configuration 
+            Assert.Throws<ArgumentOutOfRangeException>(() => VcfVariantUtilities.ConvertUnpackedVariant(vcfVar, true, true));
+
+            // exception case if US field doesn't match configuration 
+            Assert.Throws<ArgumentOutOfRangeException>(() => VcfVariantUtilities.ConvertUnpackedVariant(vcfVar, true, false));
+
+            // exception case 
+            vcfVar.Genotypes[0]["US"] = "1,2,3,4,5,6,7,8";
+            Assert.Throws<ArgumentOutOfRangeException>(() => VcfVariantUtilities.ConvertUnpackedVariant(vcfVar, true, true));
+
+           
+            vcfVar.Genotypes[0]["US"] = "0,0,1,0,0,0,8,1,23,5,20,10";
+            Assert.False(VcfVariantUtilities.ConvertUnpackedVariant(vcfVar, false, false).ReadCollapsedCountTotal.Any(x=>x!=0));
+
+            // exception case
+            vcfVar.Genotypes[0]["US"] = "0,0,1,0,0,0,8,1,23,5,20,10";
+            Assert.Throws<ArgumentOutOfRangeException>(() => VcfVariantUtilities.ConvertUnpackedVariant(vcfVar, true, false));
+
+            // test for collapsed reads against specs
+            // When ReportRcCounts and ReportTsCounts are set as True, 
+            // a US field will be outputted for each genotype as mutant support: 
+            // duplex -stitched, duplex-nonstitched, simplex-forward-stitched, simplex-forward-nonstitched, simplex-reverse-stitched, simplex-reverse-nonstitched followed by total support: duplex-stitched, duplex-nonstitched, simplex-forward-stitched, simplex-forward-nonstitched, simplex-reverse-stitched, simplex-reverse-nonstitched.
+            vcfVar.Genotypes[0]["US"] = "0,0,1,0,0,0,8,1,23,5,20,10";
+            allele = VcfVariantUtilities.ConvertUnpackedVariant(vcfVar, true, true);
+            Assert.Equal(vcfVar.ReferenceName, allele.Chromosome);
+            Assert.Equal(vcfVar.VariantAlleles[0], allele.AlternateAllele);
+            Assert.Equal(vcfVar.ReferenceAllele, allele.ReferenceAllele);
+            Assert.Equal(vcfVar.ReferencePosition, allele.ReferencePosition);
+            Assert.Equal(new List<FilterType>(), allele.Filters);
+            Assert.Equal(Genotype.HeterozygousAltRef, allele.Genotype);
+            Assert.Equal(AlleleCategory.Snv, allele.Type);
+            Assert.Equal(0.0100f, allele.FractionNoCalls);
+
+            Assert.Equal(8, allele.ReadCollapsedCountTotal[(int)ReadCollapsedType.DuplexStitched]);
+            Assert.Equal(1, allele.ReadCollapsedCountTotal[(int)ReadCollapsedType.DuplexNonStitched]);
+            Assert.Equal(23, allele.ReadCollapsedCountTotal[(int)ReadCollapsedType.SimplexForwardStitched]);
+            Assert.Equal(5, allele.ReadCollapsedCountTotal[(int)ReadCollapsedType.SimplexForwardNonStitched]);
+            Assert.Equal(20, allele.ReadCollapsedCountTotal[(int)ReadCollapsedType.SimplexReverseStitched]);
+            Assert.Equal(10, allele.ReadCollapsedCountTotal[(int)ReadCollapsedType.SimplexReverseNonStitched]);
+            Assert.Equal(0, allele.ReadCollapsedCountsMut[(int)ReadCollapsedType.DuplexStitched]);
+            Assert.Equal(0, allele.ReadCollapsedCountsMut[(int)ReadCollapsedType.DuplexNonStitched]);
+            Assert.Equal(1, allele.ReadCollapsedCountsMut[(int)ReadCollapsedType.SimplexForwardStitched]);
+            Assert.Equal(0, allele.ReadCollapsedCountsMut[(int)ReadCollapsedType.SimplexForwardNonStitched]);
+            Assert.Equal(0, allele.ReadCollapsedCountsMut[(int)ReadCollapsedType.SimplexReverseStitched]);
+            Assert.Equal(0, allele.ReadCollapsedCountsMut[(int)ReadCollapsedType.SimplexReverseNonStitched]);
+
+            // When contain XV and XW tags, output read counts for duplex-stitched, duplex-nonstitched, simplex-stitched, and simplex-nonstitched.
+            vcfVar.Genotypes[0]["US"] = "1,2,3,4,5,6,7,8";
+            allele = VcfVariantUtilities.ConvertUnpackedVariant(vcfVar, true, false);
+            Assert.Equal(vcfVar.ReferenceName, allele.Chromosome);
+            Assert.Equal(vcfVar.VariantAlleles[0], allele.AlternateAllele);
+            Assert.Equal(vcfVar.ReferenceAllele, allele.ReferenceAllele);
+            Assert.Equal(vcfVar.ReferencePosition, allele.ReferencePosition);
+            Assert.Equal(new List<FilterType>(), allele.Filters);
+            Assert.Equal(Genotype.HeterozygousAltRef, allele.Genotype);
+            Assert.Equal(AlleleCategory.Snv, allele.Type);
+            Assert.Equal(0.0100f, allele.FractionNoCalls);
+            Assert.Equal(1, allele.ReadCollapsedCountsMut[(int)ReadCollapsedType.DuplexStitched]);
+            Assert.Equal(2, allele.ReadCollapsedCountsMut[(int)ReadCollapsedType.DuplexNonStitched]);
+            Assert.Equal(3, allele.ReadCollapsedCountsMut[(int)ReadCollapsedType.SimplexStitched]);
+            Assert.Equal(4, allele.ReadCollapsedCountsMut[(int)ReadCollapsedType.SimplexNonStitched]);
+            Assert.Equal(5, allele.ReadCollapsedCountTotal[(int)ReadCollapsedType.DuplexStitched]);
+            Assert.Equal(6, allele.ReadCollapsedCountTotal[(int)ReadCollapsedType.DuplexNonStitched]);
+            Assert.Equal(7, allele.ReadCollapsedCountTotal[(int)ReadCollapsedType.SimplexStitched]);
+            Assert.Equal(8, allele.ReadCollapsedCountTotal[(int)ReadCollapsedType.SimplexNonStitched]);
+
+
             vcfVar.Genotypes[0]["GT"] = "./.";
             vcfVar.Filters = "R5x9";
             allele = VcfVariantUtilities.ConvertUnpackedVariant(vcfVar);
@@ -212,6 +283,59 @@ namespace Pisces.IO.Tests.UnitTests
             Assert.Equal(new List<FilterType>() { FilterType.LowVariantFrequency, FilterType.MultiAllelicSite }, allele.Filters);
             Assert.Equal(Genotype.HomozygousAlt, allele.Genotype);
             Assert.Equal(AlleleCategory.Snv, allele.Type);
+
+            // check handling of complex allele types (DO trimming, please)
+            var originalPos = 10;
+            vcfVar.VariantAlleles[0] = "CCGCA";
+            vcfVar.ReferenceAllele = "CC";
+            vcfVar.ReferencePosition = originalPos;
+            allele = VcfVariantUtilities.ConvertUnpackedVariant(vcfVar,false, false);
+            Assert.Equal(originalPos+1, allele.ReferencePosition);
+            Assert.Equal("CGCA", allele.AlternateAllele);
+            Assert.Equal("C", allele.ReferenceAllele);
+
+            // check handling of complex allele types (DO trimming, please)
+            vcfVar.VariantAlleles[0] = "CGCAAA";
+            vcfVar.ReferenceAllele = "CA";
+            allele = VcfVariantUtilities.ConvertUnpackedVariant(vcfVar, false, false);
+            Assert.Equal(originalPos, allele.ReferencePosition);
+            Assert.Equal("CGCAA", allele.AlternateAllele);
+            Assert.Equal("C", allele.ReferenceAllele);
+
+            // check handling of complex allele types (DO trimming, please)
+            vcfVar.VariantAlleles[0] = "CCCGCAAA";
+            vcfVar.ReferenceAllele = "CCCA";
+            allele = VcfVariantUtilities.ConvertUnpackedVariant(vcfVar, false, false);
+            Assert.Equal(originalPos+2, allele.ReferencePosition);
+            Assert.Equal("CGCAA", allele.AlternateAllele);
+            Assert.Equal("C", allele.ReferenceAllele);
+
+
+            // check handling of complex allele types (DO NOT trim)
+            vcfVar.VariantAlleles[0] = "CCGCA";
+            vcfVar.ReferenceAllele = "CC";
+            vcfVar.ReferencePosition = originalPos;
+            allele = VcfVariantUtilities.ConvertUnpackedVariant(vcfVar, false, false, false);
+            Assert.Equal(originalPos, allele.ReferencePosition);
+            Assert.Equal("CCGCA", allele.AlternateAllele);
+            Assert.Equal("CC", allele.ReferenceAllele);
+
+            // check handling of complex allele types (DO NOT trim)
+            vcfVar.VariantAlleles[0] = "CGCAAA";
+            vcfVar.ReferenceAllele = "CA";
+            allele = VcfVariantUtilities.ConvertUnpackedVariant(vcfVar, false, false, false);
+            Assert.Equal(originalPos, allele.ReferencePosition);
+            Assert.Equal("CGCAAA", allele.AlternateAllele);
+            Assert.Equal("CA", allele.ReferenceAllele);
+
+            // check handling of complex allele types (DO NOT trim)
+            vcfVar.VariantAlleles[0] = "CCCGCAAA";
+            vcfVar.ReferenceAllele = "CAA";
+            allele = VcfVariantUtilities.ConvertUnpackedVariant(vcfVar, false, false, false);
+            Assert.Equal(originalPos, allele.ReferencePosition);
+            Assert.Equal("CCCGCAAA", allele.AlternateAllele);
+            Assert.Equal("CAA", allele.ReferenceAllele);
+
         }
 
         [Fact]

@@ -21,7 +21,7 @@ namespace Alignment.Logic
         bool ReadIsBlacklisted(BamAlignment bamAlignment);
     }
 
-    abstract class WaitForFinishTask : Task
+    public abstract class WaitForFinishTask : Task
     {
         private static int _numTasks = 0;
         private static AutoResetEvent _event = new AutoResetEvent(false);
@@ -33,10 +33,17 @@ namespace Alignment.Logic
 
         public override void Execute(int threadNum)
         {
-            ExecuteImpl(threadNum);
+            try
+            {
+                ExecuteImpl(threadNum);
 
-            Interlocked.Decrement(ref _numTasks);
-            _event.Set();
+                Interlocked.Decrement(ref _numTasks);
+                _event.Set();
+            }
+            catch (Exception e)
+            {
+                throw new Exception($"Failed to execute task: {e.Message}", e);
+            }
         }
 
         public static void WaitUntilZeroTasks()
@@ -50,14 +57,17 @@ namespace Alignment.Logic
         public abstract void ExecuteImpl(int threadNum);
     }
 
-    class ExtractReadsTask : WaitForFinishTask
+
+
+    public class ExtractReadsTask : WaitForFinishTask
     {
         private List<IReadPairHandler> _pairHandlers;
         private readonly IAlignmentPairFilter _filter;
         private readonly List<ReadPair> _readPairs;
         private List<IBamWriterHandle> _bamWriterHandles;
 
-        public ExtractReadsTask(List<IReadPairHandler> pairHandlers, IAlignmentPairFilter filter, List<ReadPair> readPairs, List<IBamWriterHandle> bamWriterHandles) : base()
+        public ExtractReadsTask(List<IReadPairHandler> pairHandlers, List<ReadPair> readPairs,
+            List<IBamWriterHandle> bamWriterHandles, IAlignmentPairFilter filter = null) : base()
         {
             _pairHandlers = pairHandlers;
             _filter = filter;
@@ -74,7 +84,7 @@ namespace Alignment.Logic
                 var bamAlignmentList = pairHandler.ExtractReads(readPair);
                 foreach (var bamAlignment in bamAlignmentList)
                 {
-                    if (!_filter.ReadIsBlacklisted(bamAlignment))
+                    if (_filter == null || !_filter.ReadIsBlacklisted(bamAlignment))
                     {
                         _bamWriterHandles[threadNum].WriteAlignment(bamAlignment);
                     }
@@ -169,7 +179,7 @@ namespace Alignment.Logic
                     readPairBuffer.Add(filteredReadPair);
                     if (readPairBuffer.Count >= READ_BUFFER_SIZE - 1)
                     {
-                        ExecuteTask(new ExtractReadsTask(_pairHandlers, _filter, readPairBuffer, bamWriterHandles));
+                        ExecuteTask(new ExtractReadsTask(_pairHandlers, readPairBuffer, bamWriterHandles, _filter));
 
                         readPairBuffer = new List<ReadPair>(READ_BUFFER_SIZE);
                     }
@@ -178,7 +188,7 @@ namespace Alignment.Logic
 
             if (readPairBuffer.Count > 0)
             {
-                ExecuteTask(new ExtractReadsTask(_pairHandlers, _filter, readPairBuffer, bamWriterHandles));
+                ExecuteTask(new ExtractReadsTask(_pairHandlers, readPairBuffer, bamWriterHandles, _filter));
             }
 
             if (_getUnpaired)

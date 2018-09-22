@@ -102,7 +102,8 @@ namespace VariantPhasing.Models
         {
             _nbhdGTcalculator = GenotypeCreator.CreateGenotypeCalculator(variantCallingParams.PloidyModel, variantCallingParams.MinimumFrequencyFilter,
                 variantCallingParams.MinimumCoverage,
-                variantCallingParams.DiploidThresholdingParameters,
+                variantCallingParams.DiploidSNVThresholdingParameters,
+                variantCallingParams.DiploidINDELThresholdingParameters,
                 variantCallingParams.MinimumGenotypeQScore, variantCallingParams.MaximumGenotypeQScore, variantCallingParams.TargetLODFrequency);
              VcfVariantSites = new List<VariantSite>();
             _referenceName = refName;

@@ -47,7 +47,7 @@ namespace Pisces.IO
             Writer.WriteLine("##fileformat=" + VcfVersion);
             Writer.WriteLine("##fileDate=" + string.Format("{0:yyyyMMdd}", DateTime.Now));
             Writer.WriteLine("##source=" + currentAssembly.Name + " " + currentAssembly.Version);
-            Writer.WriteLine("##" + currentAssembly.Name + "_cmdline=\"" + (_context.CommandLine == null? "" : string.Join(" ",_context.CommandLine)) + "\"");
+            Writer.WriteLine("##" + currentAssembly.Name + "_cmdline=\"" + (_context.QuotedCommandLineString == null? "" : string.Join(" ",_context.QuotedCommandLineString)) + "\"");
             Writer.WriteLine("##reference=" + _context.ReferenceName);
             //write Alt Allele
             Writer.WriteLine("##ALT=<ID=<M>,Description=\"There is an overlapping other allele that has been called in a separate VCF record\">");
@@ -72,6 +72,11 @@ namespace Pisces.IO
             Writer.WriteLine("##FORMAT=<ID={0},Number=.,Type=Integer,Description=\"Allele Depth\">", _formatter.AlleleDepthFormat);
             Writer.WriteLine("##FORMAT=<ID={0},Number=1,Type=Integer,Description=\"Total Depth Used For Variant Calling\">", _formatter.TotalDepthFormat);
             Writer.WriteLine("##FORMAT=<ID={0},Number=.,Type=Float,Description=\"Variant Frequency\">", _formatter.VariantFrequencyFormat);
+
+            if (_config.ShouldOutputSuspiciousCoverageFraction)
+            {
+                Writer.WriteLine("##FORMAT=<ID={0},Number=.,Type=String,Description=\"Suspicious coverage statistics: (confident start coverage, suspicious start coverage, confident end coverage, suspicious end coverage, variant-specific suspicious coverage weighting factor\">", _formatter.FractionSuspiciousCoverageFormat);
+            }
 
             if (_config.ShouldOutputProbeBias)
             {
@@ -251,6 +256,7 @@ namespace Pisces.IO
 
     public class VcfWriterConfig
     {
+        public bool ShouldOutputSuspiciousCoverageFraction { get; set; }
         public bool ShouldOutputNoCallFraction { get; set; }
         public bool ShouldOutputStrandBiasAndNoiseLevel { get; set; }
         public bool ShouldOutputProbeBias { get; set; }
@@ -273,6 +279,7 @@ namespace Pisces.IO
         public float? RMxNFilterFrequencyLimit { get; set; }
 		public NoiseModel NoiseModel { get; set; }
         public bool HasForcedGt { get; set; }
+        public float? NoCallFilterThreshold { get; set; }
 
         public VcfWriterConfig()
         { }
@@ -301,6 +308,8 @@ namespace Pisces.IO
             RMxNFilterMinRepetitions = callerOptions.RMxNFilterMinRepetitions;
             RMxNFilterFrequencyLimit = callerOptions.RMxNFilterFrequencyLimit;
             NoiseModel = callerOptions.NoiseModel;
+            NoCallFilterThreshold = callerOptions.NoCallFilterThreshold;
+            ShouldOutputSuspiciousCoverageFraction = outputOptions.ReportSuspiciousCoverageFraction;
 
             if (sampleAggregationParameters != null)
             {
@@ -325,7 +334,7 @@ namespace Pisces.IO
     {
         public string ReferenceName { get; set; }
         public string SampleName { get; set; }
-        public string[] CommandLine { get; set; }
+        public string QuotedCommandLineString { get; set; }
         public IEnumerable<Tuple<string, long>> ContigsByChr { get; set; }
     }
 }

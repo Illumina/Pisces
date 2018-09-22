@@ -2,6 +2,7 @@
 
   <PropertyGroup>
     <TargetFramework>netcoreapp2.0</TargetFramework>
+    <SonarQubeExclude>true</SonarQubeExclude>
     <AssemblyName>Alignment.Domain.Tests</AssemblyName>
     <PackageId>Alignment.Domain.Tests</PackageId>
     <GenerateRuntimeConfigurationFiles>true</GenerateRuntimeConfigurationFiles>
@@ -10,8 +11,8 @@
     <GenerateAssemblyConfigurationAttribute>false</GenerateAssemblyConfigurationAttribute>
     <GenerateAssemblyCompanyAttribute>false</GenerateAssemblyCompanyAttribute>
     <GenerateAssemblyProductAttribute>false</GenerateAssemblyProductAttribute>
-    <Version>5.2.7.47</Version>
-    <Copyright>Copyright © Illumina 2017</Copyright>
+    <Version>5.2.9.122</Version>
+    <Copyright>Copyright © Illumina 2018</Copyright>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" />

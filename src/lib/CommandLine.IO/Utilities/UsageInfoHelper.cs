@@ -1,7 +1,7 @@
 ﻿using System;
 
 //moved over from Pisces.Domain.Utility, where it can eventually be deleted
-namespace CommandLine.IO.Utilities
+namespace CommandLine.Util
 {
     public static class UsageInfoHelper
     {

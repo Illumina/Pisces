@@ -318,7 +318,7 @@ namespace Pisces.Tests.UnitTests
 
             var context = new VcfWriterInputContext
             {
-                CommandLine = new [] { "myCommandLine"},
+                QuotedCommandLineString = "myCommandLine",
                 SampleName = "mySample",
                 ReferenceName = "myReference",
                 ContigsByChr = new List<Tuple<string, long>>
@@ -363,7 +363,7 @@ namespace Pisces.Tests.UnitTests
 
             var context = new VcfWriterInputContext
             {
-                CommandLine = new[] { "myCommandLine" },
+                QuotedCommandLineString = "myCommandLine" ,
                 SampleName = "mySample",
                 ReferenceName = "myReference",
                 ContigsByChr = new List<Tuple<string, long>>
@@ -403,7 +403,7 @@ namespace Pisces.Tests.UnitTests
 
             var context = new VcfWriterInputContext
             {
-                CommandLine = new[] { "myCommandLine" },
+                QuotedCommandLineString = "myCommandLine" ,
                 SampleName = "mySample",
                 ReferenceName = "myReference",
                 ContigsByChr = new List<Tuple<string, long>>
@@ -426,25 +426,5 @@ namespace Pisces.Tests.UnitTests
             //VcfFileWriterTests.VcfFileFormatValidation(outputFile, 5);
         }
 
-        // If the -OutFolder option uses an invalid folder, execution must end and inform the user of the failure.
-        // This could come into play due to permissions issues.
-        [Fact]
-        [Trait("ReqID", "SDS-26")]
-        public void InvalidVcfOutputFolder()
-        {
-
-            Assert.False(Directory.Exists("56:\\Illumina\\OutputFolder"));
-            var outputFolder = Path.Combine("56:\\Illumina\\OutputFolder");
-           
-            var appOptions = new PiscesApplicationOptions
-            {
-                BAMPaths = new[] { _bamChr19, _bamChr17Chr19, _bamChr17Chr19Dup },
-                IntervalPaths = new[] { _intervalsChr17, _intervalsChr19, null },
-                GenomePaths = new[] { _genomeChr17Chr19 },
-                OutputDirectory = outputFolder
-            };
-         
-            Assert.Throws<ArgumentException>(() => appOptions.ValidateAndSetDerivedValues());
-        }
     }
 }

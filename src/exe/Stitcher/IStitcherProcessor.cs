@@ -1,4 +1,6 @@
-﻿namespace Stitcher
+﻿using BamStitchingLogic;
+
+namespace Stitcher
 {
     public interface IStitcherProcessor
     {

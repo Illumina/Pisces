@@ -4,16 +4,12 @@ using Pisces.Domain.Types;
 
 namespace Pisces.Domain.Options
 {
-   
+
     public class DiploidThresholdingParameters
     {
-        public float MinorVF = 0.20f;  //could make separate threshold values for SNP and Indel...
+        public float MinorVF = 0.20f;  
         public float MajorVF = 0.70f;
         public float SumVFforMultiAllelicSite = 0.80f;
-
-        public DiploidThresholdingParameters()
-        {
-        }
 
         //not too safe, but dev use only.
         public DiploidThresholdingParameters(float[] parameters)
@@ -47,10 +43,17 @@ namespace Pisces.Domain.Options
 
         public int? RMxNFilterMaxLengthRepeat = 5;
         public int? RMxNFilterMinRepetitions = 9;
-        public float RMxNFilterFrequencyLimit = 0.20f; //this was recommended by Kristina K after empirical testing 
+        public float RMxNFilterFrequencyLimit = 0.35f; //
+        //originally set to 20%, recommended by Kristina K after empirical testing, 2017 
+        //adjusted to 35% following PICS-967 study, 2018
 
         public PloidyModel PloidyModel = PloidyModel.Somatic;
-        public DiploidThresholdingParameters DiploidThresholdingParameters = new DiploidThresholdingParameters();
+        public DiploidThresholdingParameters DiploidSNVThresholdingParameters = new DiploidThresholdingParameters(new float[] { 0.20F, 0.70F, 0.80F });
+        public DiploidThresholdingParameters DiploidINDELThresholdingParameters = new DiploidThresholdingParameters(new float[] { 0.20F, 0.70F, 0.80F });
+        //originally both set to {0.20F, 0.70F, 0.80F}, recommended by Dorothea A after empirical testing, 2017 
+        //For SNPS, 0.20F, 0.90F, 0.80F seemed best for Halo.
+        //However, Sidney's follow up testing suggested optimal thresholds closer to the original, on a broader dataset.
+
         public bool? IsMale;
 
         public int ForcedNoiseLevel = -1;
@@ -60,6 +63,8 @@ namespace Pisces.Domain.Options
         public float StrandBiasAcceptanceCriteria = 0.5f;
         public StrandBiasModel StrandBiasModel = StrandBiasModel.Extended;  //maybe should add "none" for scylla
         public bool FilterOutVariantsPresentOnlyOneStrand = false;
+
+        public float NoCallFilterThreshold = 0.6f;
 
         public void SetDerivedParameters(BamFilterParameters bamFilterParameters)
         {
@@ -127,6 +132,9 @@ namespace Pisces.Domain.Options
                 ValidationHelper.VerifyRange((int)RMxNFilterMaxLengthRepeat, 0, 100, "RMxNFilterMaxLengthRepeat");
                 ValidationHelper.VerifyRange((int)RMxNFilterMinRepetitions, 0, 100, "RMxNFilterMinRepetitions");
             }
+
+            ValidationHelper.VerifyRange(NoCallFilterThreshold, 0f, 1f, "NoCallFilterThreshold");
+
         }
 
 

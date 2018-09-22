@@ -1,6 +1,7 @@
 ﻿using System.IO;
 using Alignment.Domain.Sequencing;
 using Alignment.IO.Sequencing;
+using BamStitchingLogic;
 using Common.IO.Utility;
 using Xunit;
 

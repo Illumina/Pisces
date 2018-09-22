@@ -4,7 +4,7 @@ using RealignIndels.Logic;
 using RealignIndels.Logic.Processing;
 using RealignIndels.Tests.Utilities;
 using Pisces.IO;
-using Pisces.Domain.Options;
+using CommandLine.Options;
 using Moq;
 using RealignIndels.Interfaces;
 using Pisces.Domain.Interfaces;
@@ -28,7 +28,7 @@ namespace RealignIndels.Tests.UnitTests
             Directory.CreateDirectory(_outputFolder);
             var options_1 = new HygeaOptions()
             {
-                BAMPaths = BamProcessorOptions.UpdateBamPathsWithBamsFromFolder(_existingBamFolder),
+                BAMPaths = BamProcessorParsingUtils.UpdateBamPathsWithBamsFromFolder(_existingBamFolder),
                 GenomePaths = new[] {_existingGenome},
                 OutputDirectory = _outputFolder
             };

@@ -14,9 +14,13 @@ namespace Pisces.Processing.RegionState
         private List<CandidateAllele>[] _candidateVariantsLookup;
 		private int[] _gappedMnvReferenceCounts;
         private List<ReadCoverageSummary>[] _coverageSummaries;
-        protected int[,,] _alleleCounts;
-        protected double[,,] _sumOfAlleleBaseQualities;
+        protected int[,,,] _alleleCounts;
+        protected double[,,,] _sumOfAlleleBaseQualities;
         private HashSet<Tuple<string, string, string>> _indelCandidateGroups;
+        private readonly int _numAnchorTypes;
+        private int WellAnchoredIndex => _numAnchorTypes;
+        private int NumAnchorIndexes => _numAnchorTypes * 2 + 1;
+
 
         public int MaxAlleleEndpoint { get; private set; }
 
@@ -30,8 +34,10 @@ namespace Pisces.Processing.RegionState
         /// </summary>
         /// <param name="startPosition"></param>
         /// <param name="endPosition"></param>
-        public RegionState(int startPosition, int endPosition) : base (startPosition, endPosition)
+        /// <param name="anchorSize"></param>
+        public RegionState(int startPosition, int endPosition, int anchorSize = 5) : base (startPosition, endPosition)
         {
+            _numAnchorTypes = anchorSize;
             Initialize();
         }
 
@@ -42,11 +48,11 @@ namespace Pisces.Processing.RegionState
         protected void Initialize()
         {
             var regionSize = EndPosition - StartPosition + 1;
-            _alleleCounts = new int[regionSize, Constants.NumAlleleTypes, Constants.NumDirectionTypes];
+            _alleleCounts = new int[regionSize, Constants.NumAlleleTypes, Constants.NumDirectionTypes, NumAnchorIndexes];
             _gappedMnvReferenceCounts = new int[regionSize];
             _candidateVariantsLookup = new List<CandidateAllele>[regionSize];
             _coverageSummaries = new List<ReadCoverageSummary>[regionSize];
-			_sumOfAlleleBaseQualities = new double[regionSize, Constants.NumAlleleTypes, Constants.NumDirectionTypes];
+			_sumOfAlleleBaseQualities = new double[regionSize, Constants.NumAlleleTypes, Constants.NumDirectionTypes, NumAnchorIndexes];
             _indelCandidateGroups = new HashSet<Tuple<string, string, string>>();
         }
 
@@ -112,6 +118,9 @@ namespace Pisces.Processing.RegionState
                     for (var i = 0; i < existingMatch.SupportByDirection.Length; i++)
                         existingMatch.SupportByDirection[i] += candidate.SupportByDirection[i];
 
+                    for (var i = 0; i < existingMatch.WellAnchoredSupportByDirection.Length; i++)
+                        existingMatch.WellAnchoredSupportByDirection[i] += candidate.WellAnchoredSupportByDirection[i];
+
                     for (var i = 0; i < existingMatch.ReadCollapsedCountsMut.Length; i++)
                         existingMatch.ReadCollapsedCountsMut[i] += candidate.ReadCollapsedCountsMut[i];
                 }
@@ -164,19 +173,19 @@ namespace Pisces.Processing.RegionState
             }            
         }
 
-        public void AddAlleleCount(int position, AlleleType alleleType, DirectionType directionType)
+        public void AddAlleleCount(int position, AlleleType alleleType, DirectionType directionType, int anchorType)
         {
             if (IsPositionInRegion(position))
             {
-                _alleleCounts[position - StartPosition, (int) alleleType,  (int) directionType]++;
+                _alleleCounts[position - StartPosition, (int) alleleType,  (int) directionType, anchorType]++;
             }
         }
 
-		public void AddBaseQualites(int position, AlleleType alleleType, DirectionType directionType, double baseQuality)
+		public void AddBaseQualites(int position, AlleleType alleleType, DirectionType directionType, double baseQuality, int anchorType)
 		{
 			if (IsPositionInRegion(position))
 			{
-				_sumOfAlleleBaseQualities[position - StartPosition, (int)alleleType, (int)directionType] += baseQuality;
+				_sumOfAlleleBaseQualities[position - StartPosition, (int)alleleType, (int)directionType, anchorType] += baseQuality;
 			}
 		}
 
@@ -201,18 +210,27 @@ namespace Pisces.Processing.RegionState
             return position >= StartPosition && position <= EndPosition;
         }
 
-        public int GetAlleleCount(int position, AlleleType alleleType, DirectionType directionType)
+        public int GetAlleleCount(int position, AlleleType alleleType, DirectionType directionType, int minAnchor = 0, int? maxAnchor = null, bool fromEnd = false, bool symmetric = false)
         {
 			if (!IsPositionInRegion(position))
 				throw new ArgumentException(string.Format("Position {0} is not in region '{1}'.", position, Name));
-			return _alleleCounts[position - StartPosition, (int)alleleType, (int)directionType];
-		}
 
-		public double GetSumOfAlleleBaseQualites(int position, AlleleType alleleType, DirectionType directionType)
+            var totCount = AlleleCountHelper.GetAnchorAdjustedAlleleCount(minAnchor, fromEnd, WellAnchoredIndex, NumAnchorIndexes, 
+                _alleleCounts, position - StartPosition, (int)alleleType, (int)directionType, _numAnchorTypes, maxAnchor, symmetric);
+
+            return (int)totCount;
+
+        }
+
+
+        public double GetSumOfAlleleBaseQualites(int position, AlleleType alleleType, DirectionType directionType, int minAnchor = 0, int? maxAnchor = null, bool fromEnd = false, bool symmetric = false)
 		{
-			if (!IsPositionInRegion(position))
-				throw new ArgumentException(string.Format("Position {0} is not in region '{1}'.", position, Name));
-			return _sumOfAlleleBaseQualities[position - StartPosition, (int)alleleType, (int)directionType];
+            if (!IsPositionInRegion(position))
+                throw new ArgumentException(string.Format("Position {0} is not in region '{1}'.", position, Name));
+            var totCount = AlleleCountHelper.GetAnchorAdjustedTotalQuality(minAnchor, fromEnd, WellAnchoredIndex, NumAnchorIndexes,
+                _sumOfAlleleBaseQualities, position - StartPosition, (int)alleleType, (int)directionType, _numAnchorTypes, maxAnchor, symmetric);
+
+		    return totCount;
 		}
 
         public List<ReadCoverageSummary> GetReadSummaries(int position)
@@ -275,9 +293,20 @@ namespace Pisces.Processing.RegionState
                         {
                             for (var directionIndex = 0; directionIndex < Constants.NumDirectionTypes; directionIndex++)
                             {
-                                var count = _alleleCounts[positionIndex, alleleTypeIndex, directionIndex];
+                                var count = 0;
+                                for (int anchorIndex = 0; anchorIndex < NumAnchorIndexes; anchorIndex++)
+                                {
+                                    var countForAnchorType = _alleleCounts[positionIndex, alleleTypeIndex, directionIndex, anchorIndex];
+                                    count += countForAnchorType;
+                                }
+
                                 if (alleleTypeIndex == refBaseIndex)
+                                {
                                     refAllele.SupportByDirection[directionIndex] = count;
+
+                                    // TODO this isn't really proven to be well-anchored, nor is it proven not to be
+                                    //refAllele.WellAnchoredSupportByDirection[directionIndex] = count;
+                                }
 
                                 totalSupport += count;
                             }

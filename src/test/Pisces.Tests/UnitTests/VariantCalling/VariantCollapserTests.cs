@@ -945,7 +945,7 @@ namespace Pisces.Tests.UnitTests.Pisces
             if (candidatesAdded != null)
                 source.Setup(s => s.AddCandidates(It.IsAny<IEnumerable<CandidateAllele>>()))
                     .Callback((IEnumerable<CandidateAllele> c) => candidatesAdded.AddRange(c));
-            source.Setup(s => s.GetAlleleCount(It.IsAny<int>(), It.IsAny<AlleleType>(), It.IsAny<DirectionType>()))
+            source.Setup(s => s.GetAlleleCount(It.IsAny<int>(), It.IsAny<AlleleType>(), It.IsAny<DirectionType>(), It.IsAny<int>(), It.IsAny<int?>(), It.IsAny<bool>(), It.IsAny<bool>()))
                 .Returns(1);
 
             return source;

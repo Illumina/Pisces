@@ -9,7 +9,8 @@ namespace VariantPhasing.Tests
         {
             var options = new ScyllaApplicationOptions();
             options.OutputDirectory = @"C:\Out";
-            Assert.Equal(@"C:\Out\PhasingLogs",options.LogFolder);
+            options.SetIODirectories("Scylla");
+            Assert.Equal(@"C:\Out\ScyllaLogs", options.LogFolder);
         }
     }
 }

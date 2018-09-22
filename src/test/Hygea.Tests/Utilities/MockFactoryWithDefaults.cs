@@ -6,6 +6,7 @@ using RealignIndels.Interfaces;
 using RealignIndels.Logic;
 using Pisces.Domain.Interfaces;
 using Pisces.Domain.Models;
+using ReadRealignmentLogic.Interfaces;
 
 namespace RealignIndels.Tests.Utilities
 {

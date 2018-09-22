@@ -2,8 +2,6 @@
 using System.Collections.Generic;
 using Pisces.Domain.Types;
 using Pisces.Domain.Options;
-using CommandLine.IO.Utilities;
-using CommandLine.IO;
 using CommandLine.Options;
 using Xunit;
 
@@ -62,12 +60,12 @@ namespace Pisces.Domain.Tests
             optionsExpectationsDict.Add("-noisemodel window", (o) => Assert.Equal(NoiseModel.Window, o.NoiseModel));
             optionsExpectationsDict.Add("-NL 72", (o) => Assert.Equal(72, o.ForcedNoiseLevel));
             optionsExpectationsDict.Add("-ploidy diploid", (o) => Assert.Equal(PloidyModel.Diploid, o.PloidyModel));
-
-            optionsExpectationsDict.Add("-diploidgenotypeparameters 12,13,14", (o) => Assert.True(
-                        (12 == o.DiploidThresholdingParameters.MinorVF) &&
-                        (13 == o.DiploidThresholdingParameters.MajorVF) &&
-                        (14 == o.DiploidThresholdingParameters.SumVFforMultiAllelicSite)));
-
+            
+            optionsExpectationsDict.Add("-diploidsnvgenotypeparameters 12,13,14", (o) => Assert.True(
+                        (12 == o.DiploidSNVThresholdingParameters.MinorVF) &&
+                        (13 == o.DiploidSNVThresholdingParameters.MajorVF) &&
+                        (14 == o.DiploidSNVThresholdingParameters.SumVFforMultiAllelicSite)));
+                    
             optionsExpectationsDict.Add("-gender male", (o) => Assert.Equal(true, o.IsMale));
             return optionsExpectationsDict;
         }
@@ -96,17 +94,22 @@ namespace Pisces.Domain.Tests
                         (0.75F == o.RMxNFilterFrequencyLimit)));
 
             optionsExpectationsDict.Add("-enablesinglestrandfilter true", (o) => Assert.Equal(true, o.FilterOutVariantsPresentOnlyOneStrand));
-            optionsExpectationsDict.Add("-sbmodel poisson", (o) => Assert.Equal(StrandBiasModel.Poisson, o.StrandBiasModel));
+            optionsExpectationsDict.Add("-sbmodel diPloiD", (o) => Assert.Equal(StrandBiasModel.Diploid, o.StrandBiasModel));
             optionsExpectationsDict.Add("-maxacceptablestrandbiasfilter 0.75", (o) => Assert.Equal(0.75F, o.StrandBiasAcceptanceCriteria));
             optionsExpectationsDict.Add("-noisemodel flat", (o) => Assert.Equal(NoiseModel.Flat, o.NoiseModel));
             optionsExpectationsDict.Add("-noiselevelforqmodel 32", (o) => Assert.Equal(32, o.ForcedNoiseLevel));
             optionsExpectationsDict.Add("-PLOIDY somatic", (o) => Assert.Equal(PloidyModel.Somatic, o.PloidyModel));
 
-            optionsExpectationsDict.Add("-diploidgenotypeparameters 12,13,24", (o) => Assert.True(
-                        (12 == o.DiploidThresholdingParameters.MinorVF) &&
-                        (13 == o.DiploidThresholdingParameters.MajorVF) &&
-                        (24 == o.DiploidThresholdingParameters.SumVFforMultiAllelicSite)));
-
+            optionsExpectationsDict.Add("-diploidSNVgenotypeparameters 12,13,24", (o) => Assert.True(
+                        (12 == o.DiploidSNVThresholdingParameters.MinorVF) &&
+                        (13 == o.DiploidSNVThresholdingParameters.MajorVF) &&
+                        (24 == o.DiploidSNVThresholdingParameters.SumVFforMultiAllelicSite)));
+           
+            optionsExpectationsDict.Add("-diploidINDELgenotypeparameters 122,133,244", (o) => Assert.True(
+                      (122 == o.DiploidINDELThresholdingParameters.MinorVF) &&
+                      (133 == o.DiploidINDELThresholdingParameters.MajorVF) &&
+                      (244 == o.DiploidINDELThresholdingParameters.SumVFforMultiAllelicSite)));
+                     
             optionsExpectationsDict.Add("-gender FeMALE", (o) => Assert.Equal(false, o.IsMale));
             return optionsExpectationsDict;
         }

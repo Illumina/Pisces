@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using Alignment.Domain;
 using Alignment.Domain.Sequencing;
+using BamStitchingLogic;
 using Xunit;
 using Moq;
 using StitchingLogic;
@@ -55,7 +56,7 @@ namespace Stitcher.Tests
 
 			var readStatusCounter = new ReadStatusCounter();
 
-            var pairHandler = new PairHandler(refIdMapping, stitcher, true, readStatusCounter);
+            var pairHandler = new PairHandler(refIdMapping, stitcher, readStatusCounter, filterUnstitchablePairs:true);
 
             var alignment1 = new BamAlignment()
             {
@@ -147,7 +148,7 @@ namespace Stitcher.Tests
 
             var readStatusCounter = new ReadStatusCounter();
 
-            var pairHandler = new PairHandler(refIdMapping, stitcher, true, readStatusCounter);
+            var pairHandler = new PairHandler(refIdMapping, stitcher, readStatusCounter, filterUnstitchablePairs: true);
 
             var alignment1 = new BamAlignment()
             {
@@ -208,7 +209,7 @@ namespace Stitcher.Tests
 
             var readStatusCounter = new ReadStatusCounter();
 
-            var pairHandler = new PairHandler(refIdMapping, stitcher, true, readStatusCounter);
+            var pairHandler = new PairHandler(refIdMapping, stitcher, readStatusCounter, filterUnstitchablePairs: true);
 
             var alignment1 = new BamAlignment()
             {

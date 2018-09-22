@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
-using CommandLine.IO.Utilities;
+using CommandLine.Util;
 using Xunit;
 
 namespace Stitcher.Tests
@@ -71,9 +71,11 @@ namespace Stitcher.Tests
             var options = parser.ProgramOptions;
 
             ValidateOption(argsDict, "Bam", options.InputBam.ToString());
-            ValidateOption(argsDict, "OutFolder", options.OutFolder.ToString());
+            ValidateOption(argsDict, "OutFolder", options.OutputDirectory.ToString());
             ValidateOption(argsDict, "MinBaseCallQuality", options.StitcherOptions.MinBaseCallQuality.ToString());
-            ValidateOption(argsDict, "FilterMinMapQuality", options.StitcherOptions.FilterMinMapQuality.ToString());
+            ValidateOption(argsDict, "MinMapQuality", options.StitcherOptions.FilterMinMapQuality.ToString());
+            ValidateOption(argsDict, "FilterPairLowMapQ", options.StitcherOptions.FilterPairLowMapQ.ToString());
+            ValidateOption(argsDict, "FilterPairUnmapped", options.StitcherOptions.FilterPairUnmapped.ToString());
             ValidateOption(argsDict, "FilterDuplicates", options.StitcherOptions.FilterDuplicates.ToString());
             ValidateOption(argsDict, "FilterForProperPairs", options.StitcherOptions.FilterForProperPairs.ToString());
             ValidateOption(argsDict, "FilterUnstitchablePairs", options.StitcherOptions.FilterUnstitchablePairs.ToString());
@@ -81,7 +83,7 @@ namespace Stitcher.Tests
             ValidateOption(argsDict, "UseSoftClippedBases", options.StitcherOptions.UseSoftClippedBases.ToString());
             ValidateOption(argsDict, "NifyUnstitchablePairs", options.StitcherOptions.NifyUnstitchablePairs.ToString());
             ValidateOption(argsDict, "Debug", options.StitcherOptions.Debug.ToString());
-            ValidateOption(argsDict, "LogFileName", options.StitcherOptions.LogFileName.ToString());
+            ValidateOption(argsDict, "LogFileName", options.LogFileNameBase.ToString());
             ValidateOption(argsDict, "ThreadByChr", options.StitcherOptions.ThreadByChromosome.ToString());
             ValidateOption(argsDict, "DebugSummary", options.StitcherOptions.DebugSummary.ToString());
             ValidateOption(argsDict, "StitchProbeSoftclips", options.StitcherOptions.StitchProbeSoftclips.ToString());

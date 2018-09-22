@@ -4,10 +4,10 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using RealignIndels.Logic;
-using RealignIndels.Models;
-using RealignIndels.Utlity;
 using Alignment.Domain.Sequencing;
-using Hygea.Logic;
+using ReadRealignmentLogic;
+using ReadRealignmentLogic.Models;
+using ReadRealignmentLogic.Utlity;
 using Xunit;
 
 namespace RealignIndels.Tests.UnitTests

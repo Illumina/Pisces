@@ -7,6 +7,8 @@ namespace Pisces.Domain.Models.Alleles
 {
     public class CandidateAllele : BaseAllele
     {
+        public int WellAnchoredSupport { get { return WellAnchoredSupportByDirection.Sum(); } }
+        public int[] WellAnchoredSupportByDirection { get; set; }
         public int Support { get { return SupportByDirection.Sum(); } }
         public int[] SupportByDirection { get; set; }
 
@@ -40,6 +42,7 @@ namespace Pisces.Domain.Models.Alleles
                 throw new ArgumentException("Alternate is empty.");
 
             SupportByDirection = new int[Constants.NumDirectionTypes];
+            WellAnchoredSupportByDirection = new int[Constants.NumDirectionTypes];
             ReadCollapsedCountsMut = new int[Constants.NumReadCollapsedTypes];
         }
 
@@ -71,6 +74,10 @@ namespace Pisces.Domain.Models.Alleles
         {
             for (var i = 0; i < SupportByDirection.Length; i++)
                 SupportByDirection[i] += fromAllele.SupportByDirection[i];
+
+            for (var i = 0; i < WellAnchoredSupportByDirection.Length; i++)
+                WellAnchoredSupportByDirection[i] += fromAllele.WellAnchoredSupportByDirection[i];
+
         }
 
         public CandidateAllele DeepCopy()
@@ -82,6 +89,7 @@ namespace Pisces.Domain.Models.Alleles
                 IsKnown = IsKnown
             };
             Array.Copy(SupportByDirection, copy.SupportByDirection, SupportByDirection.Length);
+            Array.Copy(WellAnchoredSupportByDirection, copy.WellAnchoredSupportByDirection, WellAnchoredSupportByDirection.Length);
             Array.Copy(ReadCollapsedCountsMut, copy.ReadCollapsedCountsMut, ReadCollapsedCountsMut.Length);
             return copy;
         }

@@ -73,7 +73,9 @@ namespace VariantPhasing.Tests.Logic
                 OutputDirectory = outFolder
             };
 
-            var logFile = Path.Combine(options.LogFolder, options.LogFileName);
+            options.SetIODirectories("Scylla");
+
+            var logFile = Path.Combine(options.LogFolder, options.LogFileNameBase);
             if (File.Exists(logFile))
                 File.Delete(logFile);
          
@@ -146,7 +148,7 @@ namespace VariantPhasing.Tests.Logic
                 }
             });
 
-            Logger.OpenLog(options.LogFolder, options.LogFileName, true);
+            Logger.OpenLog(options.LogFolder, options.LogFileNameBase, true);
             var processor = new VariantPhaser(factory);
 
             processor.Execute(numberOfThreads);

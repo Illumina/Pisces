@@ -12,10 +12,10 @@ namespace StitchingLogic.Tests
 {
     public class BasicStitcherTests
     {
-        private Read GetStitchedRead(AlignmentSet alignmentSet)
+        private Read GetStitchedRead(AlignmentSet alignmentSet, bool useSoftclips = false)
         {
             var merger = new ReadMerger(0,false,false, false, new ReadStatusCounter(), false, true);
-            var stitchedRead = merger.GenerateNifiedMergedRead(alignmentSet, false);
+            var stitchedRead = merger.GenerateNifiedMergedRead(alignmentSet, useSoftclips);
             return stitchedRead;
         }
 
@@ -36,7 +36,69 @@ namespace StitchingLogic.Tests
             Assert.Equal(false, stitched);
         }
 
+        [Fact]
+        public void TryStitch_GB()
+        {
+            var stitcher = new BasicStitcher(10, useSoftclippedBases: true, nifyDisagreements: true, ignoreProbeSoftclips: true, dontStitchHomopolymerBridge: false, nifyUnstitchablePairs:true);
+            var read1 = ReadTestHelper.CreateRead("chr1", "AGCAGCAGCAGCTCCAGCACCAGCAGTCCCAGCACCAGCAGGCCCCGAAGAAGCATACCCAGCAGCAGAAGACACCTCAGCAGCTGCACCAGGTGATCGG", 14106298,
+                new CigarAlignment("41M59S"));
 
+            var read2 = ReadTestHelper.CreateRead("chr1", "GCGATCTATCAGTATTAGCTCCAGCATCAGCAGCCCGAGCATCTGCAGTTCTAGCAGCAGCAGTCCCAGCAGCAGCAGTCCCAGCAGCAGCTGCCCCAGT", 14106328,
+                new CigarAlignment("52S48M"));
+            var alignmentSet = new AlignmentSet(read2, read1);
+            var stitched = stitcher.TryStitch(alignmentSet);
+            Assert.True(stitched);
+            Assert.Equal("22S78M22S", alignmentSet.ReadsForProcessing.First().CigarData.ToString());
+
+        }
+
+        [Fact]
+        public void TryStitch_LotsOfDisagreements()
+        {
+            //https://jira.illumina.com/browse/PICS-977
+            var stitcher = new BasicStitcher(10, useSoftclippedBases: true, nifyDisagreements: true, ignoreProbeSoftclips: true, dontStitchHomopolymerBridge: false);
+            var read1 = ReadTestHelper.CreateRead("chr1", "TTATTTTTTTTTTTTTTTTTTTTTTTTTTTTTTCAAATGTCGGTACCTTTCCCTTCCCCCATCCTCGGTGGGTGGTGGGCTATTTGCTCCTTGTGCGTG", 16083508,
+                new CigarAlignment("99M"));
+
+            // Sad, aligner seems to have gotten it wrong
+            var read2AsAlignerHadIt = ReadTestHelper.CreateRead("chr1", "TTTTTCTTTTTTTTTTTTTTTTTTAAAATGGGGGTAAGTTTCCCTTACCCAATGCACGGTGGGGGTGGGGCTTTTTGGGGCTGGGGGGGGAGTGGGGAAGG", 16083520,
+                new CigarAlignment("21M80S"));
+            var alignmentSet = new AlignmentSet(read1, read2AsAlignerHadIt);
+            var stitched = stitcher.TryStitch(alignmentSet);
+            Assert.Equal(true, stitched);
+            Assert.Equal(1, alignmentSet.ReadsForProcessing.Count);
+            Assert.Equal("TTATTTTTTTTTTTTTTNTTTTTTTTTTTTTTTNNNANNNNGGNNNNNNNNNNNNCNNNCNNNNTNNNNGGNNGGNGNGNNNNTTNNTNNNNNTGNGNGGGGAGTGGGGAAGG", alignmentSet.ReadsForProcessing.First().BamAlignment.Bases);
+
+            // Bail out if too many disagreements
+            // Modification of the real case to test out disagreements on non-softclips, otherwise same as above
+            var read2AsMatches = ReadTestHelper.CreateRead("chr1", "TTTTTCTTTTTTTTTTTTTTTTTTAAAATGGGGGTAAGTTTCCCTTACCCAATGCACGGTGGGGGTGGGGCTTTTTGGGGCTGGGGGGGGAGTGGGGAAGG", 16083520,
+                new CigarAlignment("101M"));
+
+            // Don't stitch if num disagreements is above threshold
+            stitcher = new BasicStitcher(10, useSoftclippedBases: false, nifyDisagreements: true, ignoreProbeSoftclips: true, dontStitchHomopolymerBridge: false, thresholdNumDisagreeingBases: 47);
+            alignmentSet = new AlignmentSet(read1, read2AsMatches);
+            stitched = stitcher.TryStitch(alignmentSet);
+            Assert.Equal(false, stitched);
+            Assert.Equal(2, alignmentSet.ReadsForProcessing.Count);
+
+            // Upper boundary - allow stitch if num disagreements is below threshold
+            stitcher = new BasicStitcher(10, useSoftclippedBases: false, nifyDisagreements: true, ignoreProbeSoftclips: true, dontStitchHomopolymerBridge: false, thresholdNumDisagreeingBases: 48);
+            alignmentSet = new AlignmentSet(read1, read2AsMatches);
+            stitched = stitcher.TryStitch(alignmentSet);
+            Assert.Equal(true, stitched);
+            Assert.Equal("TTATTTTTTTTTTTTTTNTTTTTTTTTTTTTTTNNNANNNNGGNNNNNNNNNNNNCNNNCNNNNTNNNNGGNNGGNGNGNNNNTTNNTNNNNNTGNGNGGGGAGTGGGGAAGG", alignmentSet.ReadsForProcessing.First().BamAlignment.Bases);
+
+            // Side note proving that stitcher would have done the right thing if the aligner got it right to start with
+            var read2AsItShouldHaveBeenAligned = ReadTestHelper.CreateRead("chr1", "TTTTTCTTTTTTTTTTTTTTTTTTAAAATGGGGGTAAGTTTCCCTTACCCAATGCACGGTGGGGGTGGGGCTTTTTGGGGCTGGGGGGGGAGTGGGGAAGG", 16083517,
+                new CigarAlignment("21M80S"));
+            alignmentSet = new AlignmentSet(read1, read2AsItShouldHaveBeenAligned);
+            stitcher = new BasicStitcher(10, useSoftclippedBases: true, nifyDisagreements: true, ignoreProbeSoftclips: true, dontStitchHomopolymerBridge: false, thresholdNumDisagreeingBases: 49);
+            stitched = stitcher.TryStitch(alignmentSet);
+            Assert.Equal(true, stitched);
+            Assert.Equal(1, alignmentSet.ReadsForProcessing.Count);
+            Assert.Equal("TTATTTTTTTTTTTNTTTTTTTTTTTTTTTTTTNAAATGNNGGTANNTTTCCCTTNCCCNATNCNCGGTGGGNGNNGGGCTNTTTGNNNCTNGNGNGNGAGTGGGGAAGG", alignmentSet.ReadsForProcessing.First().BamAlignment.Bases);
+
+        }
 
 
         public void GenerateConsensus_MatchSectionFullyOverlaps()
@@ -282,12 +344,12 @@ namespace StitchingLogic.Tests
 
             StitcherTestHelpers.SetReadDirections(read2, DirectionType.Reverse);
 
-            var stitcher = new BasicStitcher(10, useSoftclippedBases: useSoftclips, nifyDisagreements: nifyDisagreements, ignoreProbeSoftclips: ignoreProbeSoftclips);
+            var stitcher = new BasicStitcher(10, useSoftclippedBases: useSoftclips, nifyDisagreements: nifyDisagreements, ignoreProbeSoftclips: ignoreProbeSoftclips, dontStitchHomopolymerBridge: false);
             var alignmentSet = new AlignmentSet(read1, read2);
             stitcher.TryStitch(alignmentSet);
-            Assert.Equal(expectedStitchedSequence, alignmentSet.ReadsForProcessing.First().Sequence);
             Assert.Equal(expectedCigar.ToString(), alignmentSet.ReadsForProcessing.First().CigarData.ToString());
             Assert.Equal(expectedDirections.ToString(), alignmentSet.ReadsForProcessing.First().CigarDirections.ToString());
+            Assert.Equal(expectedStitchedSequence, alignmentSet.ReadsForProcessing.First().Sequence);
 
         }
 
@@ -439,6 +501,16 @@ namespace StitchingLogic.Tests
             Assert.Equal("1S6M", stitchedRead.StitchedCigar.ToString());
             Assert.Equal("NNNNNNN", stitchedRead.Sequence);
             Assert.Equal("1F5S1F", stitchedRead.CigarDirections.ToString());
+
+            // Prefix and suffix clip are together longer than the supposed nified read length.
+            // Note that this behavior of throwing an error is really a limitation of the algorithm, but is being demonstrated here.
+            read1 = ReadTestHelper.CreateRead("chr1", new string('A', 100), 298,
+                new CigarAlignment("13M15I13M59S"));
+            read2 = ReadTestHelper.CreateRead("chr1", new string('A', 100), 328,
+                new CigarAlignment("52S48M"));
+            alignmentSet = new AlignmentSet(read1, read2);
+            Assert.Throws<ArgumentException>(()=>GetStitchedRead(alignmentSet, false));
+
         }
 
 
@@ -459,7 +531,7 @@ namespace StitchingLogic.Tests
             var r1read = ReadTestHelper.CreateRead("chr1", r1, 10, new CigarAlignment(r1cigar));
             var r2read = ReadTestHelper.CreateRead("chr1", r2, 7, new CigarAlignment(r2cigar));
             StitcherTestHelpers.SetReadDirections(r2read, DirectionType.Reverse);
-            var stitcher = new BasicStitcher(10, useSoftclippedBases: false);
+            var stitcher = new BasicStitcher(10, useSoftclippedBases: false, dontStitchHomopolymerBridge: false);
             var alignmentSet = new AlignmentSet(r1read, r2read);
             stitcher.TryStitch(alignmentSet);
 
@@ -475,7 +547,7 @@ namespace StitchingLogic.Tests
             var read2 = ReadTestHelper.CreateRead("chr7", read2Bases, 55248981, new CigarAlignment("9S120M21S"));
             StitcherTestHelpers.SetReadDirections(read2, DirectionType.Reverse);
 
-            stitcher = new BasicStitcher(10, useSoftclippedBases: false);
+            stitcher = new BasicStitcher(10, useSoftclippedBases: false, dontStitchHomopolymerBridge: false);
             alignmentSet = new AlignmentSet(read1, read2);
             stitcher.TryStitch(alignmentSet);
 
@@ -493,7 +565,7 @@ namespace StitchingLogic.Tests
             read2 = ReadTestHelper.CreateRead("chr7", read2Bases, 109465121, new CigarAlignment("27S55M1I24M43S"));
             StitcherTestHelpers.SetReadDirections(read2, DirectionType.Reverse);
 
-            stitcher = new BasicStitcher(10, useSoftclippedBases: true);
+            stitcher = new BasicStitcher(10, useSoftclippedBases: true, dontStitchHomopolymerBridge: false);
             alignmentSet = new AlignmentSet(read1, read2);
             Assert.False(stitcher.TryStitch(alignmentSet));
 
@@ -507,12 +579,12 @@ namespace StitchingLogic.Tests
             StitcherTestHelpers.SetReadDirections(read2, DirectionType.Reverse);
 
             // Not using softclips -- these don't even overlap. Big gap in between. Shouldn't stitch.
-            stitcher = new BasicStitcher(10, useSoftclippedBases: false);
+            stitcher = new BasicStitcher(10, useSoftclippedBases: false, dontStitchHomopolymerBridge: false);
             alignmentSet = new AlignmentSet(read1, read2);
             Assert.False(stitcher.TryStitch(alignmentSet));
 
             // Using softclips -- these would overlap if we extended the softclip all the way and used that to stitch, but it shouldn't.
-            stitcher = new BasicStitcher(10, useSoftclippedBases: true);
+            stitcher = new BasicStitcher(10, useSoftclippedBases: true, dontStitchHomopolymerBridge: false);
             alignmentSet = new AlignmentSet(read1, read2);
             Assert.False(stitcher.TryStitch(alignmentSet));
 
@@ -805,12 +877,12 @@ namespace StitchingLogic.Tests
             if (maxReadLength != null)
             {
                 stitcher = new BasicStitcher(10, ignoreProbeSoftclips: ignoreProbeSoftclips,
-                    maxReadLength: maxReadLength.Value, ignoreReadsAboveMaxLength: ignoreReadsAboveMaxLength);
+                    maxReadLength: maxReadLength.Value, ignoreReadsAboveMaxLength: ignoreReadsAboveMaxLength, dontStitchHomopolymerBridge: false);
             }
             else
             {
                 // Use the default
-                stitcher = new BasicStitcher(10, ignoreProbeSoftclips: ignoreProbeSoftclips, ignoreReadsAboveMaxLength: ignoreReadsAboveMaxLength);
+                stitcher = new BasicStitcher(10, ignoreProbeSoftclips: ignoreProbeSoftclips, ignoreReadsAboveMaxLength: ignoreReadsAboveMaxLength, dontStitchHomopolymerBridge: false);
             }
 
             if (!shouldMerge)
@@ -873,7 +945,7 @@ namespace StitchingLogic.Tests
                 new CigarAlignment("137M4S"));
             StitcherTestHelpers.SetReadDirections(read2, DirectionType.Reverse);
 
-            var stitcher = new BasicStitcher(10, useSoftclippedBases: false);
+            var stitcher = new BasicStitcher(10, useSoftclippedBases: false, dontStitchHomopolymerBridge: false);
             var alignmentSet = new AlignmentSet(read1, read2);
             stitcher.TryStitch(alignmentSet);
             // Without allowing softclips to count to support, should still get a M at an M/S overlap, but it won't be stitched.
@@ -888,7 +960,7 @@ namespace StitchingLogic.Tests
                 });
             StitcherTestHelpers.VerifyDirectionType(expectedDirections, mergedRead.CigarDirections.Expand().ToArray());
 
-            stitcher = new BasicStitcher(10, useSoftclippedBases: true);
+            stitcher = new BasicStitcher(10, useSoftclippedBases: true, dontStitchHomopolymerBridge: false);
             alignmentSet = new AlignmentSet(read1, read2);
             stitcher.TryStitch(alignmentSet);
             mergedRead = StitcherTestHelpers.GetMergedRead(alignmentSet);
@@ -903,7 +975,7 @@ namespace StitchingLogic.Tests
             StitcherTestHelpers.VerifyDirectionType(expectedDirections, mergedRead.CigarDirections.Expand().ToArray());
 
             // If we're not ignoring probe softclips, go back to the original expected directions (1 more stitched from probe)
-            stitcher = new BasicStitcher(10, useSoftclippedBases: true, ignoreProbeSoftclips: false);
+            stitcher = new BasicStitcher(10, useSoftclippedBases: true, ignoreProbeSoftclips: false, dontStitchHomopolymerBridge: false);
             alignmentSet = new AlignmentSet(read1, read2);
             stitcher.TryStitch(alignmentSet);
             mergedRead = StitcherTestHelpers.GetMergedRead(alignmentSet);
@@ -1211,48 +1283,5 @@ namespace StitchingLogic.Tests
             StitcherTestHelpers.CompareQuality(nifyDisagreements ? new byte[] { 30, 30, 30, 0, 0, 0, 0, 0, 20, 19, 18 } : new byte[] { 30, 30, 30, 5, 5, 5, 5, 5, 20, 19, 18 }, mergedRead.Qualities);
 
         }
-
-
-
-        /// <summary>
-        /// Tests stitchability (or lack thereof) of different combinations of mapQ of reads with FilterMinMapQ = 20
-        /// </summary>
-        [Fact]
-        public void TryStitch_LowMapQ()
-        {
-            // R1 < MinMapQ, R2 > MinMapQ, should not stitch
-            TestLowMapQScenario(10, 40, false, 20);
-            // R1 > MinMapQ, R2 < MinMapQ, should not stitch
-            TestLowMapQScenario(40, 10, false, 20);
-            // R1 < MinMapQ, R2 < MinMapQ, should not stitch
-            TestLowMapQScenario(10, 10, false, 20);
-            // R1 > MinMapQ, R2 > MinMapQ, should stitch
-            TestLowMapQScenario(40, 40, true, 30);
-            // R1 == MinMapQ, R2 == MinMapQ, should stitch
-            TestLowMapQScenario(20, 20, true, 20);
-            // R1 < MinMapQ, R2 == MinMapQ, should not stitch
-            TestLowMapQScenario(19, 20, false, 20);
-            // R1 == MinMapQ, R2 < MinMapQ, should not stitch
-            TestLowMapQScenario(20, 19, false, 20);
-            // R1 == MinMapQ, R2 == MinMapQ, default MinMapQ=1, should stitch
-            TestLowMapQScenario(1, 1, true);
-            // R1 > MinMapQ, R2 > MinMapQ, default MinMapQ=1, should stitch
-            TestLowMapQScenario(2, 2, true);
-            // R1 == Default MinMapQ, R2 unmaped, default MinMapQ=1, should not stitch
-            TestLowMapQScenario(1, 0, false);
-            }
-
-
-
-        public void TestLowMapQScenario(uint R1MapQ, uint R2MapQ, bool result, uint threshold=1)
-        {
-            var read1 = ReadTestHelper.CreateRead("chr1", "TTTAAATTT", 5, new CigarAlignment("2S7M"), null, 0, 30, false, R1MapQ);
-            var read2 = ReadTestHelper.CreateRead("chr1", "ATTTAAATT", 0, new CigarAlignment("2S7M"), null, 5, 30, false, R2MapQ);
-            var stitcher = StitcherTestHelpers.GetStitcher(10, false, true, true, true, threshold);
-            var alignmentSet = new AlignmentSet(read1, read2);
-            var stitchResult = stitcher.TryStitch(alignmentSet);
-            Assert.Equal(result, stitchResult);
-        }
-
     }
 }

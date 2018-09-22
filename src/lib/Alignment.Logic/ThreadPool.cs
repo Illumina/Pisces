@@ -34,6 +34,10 @@ namespace Alignment.Logic
 
         private void Execute(int threadNum)
         {
+            // I tried to move this out of the try-catch and just check _taskQueue.IsCompleted, but it still would throw exception.
+            // I guess that's why Aaron (who knows a lot about this stuff) did it this way to begin with. 
+            // So to compromise, I'm having any WaitForFinishTask wrap exceptions so it will never bubble out an InvalidOperationException.
+            // Still, I feeel like there is a better solution.
             try
             {
                 while (true)

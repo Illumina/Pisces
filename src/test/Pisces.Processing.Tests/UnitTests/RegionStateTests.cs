@@ -233,16 +233,18 @@ namespace Pisces.Processing.Tests.UnitTests
         [Fact]
         public void AddAndGetAlleleCounts()
         {
-            var testRegion = new MyRegionState(1000, 2000);
+            var anchorSize = 5;
+            var wellAnchoredIndex = anchorSize;
+            var testRegion = new MyRegionState(1000, 2000, anchorSize);
 
             for (var i = 0; i < 5; i++)
-                testRegion.AddAlleleCount(1001, AlleleType.A, DirectionType.Forward);
+                testRegion.AddAlleleCount(1001, AlleleType.A, DirectionType.Forward, wellAnchoredIndex);
             for (var i = 0; i < 2; i++)
-                testRegion.AddAlleleCount(1001, AlleleType.C, DirectionType.Forward);
+                testRegion.AddAlleleCount(1001, AlleleType.C, DirectionType.Forward, wellAnchoredIndex);
             for (var i = 0; i < 12; i++)
-                testRegion.AddAlleleCount(1001, AlleleType.C,  DirectionType.Reverse);
+                testRegion.AddAlleleCount(1001, AlleleType.C,  DirectionType.Reverse, wellAnchoredIndex);
             for (var i = 0; i < 15; i++)
-                testRegion.AddAlleleCount(2000, AlleleType.A, DirectionType.Stitched);
+                testRegion.AddAlleleCount(2000, AlleleType.A, DirectionType.Stitched, wellAnchoredIndex);
 
             Assert.Equal(testRegion.GetAlleleCount(1001, AlleleType.A, DirectionType.Forward), 5);
             Assert.Equal(testRegion.GetAlleleCount(1001, AlleleType.C, DirectionType.Forward), 2);
@@ -336,6 +338,8 @@ namespace Pisces.Processing.Tests.UnitTests
 
         public void ExecuteTest_GetCandidates(bool withReference, bool withIntervals)
         {
+            var anchorSize = 5;
+            var wellAnchoredIndex = anchorSize;
             var testRegion = new MyRegionState(1, 50);
             var chrReference = new ChrReference()
             {
@@ -355,12 +359,12 @@ namespace Pisces.Processing.Tests.UnitTests
 
             for (var i = 0; i < 5; i++)
             {
-                testRegion.AddAlleleCount(5, AlleleType.A, DirectionType.Stitched);  // ref @ variant position
-                testRegion.AddAlleleCount(6, AlleleType.A, DirectionType.Stitched); // ref by itself
-                testRegion.AddAlleleCount(10, AlleleType.C, DirectionType.Stitched); // nonref by itself (no ref)
-                testRegion.AddAlleleCount(15, AlleleType.A, DirectionType.Reverse); // ref (multiple directions) + nonref
-                testRegion.AddAlleleCount(15, AlleleType.A, DirectionType.Forward);
-                testRegion.AddAlleleCount(15, AlleleType.T, DirectionType.Reverse);
+                testRegion.AddAlleleCount(5, AlleleType.A, DirectionType.Stitched, wellAnchoredIndex);  // ref @ variant position
+                testRegion.AddAlleleCount(6, AlleleType.A, DirectionType.Stitched, wellAnchoredIndex); // ref by itself
+                testRegion.AddAlleleCount(10, AlleleType.C, DirectionType.Stitched, wellAnchoredIndex); // nonref by itself (no ref)
+                testRegion.AddAlleleCount(15, AlleleType.A, DirectionType.Reverse, wellAnchoredIndex); // ref (multiple directions) + nonref
+                testRegion.AddAlleleCount(15, AlleleType.A, DirectionType.Forward, wellAnchoredIndex);
+                testRegion.AddAlleleCount(15, AlleleType.T, DirectionType.Reverse, wellAnchoredIndex);
             }
 
             ChrIntervalSet intervals = null;

@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.IO;
+using Common.IO.Utility;
 using CommandLine.Options;
-using CommandLine.IO;
 using CommandLine.NDesk.Options;
 using VariantPhasing;
 using Pisces.Domain.Options;
@@ -11,13 +11,13 @@ namespace Scylla
     public class ScyllaOptionsParser : BaseOptionParser
     {
 
-        public ScyllaApplicationOptions ScyllaOptions = new ScyllaApplicationOptions();
-
+        
         public ScyllaOptionsParser()
         {
-            ScyllaOptions = new ScyllaApplicationOptions();
+            Options = new ScyllaApplicationOptions();
         }
 
+        public ScyllaApplicationOptions ScyllaOptions { get => (ScyllaApplicationOptions)Options; }
 
         public override Dictionary<string, OptionSet> GetParsingMethods()
         {
@@ -122,9 +122,9 @@ namespace Scylla
                 {OptionSetNames.PhasableCriteria,phasableCriteriaOps },
             };
 
-            BamFilterOptionsParser.AddBamFilterArgumentParsing(optionDict, ScyllaOptions.BamFilterParams);
-            VariantCallingOptionsParser.AddVariantCallingArgumentParsing(optionDict, ScyllaOptions.VariantCallingParams);
-            VcfWritingOptionsParser.AddVcfWritingArgumentParsing(optionDict, ScyllaOptions.VcfWritingParams);
+            BamFilterOptionsUtils.AddBamFilterArgumentParsing(optionDict, ScyllaOptions.BamFilterParams);
+            VariantCallingOptionsParserUtils.AddVariantCallingArgumentParsing(optionDict, ScyllaOptions.VariantCallingParams);
+            VcfWritingParserUtils.AddVcfWritingArgumentParsing(optionDict, ScyllaOptions.VcfWritingParams);
 
             return optionDict;
         }

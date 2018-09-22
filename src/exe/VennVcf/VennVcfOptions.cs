@@ -1,4 +1,4 @@
-﻿
+﻿using System.IO;
 using Pisces.Domain.Options;
 
 namespace VennVcf
@@ -8,13 +8,18 @@ namespace VennVcf
         #region Members
         public string LogFileName = "VennVcfLog.txt";
         public string[] InputFiles;
-        public string OutputDirectory = "";
         public string ConsensusFileName = "";
         public SampleAggregationParameters SampleAggregationParameters = new SampleAggregationParameters();
-        public string CommandLine;
         public bool DebugMode;
 
         #endregion
 
+        public override string GetMainInputDirectory()
+        {
+            if ((InputFiles==null) || string.IsNullOrEmpty(InputFiles[0]))
+                return null;
+
+            return Path.GetDirectoryName(InputFiles[0]);
+        }
     }
 }

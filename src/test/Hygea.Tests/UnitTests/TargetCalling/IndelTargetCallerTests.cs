@@ -4,12 +4,12 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Moq;
-using RealignIndels.Logic.TargetCalling;
-using RealignIndels.Models;
 using Pisces.Domain.Interfaces;
 using Pisces.Domain.Models.Alleles;
 using Pisces.Domain.Types;
 using Pisces.Calculators;
+using ReadRealignmentLogic.Models;
+using ReadRealignmentLogic.TargetCalling;
 using Xunit;
 
 namespace RealignIndels.Tests.UnitTests
@@ -22,8 +22,8 @@ namespace RealignIndels.Tests.UnitTests
             var caller = new IndelTargetCaller(0.05f);
 
             var mockSource = new Mock<IAlleleSource>();
-            mockSource.Setup(s => s.GetAlleleCount(1000, AlleleType.A, DirectionType.Forward)).Returns(100);
-            mockSource.Setup(s => s.GetAlleleCount(1001, AlleleType.A, DirectionType.Forward)).Returns(100);
+            mockSource.Setup(s => s.GetAlleleCount(1000, AlleleType.A, DirectionType.Forward, It.IsAny<int>(), It.IsAny<int?>(), It.IsAny<bool>(), It.IsAny<bool>())).Returns(100);
+            mockSource.Setup(s => s.GetAlleleCount(1001, AlleleType.A, DirectionType.Forward, It.IsAny<int>(), It.IsAny<int?>(), It.IsAny<bool>(), It.IsAny<bool>())).Returns(100);
 
             // known indel, never encountered - pass
             var knownNeverEncountered = GetBasicIndel();

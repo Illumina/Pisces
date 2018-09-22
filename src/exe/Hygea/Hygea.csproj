@@ -10,7 +10,7 @@
     <GenerateAssemblyConfigurationAttribute>false</GenerateAssemblyConfigurationAttribute>
     <GenerateAssemblyCompanyAttribute>false</GenerateAssemblyCompanyAttribute>
     <GenerateAssemblyProductAttribute>false</GenerateAssemblyProductAttribute>
-    <Version>5.2.7.47</Version>
+    <Version>5.2.9.122</Version>
     <Copyright>Copyright © Illumina 2018</Copyright>
     <RepositoryUrl>https://github.com/Illumina/Pisces</RepositoryUrl>
   </PropertyGroup>
@@ -31,13 +31,14 @@
     <ProjectReference Include="..\..\lib\Alignment.Domain\Alignment.Domain.csproj" />
     <ProjectReference Include="..\..\lib\Alignment.IO\Alignment.IO.csproj" />
     <ProjectReference Include="..\..\lib\Alignment.Logic\Alignment.Logic.csproj" />
-    <ProjectReference Include="..\..\lib\CommandLine.IO\CommandLine.IO.csproj" />
+    <ProjectReference Include="..\..\lib\CommandLine.IO\CommandLine.Util.csproj" />
     <ProjectReference Include="..\..\lib\CommandLine.Options\CommandLine.Options.csproj" />
     <ProjectReference Include="..\..\lib\Common.IO\Common.IO.csproj" />
     <ProjectReference Include="..\..\lib\Pisces.Calculators\Pisces.Calculators.csproj" />
     <ProjectReference Include="..\..\lib\Pisces.Domain\Pisces.Domain.csproj" />
     <ProjectReference Include="..\..\lib\Pisces.IO\Pisces.IO.csproj" />
     <ProjectReference Include="..\..\lib\Pisces.Processing\Pisces.Processing.csproj" />
+    <ProjectReference Include="..\..\lib\ReadRealignmentLogic\ReadRealignmentLogic.csproj" />
   </ItemGroup>
 
   <ItemGroup>

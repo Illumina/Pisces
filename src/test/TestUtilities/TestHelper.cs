@@ -195,8 +195,9 @@ namespace TestUtilities
             {
                  //Note, skip anything that contains a version number, test path, or date. These are expected to vary.
                 if (!expectedLines[i].ToLower().Contains("filedate")
+                    && !expectedLines[i].ToLower().Contains("##reference")
                     && !expectedLines[i].ToLower().Contains("cmdline")
-                    && !expectedLines[i].ToLower().Contains("psara"))
+                    && !expectedLines[i].ToLower().Contains("1.0.0.0")) 
                     Assert.Equal(expectedLines[i], observedLines[i]);
             }
         }

@@ -1,6 +1,4 @@
-﻿using System.Collections.Generic;
-using Common.IO.Utility;
-using CommandLine.NDesk.Options;
+﻿using System.IO;
 using Pisces.Domain.Options;
 
 namespace VariantQualityRecalibration
@@ -10,7 +8,6 @@ namespace VariantQualityRecalibration
     
         #region Members
         public string InputVcf;
-        public string OutputDirectory = "";
         public string LogFileName = "VariantQualityRecalibrationLog.txt";
         public int LociCount = -1;
        
@@ -22,5 +19,10 @@ namespace VariantQualityRecalibration
         public float ZFactor = 2F;
         //-
         #endregion
+
+        public override string GetMainInputDirectory()
+        {      
+            return Path.GetDirectoryName(InputVcf);
+        }
     }
 }

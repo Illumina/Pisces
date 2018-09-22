@@ -4,13 +4,13 @@
     <TargetFramework>netcoreapp2.0</TargetFramework>
     <AssemblyName>VariantQualityRecalibration</AssemblyName>
     <OutputType>Exe</OutputType>
-    <PackageId>Pisces</PackageId>
+    <PackageId>VariantQualityRecalibration</PackageId>
     
     
     <GenerateAssemblyConfigurationAttribute>false</GenerateAssemblyConfigurationAttribute>
     <GenerateAssemblyCompanyAttribute>false</GenerateAssemblyCompanyAttribute>
     <GenerateAssemblyProductAttribute>false</GenerateAssemblyProductAttribute>
-    <Version>5.2.7.47</Version>
+    <Version>5.2.9.122</Version>
     <Copyright>Copyright © Illumina 2018</Copyright>
     <RepositoryUrl>https://github.com/Illumina/Pisces</RepositoryUrl>
   </PropertyGroup>
@@ -44,7 +44,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\lib\CommandLine.IO\CommandLine.IO.csproj" />
+    <ProjectReference Include="..\..\lib\CommandLine.IO\CommandLine.Util.csproj" />
     <ProjectReference Include="..\..\lib\CommandLine.Options\CommandLine.Options.csproj" />
     <ProjectReference Include="..\..\lib\Common.IO\Common.IO.csproj" />
     <ProjectReference Include="..\..\lib\Pisces.Calculators\Pisces.Calculators.csproj" />

@@ -1,10 +1,10 @@
 using System.IO;
-using CommandLine.IO.Utilities;
+using CommandLine.Util;
 using Xunit;
 
 namespace CreateGenomeSizeFile.Tests
 {
-   
+
     public class ProgamTests
     {
         private string _existingGenomeFolder = Path.Combine(TestPaths.SharedGenomesDirectory, "Bacillus_cereus", "Sequence", "WholeGenomeFasta");
@@ -49,11 +49,13 @@ namespace CreateGenomeSizeFile.Tests
         public void CheckHappyPathExecution()
         {
             var outFolder = Path.Combine(TestPaths.LocalScratchDirectory, "BacillusTest");
-            var observedOutGSFile = Path.Combine(outFolder, "GenomeSize.xml");
             var expectedOutGSFile = Path.Combine(TestPaths.LocalTestDataDirectory, "GenomeSize.xml");
+
+            var observedOutGSFile = Path.Combine(outFolder, "GenomeSize.xml");
             var observedOutDictFile = Path.Combine(outFolder, "genome.dict");
             var observedOutFaiFile = Path.Combine(outFolder, "genome.fa.fai");
-           
+
+
             if (File.Exists(observedOutGSFile))
                 File.Delete(observedOutGSFile);
 
@@ -63,12 +65,11 @@ namespace CreateGenomeSizeFile.Tests
             if (File.Exists(observedOutFaiFile))
                 File.Delete(observedOutFaiFile);
 
+            var aguments = new string[] { "-g", _existingGenomeFolder, "-S", "Bacillus cereus ATCC 10987 (NCBI 2004-02-13)", "-o", outFolder };
+            var exitCode = Program.Main(aguments); 
 
-            var aguments = new string[] {"-g", _existingGenomeFolder, "-S","Bacillus cereus ATCC 10987 (NCBI 2004-02-13)", "-o", outFolder };
-            var exitCode =  Program.Main(aguments);
+            Assert.Equal((int)ExitCodeType.Success, exitCode); Assert.Equal((int)ExitCodeType.Success, exitCode);
 
-            Assert.Equal((int)ExitCodeType.Success, exitCode);
-          
             TestUtilities.TestHelper.CompareFiles(observedOutGSFile, expectedOutGSFile);
             Assert.True(File.Exists(observedOutDictFile));
             Assert.True(File.Exists(observedOutFaiFile));

@@ -84,7 +84,10 @@ namespace Pisces.Domain.Models
             get { return Position - (int)CigarData.GetPrefixClip(); }
         }
 
-        public int EndPosition { get { return Position + (int)CigarData.GetReferenceSpan() - 1; } }
+        public int EndPosition
+        {
+            get { return BamAlignment.EndPosition + 1; }
+        }
 
         public int ClipAdjustedEndPosition
         {
@@ -337,27 +340,35 @@ namespace Pisces.Domain.Models
 
         private void SetSequencedBaseDirectionMapFromBam()
         {
-            if (_sequencedBaseDirectionMap == null || _sequencedBaseDirectionMap.Length != ReadLength)
+            try
             {
-                _sequencedBaseDirectionMap = new DirectionType[ReadLength];
+                if (_sequencedBaseDirectionMap == null || _sequencedBaseDirectionMap.Length != ReadLength)
+                {
+                    _sequencedBaseDirectionMap = new DirectionType[ReadLength];
 
-                if (CigarDirections != null && (CigarDirections.Directions.Count > 0))
-                {
-                    _expandedBaseDirectionMap = CigarDirections.Expand().ToArray();
-                    _sequencedBaseDirectionMap = CreateSequencedBaseDirectionMap(_expandedBaseDirectionMap, CigarData);
-                }
-                else
-                {
-                    var reverse = BamAlignment.IsReverseStrand();
-                    for (var i = 0; i < ReadLength; i++)
+                    if (CigarDirections != null && (CigarDirections.Directions.Count > 0))
                     {
-                        _sequencedBaseDirectionMap[i] = reverse ? DirectionType.Reverse : DirectionType.Forward;
+                        _expandedBaseDirectionMap = CigarDirections.Expand().ToArray();
+                        _sequencedBaseDirectionMap = CreateSequencedBaseDirectionMap(_expandedBaseDirectionMap, CigarData);
                     }
+                    else
+                    {
+                        var reverse = BamAlignment.IsReverseStrand();
+                        for (var i = 0; i < ReadLength; i++)
+                        {
+                            _sequencedBaseDirectionMap[i] = reverse ? DirectionType.Reverse : DirectionType.Forward;
+                        }
+                    }
+
+
+                    _sequencedBaseDirectionMapInitialized = true;
                 }
-
-
-                _sequencedBaseDirectionMapInitialized = true;
             }
+            catch (Exception e)
+            {
+                throw new Exception("Exception caught in " + Name + ": " + e.StackTrace, e);
+            }
+
         }
 
         /// <summary>
@@ -558,7 +569,6 @@ namespace Pisces.Domain.Models
             return directionInfo;
         }
 
-
         public static DirectionType[] CreateSequencedBaseDirectionMap(DirectionType[] cigarBaseDirectionMap, CigarAlignment cigarData)
         {
             var cigarBaseAlleleMap = cigarData.Expand();
@@ -579,4 +589,5 @@ namespace Pisces.Domain.Models
             return sequencedBaseDirectionMap;
         }
     }
+
 }

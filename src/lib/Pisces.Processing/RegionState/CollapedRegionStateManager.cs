@@ -21,9 +21,9 @@ namespace Pisces.Processing.RegionState
         /// otherwise use RegionStateManager (based) instead </remarks>
         public CollapsedRegionStateManager(bool includeRefAlleles = false, int minBasecallQuality = 20,
             ChrIntervalSet intervalSet = null, int blockSize = 1000,
-            bool trackOpenEnded = false, bool trackReadSummaries = false)
+            bool trackOpenEnded = false, bool trackReadSummaries = false, int trackedAnchorSize = 5)
             : base(includeRefAlleles, minBasecallQuality, true, intervalSet, blockSize, trackOpenEnded,
-                trackReadSummaries)
+                trackReadSummaries, trackedAnchorSize)
         {
             ExpectCollapsedReads = true;
         }

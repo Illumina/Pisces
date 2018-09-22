@@ -3,11 +3,13 @@
   <PropertyGroup>
     <TargetFramework>netcoreapp2.0</TargetFramework>
     <AssemblyName>Pisces.IO</AssemblyName>
-    <PackageId>Pisces.IO</PackageId>  
+    <PackageId>Pisces2.IO</PackageId>
+    
+    
     <GenerateAssemblyConfigurationAttribute>false</GenerateAssemblyConfigurationAttribute>
     <GenerateAssemblyCompanyAttribute>false</GenerateAssemblyCompanyAttribute>
     <GenerateAssemblyProductAttribute>false</GenerateAssemblyProductAttribute>
-    <Version>5.2.7.47</Version>
+    <Version>5.2.9.122</Version>
     <Copyright>Copyright © Illumina 2018</Copyright>
   </PropertyGroup>
 

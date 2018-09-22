@@ -12,6 +12,18 @@ namespace Alignment.Domain
         Read1,
         Read2
     }
+
+    public enum PairStatus
+    {
+        Unknown,
+        SplitChromosomes,
+        SplitQuality,
+        MateUnmapped,
+        Paired,
+        MateNotFound,
+        Duplicate
+    }
+
     public class ReadPair
     {
         public string Name { get; set; }
@@ -22,6 +34,7 @@ namespace Alignment.Domain
         public List<BamAlignment> Read1SecondaryAlignments;
         public List<BamAlignment> Read2SecondaryAlignments;
         public bool IsImproper;
+        public PairStatus PairStatus;
 
         public List<BamAlignment> Read1Alignments
         {
@@ -70,18 +83,18 @@ namespace Alignment.Domain
             {
                 if (readNumber == ReadNumber.NA)
                 {
-                    if (Read1 != null && Read2 != null) throw new InvalidDataException("Already have both primary alignments.");
+                    if (Read1 != null && Read2 != null) throw new InvalidDataException($"Already have both primary alignments for {alignment.Name}.");
                     if (Read1 == null) Read1 = alignmentCopy;
                     else Read2 = alignmentCopy;
                 }
                 else if (readNumber == ReadNumber.Read1)
                 {
-                    if (Read1 != null) throw new InvalidDataException("Already have a read 1 primary alignment.");
+                    if (Read1 != null) throw new InvalidDataException($"Already have a read 1 primary alignment for {alignment.Name}.");
                     Read1 = alignmentCopy;
                 }
                 else if (readNumber == ReadNumber.Read2)
                 {
-                    if (Read2 != null) throw new InvalidDataException("Already have a read 2 primary alignment.");
+                    if (Read2 != null) throw new InvalidDataException($"Already have a read 2 primary alignment for {alignment.Name}.");
                     Read2 = alignmentCopy;
                 }
             }

@@ -792,15 +792,15 @@ namespace Pisces.Tests.UnitTests
             mockAlleleCountSource.Setup(
             s => s.GetAlleleCount(It.IsAny<int>(),
                 It.IsAny<AlleleType>(),
-                It.IsAny<DirectionType>())).Returns(NormalCoverageMultiplier);
+                It.IsAny<DirectionType>(), It.IsAny<int>(), It.IsAny<int?>(), It.IsAny<bool>(), It.IsAny<bool>())).Returns(NormalCoverageMultiplier);
             mockAlleleCountSource.Setup(
             s => s.GetAlleleCount(highCoverageCoordinate,
                 It.IsAny<AlleleType>(),
-                It.IsAny<DirectionType>())).Returns(HighCoverageMultiplier);
+                It.IsAny<DirectionType>(), It.IsAny<int>(), It.IsAny<int?>(), It.IsAny<bool>(), It.IsAny<bool>())).Returns(HighCoverageMultiplier);
             mockAlleleCountSource.Setup(
             s => s.GetAlleleCount(lowCoverageCoordinate,
                 It.IsAny<AlleleType>(),
-                It.IsAny<DirectionType>())).Returns(LowCoverageMultiplier);
+                It.IsAny<DirectionType>(), It.IsAny<int>(), It.IsAny<int?>(), It.IsAny<bool>(), It.IsAny<bool>())).Returns(LowCoverageMultiplier);
 
             return mockAlleleCountSource;
         }

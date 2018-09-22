@@ -2,12 +2,13 @@
 
   <PropertyGroup>
     <TargetFramework>netcoreapp2.0</TargetFramework>
+    <SonarQubeExclude>true</SonarQubeExclude>
     <AssemblyName>VariantPhasing.Tests</AssemblyName>
     <PackageId>VariantPhasing.Tests</PackageId>
     <GenerateAssemblyConfigurationAttribute>false</GenerateAssemblyConfigurationAttribute>
     <GenerateAssemblyCompanyAttribute>false</GenerateAssemblyCompanyAttribute>
     <GenerateAssemblyProductAttribute>false</GenerateAssemblyProductAttribute>
-    <Version>5.2.7.47</Version>
+    <Version>5.2.9.122</Version>
     <Copyright>Copyright © Illumina 2018</Copyright>
   </PropertyGroup>
 

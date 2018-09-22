@@ -22,8 +22,9 @@ namespace Pisces.Domain.Types
 
     public enum StrandBiasModel
     {
-        Poisson,  //mirrors the variant Q scoring model
-        Extended  //extends the Poisson model with the Binomial Theorem where Posson is undefined.
+        Poisson,  //mirrors the variant Q scoring model <- we dont use this anymore, so lets not let people use it
+        Extended,  //extends the Poisson model with the Binomial Theorem where Posson is undefined.
+        Diploid
     };
 
     public enum CoverageMethod

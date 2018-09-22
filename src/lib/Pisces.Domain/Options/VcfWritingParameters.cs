@@ -13,21 +13,24 @@ namespace Pisces.Domain.Options
         public bool ReportTsCounts = false;
         public double StrandBiasScoreMinimumToWriteToVCF = -100; // just so we dont have to write negative infinities into vcfs and then they get tagged as "poorly formed"  
         public double StrandBiasScoreMaximumToWriteToVCF = 0;
+        public bool ReportSuspiciousCoverageFraction = false;
 
         public void SetDerivedParameters(VariantCallingParameters varcallParameters)
         {
-            if (ForceCrush.HasValue)
-            {
-                AllowMultipleVcfLinesPerLoci = !((bool)ForceCrush);
-                return;
-            }
-
+            //SetDerivedParameters these accoding to ploidy model
             if (varcallParameters.PloidyModel == PloidyModel.Diploid)
             {
                 AllowMultipleVcfLinesPerLoci = false;
             }
             else
                 AllowMultipleVcfLinesPerLoci = true;
+
+            // override them if desired
+            if (ForceCrush.HasValue)
+            {
+                AllowMultipleVcfLinesPerLoci = !((bool)ForceCrush);
+                return;
+            }
         }
 
     }

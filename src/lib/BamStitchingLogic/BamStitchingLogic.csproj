@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netcoreapp2.0</TargetFramework>
+    <Version>5.2.9.122</Version>
+    <Copyright>Copyright © Illumina 2018</Copyright>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Alignment.Domain\Alignment.Domain.csproj" />
+    <ProjectReference Include="..\Alignment.Logic\Alignment.Logic.csproj" />
+    <ProjectReference Include="..\Pisces.Domain\Pisces.Domain.csproj" />
+    <ProjectReference Include="..\StitchingLogic\StitchingLogic.csproj" />
+  </ItemGroup>
+
+</Project>

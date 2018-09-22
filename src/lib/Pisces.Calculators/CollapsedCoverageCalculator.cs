@@ -10,6 +10,11 @@ namespace Pisces.Calculators
 {
     public class CollapsedCoverageCalculator : CoverageCalculator
     {
+        public CollapsedCoverageCalculator(bool considerAnchorInformation = false)
+            : base(considerAnchorInformation)
+        {
+        }
+
         protected override void CalculateSinglePoint(CalledAllele allele, IAlleleSource alleleCountSource)
         {
             base.CalculateSinglePoint(allele, alleleCountSource);
@@ -21,6 +26,7 @@ namespace Pisces.Calculators
 
         protected override void CalculateSpanning(CalledAllele variant, IAlleleSource alleleCountSource, int startPointPosition, int endPointPosition, bool anchored = true)
         {
+            // TODO - we're not doing anything fancy here with the anchoring in combination with collapsed info. Just calling the base.
             base.CalculateSpanning(variant, alleleCountSource, startPointPosition, endPointPosition, anchored);
             for (var type = 0; type < Constants.NumReadCollapsedTypes; type++)
             {

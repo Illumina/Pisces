@@ -1,59 +1,42 @@
 ﻿using System;
-using System.IO;
 using System.Collections.Generic;
-using Common.IO.Utility;
 using CommandLine.VersionProvider;
-using CommandLine.IO;
-using CommandLine.IO.Utilities;
+using CommandLine.Application;
+using CommandLine.Util;
 
 namespace VennVcf
 {
 
-    public class Program : BaseApplication
+    public class Program : BaseApplication<VennVcfOptions>
     {
-        private VennVcfOptions _options;
         static string _commandlineExample = " -if [A.genome.vcf,B.genome.vcf] -o \\outfolder -consensus myConsensus2.vcf";
         static string _programDescription = "VennVcf: Gets the intersection and disjoint segmentation of two vcfs";
-        
-        public Program(string programDescription, string commandLineExample, string programAuthors, IVersionProvider versionProvider = null) : base(programDescription, commandLineExample, programAuthors, versionProvider = null) { }
+        static string _programName = "VennVcf";
 
+        public Program(string programDescription, string commandLineExample, string programAuthors, string programName,
+           IVersionProvider versionProvider = null) : base(programDescription, commandLineExample, programAuthors, programName, versionProvider = null)
+        {
+
+            _options = new VennVcfOptions();
+            _appOptionParser = new VennVcfOptionsParser();
+        }
 
         public static int Main(string[] args)
         {
 
-            Program vennVcf = new Program(_programDescription, _commandlineExample, UsageInfoHelper.GetWebsite());
+            Program vennVcf = new Program(_programDescription, _commandlineExample, UsageInfoHelper.GetWebsite(), _programName);
             vennVcf.DoParsing(args);
             vennVcf.Execute();
 
             return vennVcf.ExitCode;
         }
 
-        public void DoParsing(string[] args)
-        {
-            ApplicationOptionParser = new VennVcfOptionsParser();
-            ApplicationOptionParser.ParseArgs(args);
-            _options = ((VennVcfOptionsParser)ApplicationOptionParser).Options;
-
-            //We could tuck this line into the OptionsParser() constructor if we had a base options class.
-            _options.CommandLineArguments = ApplicationOptionParser.CommandLineArguments;
-        }
-
-        protected override void Init()
-        {
-            Logger.OpenLog(_options.OutputDirectory, _options.LogFileName);
-            Logger.WriteToLog("Command-line arguments: " + _options.QuotedCommandLineArgumentsString);
-            _options.Save(Path.Combine(_options.OutputDirectory, "VennVcfOptions.used.json"));
-
-        }
-
-        protected override void Close()
-        {
-            Logger.CloseLog();
-        }
+     
+    
 
         protected override void ProgramExecution()
         {
-
+            
             Console.WriteLine(">>> Processing files:");
             foreach (string vcfFile in _options.InputFiles)
             {
@@ -61,7 +44,6 @@ namespace VennVcf
             }
 
             int numVcfs = _options.InputFiles.Length;
-
 
             Console.WriteLine(">>> starting Venn");
 

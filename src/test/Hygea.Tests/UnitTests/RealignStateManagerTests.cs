@@ -5,11 +5,11 @@ using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Threading.Tasks;
 using RealignIndels.Logic;
-using RealignIndels.Models;
 using Pisces.Domain.Models.Alleles;
 using Pisces.Domain.Types;
 using Pisces.Processing.Interfaces;
 using Pisces.Processing.Models;
+using ReadRealignmentLogic.Models;
 using Xunit;
 
 namespace RealignIndels.Tests.UnitTests

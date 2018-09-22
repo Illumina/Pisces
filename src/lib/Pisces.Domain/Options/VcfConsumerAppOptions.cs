@@ -22,5 +22,7 @@ namespace Pisces.Domain.Options
             VariantCallingParams.Validate();
         }
 
+       
+
     }
 }

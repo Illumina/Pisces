@@ -1,6 +1,6 @@
-﻿using RealignIndels.Models;
-using Pisces.Domain.Models.Alleles;
+﻿using Pisces.Domain.Models.Alleles;
 using Pisces.Domain.Types;
+using ReadRealignmentLogic.Models;
 using Xunit;
 
 namespace RealignIndels.Tests.UnitTests.Models

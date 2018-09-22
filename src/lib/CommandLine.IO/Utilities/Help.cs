@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using CommandLine.NDesk.Options;
 
-namespace CommandLine.IO.Utilities
+namespace CommandLine.Util
 {
     public static class Help
     {
