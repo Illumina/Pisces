@@ -60,8 +60,8 @@ https://github.com/Illumina/Pisces/tree/master/docker
 
 # On Basespace
 
-Pisces runs on Basespace under the hood of many illumina amplicon workflows. You can also call Pisces directly, here
-[pisces variant caller](https://www.illumina.com/products/by-type/informatics-products/basespace-sequence-hub/apps/pisces-variant-caller.html), although not all command line options will be available.
+Pisces runs on Basespace, on illumina amplicon workflows such as [DNA Amplicon](https://www.illumina.com/products/by-type/informatics-products/basespace-sequence-hub/apps/dna-amplicon.html). You can also call Pisces directly, here
+[pisces variant caller](https://www.illumina.com/products/by-type/informatics-products/basespace-sequence-hub/apps/pisces-variant-caller.html), although not all command line options are exposed.
 
 # User Guide
 https://github.com/Illumina/Pisces/wiki
