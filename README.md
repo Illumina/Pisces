@@ -2,10 +2,14 @@
 
 This application calls low frequency variants, on linux or windows. It will run on tumor-only samples, and search for SNVs, MNVs, and small indels. It takes in .bams and generates .vcf or .gvcf files. It is included with the Illumina MiSeqReporter pipeline and various BaseSpace workflows. The caller can also be run as a standalone program.  
 
+Pisces publication: 
+[Pisces: An Accurate and Versatile Variant Caller for Somatic and Germline Next-Generation Sequencing Data](https://academic.oup.com/bioinformatics/advance-article/doi/10.1093/bioinformatics/bty849/5124278)
+
 POC: 
 [Tamsen Dunn](https://www.linkedin.com/in/tamsen-dunn-7340145) and
 [Gwenn Berry](https://www.linkedin.com/in/gwenn-berry-43071939)
 
+Quick start: [Example command lines](https://github.com/Illumina/Pisces/wiki/Pisces-Quick-Start-5.2.9)
 
 # License
 Pisces source code is provided under the GPLv3 license. Pisces includes third party packages provided under other open source licenses, please see COPYRIGHT.txt for additional details.
@@ -56,6 +60,11 @@ The component algorithms are intended for developers to re-use and improve them.
 # Docker files
 
 https://github.com/Illumina/Pisces/tree/master/docker
+
+# On Basespace
+
+Pisces runs under the hood of many illumina amplicon workflows, such as DNAAmplicon. You can also call pisces directly, here
+[pisces variant caller] (https://www.illumina.com/products/by-type/informatics-products/basespace-sequence-hub/apps/pisces-variant-caller.html)
 
 # User Guide
 https://github.com/Illumina/Pisces/wiki
