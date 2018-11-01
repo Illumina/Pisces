@@ -2,9 +2,6 @@
 
 This application calls low frequency variants, on linux or windows. It will run on tumor-only samples, and search for SNVs, MNVs, and small indels. It takes in .bams and generates .vcf or .gvcf files. It is included with the Illumina MiSeqReporter pipeline and various BaseSpace workflows. The caller can also be run as a standalone program.  
 
-Pisces publication: 
-[Pisces: An Accurate and Versatile Variant Caller for Somatic and Germline Next-Generation Sequencing Data](https://academic.oup.com/bioinformatics/advance-article/doi/10.1093/bioinformatics/bty849/5124278)
-
 POC: 
 [Tamsen Dunn](https://www.linkedin.com/in/tamsen-dunn-7340145) and
 [Gwenn Berry](https://www.linkedin.com/in/gwenn-berry-43071939)
