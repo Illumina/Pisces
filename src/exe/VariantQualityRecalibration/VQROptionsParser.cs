@@ -61,10 +61,29 @@ namespace VariantQualityRecalibration
                 {
                     "log=",
                     OptionTypes.STRING + $" log file name",
-                    value=>VQROptions.LogFileName = value
+                    value=>VQROptions.LogFileNameBase= value
+                },
+                 {
+                    "dobasicchecks=",
+                    OptionTypes.BOOL + $" look for over represented mutations across all positions. Basically, what VQR usually does. Default, " + VQROptions.DoBasicChecks,
+                    value=> VQROptions.DoBasicChecks = bool.Parse(value)
+                },
+                 {
+                    "doampliconpositionchecks=",
+                    OptionTypes.BOOL + $" look for over represented mutations within 'N' bases of edges (to set N, see 'extentofedgeregion' ). This is still experimental, only meant to roughly quantify if specific variants are amassing near coverage edges. Default, " + VQROptions.DoAmpliconPositionChecks,
+                    value=> VQROptions.DoAmpliconPositionChecks = bool.Parse(value)
+                },
+                 {
+                    "extentofedgeregion=",
+                    OptionTypes.INT + $"  how many bases around a detected edge constitute an edge region. The 'N' defining the region size when doing amplicon position checks. Default, " + VQROptions.ExtentofEdgeRegion,
+                    value=> VQROptions.ExtentofEdgeRegion = int.Parse(value)
+                },
+                 {
+                    "alignmentwarningthreshold=",
+                    OptionTypes.INT + $"  If variants are X times more frequent around amplicon edges (approximated by coverage discontinuities), consider lowering their Q scores. Default, " + VQROptions.AlignmentWarningThreshold,
+                    value=> VQROptions.AlignmentWarningThreshold = int.Parse(value)
                 }
-
-            };
+    };
 
             var optionDict = new Dictionary<string, OptionSet>
             {

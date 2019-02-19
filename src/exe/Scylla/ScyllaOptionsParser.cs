@@ -52,6 +52,11 @@ namespace Scylla
                  "o|out|outfolder=",
                     OptionTypes.FOLDER + $" output directory",
                     value=> ScyllaOptions.OutputDirectory = value
+                },
+                {
+                 "g|genomefolder=",
+                    OptionTypes.FOLDER + $"genome directory. If left unset, reference bases reported inside phased variants will be left as 'R' ",
+                    value=> ScyllaOptions.GenomePath = value
                 }
             };
 
@@ -112,14 +117,31 @@ namespace Scylla
                 }
             };
 
+            var clippedReadSupportOps = new OptionSet
+            {
+                               {
+                    "usesoftclippedreads=",	
+                    OptionTypes.BOOL + $" Extract support from soft clipped reads, 'true' or 'false'. Default, " +
+                        $"{ScyllaOptions.SoftClipSupportParams.UseSoftClippedReads}",	
+                            value=>ScyllaOptions.SoftClipSupportParams.UseSoftClippedReads = bool.Parse(value)
+                 },	
+               {
+                    "minsizeforcliprescue=",	
+                    OptionTypes.INT + $" Minimum size (length of ref allele + alt allele) of MNV to rescue supporting" +
+                    $" clipped reads. Default, " +
+                    $"{ScyllaOptions.SoftClipSupportParams.MinSizeForClipRescue}",	
+                    value=>ScyllaOptions.SoftClipSupportParams.MinSizeForClipRescue = int.Parse(value)
+                 }
+                            };
+            
 
-          
-            var optionDict = new Dictionary<string, OptionSet>
+                        var optionDict = new Dictionary<string, OptionSet>
             {
                 {OptionSetNames.Required,requiredOps},
                 {OptionSetNames.Common,commonOps },
                 {OptionSetNames.Clustering,clusteringOps},
                 {OptionSetNames.PhasableCriteria,phasableCriteriaOps },
+                {OptionSetNames.ClippedReadSupport,clippedReadSupportOps }
             };
 
             BamFilterOptionsUtils.AddBamFilterArgumentParsing(optionDict, ScyllaOptions.BamFilterParams);

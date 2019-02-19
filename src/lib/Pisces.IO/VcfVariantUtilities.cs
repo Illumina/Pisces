@@ -443,8 +443,12 @@ namespace Pisces.IO
 
                 else if (filter == "forcedreport")
                     filterAsEnum.Add(FilterType.ForcedReport);
+
                 else if (filter == "nc")
                     filterAsEnum.Add(FilterType.NoCall);
+
+                else if (filter != VcfFormatter.PassFilter.ToLower())
+                    filterAsEnum.Add(FilterType.Unknown);
 
             }
 

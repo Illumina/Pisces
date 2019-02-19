@@ -76,14 +76,14 @@ namespace VariantPhasing.Tests.Models
         {
             var initialVeadGroups = ClusterTestHelpers.GetSampleVeadGroups();
             var cluster = new Cluster("test", initialVeadGroups);
-            cluster.Add(ClusterTestHelpers.GetSampleVeadGroups(3,2));
+            cluster.Add(ClusterTestHelpers.GetSampleVeadGroups(3, 2));
             Assert.Equal(3, cluster.GetVeadGroups().Count);
         }
 
         [Fact]
         public void Remove()
         {
-            var initialVeadGroups = ClusterTestHelpers.GetSampleVeadGroups(3,3);
+            var initialVeadGroups = ClusterTestHelpers.GetSampleVeadGroups(3, 3);
             var cluster = new Cluster("test", initialVeadGroups);
             Assert.Equal(3, cluster.GetVeadGroups().Count);
             cluster.Remove(initialVeadGroups.First());
@@ -95,7 +95,7 @@ namespace VariantPhasing.Tests.Models
         {
             var initialVeadGroups = ClusterTestHelpers.GetSampleVeadGroups(3, 3);
             var cluster = new Cluster("test", initialVeadGroups);
-            var variantSite = new VariantSite(0){VcfReferenceAllele = "A", VcfAlternateAllele = "T"};
+            var variantSite = new VariantSite(0) { VcfReferenceAllele = "A", VcfAlternateAllele = "T" };
             var variantSite2 = new VariantSite(0) { VcfReferenceAllele = "A", VcfAlternateAllele = "C" };
             var sites = new List<VariantSite>() { variantSite, variantSite2 };
 
@@ -176,10 +176,10 @@ namespace VariantPhasing.Tests.Models
             var cluster = new Cluster("test", initialVeadGroups);
             Assert.Equal(1, cluster.GetVeadGroups().Count);
             Assert.Equal(2, cluster.GetConsensusSites().Count());
- 
+
             // CountsAtSites should be same length as GetConsensusSites
             Assert.Equal(2, cluster.CountsAtSites.Length);
-            Assert.Equal(new List<int>(){4,4}, cluster.CountsAtSites);
+            Assert.Equal(new List<int>() { 4, 4 }, cluster.CountsAtSites);
         }
 
     }

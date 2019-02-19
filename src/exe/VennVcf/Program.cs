@@ -52,7 +52,7 @@ namespace VennVcf
             if (numVcfs == 2)
             {
                 VennProcessor Venn = new VennProcessor(_options.InputFiles, _options);
-                Venn.DoPairwiseVenn(_options.VcfWritingParams.MitochondrialChrComesFirst);
+                Venn.DoPairwiseVenn();
             }
             else
             {

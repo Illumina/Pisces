@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using Moq;
+using Pisces.Genotyping;
 using Pisces.Calculators;
 using Pisces.Domain;
 using Pisces.Domain.Interfaces;
@@ -36,7 +37,7 @@ namespace Pisces.Tests.UnitTests
                     Sequence = "ACGTACGT",
                     Name = "Boo"
                 },
-                GenotypeCalculator = new SomaticGenotypeCalculator(),
+                GenotypeCalculator = new SomaticGenotyper(),
                 LocusProcessor = new SomaticLocusProcessor()
             };
 
@@ -183,7 +184,7 @@ namespace Pisces.Tests.UnitTests
             config.IncludeReferenceCalls = false;
             config.MinVariantQscore = 0;
             config.MinFrequency = 0;
-            config.GenotypeCalculator = new DiploidGenotypeCalculator();
+            config.GenotypeCalculator = new DiploidThresholdingGenotyper();
             config.LowGTqFilter = 20;
             config.MaxGenotypeQscore = int.MaxValue;
 
@@ -211,7 +212,7 @@ namespace Pisces.Tests.UnitTests
                                                                                        //Assert.True(calledList[2].Filters.Contains(FilterType.LowGenotypeQuality));//0 pruned
 
             //go back to somatic config for the rest of the tests.
-            config.GenotypeCalculator = new SomaticGenotypeCalculator();
+            config.GenotypeCalculator = new SomaticGenotyper();
             config.LowGTqFilter = 0;
             config.MaxGenotypeQscore = 0;
             config.MinVariantQscore = VariantQualityCalculator.AssignPoissonQScore(lowqVariant.Support,
@@ -317,7 +318,7 @@ namespace Pisces.Tests.UnitTests
                     Sequence = "ACGTACGT",
                     Name = "Boo"
                 },
-                GenotypeCalculator = new SomaticGenotypeCalculator(),
+                GenotypeCalculator = new SomaticGenotyper(),
                 LocusProcessor =  new SomaticLocusProcessor()
             };
 
@@ -451,7 +452,7 @@ namespace Pisces.Tests.UnitTests
                     Sequence = "ACGTACGT",
                     Name = "Boo"
                 },
-                GenotypeCalculator = new SomaticGenotypeCalculator(),
+                GenotypeCalculator = new SomaticGenotyper(),
                 LocusProcessor = new SomaticLocusProcessor()
             };
 
@@ -521,7 +522,7 @@ namespace Pisces.Tests.UnitTests
                     Sequence = "ACGTACGT",
                     Name = "Boo"
                 },
-                GenotypeCalculator = new SomaticGenotypeCalculator(),
+                GenotypeCalculator = new SomaticGenotyper(),
                 LocusProcessor =  new SomaticLocusProcessor()
             };
 
@@ -606,7 +607,7 @@ namespace Pisces.Tests.UnitTests
                     Sequence = "ACGTACGT",
                     Name = "Boo"
                 },
-                GenotypeCalculator = new SomaticGenotypeCalculator(),
+                GenotypeCalculator = new SomaticGenotyper(),
                 LocusProcessor = new SomaticLocusProcessor()
             };
 

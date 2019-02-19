@@ -13,12 +13,12 @@ namespace VariantQualityRecalibration.Tests
             var outDir = Path.Combine(TestPaths.LocalScratchDirectory, "VQRoutDir");
             var options = new VQROptions();
             options.OutputDirectory = outDir;
-            options.LogFileName = "LogText.txt";
+            options.LogFileNameBase = "LogText.txt";
 
-            Logger.OpenLog(options.OutputDirectory, options.LogFileName, true);
+            Logger.OpenLog(options.OutputDirectory, options.LogFileNameBase, true);
             Logger.CloseLog();
             Assert.True(Directory.Exists(outDir));
-            Assert.True(File.Exists(Path.Combine(options.OutputDirectory, options.LogFileName)));
+            Assert.True(File.Exists(Path.Combine(options.OutputDirectory, options.LogFileNameBase)));
 
             //cleanup and redirect logging
             var SafeLogDir = TestPaths.LocalScratchDirectory;

@@ -38,12 +38,7 @@ namespace VennVcf
                     "consensus=",
                     OptionTypes.STRING + " consensus file name.",
                     value=> VennOptions.ConsensusFileName = value
-                },
-                {
-                    "mfirst=",
-                    OptionTypes.BOOL +$" to order the chr with mito first or last.",
-                    value=> VennOptions.VcfWritingParams.MitochondrialChrComesFirst = bool.Parse(value)
-                },
+                },            
                 {
                     "debug=",
                     OptionTypes.BOOL +" to print out extra logging",

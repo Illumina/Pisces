@@ -8,8 +8,7 @@
     <GenerateAssemblyConfigurationAttribute>false</GenerateAssemblyConfigurationAttribute>
     <GenerateAssemblyCompanyAttribute>false</GenerateAssemblyCompanyAttribute>
     <GenerateAssemblyProductAttribute>false</GenerateAssemblyProductAttribute>
-    <Version>5.2.9.122</Version>
-    <Copyright>Copyright © Illumina 2018</Copyright>
+    <Version>5.2.10.49</Version>
     <RootNamespace>Hygea.Tests</RootNamespace>
   </PropertyGroup>
 
@@ -51,8 +50,8 @@
 
     <PropertyGroup>
     <PreBuildEvent></PreBuildEvent>
-    <Version>5.2.9.122</Version>
-    <Copyright>Copyright © Illumina 2017</Copyright>
+    <Version>1.0.0.0</Version>
+    <Copyright>Copyright © Illumina 2019</Copyright>
   </PropertyGroup>
   
   <ItemGroup>

@@ -154,7 +154,7 @@ namespace VariantQualityRecalibration
                 return MutationCategory.Other;
 
             if ((consensusVariant.VariantAlleles[0] == ".")
-                || (consensusVariant.VariantAlleles[0] == consensusVariant.ReferenceAllele))
+                || (consensusVariant.VariantAlleles[0].ToLower() == consensusVariant.ReferenceAllele.ToLower()))
                 return MutationCategory.Reference;
 
             var EnumString = consensusVariant.ReferenceAllele + "to" + consensusVariant.VariantAlleles[0];

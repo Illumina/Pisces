@@ -16,4 +16,11 @@
 		HemizygousNoCall, // .
 		Others // */*
     }
+
+    public enum SimplifiedDiploidGenotype
+    {
+        HomozygousRef, // 0/0
+        HeterozygousAltRef, // 0/1   
+        HomozygousAlt, // 1/1
+    }
 }

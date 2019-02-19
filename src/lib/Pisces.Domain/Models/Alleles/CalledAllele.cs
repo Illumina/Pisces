@@ -1,7 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Net.Http.Headers;
-using Pisces.Domain.Interfaces;
 using Pisces.Domain.Types;
 
 namespace Pisces.Domain.Models.Alleles
@@ -12,6 +10,7 @@ namespace Pisces.Domain.Models.Alleles
 
         // quality metrics
         public int GenotypeQscore { get; set; }
+        public float[] GenotypePosteriors { get; set; }
         public int VariantQscore { get; set; }
 
         public int PhaseSetIndex = -1;
@@ -24,19 +23,20 @@ namespace Pisces.Domain.Models.Alleles
 
         // coverage & freq metrics
         public int TotalCoverage { get; set; }
-		public double SumOfBaseQuality { get; set; }
-		//for extended variants, coverage is not an exact value. 
-		//Its an estimate based on the depth over the length of the variant.
-		//In particular, the depth by direction does not always allocate neatly to an integer value.
-		public int[] EstimatedCoverageByDirection { get; set; }
+        public double SumOfBaseQuality { get; set; }
+        //for extended variants, coverage is not an exact value. 
+        //Its an estimate based on the depth over the length of the variant.
+        //In particular, the depth by direction does not always allocate neatly to an integer value.
+        public int[] EstimatedCoverageByDirection { get; set; }
         // collapsed counts - optionally used
         public int[] ReadCollapsedCountTotal { get; set; }
         public int[] SupportByDirection { get; set; }
         public int[] WellAnchoredSupportByDirection { get; set; }
         public int AlleleSupport { get; set; }
+        public int SoftClipAlleleSupport { get; set; }
         public int NumNoCalls { get; set; }
         public float FractionNoCalls { get; set; }
-		public bool IsForcedToReport { get; set; }
+        public bool IsForcedToReport { get; set; }
         public int ConfidentCoverageStart { get; set; }
         public int SuspiciousCoverageStart { get; set; }
         public int ConfidentCoverageEnd { get; set; }
@@ -63,9 +63,9 @@ namespace Pisces.Domain.Models.Alleles
         {
             get
             {
-                return (Type== AlleleCategory.Reference);
+                return (Type == AlleleCategory.Reference);
             }
-        }
+        }  
 
         public bool HasARefAllele
         {

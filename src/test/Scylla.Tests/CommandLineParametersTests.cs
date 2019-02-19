@@ -41,8 +41,9 @@ namespace Scylla.Tests
             optionsExpectationsDict.Add("-minimumfrequency 0.001", (o) => Assert.Equal(0.2f, o.VariantCallingParams.MinimumFrequency)); // <- note this will get overwritten with the min diploid frequency if  diploid. *
             optionsExpectationsDict.Add("-minvariantfrequencyfilter 0.056", (o) => Assert.Equal(0.2f, o.VariantCallingParams.MinimumFrequencyFilter));  // <- note this will get overwritten with the min diploid frequency if  diploid.*
             optionsExpectationsDict.Add("-filterduplicates false", (o) => Assert.Equal(false, o.BamFilterParams.RemoveDuplicates));
-            optionsExpectationsDict.Add("-ploidy diploid", (o) => Assert.Equal(PloidyModel.Diploid, o.VariantCallingParams.PloidyModel));
+            optionsExpectationsDict.Add("-ploidy diploid", (o) => Assert.Equal(PloidyModel.DiploidByThresholding, o.VariantCallingParams.PloidyModel));
             optionsExpectationsDict.Add("-clusterconstraint 75", (o) => Assert.Equal(75, o.ClusteringParams.ClusterConstraint));
+            optionsExpectationsDict.Add("-g genomePath", (o) => Assert.Equal("genomePath", o.GenomePath));
 
             //* Happens in SetDerivedValues(); in new OptionSet method, and at the end of the string-parsing code in old (to be removed) method.
 
@@ -73,7 +74,7 @@ namespace Scylla.Tests
             optionsExpectationsDict.Add("-MINimumfrequency 0.001", (o) => Assert.Equal(0.2f, o.VariantCallingParams.MinimumFrequency)); // <- note this will get overwritten with the min diploid frequency if  diploid. *
             optionsExpectationsDict.Add("-MINvariantfrequencyfilter 0.056", (o) => Assert.Equal(0.2f, o.VariantCallingParams.MinimumFrequencyFilter));  // <- note this will get overwritten with the min diploid frequency if  diploid. *
             optionsExpectationsDict.Add("-filterDuplicates false", (o) => Assert.Equal(false, o.BamFilterParams.RemoveDuplicates));
-            optionsExpectationsDict.Add("-Ploidy diploid", (o) => Assert.Equal(PloidyModel.Diploid, o.VariantCallingParams.PloidyModel));
+            optionsExpectationsDict.Add("-Ploidy diploid", (o) => Assert.Equal(PloidyModel.DiploidByThresholding, o.VariantCallingParams.PloidyModel));
             optionsExpectationsDict.Add("-Clusterconstraint 73", (o) => Assert.Equal(73, o.ClusteringParams.ClusterConstraint));
 
             //* Happens in SetDerivedValues(); in new OptionSet method, and at the end of the string-parsing code in old (to be removed) method.
@@ -105,7 +106,7 @@ namespace Scylla.Tests
             optionsExpectationsDict.Add("--minimumfrequency 0.001", (o) => Assert.Equal(0.2f, o.VariantCallingParams.MinimumFrequency)); // <- note this will get overwritten with the min diploid frequency if  diploid.*
             optionsExpectationsDict.Add("--minvariantfrequencyfilter 0.056", (o) => Assert.Equal(0.2f, o.VariantCallingParams.MinimumFrequencyFilter));  // <- note this will get overwritten with the min diploid frequency if  diploid.*
             optionsExpectationsDict.Add("--filterduplicates false", (o) => Assert.Equal(false, o.BamFilterParams.RemoveDuplicates));
-            optionsExpectationsDict.Add("--ploidy diploid", (o) => Assert.Equal(PloidyModel.Diploid, o.VariantCallingParams.PloidyModel));
+            optionsExpectationsDict.Add("--ploidy diploid", (o) => Assert.Equal(PloidyModel.DiploidByThresholding, o.VariantCallingParams.PloidyModel));
             optionsExpectationsDict.Add("--clusterconstraint 75", (o) => Assert.Equal(75, o.ClusteringParams.ClusterConstraint));
 
             //* Happens in SetDerivedValues(); in new OptionSet method, and at the end of the string-parsing code in old (to be removed) method.

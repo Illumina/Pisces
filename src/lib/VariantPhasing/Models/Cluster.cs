@@ -89,6 +89,71 @@ namespace VariantPhasing.Models
             ResetConsensus();
         }
 
+        public int GetClusterReferenceSupport(IEnumerable<ICluster> clusters)
+        {	
+            var clusterVead = new Vead("test", GetConsensusSites());	
+            var numRef = 0;	
+            foreach (VariantSite vs in clusterVead.SiteResults)	
+            {	
+                // Nima: If cluster contains reference or X>X at this site, this site won't be included in the MNV.	
+                // So veads that support reference for this cluster can hold any variant at these sites (hence using N>N).	
+                // In the following example, cluster reference support for Cluster3 includes both Cluster1 and Cluster4	
+                //---------------------------------------	
+                //      Sites       S1      S2      S3	
+                //      Cluster1    R       R       R	
+                //      Cluster2    R       R       X	
+                //      Cluster3    R       X       X	
+                //      Cluster4    X       R       R	
+                //----------------------------------------	
+                //Cluster3's refVead N>N    R>R     R>R	
+                //	
+                // However, if the cluster is all ref we should avoid all N>N, and instead have the original R>R	
+                // In example above:	
+                //Cluster1's refVead R>R    R>R     R>R	
+                if (vs.IsReference || vs.VcfAlternateAllele == vs.VcfReferenceAllele)	
+                {	
+                    vs.VcfReferenceAllele = "N";	
+                    vs.VcfAlternateAllele = "N";	
+                    if (vs.IsReference)	
+                    {	
+                        numRef++;	
+                    }	
+                }	
+                else  // If cluster contains a variant at this site, ref veads need to contain ref>ref at this site.	
+                {	
+                    vs.VcfReferenceAllele = vs.VcfReferenceAllele[0].ToString();	
+                    vs.VcfAlternateAllele = vs.VcfReferenceAllele;	
+                }	
+            }	
+            var refVead = clusterVead;	
+            // Check if all variants were reference, assign original consensus to refVead	
+            if (numRef == clusterVead.SiteResults.Count())	
+            {	
+                refVead = new Vead("test", GetConsensusSites());	
+            }	
+	
+            var clusterRefVeadGroup = new VeadGroup(refVead);	
+	
+	
+            var numVariants = clusterRefVeadGroup.NumSitesPerVead;	
+            var cluterRefSupport = 0;	
+            foreach (var cls in clusters)	
+            {	
+                List<VeadGroup> vgs = cls.GetVeadGroups();	
+                foreach (var vg in vgs)	
+                {	
+                    var agreement = new Agreement(vg, clusterRefVeadGroup);	
+                    if (agreement.NumDisagreement == 0 &&	
+                        agreement.NumAgreement >= numVariants)	
+                    {	
+                        cluterRefSupport += vg.NumVeads;	
+                    }	
+                }	
+	
+            }	
+            return cluterRefSupport;	
+        }
+
         public void ResetConsensus()
         {
             _consensus = null;

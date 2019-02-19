@@ -1,4 +1,5 @@
 ﻿using System;
+using System.IO;
 using System.Collections.Generic;
 using Pisces.Domain.Types;
 using Pisces.Domain.Options;
@@ -33,7 +34,25 @@ namespace Pisces.Domain.Tests
             ExecuteParsingTest(string.Join(" ", expectations2.Keys), expectations);
         }
 
-        private Dictionary<string, Action<VariantCallingParameters>> GetOriginalOptionsExpectations()
+        [Fact]
+
+        public void CheckAdaptiveGTFileParsing()
+        {
+            var file = Path.Combine(TestPaths.LocalTestDataDirectory, "example.model");
+            var arguments = "-adaptivegenotypeparameters_fromfile " + file;
+            var parsedOptions = GetParsedApplicationOptions(arguments);
+            var varcallingParams = ((PiscesApplicationOptions)parsedOptions.Options).VariantCallingParameters;
+
+            Assert.Equal(1, varcallingParams.AdaptiveGenotypingParameters.SnvModel[0]);
+            Assert.Equal(2, varcallingParams.AdaptiveGenotypingParameters.SnvModel[1]);
+            Assert.Equal(3, varcallingParams.AdaptiveGenotypingParameters.SnvModel[2]);
+
+            Assert.Equal(4, varcallingParams.AdaptiveGenotypingParameters.IndelPrior[0]);
+            Assert.Equal(5, varcallingParams.AdaptiveGenotypingParameters.IndelPrior[1]);
+            Assert.Equal(6, varcallingParams.AdaptiveGenotypingParameters.IndelPrior[2]);
+        }
+
+            private Dictionary<string, Action<VariantCallingParameters>> GetOriginalOptionsExpectations()
         {
             var optionsExpectationsDict = new Dictionary<string, Action<VariantCallingParameters>>();
             
@@ -59,7 +78,7 @@ namespace Pisces.Domain.Tests
             optionsExpectationsDict.Add("-maxacceptablestrandbiasfilter 0.75", (o) => Assert.Equal(0.75F, o.StrandBiasAcceptanceCriteria));            
             optionsExpectationsDict.Add("-noisemodel window", (o) => Assert.Equal(NoiseModel.Window, o.NoiseModel));
             optionsExpectationsDict.Add("-NL 72", (o) => Assert.Equal(72, o.ForcedNoiseLevel));
-            optionsExpectationsDict.Add("-ploidy diploid", (o) => Assert.Equal(PloidyModel.Diploid, o.PloidyModel));
+            optionsExpectationsDict.Add("-ploidy diploid", (o) => Assert.Equal(PloidyModel.DiploidByThresholding, o.PloidyModel));
             
             optionsExpectationsDict.Add("-diploidsnvgenotypeparameters 12,13,14", (o) => Assert.True(
                         (12 == o.DiploidSNVThresholdingParameters.MinorVF) &&
@@ -67,6 +86,36 @@ namespace Pisces.Domain.Tests
                         (14 == o.DiploidSNVThresholdingParameters.SumVFforMultiAllelicSite)));
                     
             optionsExpectationsDict.Add("-gender male", (o) => Assert.Equal(true, o.IsMale));
+
+            optionsExpectationsDict.Add("-adaptivegenotypeparameters_snvmodel 1,2,3", (o) => Assert.True(
+                      (3 == o.AdaptiveGenotypingParameters.SnvModel.Length) &&
+                      (1 == o.AdaptiveGenotypingParameters.SnvModel[0]) &&
+                      (2 == o.AdaptiveGenotypingParameters.SnvModel[1]) &&
+                      (3 == o.AdaptiveGenotypingParameters.SnvModel[2])));
+            
+            optionsExpectationsDict.Add("-adaptivegenotypeparameters_indelmodel 4,5,6,7", (o) => Assert.True(
+                               (4 == o.AdaptiveGenotypingParameters.IndelModel.Length) &&
+                               (4 == o.AdaptiveGenotypingParameters.IndelModel[0]) &&
+                               (5 == o.AdaptiveGenotypingParameters.IndelModel[1]) &&
+                               (6 == o.AdaptiveGenotypingParameters.IndelModel[2]) &&
+                               (7 == o.AdaptiveGenotypingParameters.IndelModel[3])));
+           
+            optionsExpectationsDict.Add("-adaptivegenotypeparameters_snvprior .1,.2,.3,.5,.6", (o) => Assert.True(
+          (5 == o.AdaptiveGenotypingParameters.SnvPrior.Length) &&
+          (.1 == o.AdaptiveGenotypingParameters.SnvPrior[0]) &&
+          (.2 == o.AdaptiveGenotypingParameters.SnvPrior[1]) &&
+          (.3 == o.AdaptiveGenotypingParameters.SnvPrior[2]) &&
+          (.5 == o.AdaptiveGenotypingParameters.SnvPrior[3]) &&
+          (.6 == o.AdaptiveGenotypingParameters.SnvPrior[4])));
+
+            optionsExpectationsDict.Add("-adaptivegenotypeparameters_indelprior 8,9", (o) => Assert.True(
+                               (2 == o.AdaptiveGenotypingParameters.IndelPrior.Length) &&
+                               (8 == o.AdaptiveGenotypingParameters.IndelPrior[0]) &&
+                               (9 == o.AdaptiveGenotypingParameters.IndelPrior[1])));
+
+            optionsExpectationsDict.Add("-maxgp 20", (o) => Assert.True(
+                   (20 == o.AdaptiveGenotypingParameters.MaxGenotypePosteriors)));
+
             return optionsExpectationsDict;
         }
 

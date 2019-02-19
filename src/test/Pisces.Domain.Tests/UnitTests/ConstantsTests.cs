@@ -15,6 +15,7 @@ namespace Pisces.Domain.Tests.UnitTests
         {
             // the counts are currently "hardcoded" explicitly in Constants since mono is unreliable fetching them
             // make sure we haven't gotten out of sync
+            //TJD : is this still relevant? this might not be a problem with .net core
             Assert.Equal(Enum.GetValues(typeof(AlleleType)).Length, Constants.NumAlleleTypes);
             Assert.Equal(Enum.GetValues(typeof(DirectionType)).Length, Constants.NumDirectionTypes);
             Assert.Equal(Enum.GetValues(typeof(ReadCollapsedType)).Length, Constants.NumReadCollapsedTypes);

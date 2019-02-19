@@ -10,14 +10,15 @@ namespace VariantPhasing
        
         public string VcfPath;
         public string BamPath;
-      
+        public string GenomePath;
+
         public bool Debug = false;
         public int NumThreads = 20;
         public int NumReadTypes = 3;
 
         public ClusteringParameters ClusteringParams = new ClusteringParameters();
         public PhasableVariantCriteria PhasableVariantCriteria = new PhasableVariantCriteria();
-
+        public SoftClipSupportParameters SoftClipSupportParams = new SoftClipSupportParameters();
 
         public string InputDirectory
         {
@@ -41,7 +42,7 @@ namespace VariantPhasing
             //LogFileName = Path.GetFileName(VcfPath).Replace(".genome.vcf", ".phased.genome.log");
             _defaultLogFileNameBase = Path.GetFileName(VcfPath).Replace(".genome.vcf", ".phased.genome.log");
 
-            if (VariantCallingParams.PloidyModel == PloidyModel.Diploid)
+            if (VariantCallingParams.PloidyModel == PloidyModel.DiploidByThresholding)
                 VariantCallingParams.MinimumFrequency = VariantCallingParams.DiploidSNVThresholdingParameters.MinorVF;
 
             if (VariantCallingParams.MinimumFrequencyFilter < VariantCallingParams.MinimumFrequency)

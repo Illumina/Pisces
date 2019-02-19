@@ -23,7 +23,21 @@ namespace VariantQualityRecalibration.Tests
 
             Logger.OpenLog(outDir, "RecalibrateDirtyVcfLog.txt", true);
 
-            QualityRecalibration.Recalibrate(vcfPath, countsPath, outDir, 30, 0, 66, -1, "\"-vcf TestWithArtifacts.vcf\"");
+            VQROptions options = new VQROptions
+            {
+                CommandLineArguments = new string[] { "-vcf", "TestWithArtifacts.vcf" },
+                FilterQScore = -1,
+                ZFactor = 0,
+                MaxQScore = 66,
+                BaseQNoise = 30,
+                InputVcf = vcfPath,
+                OutputDirectory = outDir
+            };
+
+            SignatureSorterResultFiles resultFiles = new SignatureSorterResultFiles(countsPath,"foo.txt", "foo.txt");
+
+
+            QualityRecalibration.Recalibrate(resultFiles, options);
 
             Logger.CloseLog();
 
@@ -54,8 +68,19 @@ namespace VariantQualityRecalibration.Tests
                 File.Delete(outFile);
 
             Logger.OpenLog(TestPaths.LocalScratchDirectory, "RecalibrateCleanVcfLog.txt", true);
+            VQROptions options = new VQROptions
+            {
+                CommandLineArguments = null ,
+                FilterQScore = -1,
+                ZFactor = 0,
+                MaxQScore = 66,
+                BaseQNoise = 30,
+                OutputDirectory = outDir
+            };
 
-            QualityRecalibration.Recalibrate(vcfPath, countsPath, outDir, 30, 0,66, -1,null);
+            SignatureSorterResultFiles resultFiles = new SignatureSorterResultFiles(countsPath, "foo.txt", "foo.txt");
+
+            QualityRecalibration.Recalibrate(resultFiles, options);
 
             Logger.CloseLog();
 
@@ -77,7 +102,7 @@ namespace VariantQualityRecalibration.Tests
 
             Assert.Equal(666, v.Quality);
 
-            QualityRecalibration.UpdateVariant(100, 5, catalog, v, MutationCategory.CtoA);
+            QualityRecalibration.UpdateVariant(100, 5, catalog, v, MutationCategory.CtoA, false);
 
             Assert.Equal("12", v.Genotypes[0]["NL"]);
             Assert.Equal("10", v.Genotypes[0]["GQ"]);
@@ -86,25 +111,25 @@ namespace VariantQualityRecalibration.Tests
             Assert.Equal("PASS", v.Filters);
 
             v.Quality = 666;
-            QualityRecalibration.UpdateVariant(100, 30, catalog, v, MutationCategory.CtoA);
+            QualityRecalibration.UpdateVariant(100, 30, catalog, v, MutationCategory.CtoA, false);
             Assert.Equal(10, v.Quality);
             Assert.Equal("q30", v.Filters);
 
             v.Quality = 666;
             v.Filters = "Snoopy";
-            QualityRecalibration.UpdateVariant(100, 30, catalog, v, MutationCategory.CtoA);
+            QualityRecalibration.UpdateVariant(100, 30, catalog, v, MutationCategory.CtoA, false);
             Assert.Equal(10, v.Quality);
             Assert.Equal("Snoopy;q30", v.Filters);
 
             v.Quality = 666;
             v.Filters = "q30";
-            QualityRecalibration.UpdateVariant(100, 30, catalog, v, MutationCategory.CtoA);
+            QualityRecalibration.UpdateVariant(100, 30, catalog, v, MutationCategory.CtoA, false);
             Assert.Equal(10, v.Quality);
             Assert.Equal("q30", v.Filters);
 
             v.Quality = 666;
             v.Filters = "Snoopy;q30";
-            QualityRecalibration.UpdateVariant(100, 30, catalog, v, MutationCategory.CtoA);
+            QualityRecalibration.UpdateVariant(100, 30, catalog, v, MutationCategory.CtoA, false);
             Assert.Equal(10, v.Quality);
             Assert.Equal("Snoopy;q30", v.Filters);
         
@@ -153,8 +178,8 @@ namespace VariantQualityRecalibration.Tests
         public void HaveInfoToUpdateQ()
         {
             var v = new VcfVariant();
-            int depth;
-            int callCount;
+            double depth;
+            double callCount;
             Assert.Equal(false, QualityRecalibration.HaveInfoToUpdateQ(v, out depth, out callCount));
 
             v.Genotypes = new List<Dictionary<string, string>>() { new Dictionary<string, string>() };

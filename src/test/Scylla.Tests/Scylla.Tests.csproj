@@ -8,11 +8,17 @@
     <GenerateAssemblyConfigurationAttribute>false</GenerateAssemblyConfigurationAttribute>
     <GenerateAssemblyCompanyAttribute>false</GenerateAssemblyCompanyAttribute>
     <GenerateAssemblyProductAttribute>false</GenerateAssemblyProductAttribute>
-    <Version>5.2.9.122</Version>
-    <Copyright>Copyright © Illumina 2018</Copyright>
+    <Version>5.2.10.49</Version>
+    <Copyright>Copyright © Illumina 2019</Copyright>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" />
+
+  <ItemGroup>
+    <Content Include="..\SharedData\Genomes\Bacillus_cereus\Sequence\WholeGenomeFasta\GenomeSize.xml" Link="SharedData\Genomes\Bacillus_cereus\Sequence\WholeGenomeFasta\GenomeSize.xml">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
 
   <ItemGroup>
     <None Include="..\..\..\redist\FileCompression.dll" Link="FileCompression.dll">
@@ -21,11 +27,26 @@
     <None Include="..\..\..\redist\libFileCompression.so" Link="libFileCompression.so">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
+    <None Include="..\SharedData\Bams\Bcereus_S4.bam" Link="SharedData\Bams\Bcereus_S4.bam">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="..\SharedData\Bams\Bcereus_S4.bam.bai" Link="SharedData\Bams\Bcereus_S4.bam.bai">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
     <None Include="..\SharedData\Bams\small_S1.bam" Link="SharedData\Bams\small_S1.bam">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Include="..\SharedData\Bams\small_S1.bam.bai" Link="SharedData\Bams\small_S1.bam.bai">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="..\SharedData\Genomes\Bacillus_cereus\Sequence\WholeGenomeFasta\genome.dict" Link="SharedData\Genomes\Bacillus_cereus\Sequence\WholeGenomeFasta\genome.dict">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="..\SharedData\Genomes\Bacillus_cereus\Sequence\WholeGenomeFasta\genome.fa" Link="SharedData\Genomes\Bacillus_cereus\Sequence\WholeGenomeFasta\genome.fa">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="..\SharedData\Genomes\Bacillus_cereus\Sequence\WholeGenomeFasta\genome.fa.fai" Link="SharedData\Genomes\Bacillus_cereus\Sequence\WholeGenomeFasta\genome.fa.fai">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>
 
@@ -36,6 +57,15 @@
     </None>
     <None Update="..\..\redist\FileCompression.dll">
       <Link>FileCompression.dll</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestData\Bcereus_S4.out.phased.vcf">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestData\Bcereus_S4.out.Rs.phased.vcf">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestData\Bcereus_S4.vcf">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Update="TestData\chr21_11085587_S1.bam">
@@ -85,6 +115,7 @@
 
   <ItemGroup>
     <Folder Include="SharedData\Bams\" />
+    <Folder Include="SharedData\Genomes\Bacillus_cereus\Sequence\WholeGenomeFasta\" />
   </ItemGroup>
 
 </Project>

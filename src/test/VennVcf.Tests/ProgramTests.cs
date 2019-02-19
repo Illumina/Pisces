@@ -8,11 +8,9 @@ namespace VennVcf.Tests
 {
     public class ProgramTests
     {
-        /*
+        
         [Fact]
-        ///
-        ///TODO, VennVcf does not have a logger yet.
-        /// public void OpenLogTest()
+        public void OpenLogTest()
         {
             var outDir = Path.Combine(TestPaths.LocalScratchDirectory, "VennVcfOutDir");
             var options = new VennVcfOptions();
@@ -30,9 +28,7 @@ namespace VennVcf.Tests
             Logger.CloseLog();
             Directory.Delete(outDir, true);
 
-        }*/
-
-
+        }
 
         /// <summary>
         ///The following tests check the new argument handling takes care of the following cases:

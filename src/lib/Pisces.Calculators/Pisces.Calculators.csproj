@@ -5,13 +5,11 @@
     <AssemblyName>Pisces.Calculators</AssemblyName>
     <OutputType>Library</OutputType>
     <PackageId>Pisces.Calculators</PackageId>
-    
-    
     <GenerateAssemblyConfigurationAttribute>false</GenerateAssemblyConfigurationAttribute>
     <GenerateAssemblyCompanyAttribute>false</GenerateAssemblyCompanyAttribute>
     <GenerateAssemblyProductAttribute>false</GenerateAssemblyProductAttribute>
-    <Version>5.2.9.122</Version>
-    <Copyright>Copyright © Illumina 2018</Copyright>
+    <Version>5.2.10.49</Version>
+    <Copyright>Copyright © Illumina 2019</Copyright>
     <ApplicationIcon />
     <OutputTypeEx>library</OutputTypeEx>
     <StartupObject />
@@ -20,14 +18,14 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" />
 
   <ItemGroup>
+    <PackageReference Include="MathNet.Numerics" Version="4.5.1" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\Common.IO\Common.IO.csproj" />
     <ProjectReference Include="..\Pisces.Domain\Pisces.Domain.csproj" />
     <ProjectReference Include="..\Pisces.IO\Pisces.IO.csproj" />
     <ProjectReference Include="..\Pisces.Processing\Pisces.Processing.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <PackageReference Include="MathNet.Numerics.Core" Version="3.17.0" />
   </ItemGroup>
 
 </Project>

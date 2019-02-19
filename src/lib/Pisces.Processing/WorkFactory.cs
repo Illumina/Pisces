@@ -4,7 +4,6 @@ using System.Linq;
 using Pisces.IO;
 using Pisces.Domain.Options;
 using Pisces.Processing.Logic;
-using Pisces.Processing.Utility;
 using Alignment.IO.Sequencing;
 using Common.IO.Utility;
 

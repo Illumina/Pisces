@@ -97,7 +97,7 @@ namespace VennVcf
         /// <param name="consensusFilePath"></param>
         /// <param name="inputPaths"></param>
         /// <param name="outputTwoSampleResults"></param>
-        public void DoPairwiseVenn(bool mFirst)
+        public void DoPairwiseVenn()
         {
             bool doConsensus = (consensusBuilder != null);
             bool requireGenotypes = false;
@@ -105,8 +105,12 @@ namespace VennVcf
             using (VcfReader ReaderA = new VcfReader(_inputPaths[0], requireGenotypes))
             using (VcfReader ReaderB = new VcfReader(_inputPaths[1], requireGenotypes))
             {
+                var vcfA_HeaderLines = ReaderA.HeaderLines;
+                var chrOrderingFromInput = ChrCompare.GetChrListFromVcfHeader(vcfA_HeaderLines);
+                var alleleCompareByLoci = new AlleleCompareByLoci(chrOrderingFromInput);
+
                 if (doConsensus)
-                    consensusBuilder.OpenConsensusFile(ReaderA.HeaderLines);
+                    consensusBuilder.OpenConsensusFile(vcfA_HeaderLines);
 
                OpenVennDiagramStreams(ReaderA.HeaderLines);
 
@@ -140,8 +144,8 @@ namespace VennVcf
 
                             if (backLogExistPoolA && backLogExistPoolB)
                             {
-                                int OrderResult = AlleleCompareByLoci.OrderAlleles(
-                                    backLogPoolAAlleles.First(), backLogPoolBAlleles.First(), mFirst);
+                                int OrderResult = alleleCompareByLoci.OrderAlleles(
+                                    backLogPoolAAlleles.First(), backLogPoolBAlleles.First());
                                 if (OrderResult < 0)
                                 {
                                     currentAllele.Chromosome = backLogPoolAAlleles.First().Chromosome;
@@ -165,10 +169,10 @@ namespace VennVcf
                             }
 
                             //assemble lists of co-located variants at the position of the current variant
-                            coLocatedPoolAAlleles = AssembleColocatedList(ReaderA, currentAllele, mFirst,
+                            coLocatedPoolAAlleles = AssembleColocatedList(ReaderA, currentAllele, alleleCompareByLoci,
                                 ref backLogExistPoolA, ref backLogPoolAAlleles);
 
-                            coLocatedPoolBAlleles = AssembleColocatedList(ReaderB, currentAllele, mFirst,
+                            coLocatedPoolBAlleles = AssembleColocatedList(ReaderB, currentAllele, alleleCompareByLoci,
                                 ref backLogExistPoolB, ref backLogPoolBAlleles);
 
                         } //else, if there is nothing in either backlog, the colocated-variant list should stay empty.
@@ -355,7 +359,7 @@ namespace VennVcf
         /// <param name="TheBackLog"></param>
         /// <returns></returns>
         private static List<CalledAllele> AssembleColocatedList(
-            VcfReader Reader, CalledAllele CurrentVariant, bool mFirst,
+            VcfReader Reader, CalledAllele CurrentVariant, AlleleCompareByLoci alleleOrdering,
             ref bool BackLogExists, ref List<CalledAllele> TheBackLog)
         {
 
@@ -383,8 +387,8 @@ namespace VennVcf
                     
                 }
 
-                // VarOrde =  -1 if Current comes first, 0 if co-located.
-                int VarOrder = (AlleleCompareByLoci.OrderAlleles(CurrentVariant, NextVariantList.First(), mFirst));
+                // VarOrder =  -1 if Current comes first, 0 if co-located.
+                int VarOrder = (alleleOrdering.OrderAlleles(CurrentVariant, NextVariantList.First()));
 
                 switch (VarOrder)
                 {

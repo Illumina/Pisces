@@ -7,7 +7,6 @@ using Pisces.Domain.Options;
 using Pisces.Domain.Models.Alleles;
 using Pisces.Domain.Types;
 using Pisces.IO.Interfaces;
-using Common.IO;
 
 namespace Pisces.IO
 {
@@ -91,6 +90,9 @@ namespace Pisces.IO
 
             if (_config.ShouldOutputNoCallFraction)
                 Writer.WriteLine("##FORMAT=<ID={0},Number=1,Type=Float,Description=\"Fraction of bases which were uncalled or with basecall quality below the minimum threshold\">", _formatter.FractionNoCallFormat);
+
+            if (_config.ShouldReportGp)
+                Writer.WriteLine("##FORMAT=<ID={0},Number=G,Type=Float,Description=\"Genotype Posterior\">", _formatter.GenotypePosterior);
 
             if (_config.ShouldOutputRcCounts)
                 Writer.WriteLine("##FORMAT=<ID={0},Number=.,Type=Integer,Description=\"Supporting read type counts\">", _formatter.UmiStatsFormat);
@@ -279,6 +281,7 @@ namespace Pisces.IO
         public float? RMxNFilterFrequencyLimit { get; set; }
 		public NoiseModel NoiseModel { get; set; }
         public bool HasForcedGt { get; set; }
+        public bool ShouldReportGp { get; set; }
         public float? NoCallFilterThreshold { get; set; }
 
         public VcfWriterConfig()
@@ -308,6 +311,7 @@ namespace Pisces.IO
             RMxNFilterMinRepetitions = callerOptions.RMxNFilterMinRepetitions;
             RMxNFilterFrequencyLimit = callerOptions.RMxNFilterFrequencyLimit;
             NoiseModel = callerOptions.NoiseModel;
+            ShouldReportGp = outputOptions.ReportGp;
             NoCallFilterThreshold = callerOptions.NoCallFilterThreshold;
             ShouldOutputSuspiciousCoverageFraction = outputOptions.ReportSuspiciousCoverageFraction;
 
