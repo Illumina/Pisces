@@ -52,7 +52,6 @@ namespace StitchingLogic
         private List<byte?> _r1Quals;
         private List<byte?> _r2Quals;
         private bool _nifyDisagreements;
-        private int maxStitchedPosition;
         private int _stitchedPositionsListLength;
         private int _totalProcessed;
 

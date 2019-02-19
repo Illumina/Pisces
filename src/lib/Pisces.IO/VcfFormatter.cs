@@ -21,6 +21,7 @@ namespace Pisces.IO
         public string StrandBiasFormat = "SB";
         public string ProbeBiasFormat = "PB";
         public string FractionNoCallFormat = "NC";
+        public string GenotypePosterior = "GP";
         public string FractionSuspiciousCoverageFormat = "SC";
         public string DepthInfo = "DP";
         public string FrequencySigFigFormat;
@@ -96,7 +97,7 @@ namespace Pisces.IO
                 filterStringsForHeader.Add(FilterType.StrandBias, string.Format("##FILTER=<ID={0},Description=\"Variant support on only one strand\">", StrandBiasFormat));
             }
 
-            if (_config.FrequencyFilterThreshold.HasValue)
+            if ((_config.FrequencyFilterThreshold.HasValue) || (_config.PloidyModel == PloidyModel.DiploidByAdaptiveGT))
                 filterStringsForHeader.Add(FilterType.LowVariantFrequency, string.Format("##FILTER=<ID=LowVariantFreq,Description=\"Variant frequency less than {0}\">", FrequencyFilterThresholdString));
 
             if (_config.GenotypeQualityFilterThreshold.HasValue)
@@ -105,7 +106,7 @@ namespace Pisces.IO
             if (_config.IndelRepeatFilterThreshold.HasValue)
                 filterStringsForHeader.Add(FilterType.IndelRepeatLength, string.Format("##FILTER=<ID=R{0},Description=\"Indel repeat greater than or equal to {0}\">", _config.IndelRepeatFilterThreshold));
 
-            if (_config.PloidyModel == PloidyModel.Diploid)
+            if ((_config.PloidyModel == PloidyModel.DiploidByThresholding) || (_config.PloidyModel == PloidyModel.DiploidByAdaptiveGT))
                 filterStringsForHeader.Add(FilterType.MultiAllelicSite, string.Format("##FILTER=<ID=MultiAllelicSite,Description=\"Variant does not conform to diploid model\">"));
 
             if (_config.RMxNFilterMaxLengthRepeat.HasValue && _config.RMxNFilterMinRepetitions.HasValue)
@@ -217,6 +218,7 @@ namespace Pisces.IO
             var gtQuality = MergeGenotypeQScores(variants);
             var gtString = MapGenotype(firstVariant.Genotype);
             var isReference = (firstVariant.IsRefType);
+            var gtPosterior = firstVariant.GenotypePosteriors;
 
             var alleleCountString = GetAlleleCountString(variants, isReference,totalDepth);
             var frequencyString = GetFrequencyString(variants, isReference, totalDepth);
@@ -247,6 +249,14 @@ namespace Pisces.IO
 
                 formatStringBuilder.Append(":NC");
                 sampleStringBuilder.Append(string.Format(":{0}", noCallFractionString));
+            }
+
+            if (_config.ShouldReportGp && gtPosterior != null)
+            {
+                string gtPosteriorString = string.Join(',', gtPosterior.Select(x => x.ToString("0.00")).ToArray());
+
+                formatStringBuilder.Append(":GP");
+                sampleStringBuilder.Append(string.Format(":{0}", gtPosteriorString));
             }
 
             if (_config.ShouldOutputSuspiciousCoverageFraction)

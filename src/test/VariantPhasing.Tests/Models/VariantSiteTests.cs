@@ -16,12 +16,12 @@ namespace VariantPhasing.Tests.Models
             var variantSite2 = new VariantSite(126);
 
             // Must be less than phasing distance
-            Assert.True(VcfNeighborhoodBuilder.IsProximal(variantSite1, variantSite2, 4));
-            Assert.False(VcfNeighborhoodBuilder.IsProximal(variantSite1, variantSite2, 3));
+            Assert.True(NeighborhoodBuilder.IsProximal(variantSite1, variantSite2, 4));
+            Assert.False(NeighborhoodBuilder.IsProximal(variantSite1, variantSite2, 3));
 
             // Works both ways
-            Assert.True(VcfNeighborhoodBuilder.IsProximal(variantSite1, variantSite2, 4));
-            Assert.False(VcfNeighborhoodBuilder.IsProximal(variantSite1, variantSite2, 3));
+            Assert.True(NeighborhoodBuilder.IsProximal(variantSite1, variantSite2, 4));
+            Assert.False(NeighborhoodBuilder.IsProximal(variantSite1, variantSite2, 3));
         }
 
         [Fact]

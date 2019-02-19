@@ -46,7 +46,7 @@ namespace VariantPhasing.Logic
 
 
         public List<CalledAllele> WriteVariantsUptoIncludingNbhd(
-            IVcfNeighborhood nbhdWithMNVs,
+            ICallableNeighborhood nbhdWithMNVs,
             IVcfFileWriter<CalledAllele> writer, List<CalledAllele> leftoverAlleles)
         {
             var calledMNVs = nbhdWithMNVs.CalledVariants;
@@ -158,7 +158,7 @@ namespace VariantPhasing.Logic
         }
         
 
-        private static int OrderWithNeighborhood(IVcfNeighborhood nbhdWithMNVs, CalledAllele originalVariant)
+        private static int OrderWithNeighborhood(ICallableNeighborhood nbhdWithMNVs, CalledAllele originalVariant)
         {
             if (originalVariant.Chromosome != nbhdWithMNVs.ReferenceName)
                 return 1;
@@ -172,7 +172,7 @@ namespace VariantPhasing.Logic
             return -1;
         }
 
-        public static List<CalledAllele> GetMergedListOfVariants(IVcfNeighborhood completedNbhd, List<CalledAllele> originalVariantsInsideRange)
+        public static List<CalledAllele> GetMergedListOfVariants(ICallableNeighborhood completedNbhd, List<CalledAllele> originalVariantsInsideRange)
         {
             var mergedVariantList = new List<CalledAllele>();
             Dictionary<int, List<CalledAllele>> foundMNVS = completedNbhd.CalledVariants;

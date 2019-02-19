@@ -1,9 +1,11 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿using System.Collections.Generic;
 
 namespace Pisces.Domain.Models.Alleles
 {
+    /// <summary>
+    /// Variants are considered equal if at the same chr/loci AND have same ref & alt allele.
+    /// This forces a deterministic ordering on co-loacted variants.
+    /// </summary>
     public class AlleleCompareByLociAndAllele : IComparer<CalledAllele>
     {
         public int Compare(CalledAllele x, CalledAllele y)

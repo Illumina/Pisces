@@ -1,0 +1,64 @@
+##fileformat=VCFv4.1
+##fileDate=20181031
+##source=Pisces 1.0.0.0
+##Pisces_cmdline=""-bam C:\Projects\git\Pisces5_Internal\Pisces5\src\test\Scylla.Tests\bin\Debug\netcoreapp2.0\SharedData\Bams\Bcereus_S4.bam -g C:\Projects\git\Pisces5_Internal\Pisces5\src\test\Scylla.Tests\bin\Debug\netcoreapp2.0\SharedData\Genomes\Bacillus_cereus\Sequence\WholeGenomeFasta -mindp 0 -minvf 0.0001 -nl 40 -minvq 2 -gvcf false -vqfilter 2""
+##VariantPhaser=Scylla 1.0.0.0
+##Scylla_cmdline="-bam C:\Projects\git\Pisces5_Internal\Pisces5\src\test\Scylla.Tests\bin\Debug\netcoreapp2.0\SharedData\Bams\Bcereus_S4.bam -vcf C:\Projects\git\Pisces5_Internal\Pisces5\src\test\Scylla.Tests\bin\Debug\netcoreapp2.0\TestData\Bcereus_S4.vcf -out C:\Projects\git\Pisces5_Internal\Pisces5\src\test\Scylla.Tests\bin\Debug\netcoreapp2.0\Scratch\BugGenomeExecution -g C:\Projects\git\Pisces5_Internal\Pisces5\src\test\Scylla.Tests\bin\Debug\netcoreapp2.0\SharedData\Genomes\Bacillus_cereus\Sequence\WholeGenomeFasta"
+##reference=C:\Projects\git\Pisces5_Internal\Pisces5\src\test\Scylla.Tests\bin\Debug\netcoreapp2.0\SharedData\Genomes\Bacillus_cereus\Sequence\WholeGenomeFasta
+##ALT=<ID=<M>,Description="There is an overlapping other allele that has been called in a separate VCF record">
+##INFO=<ID=DP,Number=1,Type=Integer,Description="Total Depth">
+##FILTER=<ID=q2,Description="Quality score less than 2">
+##FILTER=<ID=SB,Description="Variant strand bias too high">
+##FILTER=<ID=R5x9,Description="Repeats of part or all of the variant allele (max repeat length 5) in the reference greater than or equal to 9">
+##FILTER=<ID=NC,Description="No-call rate is above 0.6">
+##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">
+##FORMAT=<ID=GQ,Number=1,Type=Integer,Description="Genotype Quality">
+##FORMAT=<ID=AD,Number=.,Type=Integer,Description="Allele Depth">
+##FORMAT=<ID=DP,Number=1,Type=Integer,Description="Total Depth Used For Variant Calling">
+##FORMAT=<ID=VF,Number=.,Type=Float,Description="Variant Frequency">
+##FORMAT=<ID=NL,Number=1,Type=Integer,Description="Applied BaseCall Noise Level">
+##FORMAT=<ID=SB,Number=1,Type=Float,Description="StrandBias Score">
+##contig=<ID=chr,length=5224283>
+##contig=<ID=plasmid_pBc10987,length=208369>
+#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	Bcereus_S4.bam
+chr	336	.	TRRRRRRRRTT	ARRRRRRRRAA	8	PASS	DP=18	GT:GQ:AD:DP:VF:NL:SB	0/1:8:13,1:18:0.05556:20:-100.0000
+chr	345	.	T	.	100	PASS	DP=21	GT:GQ:AD:DP:VF:NL:SB	0/.:100:20:21:0.04762:20:-100.0000
+chr	346	.	T	.	100	PASS	DP=21	GT:GQ:AD:DP:VF:NL:SB	0/.:100:20:21:0.04762:20:-100.0000
+chr	478	.	A	C	24	PASS	DP=36	GT:GQ:AD:DP:VF:NL:SB	0/1:24:35,1:36:0.02778:40:-26.1925
+chr	535	.	TRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRTRRRRTRTRRRTRTRRRRRRRTRRRTRRRRRRRRRRRTTRTRRRRRRRRRRRRRRRRRRRRRRRTRRRRRRRT	ARRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRARRRRARARRRARARRRRRRRARRRARRRRRRRRRRRAARARRRRRRRRRRRRRRRRRRRRRRRARRRRRRRA	5	PASS	DP=37	GT:GQ:AD:DP:VF:NL:SB	0/1:5:12,1:37:0.02703:20:-100.0000
+chr	568	.	T	.	100	PASS	DP=38	GT:GQ:AD:DP:VF:NL:SB	0/.:100:37:38:0.02632:20:-100.0000
+chr	573	.	T	.	100	PASS	DP=40	GT:GQ:AD:DP:VF:NL:SB	0/.:100:39:40:0.02500:20:-100.0000
+chr	575	.	T	.	100	PASS	DP=39	GT:GQ:AD:DP:VF:NL:SB	0/.:100:38:39:0.02564:20:-100.0000
+chr	579	.	T	.	100	PASS	DP=39	GT:GQ:AD:DP:VF:NL:SB	0/.:100:38:39:0.02564:20:-100.0000
+chr	581	.	T	.	100	PASS	DP=39	GT:GQ:AD:DP:VF:NL:SB	0/.:100:38:39:0.02564:20:-100.0000
+chr	589	.	T	.	100	PASS	DP=39	GT:GQ:AD:DP:VF:NL:SB	0/.:100:38:39:0.02564:20:-100.0000
+chr	593	.	T	.	100	PASS	DP=40	GT:GQ:AD:DP:VF:NL:SB	0/.:100:39:40:0.02500:20:-100.0000
+chr	605	.	T	.	100	PASS	DP=34	GT:GQ:AD:DP:VF:NL:SB	0/.:100:33:34:0.02941:20:-100.0000
+chr	606	.	T	.	100	PASS	DP=36	GT:GQ:AD:DP:VF:NL:SB	0/.:100:35:36:0.02778:20:-100.0000
+chr	608	.	T	.	100	PASS	DP=37	GT:GQ:AD:DP:VF:NL:SB	0/.:100:36:37:0.02703:20:-100.0000
+chr	632	.	T	.	100	PASS	DP=31	GT:GQ:AD:DP:VF:NL:SB	0/.:100:30:31:0.03226:20:-100.0000
+chr	640	.	T	.	100	PASS	DP=29	GT:GQ:AD:DP:VF:NL:SB	0/.:100:28:29:0.03448:20:-100.0000
+chr	694	.	C	A	25	PASS	DP=30	GT:GQ:AD:DP:VF:NL:SB	0/1:25:29,1:30:0.03333:40:-27.9551
+chr	694	.	C	A	6	PASS	DP=30	GT:GQ:AD:DP:VF:NL:SB	0/1:6:29,1:30:0.03333:20:-100.0000
+chr	706	.	A	T	5	PASS	DP=35	GT:GQ:AD:DP:VF:NL:SB	0/1:5:34,1:35:0.02857:20:-100.0000
+chr	712	.	ARRRRRRRC	TRRRRRRRG	5	PASS	DP=37	GT:GQ:AD:DP:VF:NL:SB	0/1:5:33,1:37:0.02703:20:-100.0000
+chr	720	.	C	.	100	PASS	DP=37	GT:GQ:AD:DP:VF:NL:SB	0/.:100:36:37:0.02703:20:-100.0000
+chr	814	.	T	C	24	PASS	DP=41	GT:GQ:AD:DP:VF:NL:SB	0/1:24:40,1:41:0.02439:40:-26.0152
+chr	814	.	T	C	5	PASS	DP=41	GT:GQ:AD:DP:VF:NL:SB	0/1:5:40,1:41:0.02439:20:-100.0000
+chr	827	.	A	G	13	PASS	DP=37	GT:GQ:AD:DP:VF:NL:SB	0/1:13:35,2:37:0.05405:20:-100.0000
+chr	894	.	G	A	25	PASS	DP=30	GT:GQ:AD:DP:VF:NL:SB	0/1:25:29,1:30:0.03333:40:-26.9854
+chr	991	.	ARARRRARRRRRRRRRRRRRRRRRRRRRRRRRRRRA	TRTRRRTRRRRRRRRRRRRRRRRRRRRRRRRRRRRT	6	PASS	DP=28	GT:GQ:AD:DP:VF:NL:SB	0/1:6:18,1:28:0.03571:20:-100.0000
+chr	993	.	A	.	100	PASS	DP=31	GT:GQ:AD:DP:VF:NL:SB	0/.:100:30:31:0.03226:20:-100.0000
+chr	997	.	A	.	100	PASS	DP=31	GT:GQ:AD:DP:VF:NL:SB	0/.:100:30:31:0.03226:20:-100.0000
+chr	1007	.	T	G	6	PASS	DP=28	GT:GQ:AD:DP:VF:NL:SB	0/1:6:26,1:28:0.03571:20:-100.0000
+chr	1026	.	A	.	100	PASS	DP=24	GT:GQ:AD:DP:VF:NL:SB	0/.:100:23:24:0.04167:20:-100.0000
+chr	1112	.	A	G	29	PASS	DP=12	GT:GQ:AD:DP:VF:NL:SB	0/1:29:11,1:12:0.08333:40:-30.4554
+chr	1162	.	A	T	9	PASS	DP=15	GT:GQ:AD:DP:VF:NL:SB	0/1:9:14,1:15:0.06667:20:-100.0000
+chr	1208	.	G	C	7	PASS	DP=21	GT:GQ:AD:DP:VF:NL:SB	0/1:7:20,1:21:0.04762:20:-100.0000
+chr	1480	.	A	T	58	PASS	DP=18	GT:GQ:AD:DP:VF:NL:SB	0/1:58:16,2:18:0.11111:40:-30.0056
+chr	1764	.	A	C	24	PASS	DP=44	GT:GQ:AD:DP:VF:NL:SB	0/1:24:43,1:44:0.02273:40:-26.3777
+chr	1934	.	T	C	27	PASS	DP=20	GT:GQ:AD:DP:VF:NL:SB	0/1:27:19,1:20:0.05000:40:-28.8577
+chr	2001	.	A	T	27	PASS	DP=20	GT:GQ:AD:DP:VF:NL:SB	0/1:27:19,1:20:0.05000:40:-29.5837
+chr	2275	.	G	T	7	PASS	DP=22	GT:GQ:AD:DP:VF:NL:SB	0/1:7:21,1:22:0.04545:20:-100.0000
+chr	2282	.	A	T	17	PASS	DP=21	GT:GQ:AD:DP:VF:NL:SB	0/1:17:19,2:21:0.09524:20:-100.0000
+chr	2410	.	T	C	29	PASS	DP=12	GT:GQ:AD:DP:VF:NL:SB	0/1:29:11,1:12:0.08333:40:-32.2170

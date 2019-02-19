@@ -1,0 +1,47 @@
+##fileformat=VCFv4.1
+##fileDate=20150624
+##source=Pisces 1.0.0.0
+##Pisces_cmdline=""-bam C:\Pisces5\testdata\example_S1.bam -g \\ussd-prd-isi04\igenomes\Homo_sapiens\UCSC\hg19\Sequence\WholeGenomeFasta -ncfilter 0.5 -gvcf false -minvf 0.05""
+##reference=myReference
+##INFO=<ID=DP,Number=1,Type=Integer,Description="Total Depth">
+##INFO=<ID=TI,Number=.,Type=String,Description="Transcript ID">
+##INFO=<ID=GI,Number=.,Type=String,Description="Gene ID">
+##INFO=<ID=EXON,Number=0,Type=Flag,Description="Exon Region">
+##INFO=<ID=FC,Number=.,Type=String,Description="Functional Consequence">
+##FILTER=<ID=q20,Description="Quality below 20">
+##FILTER=<ID=LowDP,Description="Low coverage (DP tag), therefore no genotype called">
+##FILTER=<ID=SB,Description="Variant strand bias too high or coverage on only one strand">
+##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">
+##FORMAT=<ID=GQ,Number=1,Type=Integer,Description="Genotype Quality">
+##FORMAT=<ID=AD,Number=.,Type=Integer,Description="Allele Depth">
+##FORMAT=<ID=VF,Number=1,Type=Float,Description="Variant Frequency">
+##FORMAT=<ID=NL,Number=1,Type=Integer,Description="Applied BaseCall Noise Level">
+##FORMAT=<ID=SB,Number=1,Type=Float,Description="StrandBias Score">
+##FORMAT=<ID=NC,Number=1,Type=Float,Description="Fraction of bases which were uncalled or with basecall quality below the minimum threshold">
+##contig=<ID=chr1,length=10001>
+##contig=<ID=chrX,length=500>
+#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	mySample
+chr1	10	.	A	.	25	PASS	DP=500	GT:GQ:AD:VF:NL:SB:NC	1/1:25:0,0:0.0000:23:0.0000:0.0010
+chr1	20	.	A	T	25	PASS	DP=500	GT:GQ:AD:VF:NL:SB:NC	1/1:25:0,0:0.0000:23:0.0000:0.0010
+chr1	30	.	A	AT	25	PASS	DP=500	GT:GQ:AD:VF:NL:SB:NC	1/1:25:0,0:0.0000:23:0.0000:0.0010
+chr1	40	.	AT	A	25	PASS	DP=500	GT:GQ:AD:VF:NL:SB:NC	1/1:25:0,0:0.0000:23:0.0000:0.0010
+chr1	50	.	A	T	25	PASS	DP=500	GT:GQ:AD:VF:NL:SB:NC	1/0:25:0,0:0.0000:23:0.0000:0.0010
+chr1	60	.	A	AT	25	PASS	DP=500	GT:GQ:AD:VF:NL:SB:NC	1/0:25:0,0:0.0000:23:0.0000:0.0010
+chr1	70	.	AT	A	25	PASS	DP=500	GT:GQ:AD:VF:NL:SB:NC	1/0:25:0,0:0.0000:23:0.0000:0.0010
+chr1	80	.	A	T	25	PASS	DP=500	GT:GQ:AD:VF:NL:SB:NC	1/0:25:0,0:0.0000:23:0.0000:0.0010
+chr1	90	.	A	.	25	PASS	DP=500	GT:GQ:AD:VF:NL:SB:NC	0/0:25:0,0:0.0000:23:0.0000:0.0010
+chr1	100	.	A	AT	25	PASS	DP=500	GT:GQ:AD:VF:NL:SB:NC	0/0:25:0,0:0.0000:23:0.0000:0.0010
+chr1	110	.	AT	A	25	PASS	DP=500	GT:GQ:AD:VF:NL:SB:NC	0/0:25:0,0:0.0000:23:0.0000:0.0010
+chr1	120	.	A	T	25	PASS	DP=500	GT:GQ:AD:VF:NL:SB:NC	0/0:25:0,0:0.0000:23:0.0000:0.0010
+chr1	130	.	A	.	25	PASS	DP=500	GT:GQ:AD:VF:NL:SB:NC	0/1:25:0,0:0.0000:23:0.0000:0.0010
+chr1	140	.	A	AT	25	PASS	DP=500	GT:GQ:AD:VF:NL:SB:NC	0/1:25:0,0:0.0000:23:0.0000:0.0010
+chr1	150	.	AT	A	25	PASS	DP=500	GT:GQ:AD:VF:NL:SB:NC	0/1:25:0,0:0.0000:23:0.0000:0.0010
+chr1	160	.	A	T	25	PASS	DP=500	GT:GQ:AD:VF:NL:SB:NC	0/1:25:0,0:0.0000:23:0.0000:0.0010
+chr1	600	.	ATCA	TCGC	25	PASS	DP=500	GT:GQ:AD:VF:NL:SB:NC	0/0:25:0,0:0.0000:23:0.0000:0.0010
+chr1	700	.	ATCA	TCGC	25	PASS	DP=500	GT:GQ:AD:VF:NL:SB:NC	0/1:25:0,0:0.0000:23:0.0000:0.0010
+chr1	800	.	ATCA	TCGC	25	PASS	DP=500	GT:GQ:AD:VF:NL:SB:NC	1/0:25:0,0:0.0000:23:0.0000:0.0010
+chr1	900	.	ATCA	TCGC	25	PASS	DP=500	GT:GQ:AD:VF:NL:SB:NC	1/1:25:0,0:0.0000:23:0.0000:0.0010
+chr1	1000	.	A	T	25	PASS	DP=0	GT:GQ:AD:VF:NL:SB:NC	./.:25:0,0:0.0000:23:0.0000:0.0010
+chr1	2000	.	A	T	25	PASS	DP=500	GT:GQ:AD:VF:NL:SB:NC	.:25:0,0:0.0000:23:0.0000:0.0010
+chr1	3000	.	A	T	25	PASS	DP=500	GT:GQ:AD:VF:NL:SB:NC	./1:25:0,0:0.0000:23:0.0000:0.0010
+chr1	4000	.	A	T	25	PASS	DP=500	GT:GQ:AD:VF:NL:SB:NC	1/.:25:0,0:0.0000:23:0.0000:0.0010

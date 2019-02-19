@@ -5,6 +5,6 @@ namespace VariantPhasing.Interfaces
 {
     public interface INeighborhoodBuilder
     {
-        IEnumerable<VcfNeighborhood> GetBatchOfNeighborhoods(int numSoFar);
+        IEnumerable<CallableNeighborhood> GetBatchOfCallableNeighborhoods(int numSoFar);
     }
 }

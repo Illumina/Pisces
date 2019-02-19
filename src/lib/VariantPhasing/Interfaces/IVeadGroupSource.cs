@@ -5,6 +5,6 @@ namespace VariantPhasing.Interfaces
 {
     public interface IVeadGroupSource
     {
-        IEnumerable<VeadGroup> GetVeadGroups(VcfNeighborhood neighborhood);
+        IEnumerable<VeadGroup> GetVeadGroups(CallableNeighborhood neighborhood);
     }
 }

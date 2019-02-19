@@ -8,6 +8,7 @@ using Pisces.IO.Sequencing;
 using Pisces.Domain.Options;
 using Pisces.Domain.Models.Alleles;
 using Pisces.Calculators;
+using TestUtilities;
 
 namespace VennVcf.Tests
 {
@@ -18,7 +19,7 @@ namespace VennVcf.Tests
         VennVcfOptions _basicOptions = new VennVcfOptions();
        
         [Fact]
-        public void VennVcf_FxnlTest()
+        public void VennVcf_FxnlTest_HG19()
         {
             var outDir = TestPaths.LocalScratchDirectory;
             var VcfPathRoot = _TestDataPath;
@@ -36,7 +37,7 @@ namespace VennVcf.Tests
             parameters.DebugMode = true;
 
             VennProcessor Venn = new VennProcessor(new string[] { VcfA, VcfB }, parameters);
-            Venn.DoPairwiseVenn(false);
+            Venn.DoPairwiseVenn();
 
             Assert.True(File.Exists(OutputPath));
 
@@ -65,6 +66,44 @@ namespace VennVcf.Tests
             }
         }
 
+
+        [Fact]
+        public void VennVcf_FxnlTest_GRCH37()
+        {
+            var outDir = Path.Combine(TestPaths.LocalScratchDirectory, "GRCH37_fxnl");
+            TestHelper.RecreateDirectory(outDir);
+
+            string VcfA = Path.Combine(TestPaths.LocalTestDataDirectory, "GRCH37_S25.bam.genome.vcf");
+            string VcfB = Path.Combine(TestPaths.LocalTestDataDirectory, "GRCH37_S30.bam.genome.vcf");
+      
+            List<string> OutputVcfs = new List<string>() {
+                Path.Combine(outDir, "Consensus.vcf"),
+                Path.Combine(outDir, "GRCH37_S25.bam_and_GRCH37_S30.bam.vcf"),
+                Path.Combine(outDir, "GRCH37_S25.bam_not_GRCH37_S30.bam.vcf"),
+                Path.Combine(outDir, "GRCH37_S30.bam_and_GRCH37_S25.bam.vcf"),
+                Path.Combine(outDir, "GRCH37_S30.bam_not_GRCH37_S25.bam.vcf")};
+
+            List<string> ExpectedVcfs = new List<string>() {
+                Path.Combine(TestPaths.LocalTestDataDirectory, "Expected_GRCH37_Consensus.vcf"),
+                Path.Combine(TestPaths.LocalTestDataDirectory, "Expected_GRCH37_S25.bam_and_GRCH37_S30.bam.vcf"),
+                Path.Combine(TestPaths.LocalTestDataDirectory, "Expected_GRCH37_S25.bam_not_GRCH37_S30.bam.vcf"),
+                Path.Combine(TestPaths.LocalTestDataDirectory, "Expected_GRCH37_S30.bam_and_GRCH37_S25.bam.vcf"),
+                Path.Combine(TestPaths.LocalTestDataDirectory, "Expected_GRCH37_S30.bam_not_GRCH37_S25.bam.vcf")};
+
+
+            VennVcfOptions parameters = new VennVcfOptions();
+            parameters.ConsensusFileName = Path.Combine(outDir, "Consensus.vcf");
+            parameters.OutputDirectory = outDir;
+            parameters.DebugMode = true;
+
+            VennProcessor Venn = new VennProcessor(new string[] { VcfA, VcfB }, parameters);
+            Venn.DoPairwiseVenn();
+           
+            for (int i = 0; i < 5; i++)
+                TestHelper.CompareFiles(OutputVcfs[i], ExpectedVcfs[i]);
+        }
+
+
         [Fact]
         public void VennVcf_EmptyInputTest()
         {
@@ -83,7 +122,7 @@ namespace VennVcf.Tests
             parameters.DebugMode = true;
 
             VennProcessor Venn = new VennProcessor(new string[] { VcfA, VcfB }, parameters);
-            Venn.DoPairwiseVenn(false);
+            Venn.DoPairwiseVenn();
 
             Assert.True(File.Exists(OutputPath));
             var observedVariants = VcfReader.GetAllVariantsInFile(OutputPath);
@@ -110,7 +149,7 @@ namespace VennVcf.Tests
             parameters.OutputDirectory = outDir;
 
             VennProcessor Venn = new VennProcessor(new string[] { VcfA, VcfB }, parameters);
-            Venn.DoPairwiseVenn(false);
+            Venn.DoPairwiseVenn();
 
             Assert.True(File.Exists(OutputPath));
             var expectedVariants = VcfReader.GetAllVariantsInFile(ExpectedPath);
@@ -150,7 +189,7 @@ namespace VennVcf.Tests
 
 
             VennProcessor Venn = new VennProcessor(new string[] { VcfPath_PoolA, VcfPath_PoolB }, parameters);
-            Venn.DoPairwiseVenn(false);
+            Venn.DoPairwiseVenn();
 
             Assert.Equal(File.Exists(parameters.ConsensusFileName), true);
 
@@ -425,7 +464,7 @@ namespace VennVcf.Tests
             parameters.OutputDirectory = outDir;
             VennProcessor VennVcf = new VennProcessor(
                     new string[] { VcfPath_PoolA, VcfPath_PoolB }, parameters);
-            VennVcf.DoPairwiseVenn(false);
+            VennVcf.DoPairwiseVenn();
 
             Assert.Equal(File.Exists(OutputPath), true);
 
@@ -668,10 +707,10 @@ namespace VennVcf.Tests
             VennVcfOptions parameters = new VennVcfOptions();
             parameters.VariantCallingParams.MinimumFrequencyFilter = 0.03f;
             parameters.InputFiles = new string[] { VcfPath_PoolA, VcfPath_PoolB };
-            parameters.OutputDirectory = outDir; //Path.Combine(outDir, "RefMergeOut.vcf");
+            parameters.OutputDirectory = outDir; 
             parameters.ConsensusFileName = OutputPath;
             VennProcessor venn = new VennProcessor(parameters.InputFiles, parameters);
-            venn.DoPairwiseVenn(false);
+            venn.DoPairwiseVenn();
 
             Assert.Equal(File.Exists(OutputPath), true);
             List<VcfVariant> CombinedVariants = VcfReader.GetAllVariantsInFile(OutputPath);

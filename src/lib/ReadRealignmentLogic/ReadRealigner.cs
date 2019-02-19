@@ -281,7 +281,7 @@ namespace ReadRealignmentLogic
 
             // start with fresh position map
             var positionMapWithoutTerminalNs = new int[read.ReadLength - nPrefixLength - nSuffixLength];
-            Read.UpdatePositionMap(position, freshCigarWithoutTerminalNs, positionMapWithoutTerminalNs);
+            Read.UpdatePositionMap(position, read.Name, freshCigarWithoutTerminalNs, positionMapWithoutTerminalNs);
             var prefixSoftclip = read.CigarData.GetPrefixClip();
             var suffixSoftclip = read.CigarData.GetSuffixClip();
 

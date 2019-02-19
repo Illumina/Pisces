@@ -1,0 +1,35 @@
+##fileformat=VCFv4.1
+##fileDate=20180515
+##source=Pisces 1.0.0.0
+##Pisces_cmdline=""-bam C:\Pisces5\testdata\example_S1.bam -g \\ussd-prd-isi04\igenomes\Homo_sapiens\UCSC\hg19\Sequence\WholeGenomeFasta -ncfilter 0.5""
+##reference=\\ussd-prd-isi04\igenomes\Homo_sapiens\UCSC\hg19\Sequence\WholeGenomeFasta
+##ALT=<ID=<M>,Description="There is an overlapping other allele that has been called in a separate VCF record">
+##INFO=<ID=DP,Number=1,Type=Integer,Description="Total Depth">
+##FILTER=<ID=q30,Description="Quality score less than 30">
+##FILTER=<ID=LowDP,Description="Low coverage (DP tag), therefore no genotype called">
+##FILTER=<ID=SB,Description="Variant strand bias too high">
+##FILTER=<ID=R5x9,Description="Repeats of part or all of the variant allele (max repeat length 5) in the reference greater than or equal to 9">
+##FILTER=<ID=NC,Description="No-call rate is above 0.5">
+##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">
+##FORMAT=<ID=GQ,Number=1,Type=Integer,Description="Genotype Quality">
+##FORMAT=<ID=AD,Number=.,Type=Integer,Description="Allele Depth">
+##FORMAT=<ID=DP,Number=1,Type=Integer,Description="Total Depth Used For Variant Calling">
+##FORMAT=<ID=VF,Number=.,Type=Float,Description="Variant Frequency">
+##FORMAT=<ID=NL,Number=1,Type=Integer,Description="Applied BaseCall Noise Level">
+##FORMAT=<ID=SB,Number=1,Type=Float,Description="StrandBias Score">
+##contig=<ID=chr1,length=249250621>
+#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	example_S1.bam
+chr1	115252175	.	A	.	100	PASS	DP=78	GT:GQ:AD:DP:VF:NL:SB	0/0:100:74:78:0.051:20:-100.0000
+chr1	115252176	.	A	C	100	PASS	DP=75	GT:GQ:AD:DP:VF:NL:SB	0/1:100:30,45:75:0.600:20:-100.0000
+chr1	115252177	.	A	C	100	PASS	DP=74	GT:GQ:AD:DP:VF:NL:SB	1/1:100:2,72:74:0.973:20:-100.0000
+chr1	115252178	.	G	T	100	PASS	DP=77	GT:GQ:AD:DP:VF:NL:SB	0/1:100:1,2:77:0.026:20:-100.0000
+chr1	115252178	.	G	A	100	PASS	DP=77	GT:GQ:AD:DP:VF:NL:SB	0/1:100:1,37:77:0.481:20:-100.0000
+chr1	115252178	.	G	C	100	PASS	DP=77	GT:GQ:AD:DP:VF:NL:SB	0/1:100:1,37:77:0.481:20:-100.0000
+chr1	115252179	.	C	A	100	PASS	DP=76	GT:GQ:AD:DP:VF:NL:SB	0/1:100:10,26:76:0.342:20:-100.0000
+chr1	115252179	.	C	AT	100	PASS	DP=76	GT:GQ:AD:DP:VF:NL:SB	0/1:100:10,30:76:0.395:20:-100.0000
+chr1	115252179	.	C	T	100	PASS	DP=76	GT:GQ:AD:DP:VF:NL:SB	0/1:100:10,20:76:0.263:20:-100.0000
+chr1	115252180	.	T	TG	100	PASS	DP=77	GT:GQ:AD:DP:VF:NL:SB	0/1:100:31,37:77:0.480:20:-100.0000
+chr1	115252180	.	T	TGA	100	PASS	DP=77	GT:GQ:AD:DP:VF:NL:SB	0/1:100:31,3:77:0.039:20:-100.0000
+chr1	115252180	.	T	TGAT	100	PASS	DP=77	GT:GQ:AD:DP:VF:NL:SB	0/1:100:31,9:77:0.117:20:-100.0000
+chr1	152938468	.	AT	A	100	PASS	DP=215	GT:GQ:AD:DP:VF:NL:SB	0/1:100:56,159:215:0.740:20:-100.0000
+chr1	152938468	.	ATT	A	41	R5x9	DP=216	GT:GQ:AD:DP:VF:NL:SB	0/1:41:206,10:216:0.046:20:-100.0000

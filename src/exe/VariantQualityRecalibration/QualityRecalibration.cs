@@ -13,66 +13,118 @@ namespace VariantQualityRecalibration
 {
     public class QualityRecalibration
     {
-        private const int VcfHeaderOffset = 4;
-        public static void Recalibrate(string vcfIn, string countsFileIn, string outDir,
-            int baselineQNoise, double zFactor, int maxQscore, int filterQScore,string quotedCmdLineString)
+        public static void Recalibrate(SignatureSorterResultFiles countsFilePaths, VQROptions options)
         {
-
-            string vcfFileName = Path.GetFileName(vcfIn);
-            string vcfOut = Path.Combine(outDir, vcfFileName + ".recal");
+            string vcfFileName = Path.GetFileName(options.InputVcf);
+            string vcfOut = Path.Combine(options.OutputDirectory, vcfFileName + ".recal");
 
             if (File.Exists(vcfOut))
                 File.Delete(vcfOut);
 
             try
             {
-                DoRecalibrationWork(vcfIn, vcfOut, countsFileIn, baselineQNoise, zFactor, maxQscore, filterQScore,quotedCmdLineString);
+                DoRecalibrationWork(vcfOut, countsFilePaths, options);
+
 
                 if (File.Exists(vcfOut))
                 {
-                    Logger.WriteToLog("The following vcf was recalibrated: " + vcfIn);
+                    Logger.WriteToLog("The following vcf was recalibrated: " + options.InputVcf);
                 }
 
             }
             catch (Exception ex)
             {
-                Logger.WriteToLog("Recalibrate failed for " + vcfIn);
+                Logger.WriteToLog("Recalibrate failed for " + options.InputVcf);
                 Logger.WriteToLog("Exception: " + ex);
             }
 
 
         }
 
-        private static void DoRecalibrationWork(string vcfIn, string vcfOut, string sampleCountsFileName, 
-            int baselineQNoise, double zFactor, int maxQscore, int filterQScore,string quotedCommandLineString)
+
+        private static void DoRecalibrationWork(string vcfOut, SignatureSorterResultFiles resultsFilePaths, 
+            VQROptions options)
         {
-            
-            if (!File.Exists(sampleCountsFileName))
+           
+            CountData BasicCounts = null;
+            CountData EdgeCounts = null;
+
+            Dictionary<MutationCategory, int> BasicLookupTable = null;
+            Dictionary<MutationCategory, int> AmpliconEdgeVariantsLookupTable = null;
+            Dictionary<string, List<int>> AmpliconEdgeVariantsList = null;
+
+            Dictionary<MutationCategory, int> EdgeRiskLookupTable = null;
+
+            if (options.DoBasicChecks)
             {
-                Logger.WriteToLog("Cannot recalibrate. Cannot find {0} ", sampleCountsFileName);
-                return;
-            }
-            else
-            {
-                Logger.WriteToLog("Found counts file: {0} ", sampleCountsFileName);
+
+
+                if (!File.Exists(resultsFilePaths.BasicCountsFilePath))
+                {
+                    Logger.WriteToLog("Cannot do basic recalibration. Cannot find {0} ", resultsFilePaths.BasicCountsFilePath);
+                    return;
+                }
+                else
+                {
+                    Logger.WriteToLog("Found counts file: {0} ", resultsFilePaths.BasicCountsFilePath);
+                }
+
+                BasicCounts = CountsFileReader.ReadCountsFile(resultsFilePaths.BasicCountsFilePath);
+                BasicLookupTable = GetPhredScaledCalibratedRates(options.BaseQNoise, options.ZFactor, BasicCounts);
+
+                //if no work to do here...
+                if ((BasicLookupTable == null) || (BasicLookupTable.Count == 0))
+                {
+                    Logger.WriteToLog("No general recalibration needed.");
+                    return;
+                }
+                else
+                {
+                    Logger.WriteToLog("General mutation bias detected. This sample may have sample-specific prep issues such as FFPE or oxidation damage.");
+                }
             }
 
-            var LookupTable = GetPhredScaledCalibratedRates(baselineQNoise, zFactor, sampleCountsFileName);
-
-            //if no work to do here...
-            if ((LookupTable == null) || (LookupTable.Count == 0))
+            if (options.DoAmpliconPositionChecks)
             {
-                Logger.WriteToLog("No recalibration needed.");
-                return;
+
+                if (!File.Exists(resultsFilePaths.AmpliconEdgeCountsFilePath))
+                {
+                    Logger.WriteToLog("Cannot do amplicon-position based recalibration. Cannot find {0} ", resultsFilePaths.AmpliconEdgeCountsFilePath);
+                    return;
+                }
+                else
+                {
+                    Logger.WriteToLog("Found counts file: {0} ", resultsFilePaths.AmpliconEdgeCountsFilePath);
+                }
+
+                EdgeCounts = CountsFileReader.ReadCountsFile(resultsFilePaths.AmpliconEdgeCountsFilePath);
+                AmpliconEdgeVariantsLookupTable = GetPhredScaledCalibratedRates(options.BaseQNoise, options.ZFactor, EdgeCounts);
+                AmpliconEdgeVariantsList = VariantListReader.ReadVariantListFile(resultsFilePaths.AmpliconEdgeSuspectListFilePath);
+
+
+
+                if ((AmpliconEdgeVariantsLookupTable == null) || (AmpliconEdgeVariantsLookupTable.Count == 0))
+                {
+                    Logger.WriteToLog("No position-in-amplicon recalibration needed.");
+                    return;
+                }
+              
             }
 
-            using (VcfReader reader = new VcfReader(vcfIn))
-            using (StreamWriter writer = new StreamWriter(new FileStream(vcfOut, FileMode.CreateNew)))
+            //compare edge-issues with FFPE-like issues.
+            //Did the bulk of variants appear to come from the edge of amplicons..?
+            //Look at the diff in percents. 
+            //If a variant is X more likely to be called when its by an edge - thats an estimate of the error.
+            if (options.DoBasicChecks && options.DoAmpliconPositionChecks)
             {
-                writer.NewLine = "\n";
-                List<string> headerLines = reader.HeaderLines;
-                WriteHeaders(writer,headerLines, quotedCommandLineString);
-                
+
+               EdgeRiskLookupTable = GetPhredScaledCalibratedRatesForEdges(options.BaseQNoise, options.AlignmentWarningThreshold, BasicCounts, EdgeCounts);
+            }
+
+            using (VcfReader reader = new VcfReader(options.InputVcf))
+            using (VcfRewriter writer = new VcfRewriter(vcfOut))
+            {
+                writer.WriteHeader(reader.HeaderLines, options.QuotedCommandLineArgumentsString);
 
                 var originalVar = new VcfVariant();
                 while (reader.GetNextVariant(originalVar))
@@ -80,43 +132,62 @@ namespace VariantQualityRecalibration
 
                     var cat = MutationCounter.GetMutationCategory(originalVar);
 
-                    if (LookupTable.ContainsKey(cat))
+                    if (options.DoBasicChecks && BasicLookupTable.ContainsKey(cat))
                     {
-                        UpdateVariant(maxQscore, filterQScore, LookupTable, originalVar, cat);
+                        UpdateVariant(options.MaxQScore, options.FilterQScore, BasicLookupTable, originalVar, cat, false);
                     }
-                    writer.WriteLine(originalVar);
+
+                    if (options.DoAmpliconPositionChecks
+                        && AmpliconEdgeVariantsLookupTable.ContainsKey(cat) 
+                        && AmpliconEdgeVariantsList.ContainsKey(originalVar.ReferenceName)
+                        && AmpliconEdgeVariantsList[originalVar.ReferenceName].Contains(originalVar.ReferencePosition))
+                    {
+                        
+                        UpdateVariant(options.MaxQScore, options.FilterQScore, EdgeRiskLookupTable, originalVar, cat, true);
+                    }
+
+                    writer.WriteVariantLine(originalVar);
                 }
 
             }
         }
 
-        private static void WriteHeaders(StreamWriter writer, List<string> headerLines, string quotedCommandLineString)
+        public static void UpdateVariant(int maxQscore, int filterQScore, Dictionary<MutationCategory, int> qCalibratedRates, VcfVariant originalVar, MutationCategory cat,
+            bool subsample)
         {
-            foreach (string headerLine in headerLines.Take(VcfHeaderOffset))
-                writer.WriteLine(headerLine);
+            double depth;
+            double callCount;
 
-            var currentVersion = FileUtilities.LocalAssemblyVersion<QualityRecalibration>();
-            writer.WriteLine("##VariantQualityRecalibration=VQR " + currentVersion);
 
-            if (!string.IsNullOrEmpty(quotedCommandLineString))
-                writer.WriteLine("##VQR_cmdline=" + quotedCommandLineString );
+            //tjd+
+            // We can revisit this math at a later date. Exactly how we lower the Qscores
+            // or filter the suspect calls is TBD. We should work with this new algorithm
+            // on a larger collection of datasets representing various alignment issues,
+            // and modify the code/parameters as needed.
+            // A few thoughts: Amplicon edge issues don't get better the deeper you sequence.
+            // We need to scale out depth from the Q score calculation (since the original Q score is a fxn of depth/freq).
+            // One option is to Cap at ~100 DP (TODO, this should be a parameter, a fxn of your bascallquality).
+            // double subSampleToThis = 100;
+            // tjd-
 
-            for(var i=VcfHeaderOffset;i<headerLines.Count;i++)
-                writer.WriteLine(headerLines[i]);
+            double denominator = MathOperations.QtoP(qCalibratedRates[cat]);
+            double subSampleToThis = 1.0 / denominator;     
 
-        }
-
-        public static void UpdateVariant(int maxQscore, int filterQScore, Dictionary<MutationCategory, int> qCalibratedRates, VcfVariant originalVar, MutationCategory cat)
-        {
-            int depth;
-            int callCount;
+            if ((qCalibratedRates[cat] == 0) || (denominator ==0))
+                subsample = false;
 
             bool canUpdateQ = HaveInfoToUpdateQ(originalVar, out depth, out callCount);
+
+            if (subsample && (depth > subSampleToThis))
+            {
+                callCount = callCount * subSampleToThis / depth;
+                depth = subSampleToThis;
+            }
 
             if (canUpdateQ)
             {
                 int newQ = VariantQualityCalculator.AssignPoissonQScore(
-                    callCount, depth, qCalibratedRates[cat], maxQscore);
+                   (int) callCount, (int) depth, qCalibratedRates[cat], maxQscore);
 
                 InsertNewQ(qCalibratedRates, originalVar, cat, newQ);
                
@@ -153,7 +224,7 @@ namespace VariantQualityRecalibration
                 originalVar.Genotypes[0]["NL"] = qCalibratedRates[cat].ToString();
         }
 
-        public static bool HaveInfoToUpdateQ(VcfVariant originalVar, out int depth, out int callCount)
+        public static bool HaveInfoToUpdateQ(VcfVariant originalVar, out double depth, out double callCount)
         {
             bool canUpdateQ = false;
             depth = -1;
@@ -164,25 +235,71 @@ namespace VariantQualityRecalibration
                 return false;
 
             if (originalVar.InfoFields.ContainsKey("DP"))
-                canUpdateQ = int.TryParse(originalVar.InfoFields["DP"], out depth);
+                canUpdateQ = double.TryParse(originalVar.InfoFields["DP"], out depth);
 
             if (originalVar.Genotypes[0].ContainsKey("AD"))
             {
                 string[] spat = originalVar.Genotypes[0]["AD"].Split(',');
 
                 if (spat.Length == 2)
-                    canUpdateQ = (canUpdateQ && int.TryParse(spat[1], out callCount));
+                    canUpdateQ = (canUpdateQ && double.TryParse(spat[1], out callCount));
             }
 
             return canUpdateQ;
         }
-
+        
         private static
-            Dictionary<MutationCategory, int> GetPhredScaledCalibratedRates(int baselineQNoise, double zFactor, string noiseFile)
+          Dictionary<MutationCategory, int> GetPhredScaledCalibratedRatesForEdges(int baselineQNoise, double warningThreshold, CountData basicCountsData, CountData edgeIssueCountsData)
+        {
+
+            Dictionary<MutationCategory, int> AdjustedErrorRates = new Dictionary<MutationCategory, int>();
+            double GeneralEdgeRiskIncrease = edgeIssueCountsData.ObservedMutationRate / basicCountsData.ObservedMutationRate;
+
+            if (GeneralEdgeRiskIncrease > warningThreshold)
+            {
+                Logger.WriteToLog("Warning, high levels of mismatches detected at loci near edges, relative to all other loci, by a factor of " + GeneralEdgeRiskIncrease);
+            }
+
+            double MutationRateInEdge = edgeIssueCountsData.ObservedMutationRate;
+
+            double MuationsCalledNotInEdge = basicCountsData.TotalMutations -edgeIssueCountsData.TotalMutations;
+            double TotalLociNotInEdge = basicCountsData.NumPossibleVariants - edgeIssueCountsData.NumPossibleVariants;
+
+            double MutationRateNotInEdge = MuationsCalledNotInEdge / TotalLociNotInEdge;
+
+            //if the error rate at the edges was the same as the error rate in the middle,
+            // we would expect this many variants at the edges:      
+            double NullHypothesisExpectedMismatches = MutationRateNotInEdge * edgeIssueCountsData.NumPossibleVariants;
+
+            double HowManyVariantsWeActuallySaw = edgeIssueCountsData.TotalMutations;
+
+            double HowManyAreProbablyWrong = edgeIssueCountsData.TotalMutations - NullHypothesisExpectedMismatches;
+
+            //error rate in edge region, Given You Called a Variant.
+            double EstimatedErrorRateInEdgeRegions = HowManyAreProbablyWrong / edgeIssueCountsData.TotalMutations;
+
+            
+            foreach (var cat in edgeIssueCountsData.CountsByCategory.Keys)
+            {
+                double countsAtEdge = edgeIssueCountsData.CountsByCategory[cat];
+                double overallMutations = edgeIssueCountsData.TotalMutations;
+
+                double proportion = countsAtEdge / edgeIssueCountsData.TotalMutations;
+               
+                //how much this particular variant category contributed to the error rate increase
+                double estimatedErrorRateByCategory = proportion * EstimatedErrorRateInEdgeRegions;
+                int riskAsQRate = (int) MathOperations.PtoQ(estimatedErrorRateByCategory);
+                AdjustedErrorRates.Add(cat, riskAsQRate);
+            }
+
+            return AdjustedErrorRates;
+        }
+
+            private static
+            Dictionary<MutationCategory, int> GetPhredScaledCalibratedRates(int baselineQNoise, double zFactor, CountData counts)
         {
             double baseNoiseRate = MathOperations.QtoP(baselineQNoise);
-            var counts = new Counts();
-            counts.LoadCountsFile(noiseFile);
+ 
             var countsByCategory = counts.CountsByCategory;
             var PhredScaledRatesByCategory = new Dictionary<MutationCategory, int>();
 

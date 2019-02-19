@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Pisces.Interfaces;
 using Pisces.Calculators;
+using Pisces.Genotyping;
 using Pisces.Domain.Interfaces;
 using Pisces.Domain.Models;
 using Pisces.Domain.Models.Alleles;

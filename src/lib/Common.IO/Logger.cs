@@ -120,11 +120,20 @@ namespace Common.IO.Utility
             }
         }
 
+
         public static bool WriteExceptionToLog(Exception ex)
         {
             lock (typeof(Logger))
             {
                 return WriteToLog("Exception reported:  \n" + ex);
+            }
+        }
+
+        public static bool WriteProcessToLog(string processName, string message, params object[] args)
+        {
+            lock (typeof(Logger))
+            {
+                return Write(string.Format("PROCESS " + processName + ": " + message, args));
             }
         }
 

@@ -22,14 +22,15 @@ namespace VariantPhasing.Logic
 
        
         public CalledAllele ReCallAsRef(CalledAllele usedVariant, int numRefCallsSuckedUpByOtherVariants)
-        { 
+        {
+            var referenceAlleleSupport = Math.Max(0, usedVariant.ReferenceSupport - numRefCallsSuckedUpByOtherVariants);
 
-                var newRef = PhasedVariantExtractor.Create(
+            var newRef = PhasedVariantExtractor.Create(
                          usedVariant.Chromosome, usedVariant.ReferencePosition,
                           usedVariant.ReferenceAllele.Substring(0, 1), ".",
-                          Math.Max(0,usedVariant.ReferenceSupport - numRefCallsSuckedUpByOtherVariants), 
+                          referenceAlleleSupport, 
                           usedVariant.NumNoCalls,
-                          usedVariant.TotalCoverage, Pisces.Domain.Types.AlleleCategory.Reference,
+                          usedVariant.TotalCoverage, referenceAlleleSupport, Pisces.Domain.Types.AlleleCategory.Reference,
                           _bamParams.MinimumBaseCallQuality, _callerParams.MaximumVariantQScore);
 
                 CallCandidate(newRef, true);
@@ -38,7 +39,7 @@ namespace VariantPhasing.Logic
             return newRef;
         }
 
-        public void CallRefs(IVcfNeighborhood completedNbhd)
+        public void CallRefs(ICallableNeighborhood completedNbhd)
         {
             var suckedUpRefCalls = completedNbhd.UsedRefCountsLookup;
             Dictionary<int, CalledAllele> possibleRefs = new Dictionary<int, CalledAllele>();
@@ -64,7 +65,7 @@ namespace VariantPhasing.Logic
         }
 
 
-        public void CallMNVs(IVcfNeighborhood completedNbhd)
+        public void CallMNVs(ICallableNeighborhood completedNbhd)
         {
             var foundMNVs = new Dictionary<int, List<CalledAllele>>();
             foreach (var mnv in completedNbhd.CandidateVariants)

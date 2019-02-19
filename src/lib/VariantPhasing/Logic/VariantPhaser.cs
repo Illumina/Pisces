@@ -49,13 +49,11 @@ namespace VariantPhasing.Logic
                         break;
 
                     Logger.WriteToLog("Getting batch of " + _batchSize);
-                    var latestBatchOfNbhds = nbhdBuilder.GetBatchOfNeighborhoods(numNbhdsSoFar);
+                    var latestBatchOfNbhds = nbhdBuilder.GetBatchOfCallableNeighborhoods(numNbhdsSoFar);
 
                     if (latestBatchOfNbhds.Count() == 0)
                         needToMakeMoreNbhds = false;
 
-
-                    //neighborhoods.AddRange(latestBatchOfNbhds);
                     numNbhdsSoFar += latestBatchOfNbhds.Count();
 
                     Logger.WriteToLog(string.Format("Neighborhood building complete. {0} neighborhoods created.",
@@ -64,23 +62,24 @@ namespace VariantPhasing.Logic
 
 
                     var jobManager = new JobManager(maxThreads);
-                    var clusteringJobs = new List<IJob>();
-                    foreach (var vcfNeighborhood in latestBatchOfNbhds)
+                    var jobs = new List<IJob>();
+
+                    foreach (var callableNeighborhood in latestBatchOfNbhds)
                     {
                         //just a debug option to skip to Nbhd of iterest
-                        if (!string.IsNullOrEmpty(_factory.FilteredNbhd) && (_factory.FilteredNbhd != vcfNeighborhood.Id))
+                        if (!string.IsNullOrEmpty(_factory.FilteredNbhd) && (_factory.FilteredNbhd != callableNeighborhood.Id))
                             continue;
 
-                        Logger.WriteToLog("Creating Neighborhood Clustering Job: {0}", vcfNeighborhood.Id);
+                        Logger.WriteToLog("Creating Neighborhood Clustering and Calling Job: {0}", callableNeighborhood.Id);
 
                         //this does the clustering and MNV calling for the nbhd
-                        clusteringJobs.Add(
-                            new GenericJob(() => ProcessNeighborhood(vcfNeighborhood),
-                            "ProcessNeighborhood_" + vcfNeighborhood.Id));
+                        jobs.Add(
+                            new GenericJob(() => CallMnvsForNeighborhood(callableNeighborhood),
+                            "ProcessNeighborhood_" + callableNeighborhood.Id));
 
                     }
 
-                    jobManager.Process(clusteringJobs);
+                    jobManager.Process(jobs);
 
                     // Finally, come back and combine the information for results
                     //  Add back everything that wasn't sucked up into MNVs
@@ -109,7 +108,7 @@ namespace VariantPhasing.Logic
         }
 
 
-        private void ProcessNeighborhood(VcfNeighborhood neighborhood)
+        private void CallMnvsForNeighborhood(CallableNeighborhood neighborhood)
         {
             Logger.WriteToLog("Processing Neighborhood {0}.", neighborhood.Id);
 
@@ -133,13 +132,19 @@ namespace VariantPhasing.Logic
                 neighborhood.CreateMnvsFromClusters(clusters.Clusters,
                     _factory.Options.BamFilterParams.MinimumBaseCallQuality, _factory.Options.VariantCallingParams.MaximumVariantQScore,
                     crushNbhdVariantsToSamePositon);
+                if (neighborhood.NumberClippedReads > 0 &&
+                    _factory.Options.SoftClipSupportParams.UseSoftClippedReads)
+                {
+                    var softClippedSupportFinder = _factory.CreateSoftClipSupportFinder();
+                    softClippedSupportFinder.SupplementSupportWithClippedReads(neighborhood);
+                }
                 neighborhood.SetGenotypesAndPruneExcessAlleles();
 
                 // (3) Variant call the candidates
                 var variantCaller = _factory.CreateVariantCaller();
                 variantCaller.CallMNVs(neighborhood);
                 variantCaller.CallRefs(neighborhood);
-                
+
                 //wait untill vcf is ready to write...
 
             }

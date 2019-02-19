@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Linq;
 using Pisces.Domain;
 using Pisces.Domain.Interfaces;
 using Pisces.Domain.Models.Alleles;

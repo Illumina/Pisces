@@ -46,7 +46,7 @@ namespace VariantPhasing.Tests.Logic
                 ShouldOutputNoCallFraction = true,
                 ShouldOutputStrandBiasAndNoiseLevel = true,            
                 EstimatedBaseCallQuality = 23,
-                PloidyModel = PloidyModel.Diploid,
+                PloidyModel = PloidyModel.DiploidByThresholding,
             };
 
             //note, scylla has no SB or RMxN or R8 filters.
@@ -193,24 +193,24 @@ namespace VariantPhasing.Tests.Logic
             {
                 TestHelper.CreateDummyAllele("chrX", 123, "A", "C",1000, 156),
                 TestHelper.CreateDummyAllele("chr10", 124, "A", "C",1000, 156),
+                TestHelper.CreateDummyAllele("chrM", 123, "A", "C",1000, 156),
                 TestHelper.CreateDummyAllele("chr9", 123, "T", "C",1000, 156),
                 TestHelper.CreateDummyAllele("chr9", 123, "T", "A",1000, 156),
                 TestHelper.CreateDummyAllele("chr9", 123, "A", "C",1000, 156),
                 TestHelper.CreateDummyAllele("chr8", 123, "A", "C",1000, 156),
                 TestHelper.CreateDummyAllele("chr9", 124, "A", "C",1000, 156),
-                TestHelper.CreateDummyAllele("chrM", 123, "A", "C",1000, 156),
             };
 
             // Order should be:
             var expected = new List<string> {
-                "chrM\t123\t.\tA\tC\t100\tPASS\tDP=1000\tGT:GQ:AD:DP:VF:NL:SB:NC\t0/1:0:844,156:1000:0.156:0:0.0000:0.0000",
                 "chr8\t123\t.\tA\tC\t100\tPASS\tDP=1000\tGT:GQ:AD:DP:VF:NL:SB:NC\t0/1:0:844,156:1000:0.156:0:0.0000:0.0000",
                 "chr9\t123\t.\tA\tC\t100\tPASS\tDP=1000\tGT:GQ:AD:DP:VF:NL:SB:NC\t0/1:0:844,156:1000:0.156:0:0.0000:0.0000",
                 "chr9\t123\t.\tT\tA\t100\tPASS\tDP=1000\tGT:GQ:AD:DP:VF:NL:SB:NC\t0/1:0:844,156:1000:0.156:0:0.0000:0.0000",
                 "chr9\t123\t.\tT\tC\t100\tPASS\tDP=1000\tGT:GQ:AD:DP:VF:NL:SB:NC\t0/1:0:844,156:1000:0.156:0:0.0000:0.0000",
                 "chr9\t124\t.\tA\tC\t100\tPASS\tDP=1000\tGT:GQ:AD:DP:VF:NL:SB:NC\t0/1:0:844,156:1000:0.156:0:0.0000:0.0000",
                 "chr10\t124\t.\tA\tC\t100\tPASS\tDP=1000\tGT:GQ:AD:DP:VF:NL:SB:NC\t0/1:0:844,156:1000:0.156:0:0.0000:0.0000",
-                "chrX\t123\t.\tA\tC\t100\tPASS\tDP=1000\tGT:GQ:AD:DP:VF:NL:SB:NC\t0/1:0:844,156:1000:0.156:0:0.0000:0.0000" };
+                "chrX\t123\t.\tA\tC\t100\tPASS\tDP=1000\tGT:GQ:AD:DP:VF:NL:SB:NC\t0/1:0:844,156:1000:0.156:0:0.0000:0.0000",
+                "chrM\t123\t.\tA\tC\t100\tPASS\tDP=1000\tGT:GQ:AD:DP:VF:NL:SB:NC\t0/1:0:844,156:1000:0.156:0:0.0000:0.0000",};
 
             writer.Write(variants);
             writer.Dispose();
@@ -233,12 +233,12 @@ namespace VariantPhasing.Tests.Logic
             fileLines = File.ReadAllLines(_outputFile);
 
             expected = new List<string> {
-                "chrM\t123\t.\tA\tC\t100\tPASS\tDP=1000\tGT:GQ:AD:DP:VF:NL:SB:NC\t0/1:0:844,156:1000:0.156:0:0.0000:0.0000",
                 "chr8\t123\t.\tA\tC\t100\tPASS\tDP=1000\tGT:GQ:AD:DP:VF:NL:SB:NC\t0/1:0:844,156:1000:0.156:0:0.0000:0.0000",
                 "chr9\t123\t.\tA\tC,A,C\t100\tPASS\tDP=1000\tGT:GQ:AD:DP:VF:NL:SB:NC\t0/1:0:844,156:1000:0.156:0:0.0000:0.0000",
                 "chr9\t124\t.\tA\tC\t100\tPASS\tDP=1000\tGT:GQ:AD:DP:VF:NL:SB:NC\t0/1:0:844,156:1000:0.156:0:0.0000:0.0000",
                 "chr10\t124\t.\tA\tC\t100\tPASS\tDP=1000\tGT:GQ:AD:DP:VF:NL:SB:NC\t0/1:0:844,156:1000:0.156:0:0.0000:0.0000",
-                "chrX\t123\t.\tA\tC\t100\tPASS\tDP=1000\tGT:GQ:AD:DP:VF:NL:SB:NC\t0/1:0:844,156:1000:0.156:0:0.0000:0.0000" };
+                "chrX\t123\t.\tA\tC\t100\tPASS\tDP=1000\tGT:GQ:AD:DP:VF:NL:SB:NC\t0/1:0:844,156:1000:0.156:0:0.0000:0.0000",
+                "chrM\t123\t.\tA\tC\t100\tPASS\tDP=1000\tGT:GQ:AD:DP:VF:NL:SB:NC\t0/1:0:844,156:1000:0.156:0:0.0000:0.0000",};
 
             Assert.Equal(6, fileLines.Length); //only variants at diff positions
             for (int i = 0; i < expected.Count; i++)

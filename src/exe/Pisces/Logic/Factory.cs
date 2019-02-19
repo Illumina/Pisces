@@ -9,6 +9,7 @@ using Pisces.Logic.VariantCalling;
 using Pisces.Domain;
 using Pisces.IO.Sequencing;
 using Pisces.Calculators;
+using Pisces.Genotyping;
 using Pisces.Domain.Interfaces;
 using Pisces.Domain.Logic;
 using Pisces.Domain.Models;
@@ -122,11 +123,12 @@ namespace Pisces
         protected virtual IAlleleCaller CreateVariantCaller(ChrReference chrReference, ChrIntervalSet intervalSet, IAlignmentSource alignmentSource, HashSet<Tuple<string, int, string, string>> forceGtAlleles = null)
         {
             var coverageCalculator = CreateCoverageCalculator(alignmentSource);
-	        var genotypeCalculator = GenotypeCreator.CreateGenotypeCalculator(
-		        _options.VariantCallingParameters.PloidyModel, _options.VariantCallingParameters.MinimumFrequencyFilter,
-		        _options.VariantCallingParameters.MinimumCoverage,
-		        _options.VariantCallingParameters.DiploidSNVThresholdingParameters,
+            var genotypeCalculator = GenotypeCreator.CreateGenotypeCalculator(
+                _options.VariantCallingParameters.PloidyModel, _options.VariantCallingParameters.MinimumFrequencyFilter,
+                _options.VariantCallingParameters.MinimumCoverage,
+                _options.VariantCallingParameters.DiploidSNVThresholdingParameters,
                 _options.VariantCallingParameters.DiploidINDELThresholdingParameters,
+                 _options.VariantCallingParameters.AdaptiveGenotypingParameters,
                 _options.VariantCallingParameters.MinimumGenotypeQScore,
 		        _options.VariantCallingParameters.MaximumGenotypeQScore, 
                 _options.VariantCallingParameters.TargetLODFrequency,
@@ -135,7 +137,7 @@ namespace Pisces
 
 			genotypeCalculator.SetMinFreqFilter(_options.VariantCallingParameters.MinimumFrequencyFilter);
 
-            var locusProcessor = _options.VariantCallingParameters.PloidyModel == PloidyModel.Diploid
+            var locusProcessor = _options.VariantCallingParameters.PloidyModel == PloidyModel.DiploidByThresholding
                 ? (ILocusProcessor)new DiploidLocusProcessor()
                 : new SomaticLocusProcessor();
 

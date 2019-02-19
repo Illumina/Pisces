@@ -1,0 +1,69 @@
+﻿##fileformat=VCFv4.1
+##fileDate=20151029
+##source=Pisces 1.0.0.0
+##Pisces_cmdline="-B \\ussd-prd-isi04\OncoBU\users\COSMIC\ReadSimulation\MNV_25\MergedBamAll15\MNV-25-var216_S216.bam -g C:\Illumina\MiSeqAnalysisPortal\Genomes\Homo_sapiens\UCSC\hg19\Sequence\WholeGenomeFasta -OutFolder C:\ -gVCF false -StitchPairedReads false -CallMNVs false -OutFolder C:\Users\Documents\LiSim\216 -MaxMNVLength 5"
+##reference=C:\Illumina\MiSeqAnalysisPortal\Genomes\Homo_sapiens\UCSC\hg19\Sequence\WholeGenomeFasta
+##INFO=<ID=DP,Number=1,Type=Integer,Description="Total Depth">
+##INFO=<ID=TI,Number=.,Type=String,Description="Transcript ID">
+##INFO=<ID=GI,Number=.,Type=String,Description="Gene ID">
+##INFO=<ID=EXON,Number=0,Type=Flag,Description="Exon Region">
+##INFO=<ID=FC,Number=.,Type=String,Description="Functional Consequence">
+##FILTER=<ID=q30,Description="Quality below 30">
+##FILTER=<ID=LowDP,Description="Low coverage (DP tag), therefore no genotype called">
+##FILTER=<ID=SB,Description="Variant strand bias too high">
+##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">
+##FORMAT=<ID=GQ,Number=1,Type=Integer,Description="Genotype Quality">
+##FORMAT=<ID=AD,Number=.,Type=Integer,Description="Allele Depth">
+##FORMAT=<ID=VF,Number=1,Type=Float,Description="Variant Frequency">
+##FORMAT=<ID=NL,Number=1,Type=Integer,Description="Applied BaseCall Noise Level">
+##FORMAT=<ID=SB,Number=1,Type=Float,Description="StrandBias Score">
+##contig=<ID=chrM,length=16571>
+##contig=<ID=chr1,length=249250621>
+##contig=<ID=chr2,length=243199373>
+##contig=<ID=chr3,length=198022430>
+##contig=<ID=chr4,length=191154276>
+##contig=<ID=chr5,length=180915260>
+##contig=<ID=chr6,length=171115067>
+##contig=<ID=chr7,length=159138663>
+##contig=<ID=chr8,length=146364022>
+##contig=<ID=chr9,length=141213431>
+##contig=<ID=chr10,length=135534747>
+##contig=<ID=chr11,length=135006516>
+##contig=<ID=chr12,length=133851895>
+##contig=<ID=chr13,length=115169878>
+##contig=<ID=chr14,length=107349540>
+##contig=<ID=chr15,length=102531392>
+##contig=<ID=chr16,length=90354753>
+##contig=<ID=chr17,length=81195210>
+##contig=<ID=chr18,length=78077248>
+##contig=<ID=chr19,length=59128983>
+##contig=<ID=chr20,length=63025520>
+##contig=<ID=chr21,length=48129895>
+##contig=<ID=chr22,length=51304566>
+##contig=<ID=chrX,length=155270560>
+##contig=<ID=chrY,length=59373566>
+#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	MNV-25-var216_S216.bam
+chr10	34100	.	C	A	100	PASS	DP=10	GT:GQ:AD:VF:NL:SB	0/1:100:188,193:0.507:20:-100.0000
+chr10	34101	.	C	A	100	PASS	DP=10	GT:GQ:AD:VF:NL:SB	0/1:100:187,187:0.500:20:-100.0000
+chr10	34102	.	C	A	100	PASS	DP=10	GT:GQ:AD:VF:NL:SB	0/1:100:188,193:0.507:20:-100.0000
+chr10	34103	.	C	A	100	PASS	DP=10	GT:GQ:AD:VF:NL:SB	0/1:100:187,187:0.500:20:-100.0000
+chr10	7577500	.	C	G	100	PASS	DP=10	GT:GQ:AD:VF:NL:SB	0/1:100:188,193:0.507:20:-100.0000
+chr10	7577501	.	C	G	100	PASS	DP=2000	GT:GQ:AD:VF:NL:SB	0/1:100:187,187:0.500:20:-100.0000
+chr17	7577537	.	C	G	100	PASS	DP=10	GT:GQ:AD:VF:NL:SB	0/1:100:188,193:0.507:20:-100.0000
+chr17	7577538	.	C	G	100	PASS	DP=11	GT:GQ:AD:VF:NL:SB	0/1:100:187,187:0.500:20:-100.0000
+chr17	7577540	.	G	A	100	PASS	DP=13	GT:GQ:AD:VF:NL:SB	0/1:100:186,189:0.504:20:-100.0000
+chr17	7577541	.	T	A	100	PASS	DP=100	GT:GQ:AD:VF:NL:SB	0/1:100:190,187:0.496:20:-100.0000
+chr17	7577542	.	G	T	100	PASS	DP=101	GT:GQ:AD:VF:NL:SB	1/1:100:186,189:0.504:20:-100.0000
+chr17	7577543	.	T	C	100	PASS	DP=100	GT:GQ:AD:VF:NL:SB	1/.:100:190,187:0.496:20:-100.0000
+chr17	7577544	.	T	C	100	PASS	DP=56	GT:GQ:AD:VF:NL:SB	./.:100:190,187:0.496:20:-100.0000
+chr17	7577549	.	C	.	100	PASS	DP=10	GT:GQ:AD:VF:NL:SB	0/.:100:187,187:0.500:20:-100.0000
+chr17	7577550	.	C	.	100	PASS	DP=10	GT:GQ:AD:VF:NL:SB	0/0:100:187,187:0.500:20:-100.0000
+chr17	7577552	.	C	A	100	PASS	DP=15	GT:GQ:AD:VF:NL:SB	0/1:100:187,187:0.500:20:-100.0000
+chr17	7577553	.	T	C	100	PASS	DP=16	GT:GQ:AD:VF:NL:SB	./.:100:190,187:0.496:20:-100.0000
+chr17	7577554	.	C	.	100	PASS	DP=3700	GT:GQ:AD:VF:NL:SB	0/.:100:187,187:0.500:20:-100.0000
+chr17	7577555	.	C	.	100	PASS	DP=0	GT:GQ:AD:VF:NL:SB	0/0:100:187,187:0.500:20:-100.0000
+chr17	7577556	.	C	A	100	PASS	DP=0	GT:GQ:AD:VF:NL:SB	0/1:100:187,187:0.500:20:-100.0000
+chr17	7577557	.	C	A	100	PASS	DP=0	GT:GQ:AD:VF:NL:SB	0/1:100:187,187:0.500:20:-100.0000
+chr17	7577558	.	C	A	100	PASS	DP=0	GT:GQ:AD:VF:NL:SB	0/1:100:187,187:0.500:20:-100.0000
+chr20	7577554	.	C	G	100	PASS	DP=3700	GT:GQ:AD:VF:NL:SB	0/.:100:187,187:0.500:20:-100.0000
+chr20	7577555	.	C	.	100	PASS	DP=0	GT:GQ:AD:VF:NL:SB	0/0:100:187,187:0.500:20:-100.0000

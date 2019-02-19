@@ -1,7 +1,7 @@
 ﻿using System;
 using System.IO;
-using System.Collections.Generic;
 using Alignment.Domain.Sequencing;
+using Common.IO.Utility;
 using Pisces.Domain.Types;
 using Pisces.Domain.Utility;
 
@@ -93,6 +93,38 @@ namespace Pisces.Domain.Models
         {
             get { return EndPosition + (int)CigarData.GetSuffixClip(); }
         }
+
+        public string ClippedSuffix	
+        {	
+            get	
+            {	
+                if (EndsWithSoftClip)	
+                {	
+                    return Sequence.Substring(ReadLength - (int) CigarData.GetSuffixClip());	
+                }	
+                else	
+                {	
+                    return "";	
+                }	
+            }	
+        }	
+	
+        public string ClippedPrefix
+        {
+            get
+            {
+                if (StartsWithSoftClip)
+                {
+                    return Sequence.Substring(0, (int)CigarData.GetPrefixClip());
+                }
+                else
+                {
+                    return "";
+                }
+            }
+        }
+
+
         public int MatePosition { get { return BamAlignment.MatePosition + 1; } }
         public string Name { get { return BamAlignment.Name; } } // cluster name
         public bool IsMapped { get { return BamAlignment.IsMapped(); } }
@@ -103,6 +135,11 @@ namespace Pisces.Domain.Models
         public bool IsProperPair { get { return BamAlignment.IsProperPair(); } }
         public uint MapQuality { get { return BamAlignment.MapQuality; } }
         public bool IsFirstMate { get { return BamAlignment.IsFirstMate(); } }
+        public bool StartsWithSoftClip { get { return (HasCigar && CigarData[0].Type == 'S'); } }	
+        public bool EndsWithSoftClip { get { return (HasCigar && CigarData[CigarData.Count - 1].Type == 'S'); } }
+
+
+
 
         public string Chromosome { get; private set; }
 
@@ -260,7 +297,7 @@ namespace Pisces.Domain.Models
         private void UpdateFromBam()
         {
             if (BamAlignment.CigarData != null)
-                ValidateCigar(BamAlignment.CigarData, BamAlignment.Bases.Length);
+                ValidateCigar(BamAlignment.CigarData, BamAlignment.Bases.Length, BamAlignment.Name);
             _stitchedCigarInitialized = _directionCigarInitialized = _sequencedBaseDirectionMapInitialized = _positionMapInitialized = false;
             _isDuplex = null;
 
@@ -334,7 +371,7 @@ namespace Pisces.Domain.Models
                 _positionMap[i] = -1;
             }
             if (CigarData != null && CigarData.Count > 0)
-                UpdatePositionMap(Position, CigarData, _positionMap);
+                UpdatePositionMap(Position, Name, CigarData, _positionMap);
             _positionMapInitialized = true;
         }
 
@@ -474,10 +511,10 @@ namespace Pisces.Domain.Models
             }
         }
 
-        public static void UpdatePositionMap(int position, CigarAlignment cigarData, int[] positionMap, bool differentiateSoftClip = false)
+        public static void UpdatePositionMap(int position, string readName, CigarAlignment cigarData, int[] positionMap, bool differentiateSoftClip = false)
         {
             if (cigarData != null)
-                ValidateCigar(cigarData, positionMap.Length);
+                ValidateCigar(cigarData, positionMap.Length, readName);
 
             int readIndex = 0;
             int referencePosition = position;
@@ -503,13 +540,17 @@ namespace Pisces.Domain.Models
             }
         }
 
-        private static void ValidateCigar(CigarAlignment cigarData, int readLength)
+        private static void ValidateCigar(CigarAlignment cigarData, int readLength, string readName)
         {
             if (cigarData.Count == 1 && (cigarData[0].Type == 'I' || cigarData[0].Type == 'D'))
-                throw new InvalidDataException(string.Format("Invalid cigar '{0}': indel must have anchor", cigarData));
+            {
+                //tjd: change this to a warning to be more gentle to BWA-mem results
+                //throw new InvalidDataException(string.Format("Invalid cigar '{0}': indel must have anchor", cigarData));
+                Logger.WriteWarningToLog("Anomalous alignment {0}. '{1}': indel without anchor", readName, cigarData);
+            }
 
             if (cigarData.Count > 0 && cigarData.GetReadSpan() != readLength)
-                throw new InvalidDataException(string.Format("Invalid cigar '{0}': does not match length {1} of read", cigarData,
+                throw new InvalidDataException(string.Format("Check alignment {0}. Invalid cigar '{1}': does not match length {2} of read", readName, cigarData,
                     readLength));
         }
 

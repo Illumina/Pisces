@@ -77,11 +77,7 @@ namespace Stitcher.Tests
                    Path.Combine(outFolder, "StitcherLogs", "StitcherLog.txt")
             };
 
-            foreach (var file in expectedOutputFiles)
-            {
-                if (File.Exists(file))
-                    File.Delete(file);
-            }
+            TestUtilities.TestHelper.CavalierDelete(expectedOutputFiles);
 
             Assert.Equal((int)ExitCodeType.Success, Program.Main(arguments));
             Assert.True(Directory.Exists(outFolder));
@@ -91,11 +87,7 @@ namespace Stitcher.Tests
                 Assert.True(File.Exists(file));
             }
 
-            foreach (var file in expectedOutputFiles)
-            {
-                if (File.Exists(file))
-                    File.Delete(file);
-            }
+            TestUtilities.TestHelper.CavalierDelete(expectedOutputFiles);
 
 
             //test #2: Output dir derived from input dir 
@@ -119,11 +111,7 @@ namespace Stitcher.Tests
                    Path.Combine(outFolder2, "StitcherLogs", "StitcherLog.txt")
             };
 
-            foreach (var file in expectedOutputFiles)
-            {
-                if (File.Exists(file))
-                    File.Delete(file);
-            }
+            TestUtilities.TestHelper.CavalierDelete(expectedOutputFiles);
 
             Assert.Equal((int)ExitCodeType.Success, Program.Main(arguments));
             Assert.True(Directory.Exists(outFolder));
@@ -133,11 +121,7 @@ namespace Stitcher.Tests
                 Assert.True(File.Exists(file));
             }
 
-            foreach (var file in expectedOutputFiles)
-            {
-                if (File.Exists(file))
-                    File.Delete(file);
-            }
+            TestUtilities.TestHelper.CavalierDelete(expectedOutputFiles);
 
 
             //test #3: Overriding log folder name
@@ -147,7 +131,7 @@ namespace Stitcher.Tests
                 Directory.CreateDirectory(outFolder3);
             var userLogName = "SnoopDogLog.McLog";
 
-            arguments = new string[] { "-bam", bamPath, "-OutFolder", outFolder3, "-LogFileName" , userLogName };
+            arguments = new string[] { "-bam", bamPath, "-OutFolder", outFolder3, "-LogFileName", userLogName };
 
 
             expectedOutputFiles = new List<string>()
@@ -157,11 +141,7 @@ namespace Stitcher.Tests
                    Path.Combine(outFolder3, "StitcherLogs", userLogName)
             };
 
-            foreach (var file in expectedOutputFiles)
-            {
-                if (File.Exists(file))
-                    File.Delete(file);
-            }
+            TestUtilities.TestHelper.CavalierDelete(expectedOutputFiles);
 
             Assert.Equal((int)ExitCodeType.Success, Program.Main(arguments));
             Assert.True(Directory.Exists(outFolder));
@@ -171,12 +151,9 @@ namespace Stitcher.Tests
                 Assert.True(File.Exists(file));
             }
 
-            foreach (var file in expectedOutputFiles)
-            {
-                if (File.Exists(file))
-                    File.Delete(file);
-            }
+            TestUtilities.TestHelper.CavalierDelete(expectedOutputFiles);
 
         }
+  
     }
 }

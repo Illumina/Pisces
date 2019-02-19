@@ -1,0 +1,48 @@
+##fileformat=VCFv4.1
+##fileDate=20180802
+##source=Pisces 5.2.5.20
+##Pisces_cmdline="-bam /illumina/scratch/pisces/BamSubset/sorted.bam -CallMNVs false -g /illumina/scratch/iGenomes/Homo_sapiens/Ensembl/GRCh37/Sequence/WholeGenomeFasta25 -RMxNFilter 5,9,0.35"
+##VcfPostProcessor=VennVcf 1.0.0.0
+##reference=/illumina/scratch/iGenomes/Homo_sapiens/Ensembl/GRCh37/Sequence/WholeGenomeFasta
+##ALT=<ID=<M>,Description="There is an overlapping other allele that has been called in a separate VCF record">
+##INFO=<ID=DP,Number=1,Type=Integer,Description="Total Depth">
+##FILTER=<ID=q30,Description="Quality score less than 30">
+##FILTER=<ID=LowDP,Description="Low coverage (DP tag), therefore no genotype called">
+##FILTER=<ID=SB,Description="Variant strand bias too high">
+##FILTER=<ID=R5x9,Description="Repeats of part or all of the variant allele (max repeat length 5) in the reference greater than or equal to 9">
+##FILTER=<ID=PB,Description="Probe pool bias - variant not found, or found with low frequency, in one of two probe pools, by VennVcf">
+##FILTER=<ID=NC,Description="No-call rate is above 0.6, by VennVcf">
+##FILTER=<ID=NC,Description="No-call rate is above 0.6, by VennVcf">
+##FILTER=<ID=NC,Description="No-call rate is above 0.6, by VennVcf">
+##FILTER=<ID=NC,Description="No-call rate is above 0.6, by VennVcf">
+##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">
+##FORMAT=<ID=GQ,Number=1,Type=Integer,Description="Genotype Quality">
+##FORMAT=<ID=AD,Number=.,Type=Integer,Description="Allele Depth">
+##FORMAT=<ID=DP,Number=1,Type=Integer,Description="Total Depth Used For Variant Calling">
+##FORMAT=<ID=VF,Number=.,Type=Float,Description="Variant Frequency">
+##FORMAT=<ID=NL,Number=1,Type=Integer,Description="Applied BaseCall Noise Level">
+##FORMAT=<ID=SB,Number=1,Type=Float,Description="StrandBias Score">
+##contig=<ID=1,length=249250621>
+##contig=<ID=2,length=243199373>
+##contig=<ID=4,length=191154276>
+##contig=<ID=7,length=159138663>
+##contig=<ID=9,length=141213431>
+##contig=<ID=11,length=135006516>
+##contig=<ID=12,length=133851895>
+##contig=<ID=13,length=115169878>
+##contig=<ID=15,length=102531392>
+##contig=<ID=17,length=81195210>
+##contig=<ID=19,length=59128983>
+##contig=<ID=20,length=63025520>
+##contig=<ID=21,length=48129895>
+##contig=<ID=X,length=155270560>
+#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	SRR5627625.bam.sorted.bam
+2	25497924	.	G	C	100	PASS	DP=152	GT:GQ:AD:DP:VF:NL:SB	0/1:100:137,15:152:0.099:20:-8.5405
+2	198267360	.	T	A	100	SB	DP=8569	GT:GQ:AD:DP:VF:NL:SB	0/1:100:6272,2280:8569:0.266:20:-0.0163
+4	106196235	.	A	T	42	PASS	DP=1741	GT:GQ:AD:DP:VF:NL:SB	0/1:42:1700,36:1741:0.021:20:-13.0971
+4	106196245	.	G	GCCCA	23	q30	DP=1708	GT:GQ:AD:DP:VF:NL:SB	0/1:23:1679,29:1708:0.017:20:-19.9998
+17	74733275	.	T	TG	26	q30	DP=26	GT:GQ:AD:DP:VF:NL:SB	0/1:26:23,3:26:0.115:20:-100.0000
+20	31022278	.	A	C	23	q30	DP=959	GT:GQ:AD:DP:VF:NL:SB	0/1:23:938,19:959:0.020:20:-4.3077
+20	31025007	.	A	G	100	PASS	DP=2087	GT:GQ:AD:DP:VF:NL:SB	0/1:100:2008,79:2087:0.038:20:-100.0000
+21	36164525	.	G	C	20	LowDP;q30	DP=1	GT:GQ:AD:DP:VF:NL:SB	./.:0:0,1:1:1.000:20:-100.0000
+21	36164538	.	AG	A	65	PASS	DP=1011	GT:GQ:AD:DP:VF:NL:SB	0/1:65:981,30:1011:0.030:20:-100.0000

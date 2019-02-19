@@ -87,7 +87,7 @@ namespace Pisces.Calculators
                         _positionMap = new int[readLength];
 
                     Read.UpdateDirectionMap(directionInfo, _directionMap);
-                    Read.UpdatePositionMap(spanningRead.ClipAdjustedStartPosition - (int)cigarData.GetPrefixClip(), cigarData, _positionMap, true);
+                    Read.UpdatePositionMap(spanningRead.ClipAdjustedStartPosition - (int)cigarData.GetPrefixClip(), "SpanningReadSummary", cigarData, _positionMap, true);
 
                     var indexBoundaries = GetIndexBoundaries(precedingPosition, trailingPosition, _positionMap);
 

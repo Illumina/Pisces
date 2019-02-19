@@ -9,5 +9,6 @@ namespace VariantPhasing.Interfaces
         List<VeadGroup> GetVeadGroups();
         int[] CountsAtSites { get; }
         VariantSite[] GetConsensusSites();
+        int GetClusterReferenceSupport(IEnumerable<ICluster> clusters);
     }
 }

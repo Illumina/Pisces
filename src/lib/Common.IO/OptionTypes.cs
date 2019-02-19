@@ -24,6 +24,7 @@
         public const string VcfWriting = "VCF_WRITER";
         public const string Clustering = "CLUSTERING";
         public const string PhasableCriteria = "PHASABLE_CRITERIA";
+        public const string ClippedReadSupport = "CLIPPED_SUPPORT";
 
     }
 }

@@ -18,7 +18,7 @@ namespace VariantPhasing.Tests.Logic
         public void GetVeads()
         {
 
-            var vcfNeighborhood = new VcfNeighborhood(new VariantCallingParameters(), 0, "chr1", new VariantSite(10000), new VariantSite(200000), "T")
+            var vcfNeighborhood =new VcfNeighborhood(0, "chr1", new VariantSite(10000), new VariantSite(200000))
             {
                 VcfVariantSites = new List<VariantSite>
                 {
@@ -29,6 +29,8 @@ namespace VariantPhasing.Tests.Logic
                     new VariantSite(800){VcfReferenceAllele = "A", VcfAlternateAllele = "C"},
                 }
             };
+
+            var callableNeighborhood = new CallableNeighborhood(vcfNeighborhood, new VariantCallingParameters());
 
             var reads = new List<Read>();
             reads.Add(CreateRead("chr1", "ACGT", 10)); // Before neighborhood
@@ -44,7 +46,7 @@ namespace VariantPhasing.Tests.Logic
             reads.Add(CreateRead("chr2", "ACGT", 100)); // Wrong chromosome
 
 
-            vcfNeighborhood.SetRangeOfInterest();
+
 
             var alignmentExtractor = new MockAlignmentExtractor(reads);
 
@@ -52,7 +54,7 @@ namespace VariantPhasing.Tests.Logic
             var veadSource = new VeadGroupSource(alignmentExtractor,
                 new BamFilterParameters() { MinimumMapQuality = 20 }, false, "");
 
-            var veadGroups = veadSource.GetVeadGroups(vcfNeighborhood);
+            var veadGroups = veadSource.GetVeadGroups(callableNeighborhood);
 
             // Collect all reads that could relate to the neighborhood
             // - Skip anything that has quality less than MinimumMapQuality
@@ -60,7 +62,7 @@ namespace VariantPhasing.Tests.Logic
             // - Stop collecting once we've passed the end of the neighborhood
 
             // We should have collected the reads at 100, 700, and 800.
-            Assert.Equal(801, vcfNeighborhood.LastPositionOfInterestWithLookAhead);
+            Assert.Equal(801, callableNeighborhood.LastPositionOfInterestWithLookAhead);
             Assert.Equal(3, veadGroups.Count());
             Assert.Equal(1, veadGroups.Count(v => v.RepresentativeVead.Name.EndsWith("100")));
             Assert.Equal(1, veadGroups.Count(v => v.RepresentativeVead.Name.EndsWith("700")));
@@ -75,8 +77,10 @@ namespace VariantPhasing.Tests.Logic
             vcfNeighborhood.VcfVariantSites.Add(
                 new VariantSite(790) { VcfReferenceAllele = "ACAGTGAAAGACTTGTGAC", VcfAlternateAllele = "C" });
 
-            vcfNeighborhood.SetRangeOfInterest();
-            Assert.Equal(809, vcfNeighborhood.LastPositionOfInterestWithLookAhead);
+            callableNeighborhood = new CallableNeighborhood(vcfNeighborhood, new VariantCallingParameters());
+
+
+            Assert.Equal(809, callableNeighborhood.LastPositionOfInterestWithLookAhead);
 
             alignmentExtractor = new MockAlignmentExtractor(reads);
 
@@ -84,7 +88,7 @@ namespace VariantPhasing.Tests.Logic
             veadSource = new VeadGroupSource(alignmentExtractor,
                 new BamFilterParameters() { MinimumMapQuality = 20 }, false, "");
 
-            veadGroups = veadSource.GetVeadGroups(vcfNeighborhood);
+            veadGroups = veadSource.GetVeadGroups(callableNeighborhood);
 
             Assert.Equal(3, veadGroups.Count());
             Assert.Equal(1, veadGroups.Count(v => v.RepresentativeVead.Name.EndsWith("100")));
@@ -104,7 +108,7 @@ namespace VariantPhasing.Tests.Logic
 
             veadSource = new VeadGroupSource(alignmentExtractor, new BamFilterParameters() { MinimumMapQuality = 20 }, false, "");
 
-            veadGroups = veadSource.GetVeadGroups(vcfNeighborhood);
+            veadGroups = veadSource.GetVeadGroups(callableNeighborhood);
 
             // The veadgroup for 97 should be the only one
             Assert.Equal(1, veadGroups.Count());
@@ -131,11 +135,11 @@ namespace VariantPhasing.Tests.Logic
                 CreateReadFromStringArray(new string[2,2]{{"C","C"},{"G","N"}}),
                 CreateReadFromStringArray(new string[2,2]{{"C","C"},{"G","N"}}),
                 CreateReadFromStringArray(new string[2,2]{{"C","C"},{"G","N"}}),
-                CreateReadFromStringArray(new string[2,2]{{"C","C"},{"G","N"}}),             
+                CreateReadFromStringArray(new string[2,2]{{"C","C"},{"G","N"}}),
             };
 
 
-            ExecuteGroupingTest(veads, new List<int>(){4}, new List<Tuple<int, string, string>>()
+            ExecuteGroupingTest(veads, new List<int>() { 4 }, new List<Tuple<int, string, string>>()
             {
                 new Tuple<int, string, string>(100,"C","C"),
                 new Tuple<int, string, string>(101,"G","N")
@@ -151,9 +155,9 @@ namespace VariantPhasing.Tests.Logic
                 CreateReadFromStringArray(new string[2,2]{{"A","G"},{"N","N"}}),
                 CreateReadFromStringArray(new string[2,2]{{"A","G"},{"C","C"}}),
                 CreateReadFromStringArray(new string[2,2]{{"A","A"},{"C","C"}}),
-                CreateReadFromStringArray(new string[2,2]{{"A","G"},{"C","A"}}),            
+                CreateReadFromStringArray(new string[2,2]{{"A","G"},{"C","A"}}),
                 CreateReadFromStringArray(new string[2,2]{{"N","N"},{"C","C"}}),
-                CreateReadFromStringArray(new string[2,2]{{"N","N"},{"C","A"}}),    
+                CreateReadFromStringArray(new string[2,2]{{"N","N"},{"C","A"}}),
             };
 
             ExecuteGroupingTest(veads, new List<int>() { 1, 1, 1, 1, 1, 1 }, new List<Tuple<int, string, string>>()
@@ -185,7 +189,7 @@ namespace VariantPhasing.Tests.Logic
                 CreateReadFromStringArray(new string[6,2]{{"C","A"},{"C","A"},{"C","A"},{"C","A"},{"N","N"},{"C","A"}}),
             };
 
-            ExecuteGroupingTest(veads, new List<int>(){3, 5, 1, 1}, new List<Tuple<int,string, string>>
+            ExecuteGroupingTest(veads, new List<int>() { 3, 5, 1, 1 }, new List<Tuple<int, string, string>>
             {
                 new Tuple<int, string, string>(100,"C","C"),
                 new Tuple<int, string, string>(100,"C","A"),
@@ -219,14 +223,14 @@ namespace VariantPhasing.Tests.Logic
             var alignmentExtractor = new MockAlignmentExtractor(reads);
 
             var veadSource = new VeadGroupSource(alignmentExtractor, new BamFilterParameters() { MinimumMapQuality = 20 }, false, "");
-            var vcfNeighborhood = new VcfNeighborhood(new VariantCallingParameters(),0, "chr1", new VariantSite(120), new VariantSite(121), "T")
+            var vcfNeighborhood = new VcfNeighborhood(0, "chr1", new VariantSite(120), new VariantSite(121))
             {
                 VcfVariantSites = variantSites
             };
 
-            vcfNeighborhood.SetRangeOfInterest();
+            var callableNeighborhood = new CallableNeighborhood(vcfNeighborhood, new VariantCallingParameters());
 
-            var veadGroups = veadSource.GetVeadGroups(vcfNeighborhood).ToList();
+            var veadGroups = veadSource.GetVeadGroups(callableNeighborhood).ToList();
 
             Assert.Equal(expectedGroupMemberships.Count, veadGroups.Count());
             for (var i = 0; i < veadGroups.Count(); i++)
@@ -236,7 +240,7 @@ namespace VariantPhasing.Tests.Logic
         }
 
 
-        private static Read CreateReadFromStringArray(string[,] variantSites, int position=100)
+        private static Read CreateReadFromStringArray(string[,] variantSites, int position = 100)
         {
             var readSequence = "";
             for (var index00 = 0; index00 < variantSites.GetLength(0); index00++)

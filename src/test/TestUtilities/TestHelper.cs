@@ -1,5 +1,6 @@
 ﻿using System.IO;
 using System.Collections.Generic;
+using System.Linq;
 using Alignment.Domain.Sequencing;
 using Pisces.IO.Sequencing;
 using Pisces.Domain.Models;
@@ -183,6 +184,70 @@ namespace TestUtilities
             return calledAllele;
         }
 
+        public static void RecreateDirectory(string directory)
+        {
+            AgressivelyRemoveDirectory(directory);
+            Directory.CreateDirectory(directory);
+        }
+
+        /// <summary>
+        /// This does a bit more than the native Directory.Delete() with recursive deleting.
+        /// The native one Directory delete can be recursive, but it demands all files inside 
+        /// it first be deleted and throws if the file it saw is now already gone. 
+        /// This new method is more aggressive, deleting anything it finds
+        /// It should only be used for cleaning out test folders. . Not on actual tests, or on actual real code.
+        /// </summary>
+        /// <param name="directory"></param>
+        public static void AgressivelyRemoveDirectory(string directory)
+        {
+            if (Directory.Exists(directory))
+            {
+                var files = Directory.GetFiles(directory);
+
+                foreach (var file in files)
+                   CavalierDeleteFile(file);
+
+                var directories = Directory.GetDirectories(directory);
+
+                foreach (var dir in directories)
+                {
+                    AgressivelyRemoveDirectory(dir);
+                }
+
+                Directory.Delete(directory);
+            }
+                    
+        }
+
+        /// <summary>
+        /// These are clean up routines for unit tests. Sometimes unit tests happen in a strange order, depending on the test harness used.
+        /// Our loggers tend to be static, which keeps the code simple.
+        /// but this occaisionally causes unit tests to step on each other's toes when they race to clean up after themselves.
+        /// </summary>
+        /// <param name="FilesToDelete"></param>
+        public static void CavalierDelete(List<string> FilesToDelete)
+        {
+            foreach (var file in FilesToDelete)
+            {
+               CavalierDeleteFile(file);
+            }
+        }
+
+        public static void CavalierDeleteFile(string file)
+        {
+            try
+            {
+                if (File.Exists(file))
+                {
+                    File.Delete(file);
+                }
+            }
+            catch
+            {
+                //don't worry about it.
+            }
+        }
+
         public static void CompareFiles(string testfile, string expectedFile)
         {
             Assert.True(File.Exists(testfile), "Looking for: " + testfile);
@@ -201,5 +266,35 @@ namespace TestUtilities
                     Assert.Equal(expectedLines[i], observedLines[i]);
             }
         }
+
+        // Moved here from VeadSourceTests
+
+        public static Read CreateRead(string chr, string sequence, int position,
+    CigarAlignment cigar = null, byte[] qualities = null, int matePosition = 0, byte qualityForAll = 30)
+        {
+            return new Read(chr,
+                new BamAlignment
+                {
+                    Bases = sequence,
+                    Position = position - 1,
+                    CigarData = cigar ?? new CigarAlignment(sequence.Length + "M"),
+                    Qualities = qualities ?? Enumerable.Repeat(qualityForAll, sequence.Length).ToArray(),
+                    MatePosition = matePosition - 1,
+                    MapQuality = qualityForAll
+                }
+                );
+        }
+        // Moved here from VeadSourceTests
+        public static Read CreateReadFromStringArray(string[,] variantSites, int position = 100)
+        {
+            var readSequence = "";
+            for (var index00 = 0; index00 < variantSites.GetLength(0); index00++)
+            {
+                readSequence += variantSites[index00, 1];
+            }
+
+            return CreateRead("chr1", readSequence, position);
+        }
+
     }
 }

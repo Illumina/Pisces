@@ -1,5 +1,4 @@
 ﻿using System.IO;
-using Common.IO.Utility;
 using Xunit;
 
 namespace Scylla.Tests
@@ -16,7 +15,9 @@ namespace Scylla.Tests
             var outDir = Path.Combine(TestPaths.LocalScratchDirectory, "GeneralExecution");
             var outVcf = Path.Combine(outDir, "chr21_11085587_S1.phased.genome.vcf");
 
-            string[] args = new string[] { "-bam", "myBam", "-vcf", "myVcf", "-out", outDir, "-ncfilter", "1"};
+            TestUtilities.TestHelper.RecreateDirectory(outDir);
+
+            string[] args = new string[] { "-bam", "myBam", "-vcf", "myVcf", "-out", outDir, "-ncfilter", "1" };
             CheckIt(inBam, inVcf, expVcf, outVcf, args);
 
         }
@@ -29,6 +30,8 @@ namespace Scylla.Tests
             var expSomaticVcf = Path.Combine(TestPaths.LocalTestDataDirectory, "small_S1.out.somatic.genome.vcf");
             var outDir = Path.Combine(TestPaths.LocalScratchDirectory, "SomaticExecution");
             var outVcf = Path.Combine(outDir, "small_S1.phased.genome.vcf");
+
+            TestUtilities.TestHelper.RecreateDirectory(outDir);
 
             string[] args = new string[] { "-bam", "myBam", "-vcf", "myVcf", "-out", outDir, "-ploidy", "somatic", "-ncfilter", "1" };
             CheckIt(inBam, inVcf, expSomaticVcf, outVcf, args);
@@ -44,11 +47,48 @@ namespace Scylla.Tests
             var outDir = Path.Combine(TestPaths.LocalScratchDirectory, "DiploidExecution");
             var outVcf = Path.Combine(outDir, "small_S1.phased.genome.vcf");
 
+            TestUtilities.TestHelper.RecreateDirectory(outDir);
+
             string[] args = new string[] { "-bam", "myBam", "-vcf", "myVcf", "-out", outDir, "-crushvcf", "true",
                 "-ploidy", "diploid", "-diploidINDELgenotypeparameters", "0.20,0.70,0.80",
                 "-diploidSNVgenotypeparameters", "0.20,0.70,0.80", "-ncfilter", "1" };
             CheckIt(inBam, inVcf, expDiploidVcf, outVcf, args);
 
+        }
+
+
+        [Fact]
+        public void TestSomaticOnBugNoGenomeExecution()
+        {
+            var inBam = Path.Combine(TestPaths.SharedBamDirectory, "Bcereus_S4.bam");
+            var inVcf = Path.Combine(TestPaths.LocalTestDataDirectory, "Bcereus_S4.vcf");
+            var inGenome = Path.Combine(TestPaths.SharedGenomesDirectory, "Bacillus_cereus", "Sequence", "WholeGenomeFasta");
+            var expectedPhasedVcf = Path.Combine(TestPaths.LocalTestDataDirectory, "Bcereus_S4.out.Rs.phased.vcf");
+            var outDir = Path.Combine(TestPaths.LocalScratchDirectory, "BugNoGenomeExecution");
+            var outVcf = Path.Combine(outDir, "Bcereus_S4.phased.vcf");
+
+            TestUtilities.TestHelper.RecreateDirectory(outDir);
+
+            string[] args = new string[] { "-bam", "myBam", "-vcf", "myVcf", "-out", outDir};
+            CheckIt(inBam, inVcf, expectedPhasedVcf, outVcf, args);
+            
+        }
+
+        [Fact]
+        public void TestSomaticOnBugWithGenomeExecution()
+        {
+
+            var inBam = Path.Combine(TestPaths.SharedBamDirectory, "Bcereus_S4.bam");
+            var inVcf = Path.Combine(TestPaths.LocalTestDataDirectory, "Bcereus_S4.vcf");
+            var inGenome = Path.Combine(TestPaths.SharedGenomesDirectory, "Bacillus_cereus", "Sequence", "WholeGenomeFasta");
+            var expectedPhasedVcf = Path.Combine(TestPaths.LocalTestDataDirectory, "Bcereus_S4.out.phased.vcf");
+            var outDir = Path.Combine(TestPaths.LocalScratchDirectory, "BugWithGenomeExecution");
+            var outVcf = Path.Combine(outDir, "Bcereus_S4.phased.vcf");
+
+            TestUtilities.TestHelper.RecreateDirectory(outDir);
+
+            string[] args = new string[] { "-bam", "myBam", "-vcf", "myVcf", "-out", outDir, "-g", inGenome };
+            CheckIt(inBam, inVcf, expectedPhasedVcf, outVcf, args);
         }
 
         private static void CheckIt(string inBam, string inVcf, string expVcf, string outVcf, string[] args)
@@ -58,27 +98,7 @@ namespace Scylla.Tests
            
             Program.Main(args);
 
-            var outFileLines = File.ReadAllLines(outVcf);
-            var expFileLines = File.ReadAllLines(expVcf);
-
-            Assert.Equal(outFileLines.Length, expFileLines.Length);
-            for (int i = 0; i < expFileLines.Length; i++)
-            {
-                //let command lines differ
-                if (expFileLines[i].StartsWith("##Scylla_cmdline"))
-                {
-                    Assert.True(outFileLines[i].StartsWith("##Scylla_cmdline"));
-                    continue;
-                }
-
-                //let version numbers differ
-                if (expFileLines[i].StartsWith("##VariantPhaser=Scylla"))
-                {
-                    Assert.True(outFileLines[i].StartsWith("##VariantPhaser=Scylla"));
-                    continue;
-                }
-                Assert.Equal(expFileLines[i], outFileLines[i]);
-            }
+            TestUtilities.TestHelper.CompareFiles(outVcf, expVcf);
 
             if (File.Exists(outVcf))
                 File.Delete(outVcf);
