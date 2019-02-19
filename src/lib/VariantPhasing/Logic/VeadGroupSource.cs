@@ -18,6 +18,7 @@ namespace VariantPhasing.Logic
         private readonly BamFilterParameters _options;
         private readonly bool _debugMode;
         private readonly string _debugLogRoot;
+        private readonly NeighborhoodReadFilter _readfilter;
 
         public VeadGroupSource(IAlignmentExtractor alignmentExtractor, BamFilterParameters options, bool debugMode, string logFolder)
         {
@@ -25,9 +26,10 @@ namespace VariantPhasing.Logic
             _options = options;
             _debugMode = debugMode;
             _debugLogRoot = logFolder;
+            _readfilter = new NeighborhoodReadFilter(_options);
         }
 
-        public IEnumerable<VeadGroup> GetVeadGroups(VcfNeighborhood neighborhood)
+        public IEnumerable<VeadGroup> GetVeadGroups(CallableNeighborhood neighborhood)
         {
             var veadGroups = new Dictionary<string, VeadGroup>();
 
@@ -51,14 +53,18 @@ namespace VariantPhasing.Logic
                     break; // no more reads
                 }
 
+                if (_readfilter.IsClippedWithinNeighborhood(read, neighborhood))             {
+                    neighborhood.NumberClippedReads++;
+                                        // continue	
+                                    }
 
-                if (ShouldSkipRead(read, neighborhood))
+                if (_readfilter.ShouldSkipRead(read, neighborhood))
                 {
 
                     //WriteToReadLog(debugLog,(string.Join("\t", read.Name, "skipped", read.IsFirstMate, read.CigarData.ToString(), read.Position)));
                     continue;
                 }
-                if (PastNeighborhood(read, neighborhood))
+                if (_readfilter.PastNeighborhood(read, neighborhood))
                 {
                     //WriteToReadLog(debugLog,(string.Join("\t", read.Name, "past nbhd", read.IsFirstMate, read.CigarData.ToString(), read.Position)));
                     break;
@@ -134,11 +140,14 @@ namespace VariantPhasing.Logic
             }
         }
 
+        /* 
+        // method moved to ReadFilter
         private bool PastNeighborhood(Read read, VcfNeighborhood neighborhood)
         {
             return read.Position > neighborhood.LastPositionOfInterestWithLookAhead;
         }
 
+        // method moved to ReadFilter
         private bool ShouldSkipRead(Read read, VcfNeighborhood neighborhood)
         {
             if (_options.RemoveDuplicates)
@@ -156,6 +165,6 @@ namespace VariantPhasing.Logic
                 return true;
 
             return false;
-        }
+        }*/
     }
 }

@@ -213,7 +213,8 @@ namespace Pisces.Domain.Tests
             ExecuteParsingOnlyTest(@"-OutFolder C:\out", true, (o) => Assert.Equal(@"C:\out", o.OutputDirectory));
             ExecuteParsingOnlyTest(@"-bampaths C:\bamfolder", true, (o) => Assert.Equal(@"C:\bamfolder", o.BAMPaths[0]));
             ExecuteParsingOnlyTest(@"-vffilter 20.1", true, (o) => Assert.Equal(20.1f, o.VariantCallingParameters.MinimumFrequencyFilter));
-            ExecuteParsingOnlyTest(@"-ploidy diploid", true, (o) => Assert.Equal(PloidyModel.Diploid, o.VariantCallingParameters.PloidyModel));
+            ExecuteParsingOnlyTest(@"-ploidy diploid", true, (o) => Assert.Equal(PloidyModel.DiploidByThresholding, o.VariantCallingParameters.PloidyModel));
+            ExecuteParsingOnlyTest(@"-ploidy diploidByadaptiveGT", true, (o) => Assert.Equal(PloidyModel.DiploidByAdaptiveGT, o.VariantCallingParameters.PloidyModel));
             ExecuteParsingOnlyTest(@"-repeatfilter_ToBeRetired 5", true, (o) => Assert.Equal(5, o.VariantCallingParameters.IndelRepeatFilter));
             ExecuteParsingOnlyTest(@"-DuplicateReadFilter false", true, (o) => Assert.Equal(false, o.BamFilterParameters.RemoveDuplicates));
             ExecuteParsingOnlyTest(@"-mindpfilter 3", true, (o) => Assert.Equal(3, o.VariantCallingParameters.LowDepthFilter));
@@ -246,8 +247,7 @@ namespace Pisces.Domain.Tests
             ExecuteParsingOnlyTest(@"-RMxNFilter yourmom", false);
             ExecuteParsingOnlyTest(@"-ThreadByChr true", true, (o) => Assert.True(o.ThreadByChr));
             ExecuteParsingOnlyTest(@"-ThreadByChr boo", false);
-            ExecuteParsingOnlyTest(@"-Mono boo", false );//  < -removed support for this option
-            ExecuteParsingOnlyTest(@"-mono boo2", false);// < -removed support for this option
+            ExecuteParsingOnlyTest(@"-diploidbinomialmodel boo", false);
             ExecuteParsingOnlyTest(@"-SkipNonIntervalAlignments meh", false);  //<- change after argument refactor. We are no longer being kind to unsupported arguments.
 
             ExecuteParsingOnlyTest(@"-ncfilter 0.4", true, (o) => Assert.True(0.4f == o.VariantCallingParameters.NoCallFilterThreshold));
@@ -562,22 +562,22 @@ namespace Pisces.Domain.Tests
             //FilteredLowGenomeQuality Scenarios
             ExecuteValidationTest((o) =>
             {
-                o.VariantCallingParameters.PloidyModel = PloidyModel.Diploid;
+                o.VariantCallingParameters.PloidyModel = PloidyModel.DiploidByThresholding;
                 o.VariantCallingParameters.LowGenotypeQualityFilter = 0;
             }, true);
             ExecuteValidationTest((o) =>
             {
-                o.VariantCallingParameters.PloidyModel = PloidyModel.Diploid;
+                o.VariantCallingParameters.PloidyModel = PloidyModel.DiploidByThresholding;
                 o.VariantCallingParameters.LowGenotypeQualityFilter = 100;
             }, true);
             ExecuteValidationTest((o) =>
             {
-                o.VariantCallingParameters.PloidyModel = PloidyModel.Diploid;
+                o.VariantCallingParameters.PloidyModel = PloidyModel.DiploidByThresholding;
                 o.VariantCallingParameters.LowGenotypeQualityFilter = -1;
             }, false);
             ExecuteValidationTest((o) =>
             {
-                o.VariantCallingParameters.PloidyModel = PloidyModel.Diploid;
+                o.VariantCallingParameters.PloidyModel = PloidyModel.DiploidByThresholding;
                 o.VariantCallingParameters.LowGenotypeQualityFilter = 101;
             }, true);
 

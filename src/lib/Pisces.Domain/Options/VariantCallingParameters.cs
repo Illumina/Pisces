@@ -1,5 +1,5 @@
 ﻿using System;
-using Pisces.Domain.Utility;
+using Pisces.Domain.Models.Alleles;
 using Pisces.Domain.Types;
 
 namespace Pisces.Domain.Options
@@ -7,7 +7,7 @@ namespace Pisces.Domain.Options
 
     public class DiploidThresholdingParameters
     {
-        public float MinorVF = 0.20f;  
+        public float MinorVF = 0.20f;
         public float MajorVF = 0.70f;
         public float SumVFforMultiAllelicSite = 0.80f;
 
@@ -19,8 +19,49 @@ namespace Pisces.Domain.Options
             SumVFforMultiAllelicSite = parameters[2];
         }
 
+        public override string ToString()
+        {
+            return (string.Format("{0},{1},{2}", MinorVF, MajorVF, SumVFforMultiAllelicSite));
+        }
     }
 
+    public class AdaptiveGenotypingParameters
+    {
+
+        //for when we fall back to thresholding alg
+        public float MinVarFrequency = 0.1f;
+        public float SumVFforMultiAllelicSite = 0.80F;
+        public int MaxGenotypePosteriors = 3000;
+
+        //Each model is a 3 element double array (+ noise cluster).
+        public double[] SnvModel = new double[] { 0.034, 0.167, 0.499, 0.998 };
+
+        public double[] IndelModel = new double[] { 0.037, 0.443, 0.905 };
+
+        public double[] SnvPrior = new double[] { 0.729, 0.044, 0.141, 0.087 };
+
+        public double[] IndelPrior = new double[] { 0.962, 0.0266, 0.0114 };
+
+        public AdaptiveGenotypingParameters()
+        {
+        }
+
+        public double[] GetModelsForVariantType(BaseAllele allele)
+        {
+            if (allele.Length == 1)
+                return SnvModel;
+            else
+                return IndelModel;
+        }
+
+        public double[] GetPriorsForVariantType(BaseAllele allele)
+        {
+            if (allele.Length == 1)
+                return SnvPrior;
+            else
+                return IndelPrior;
+        }
+    }
 
     public class VariantCallingParameters
     {
@@ -48,11 +89,11 @@ namespace Pisces.Domain.Options
         //adjusted to 35% following PICS-967 study, 2018
 
         public PloidyModel PloidyModel = PloidyModel.Somatic;
+        public AdaptiveGenotypingParameters AdaptiveGenotypingParameters = new AdaptiveGenotypingParameters();
         public DiploidThresholdingParameters DiploidSNVThresholdingParameters = new DiploidThresholdingParameters(new float[] { 0.20F, 0.70F, 0.80F });
         public DiploidThresholdingParameters DiploidINDELThresholdingParameters = new DiploidThresholdingParameters(new float[] { 0.20F, 0.70F, 0.80F });
         //originally both set to {0.20F, 0.70F, 0.80F}, recommended by Dorothea A after empirical testing, 2017 
-        //For SNPS, 0.20F, 0.90F, 0.80F seemed best for Halo.
-        //However, Sidney's follow up testing suggested optimal thresholds closer to the original, on a broader dataset.
+        //re-assessed for AmpliSeq to {0.20F, 0.90F, 0.80F} for SNPs, and then returned to {0.20F, 0.70F, 0.80F} as still being the best general settings.
 
         public bool? IsMale;
 
@@ -68,8 +109,8 @@ namespace Pisces.Domain.Options
 
         public void SetDerivedParameters(BamFilterParameters bamFilterParameters)
         {
-			
-           NoiseLevelUsedForQScoring = GetNoiseLevelUsedForQScoring(bamFilterParameters);
+
+            NoiseLevelUsedForQScoring = GetNoiseLevelUsedForQScoring(bamFilterParameters);
         }
 
         public int GetNoiseLevelUsedForQScoring(BamFilterParameters bamFilterParameters)
@@ -139,7 +180,7 @@ namespace Pisces.Domain.Options
 
 
     }
-    
+
 
     public class DerivedParameters
     {

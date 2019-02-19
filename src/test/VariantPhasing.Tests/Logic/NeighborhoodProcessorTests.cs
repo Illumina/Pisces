@@ -92,7 +92,7 @@ namespace VariantPhasing.Tests.Logic
             var neighborhoods = GetNeighborhoods(expectedNumberOfThreads);
 
             factory.MockNeighborhoodBuilder = new Mock<INeighborhoodBuilder>();
-            factory.MockNeighborhoodBuilder.Setup(s => s.GetBatchOfNeighborhoods(0))
+            factory.MockNeighborhoodBuilder.Setup(s => s.GetBatchOfCallableNeighborhoods(0))
                 .Returns(neighborhoods);
 
             factory.MockVeadSource = MockVeadSource();
@@ -174,13 +174,13 @@ namespace VariantPhasing.Tests.Logic
             Assert.Equal(expectedNumberOfThreads, threadsSpawnedBeforeFirstCompleted);
         }
 
-        private List<VcfNeighborhood> GetNeighborhoods(int expectedNumberOfThreads)
+        private List<CallableNeighborhood> GetNeighborhoods(int expectedNumberOfThreads)
         {
-            var neighborhoods = new List<VcfNeighborhood>();
+            var neighborhoods = new List<CallableNeighborhood>();
 
             for (var i = 0; i < expectedNumberOfThreads; i++)
             {
-                var neighborhood = new VcfNeighborhood(new VariantCallingParameters(), 0, "chr1", new VariantSite(120), new VariantSite(121), "T")
+                var neighborhood = new VcfNeighborhood(0, "chr1", new VariantSite(120), new VariantSite(121))
                 {
                     VcfVariantSites = new List<VariantSite>
                     {
@@ -193,7 +193,7 @@ namespace VariantPhasing.Tests.Logic
                     }
                 };
 
-                neighborhoods.Add(neighborhood);
+                neighborhoods.Add(new CallableNeighborhood( neighborhood, new VariantCallingParameters()));
 
             }
             return neighborhoods;
@@ -209,7 +209,7 @@ namespace VariantPhasing.Tests.Logic
             };
 
             var veadSource = new Mock<IVeadGroupSource>();
-            veadSource.Setup(s => s.GetVeadGroups(It.IsAny<VcfNeighborhood>())).Returns(returnVeads);
+            veadSource.Setup(s => s.GetVeadGroups(It.IsAny<CallableNeighborhood>())).Returns(returnVeads);
             return veadSource;
         }
 

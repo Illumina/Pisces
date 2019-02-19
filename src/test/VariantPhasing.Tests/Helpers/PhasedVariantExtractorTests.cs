@@ -19,13 +19,13 @@ namespace VariantPhasing.Tests.Helpers
             var neighborhoodDepthAtSites = new int[] { 100, 200 };
             var neighborhoodNoCallsAtSites = new int[] { 0, 0 };
             var clusterCountsAtSites = new int[] { 90, 190 };
-
+            var clusterRefSp = 90; 
             clusterVariantSites[0].VcfReferenceAllele = "A";
             clusterVariantSites[0].VcfAlternateAllele = "AGAAGTACTCATTATCTGA";
 
             var refsToRemove = PhasedVariantExtractor.Extract(
                 out allele, clusterVariantSites, referenceSequence,
-                neighborhoodDepthAtSites, neighborhoodNoCallsAtSites, clusterCountsAtSites, chromosome, 20, 100);
+                neighborhoodDepthAtSites, neighborhoodNoCallsAtSites, clusterRefSp, clusterCountsAtSites, chromosome, 20, 100);
 
             Assert.Equal(0, refsToRemove.Count);
 
@@ -47,7 +47,7 @@ namespace VariantPhasing.Tests.Helpers
 
             refsToRemove = PhasedVariantExtractor.Extract(
     out allele, clusterVariantSites, referenceSequence,
-    neighborhoodDepthAtSites, neighborhoodNoCallsAtSites, clusterCountsAtSites, chromosome, 20, 100);
+    neighborhoodDepthAtSites, neighborhoodNoCallsAtSites, clusterRefSp, clusterCountsAtSites, chromosome, 20, 100);
 
             Assert.Equal(0, refsToRemove.Count);
 
@@ -67,7 +67,7 @@ namespace VariantPhasing.Tests.Helpers
 
             refsToRemove = PhasedVariantExtractor.Extract(
     out allele, clusterVariantSites, referenceSequence,
-    neighborhoodDepthAtSites, neighborhoodNoCallsAtSites, clusterCountsAtSites, chromosome, 20, 100);
+    neighborhoodDepthAtSites, neighborhoodNoCallsAtSites, clusterRefSp, clusterCountsAtSites, chromosome, 20, 100);
 
             Assert.Equal(0, refsToRemove.Count);
 
@@ -94,7 +94,7 @@ namespace VariantPhasing.Tests.Helpers
 
             refsToRemove = PhasedVariantExtractor.Extract(
     out allele, clusterVariantSites, referenceSequence,
-    neighborhoodDepthAtSites, neighborhoodNoCallsAtSites, clusterCountsAtSites, chromosome, 20, 100);
+    neighborhoodDepthAtSites, neighborhoodNoCallsAtSites, clusterRefSp, clusterCountsAtSites, chromosome, 20, 100);
 
             Assert.Equal(0, refsToRemove.Count);
 
@@ -125,7 +125,7 @@ namespace VariantPhasing.Tests.Helpers
 
             refsToRemove = PhasedVariantExtractor.Extract(
     out allele, clusterVariantSites, referenceSequence,
-    neighborhoodDepthAtSites, neighborhoodNoCallsAtSites, clusterCountsAtSites, chromosome, 20, 100);
+    neighborhoodDepthAtSites, neighborhoodNoCallsAtSites, clusterRefSp, clusterCountsAtSites, chromosome, 20, 100);
 
             Assert.Equal(0, refsToRemove.Count);
 
@@ -149,13 +149,14 @@ namespace VariantPhasing.Tests.Helpers
             var neighborhoodDepthAtSites = new int[] { 100, 200 };
             var neighborhoodNoCallsAtSites = new int[] { 0, 0 };
             var clusterCountsAtSites = new int[] { 90, 190 };
+            var clusterRefSp = 90;
 
             clusterVariantSites[0].VcfReferenceAllele = "A";
             clusterVariantSites[0].VcfAlternateAllele = "AGAAGTACTCATTATCTGT";
 
             var refsToRemove = PhasedVariantExtractor.Extract(
                 out allele, clusterVariantSites, referenceSequence,
-                neighborhoodDepthAtSites, neighborhoodNoCallsAtSites, clusterCountsAtSites, chromosome, 20, 100, 28608285);
+                neighborhoodDepthAtSites, neighborhoodNoCallsAtSites, clusterRefSp, clusterCountsAtSites, chromosome, 20, 100, 28608285);
 
             //Assert.Equal(0, refsToRemove.Count);
             Assert.Equal(1, refsToRemove.Count); //28608285, 90
@@ -178,7 +179,7 @@ namespace VariantPhasing.Tests.Helpers
 
             refsToRemove = PhasedVariantExtractor.Extract(
     out allele, clusterVariantSites, referenceSequence,
-    neighborhoodDepthAtSites, neighborhoodNoCallsAtSites, clusterCountsAtSites, chromosome, 20, 100, 28608285);
+    neighborhoodDepthAtSites, neighborhoodNoCallsAtSites, clusterRefSp, clusterCountsAtSites, chromosome, 20, 100, 28608285);
 
             Assert.Equal(0, refsToRemove.Count);
 
@@ -206,7 +207,7 @@ namespace VariantPhasing.Tests.Helpers
 
             refsToRemove = PhasedVariantExtractor.Extract(
     out allele, clusterVariantSites, referenceSequence,
-    neighborhoodDepthAtSites, neighborhoodNoCallsAtSites, clusterCountsAtSites, chromosome, 20, 100, 28608285);
+    neighborhoodDepthAtSites, neighborhoodNoCallsAtSites, clusterRefSp, clusterCountsAtSites, chromosome, 20, 100, 28608285);
 
             Assert.Equal(2, refsToRemove.Count);
 
@@ -243,10 +244,11 @@ namespace VariantPhasing.Tests.Helpers
             neighborhoodDepthAtSites = new int[] { 100, 200, 100, 200, 200 };
             neighborhoodNoCallsAtSites = new int[] { 0, 0, 0, 0, 0 };
             clusterCountsAtSites = new int[] { 90, 190, 20, 20, 20 };
+            clusterRefSp = 90;
 
             refsToRemove = PhasedVariantExtractor.Extract(
     out allele, clusterVariantSites, referenceSequence,
-    neighborhoodDepthAtSites, neighborhoodNoCallsAtSites, clusterCountsAtSites, chromosome, 20, 100, 28608285);
+    neighborhoodDepthAtSites, neighborhoodNoCallsAtSites, clusterRefSp, clusterCountsAtSites, chromosome, 20, 100, 28608285);
 
 
             //referenceSequence = "AGAA-GT-ACTCATTATCTGAGGAGCCGGTCACCTGTACCA";
@@ -278,6 +280,7 @@ namespace VariantPhasing.Tests.Helpers
             var neighborhoodDepthAtSites = new int[] { 100, 200, 200 };
             var neighborhoodNoCallsAtSites = new int[] { 0, 0, 0 };
             var clusterCountsAtSites = new int[] { 90, 190, 190 };
+            var clusterRefSp = 90;
 
             clusterVariantSites[0].VcfReferenceAllele = "T";
             clusterVariantSites[0].VcfAlternateAllele = "T";
@@ -290,7 +293,7 @@ namespace VariantPhasing.Tests.Helpers
 
             var refsToRemove = PhasedVariantExtractor.Extract(
                 out allele, clusterVariantSites, referenceSequenceWithRepeats,
-neighborhoodDepthAtSites, neighborhoodNoCallsAtSites, clusterCountsAtSites, chromosome, 20, 100);
+neighborhoodDepthAtSites, neighborhoodNoCallsAtSites, clusterRefSp, clusterCountsAtSites, chromosome, 20, 100);
 
             Assert.Equal("T", allele.ReferenceAllele);
             Assert.Equal("TTTTTTTTTT", allele.AlternateAllele);
@@ -309,7 +312,7 @@ neighborhoodDepthAtSites, neighborhoodNoCallsAtSites, clusterCountsAtSites, chro
 
              refsToRemove = PhasedVariantExtractor.Extract(
                 out allele, clusterVariantSites, referenceSequenceWithRepeats,
-                neighborhoodDepthAtSites, neighborhoodNoCallsAtSites, clusterCountsAtSites, chromosome, 20, 100);
+                neighborhoodDepthAtSites, neighborhoodNoCallsAtSites, clusterRefSp, clusterCountsAtSites, chromosome, 20, 100);
 
             Assert.Equal("T", allele.ReferenceAllele);
             Assert.Equal("TTTTTTTTTT", allele.AlternateAllele);
@@ -328,7 +331,7 @@ neighborhoodDepthAtSites, neighborhoodNoCallsAtSites, clusterCountsAtSites, chro
 
             refsToRemove = PhasedVariantExtractor.Extract(
                out allele, clusterVariantSites, referenceSequenceWithRepeats,
-               neighborhoodDepthAtSites, neighborhoodNoCallsAtSites, clusterCountsAtSites, chromosome, 20, 100);
+               neighborhoodDepthAtSites, neighborhoodNoCallsAtSites, clusterRefSp, clusterCountsAtSites, chromosome, 20, 100);
 
             Assert.Equal("T", allele.ReferenceAllele);
             Assert.Equal("TTTTTTTTTTT", allele.AlternateAllele); // <- (note, alt alt allele now has one extra T)
@@ -348,7 +351,7 @@ neighborhoodDepthAtSites, neighborhoodNoCallsAtSites, clusterCountsAtSites, chro
 
             refsToRemove = PhasedVariantExtractor.Extract(
                out allele, clusterVariantSites, referenceSequenceWithRepeats,
-               neighborhoodDepthAtSites, neighborhoodNoCallsAtSites, clusterCountsAtSites, chromosome, 20, 100);
+               neighborhoodDepthAtSites, neighborhoodNoCallsAtSites, clusterRefSp, clusterCountsAtSites, chromosome, 20, 100);
 
             Assert.Equal("T", allele.ReferenceAllele);
             Assert.Equal("TATTTTTTTTT", allele.AlternateAllele);
@@ -367,7 +370,7 @@ neighborhoodDepthAtSites, neighborhoodNoCallsAtSites, clusterCountsAtSites, chro
 
             refsToRemove = PhasedVariantExtractor.Extract(
                out allele, clusterVariantSites, referenceSequenceWithRepeats,
-               neighborhoodDepthAtSites, neighborhoodNoCallsAtSites, clusterCountsAtSites, chromosome, 20, 100);
+               neighborhoodDepthAtSites, neighborhoodNoCallsAtSites, clusterRefSp, clusterCountsAtSites, chromosome, 20, 100);
 
             Assert.Equal("T", allele.ReferenceAllele);
             Assert.Equal("TTTTTTTT", allele.AlternateAllele);
@@ -385,13 +388,13 @@ neighborhoodDepthAtSites, neighborhoodNoCallsAtSites, clusterCountsAtSites, chro
             var neighborhoodDepthAtSites = new int[] { 100, 200 };
             var neighborhoodNoCallsAtSites = new int[] { 0, 0 };
             var clusterCountsAtSites = new int[] { 90, 190 };
-
+            var clusterRefSp = 90;
             clusterVariantSites[0].VcfReferenceAllele = "AGAAGTACTCATTATCTGT";
             clusterVariantSites[0].VcfAlternateAllele = "A";
 
             var refsToRemove = PhasedVariantExtractor.Extract(
                 out allele, clusterVariantSites, referenceSequence,
-                neighborhoodDepthAtSites, neighborhoodNoCallsAtSites, clusterCountsAtSites, chromosome, 20, 100, 28608285);
+                neighborhoodDepthAtSites, neighborhoodNoCallsAtSites, clusterRefSp, clusterCountsAtSites, chromosome, 20, 100, 28608285);
 
             Assert.Equal(1, refsToRemove.Count);
 
@@ -403,6 +406,7 @@ neighborhoodDepthAtSites, neighborhoodNoCallsAtSites, clusterCountsAtSites, chro
             neighborhoodDepthAtSites = new int[] { 100, 200, 100, 200 };
             neighborhoodNoCallsAtSites = new int[] { 0, 0, 0, 0 };
             clusterCountsAtSites = new int[] { 90, 190, 10, 20 };
+            clusterRefSp = 90;
             clusterVariantSites = new VariantSite[] {
                 new VariantSite(28608285), new VariantSite(28608287),
                     new VariantSite(28608288), new VariantSite(28608291)};
@@ -425,7 +429,7 @@ neighborhoodDepthAtSites, neighborhoodNoCallsAtSites, clusterCountsAtSites, chro
 
             refsToRemove = PhasedVariantExtractor.Extract(
                 out allele, clusterVariantSites, referenceSequence,
-                neighborhoodDepthAtSites, neighborhoodNoCallsAtSites, clusterCountsAtSites, chromosome, 20, 100, 28608285);
+                neighborhoodDepthAtSites, neighborhoodNoCallsAtSites, clusterRefSp, clusterCountsAtSites, chromosome, 20, 100, 28608285);
 
             Assert.Equal(5, refsToRemove.Count);
 
@@ -445,13 +449,14 @@ neighborhoodDepthAtSites, neighborhoodNoCallsAtSites, clusterCountsAtSites, chro
             var neighborhoodDepthAtSites = new int[] { 100, 200 };
             var neighborhoodNoCallsAtSites = new int[] { 0, 0 };
             var clusterCountsAtSites = new int[] { 90, 190 };
+            var clusterRefSp = 90;
 
             clusterVariantSites[0].VcfReferenceAllele = "AGAAGTACTCATTATCTGA";
             clusterVariantSites[0].VcfAlternateAllele = "A";
 
             var refsToRemove = PhasedVariantExtractor.Extract(
                 out allele, clusterVariantSites, referenceSequence,
-                neighborhoodDepthAtSites, neighborhoodNoCallsAtSites, clusterCountsAtSites, chromosome, 20, 100);
+                neighborhoodDepthAtSites, neighborhoodNoCallsAtSites, clusterRefSp, clusterCountsAtSites, chromosome, 20, 100);
 
             Assert.Equal(0, refsToRemove.Count);
 
@@ -496,6 +501,7 @@ neighborhoodDepthAtSites, neighborhoodNoCallsAtSites, clusterCountsAtSites, chro
             neighborhoodDepthAtSites = new int[] { 100, 200, 100, 200 };
             neighborhoodNoCallsAtSites = new int[] { 0, 0, 0, 0 };
             clusterCountsAtSites = new int[] { 90, 190, 90, 90 };
+            clusterRefSp = 90;
 
             clusterVariantSites[0].VcfReferenceAllele = "G";
             clusterVariantSites[0].VcfAlternateAllele = "G";
@@ -511,7 +517,7 @@ neighborhoodDepthAtSites, neighborhoodNoCallsAtSites, clusterCountsAtSites, chro
 
             refsToRemove = PhasedVariantExtractor.Extract(
                out allele, clusterVariantSites, referenceSequence,
-               neighborhoodDepthAtSites, neighborhoodNoCallsAtSites, clusterCountsAtSites, chromosome, 20, 100);
+               neighborhoodDepthAtSites, neighborhoodNoCallsAtSites, clusterRefSp, clusterCountsAtSites, chromosome, 20, 100);
 
             Assert.Equal(18, refsToRemove.Count);
             Assert.Equal("TGGTACTCATTATCTGAGGATG", allele.ReferenceAllele);
@@ -532,7 +538,7 @@ neighborhoodDepthAtSites, neighborhoodNoCallsAtSites, clusterCountsAtSites, chro
 
             refsToRemove = PhasedVariantExtractor.Extract(
                 out allele, clusterVariantSites, realReferenceSequence,
-                neighborhoodDepthAtSites, neighborhoodNoCallsAtSites, clusterCountsAtSites, chromosome, 20, 100);
+                neighborhoodDepthAtSites, neighborhoodNoCallsAtSites, clusterRefSp, clusterCountsAtSites, chromosome, 20, 100);
 
             Assert.Equal(18 - 12, refsToRemove.Count);
             Assert.Equal("GTCCGTATG", allele.ReferenceAllele);
@@ -559,6 +565,7 @@ neighborhoodDepthAtSites, neighborhoodNoCallsAtSites, clusterCountsAtSites, chro
             var neighborhoodDepthAtSites = new int[] { 100, 200, 200 };
             var neighborhoodNoCallsAtSites = new int[] { 0, 0, 0 };
             var clusterCountsAtSites = new int[] { 90, 190, 190 };
+            var clusterRefSp = 90;
 
             clusterVariantSites[0].VcfReferenceAllele = "T";
             clusterVariantSites[0].VcfAlternateAllele = "T";
@@ -571,7 +578,7 @@ neighborhoodDepthAtSites, neighborhoodNoCallsAtSites, clusterCountsAtSites, chro
 
             var refsToRemove = PhasedVariantExtractor.Extract(
                 out allele, clusterVariantSites, referenceSequenceWithRepeats,
-neighborhoodDepthAtSites, neighborhoodNoCallsAtSites, clusterCountsAtSites, chromosome, 20, 100);
+neighborhoodDepthAtSites, neighborhoodNoCallsAtSites, clusterRefSp, clusterCountsAtSites, chromosome, 20, 100);
 
             Assert.Equal("TTTTTTTTTT", allele.ReferenceAllele);
             Assert.Equal("T", allele.AlternateAllele);
@@ -590,7 +597,7 @@ neighborhoodDepthAtSites, neighborhoodNoCallsAtSites, clusterCountsAtSites, chro
 
             refsToRemove = PhasedVariantExtractor.Extract(
                out allele, clusterVariantSites, referenceSequenceWithRepeats,
-               neighborhoodDepthAtSites, neighborhoodNoCallsAtSites, clusterCountsAtSites, chromosome, 20, 100);
+               neighborhoodDepthAtSites, neighborhoodNoCallsAtSites, clusterRefSp, clusterCountsAtSites, chromosome, 20, 100);
 
             Assert.Equal("TTTTTTTTTT", allele.ReferenceAllele);
             Assert.Equal("T", allele.AlternateAllele);
@@ -609,7 +616,7 @@ neighborhoodDepthAtSites, neighborhoodNoCallsAtSites, clusterCountsAtSites, chro
 
             refsToRemove = PhasedVariantExtractor.Extract(
                out allele, clusterVariantSites, referenceSequenceWithRepeats,
-               neighborhoodDepthAtSites, neighborhoodNoCallsAtSites, clusterCountsAtSites, chromosome, 20, 100);
+               neighborhoodDepthAtSites, neighborhoodNoCallsAtSites, clusterRefSp, clusterCountsAtSites, chromosome, 20, 100);
 
             Assert.Equal("TTTTTTTTT", allele.ReferenceAllele);// <- (note, ref allele now has one less T)
             Assert.Equal("T", allele.AlternateAllele);// 
@@ -628,7 +635,7 @@ neighborhoodDepthAtSites, neighborhoodNoCallsAtSites, clusterCountsAtSites, chro
 
             refsToRemove = PhasedVariantExtractor.Extract(
                out allele, clusterVariantSites, referenceSequenceWithRepeats,
-               neighborhoodDepthAtSites, neighborhoodNoCallsAtSites, clusterCountsAtSites, chromosome, 20, 100);
+               neighborhoodDepthAtSites, neighborhoodNoCallsAtSites, clusterRefSp, clusterCountsAtSites, chromosome, 20, 100);
 
             Assert.Equal("TTTTTTTTT", allele.ReferenceAllele);
             Assert.Equal("A", allele.AlternateAllele);
@@ -647,7 +654,7 @@ neighborhoodDepthAtSites, neighborhoodNoCallsAtSites, clusterCountsAtSites, chro
 
             refsToRemove = PhasedVariantExtractor.Extract(
                out allele, clusterVariantSites, referenceSequenceWithRepeats,
-               neighborhoodDepthAtSites, neighborhoodNoCallsAtSites, clusterCountsAtSites, chromosome, 20, 100);
+               neighborhoodDepthAtSites, neighborhoodNoCallsAtSites, clusterRefSp, clusterCountsAtSites, chromosome, 20, 100);
 
             Assert.Equal("TTTTTTTT", allele.ReferenceAllele);
             Assert.Equal("T", allele.AlternateAllele);
@@ -666,13 +673,14 @@ neighborhoodDepthAtSites, neighborhoodNoCallsAtSites, clusterCountsAtSites, chro
             var neighborhoodDepthAtSites = new int[] { 100, 200 };
             var neighborhoodNoCallsAtSites = new int[] { 0, 0 };
             var clusterCountsAtSites = new int[] { 90, 190 };
+            var clusterRefSp = 90;
 
             clusterVariantSites[0].VcfReferenceAllele = "A";
             clusterVariantSites[0].VcfAlternateAllele = "C";
 
             var refsToRemove = PhasedVariantExtractor.Extract(
                 out allele, clusterVariantSites, referenceSequence,
-                neighborhoodDepthAtSites, neighborhoodNoCallsAtSites, clusterCountsAtSites, chromosome, 20, 100, 28608285);
+                neighborhoodDepthAtSites, neighborhoodNoCallsAtSites, clusterRefSp, clusterCountsAtSites, chromosome, 20, 100, 28608285);
 
 
             Assert.Equal(0, refsToRemove.Count);
@@ -690,7 +698,7 @@ neighborhoodDepthAtSites, neighborhoodNoCallsAtSites, clusterCountsAtSites, chro
 
             refsToRemove = PhasedVariantExtractor.Extract(
                 out allele, clusterVariantSites, referenceSequence,
-                neighborhoodDepthAtSites, neighborhoodNoCallsAtSites, clusterCountsAtSites, chromosome, 20, 100, 28608285);
+                neighborhoodDepthAtSites, neighborhoodNoCallsAtSites, clusterRefSp, clusterCountsAtSites, chromosome, 20, 100, 28608285);
 
             Assert.Equal(2, refsToRemove.Count);
             Assert.Equal(190, refsToRemove[28608285].Counts);
@@ -712,7 +720,7 @@ neighborhoodDepthAtSites, neighborhoodNoCallsAtSites, clusterCountsAtSites, chro
 
             refsToRemove = PhasedVariantExtractor.Extract(
                 out allele, clusterVariantSites, referenceSequence,
-                neighborhoodDepthAtSites, neighborhoodNoCallsAtSites, clusterCountsAtSites, chromosome, 20, 100, 28608285);
+                neighborhoodDepthAtSites, neighborhoodNoCallsAtSites, clusterRefSp, clusterCountsAtSites, chromosome, 20, 100, 28608285);
 
             Assert.Equal(1, refsToRemove.Count);
             Assert.Equal(140, refsToRemove[28608286].Counts); // (190+90)/2
@@ -727,6 +735,7 @@ neighborhoodDepthAtSites, neighborhoodNoCallsAtSites, clusterCountsAtSites, chro
             neighborhoodDepthAtSites = new int[] { 100, 200, 300 };
             neighborhoodNoCallsAtSites = new int[] { 0, 0, 0 };
             clusterCountsAtSites = new int[] { 90, 190, 20 };
+            clusterRefSp = 90;
 
             clusterVariantSites[0].VcfReferenceAllele = "A";
             clusterVariantSites[0].VcfAlternateAllele = "C";
@@ -739,7 +748,7 @@ neighborhoodDepthAtSites, neighborhoodNoCallsAtSites, clusterCountsAtSites, chro
 
             refsToRemove = PhasedVariantExtractor.Extract(
                 out allele, clusterVariantSites, referenceSequence,
-                neighborhoodDepthAtSites, neighborhoodNoCallsAtSites, clusterCountsAtSites, chromosome, 20, 100, 28608285);
+                neighborhoodDepthAtSites, neighborhoodNoCallsAtSites, clusterRefSp, clusterCountsAtSites, chromosome, 20, 100, 28608285);
 
             Assert.Equal(2, refsToRemove.Count);
             Assert.Equal(55, refsToRemove[28608286].Counts); // (90+20)/2
@@ -761,13 +770,14 @@ neighborhoodDepthAtSites, neighborhoodNoCallsAtSites, clusterCountsAtSites, chro
             var neighborhoodDepthAtSites = new int[] { 100, 200 };
             var neighborhoodNoCallsAtSites = new int[] { 50, 100 };
             var clusterCountsAtSites = new int[] { 90, 190 };
+            var clusterRefSp = 90;
 
             clusterVariantSites[0].VcfReferenceAllele = "A";
             clusterVariantSites[0].VcfAlternateAllele = "C";
 
             var refsToRemove = PhasedVariantExtractor.Extract(
                 out allele, clusterVariantSites, referenceSequence,
-                neighborhoodDepthAtSites, neighborhoodNoCallsAtSites, clusterCountsAtSites, chromosome, 20, 100);
+                neighborhoodDepthAtSites, neighborhoodNoCallsAtSites, clusterRefSp, clusterCountsAtSites, chromosome, 20, 100);
 
 
             Assert.Equal(0, refsToRemove.Count);
@@ -787,7 +797,7 @@ neighborhoodDepthAtSites, neighborhoodNoCallsAtSites, clusterCountsAtSites, chro
 
             refsToRemove = PhasedVariantExtractor.Extract(
                 out allele, clusterVariantSites, referenceSequence,
-                neighborhoodDepthAtSites, neighborhoodNoCallsAtSites, clusterCountsAtSites, chromosome, 20, 100);
+                neighborhoodDepthAtSites, neighborhoodNoCallsAtSites, clusterRefSp, clusterCountsAtSites, chromosome, 20, 100);
 
             Assert.Equal(0, refsToRemove.Count);
             Assert.Equal("G", allele.ReferenceAllele);
@@ -799,7 +809,7 @@ neighborhoodDepthAtSites, neighborhoodNoCallsAtSites, clusterCountsAtSites, chro
 
             refsToRemove = PhasedVariantExtractor.Extract(
                 out allele, clusterVariantSites, referenceSequence,
-                neighborhoodDepthAtSites, neighborhoodNoCallsAtSites, clusterCountsAtSites, chromosome, 20, 100);
+                neighborhoodDepthAtSites, neighborhoodNoCallsAtSites, clusterRefSp, clusterCountsAtSites, chromosome, 20, 100);
 
             Assert.Equal(1, refsToRemove.Count);
             Assert.Equal("AGG", allele.ReferenceAllele);
@@ -818,20 +828,22 @@ neighborhoodDepthAtSites, neighborhoodNoCallsAtSites, clusterCountsAtSites, chro
             var neighborhoodDepthAtSites = new int[] { 100, 200 };
             var neighborhoodNoCallsAtSites = new int[] { 0, 0 };
             var clusterCountsAtSites = new int[] { 90, 190 };
+            var clusterRefSp = 80;
 
             clusterVariantSites[0].VcfReferenceAllele = "AG";
             clusterVariantSites[0].VcfAlternateAllele = "CC";
 
             var refsToRemove = PhasedVariantExtractor.Extract(
                 out allele, clusterVariantSites, referenceSequence,
-                neighborhoodDepthAtSites, neighborhoodNoCallsAtSites, clusterCountsAtSites, chromosome, 20, 100);
+                neighborhoodDepthAtSites, neighborhoodNoCallsAtSites, clusterRefSp, clusterCountsAtSites, chromosome, 20, 100);
 
 
             Assert.Equal(0, refsToRemove.Count);
             Assert.Equal("AG", allele.ReferenceAllele);
             Assert.Equal("CC", allele.AlternateAllele);
             Assert.Equal(28608285, allele.ReferencePosition);
-
+            Assert.Equal(80, allele.ReferenceSupport);
+            Assert.Equal(90, allele.AlleleSupport);
 
             clusterVariantSites = new VariantSite[] {
                 new VariantSite(28608285), new VariantSite(28608287)  };
@@ -842,24 +854,29 @@ neighborhoodDepthAtSites, neighborhoodNoCallsAtSites, clusterCountsAtSites, chro
 
             refsToRemove = PhasedVariantExtractor.Extract(
                 out allele, clusterVariantSites, referenceSequence,
-                neighborhoodDepthAtSites, neighborhoodNoCallsAtSites, clusterCountsAtSites, chromosome, 20, 100);
+                neighborhoodDepthAtSites, neighborhoodNoCallsAtSites, clusterRefSp, clusterCountsAtSites, chromosome, 20, 100);
 
             Assert.Equal(0, refsToRemove.Count);
             Assert.Equal("GA", allele.ReferenceAllele);
             Assert.Equal("TT", allele.AlternateAllele);
             Assert.Equal(28608287, allele.ReferencePosition);
+            Assert.Equal(80, allele.ReferenceSupport);
+            Assert.Equal(190, allele.AlleleSupport);
+
 
             clusterVariantSites[0].VcfReferenceAllele = "AG";
             clusterVariantSites[0].VcfAlternateAllele = "CC";
 
             refsToRemove = PhasedVariantExtractor.Extract(
                 out allele, clusterVariantSites, referenceSequence,
-                neighborhoodDepthAtSites, neighborhoodNoCallsAtSites, clusterCountsAtSites, chromosome, 20, 100);
+                neighborhoodDepthAtSites, neighborhoodNoCallsAtSites, clusterRefSp, clusterCountsAtSites, chromosome, 20, 100);
 
             Assert.Equal(0, refsToRemove.Count);
             Assert.Equal("AGGA", allele.ReferenceAllele);
             Assert.Equal("CCTT", allele.AlternateAllele);
             Assert.Equal(28608285, allele.ReferencePosition);
+            Assert.Equal(80, allele.ReferenceSupport);
+            Assert.Equal(140, allele.AlleleSupport);        // Averaging cluster support to find MNV allele support: (90 + 190) / 2 = 140
 
         }
 
@@ -874,6 +891,7 @@ neighborhoodDepthAtSites, neighborhoodNoCallsAtSites, clusterCountsAtSites, chro
             var neighborhoodDepthAtSites = new int[] { 100, 200, 200 };
             var neighborhoodNoCallsAtSites = new int[] { 0, 0, 0 };
             var clusterCountsAtSites = new int[] { 90, 190, 190 };
+            var clusterRefSp = 90;
 
             clusterVariantSites[0].VcfReferenceAllele = "AGG"; //5,6,7
             clusterVariantSites[0].VcfAlternateAllele = "CCT";
@@ -887,7 +905,7 @@ neighborhoodDepthAtSites, neighborhoodNoCallsAtSites, clusterCountsAtSites, chro
 
             var refsToRemove = PhasedVariantExtractor.Extract(
                 out allele, clusterVariantSites, referenceSequence,
-                neighborhoodDepthAtSites, neighborhoodNoCallsAtSites, clusterCountsAtSites, chromosome, 20, 100);
+                neighborhoodDepthAtSites, neighborhoodNoCallsAtSites, clusterRefSp, clusterCountsAtSites, chromosome, 20, 100);
 
 
             Assert.Equal(0, refsToRemove.Count);
@@ -921,13 +939,13 @@ neighborhoodDepthAtSites, neighborhoodNoCallsAtSites, clusterCountsAtSites, chro
             var neighborhoodDepthAtSites = new int[] { 100, 200 };
             var neighborhoodNoCallsAtSites = new int[] { 0, 0 };
             var clusterCountsAtSites = new int[] { 90, 190 };
-
+            var clusterRefSp = 90;
             clusterVariantSites[0].VcfReferenceAllele = "TCTCTG";
             clusterVariantSites[0].VcfAlternateAllele = "GAGTTG";
 
             var refsToRemove = PhasedVariantExtractor.Extract(
                 out allele, clusterVariantSites, referenceSequence,
-                neighborhoodDepthAtSites, neighborhoodNoCallsAtSites, clusterCountsAtSites, chromosome, 20, 100, anchorPosition);
+                neighborhoodDepthAtSites, neighborhoodNoCallsAtSites, clusterRefSp, clusterCountsAtSites, chromosome, 20, 100, anchorPosition);
 
             Assert.Equal("TCTC", allele.ReferenceAllele);
             Assert.Equal("GAGT", allele.AlternateAllele);
@@ -944,13 +962,14 @@ neighborhoodDepthAtSites, neighborhoodNoCallsAtSites, clusterCountsAtSites, chro
             neighborhoodDepthAtSites = new int[] { 100, 200 };
             neighborhoodNoCallsAtSites = new int[] { 0, 0 };
             clusterCountsAtSites = new int[] { 90, 190 };
+            clusterRefSp = 90;
 
             clusterVariantSites[0].VcfReferenceAllele = "TCTCTG";
             clusterVariantSites[0].VcfAlternateAllele = "GAGTTG";
 
             refsToRemove = PhasedVariantExtractor.Extract(
                 out allele, clusterVariantSites, referenceSequence,
-                neighborhoodDepthAtSites, neighborhoodNoCallsAtSites, clusterCountsAtSites, chromosome, 20, 100, anchorPosition);
+                neighborhoodDepthAtSites, neighborhoodNoCallsAtSites, clusterRefSp, clusterCountsAtSites, chromosome, 20, 100, anchorPosition);
 
             Assert.Equal("TCTC", allele.ReferenceAllele);
             Assert.Equal("GAGT", allele.AlternateAllele);
@@ -977,13 +996,14 @@ neighborhoodDepthAtSites, neighborhoodNoCallsAtSites, clusterCountsAtSites, chro
             var neighborhoodDepthAtSites = new int[] { 100, 200 };
             var neighborhoodNoCallsAtSites = new int[] { 0, 0 };
             var clusterCountsAtSites = new int[] { 90, 190 };
+            var clusterRefSp = 90;
 
             clusterVariantSites[0].VcfReferenceAllele = "TCTC";
             clusterVariantSites[0].VcfAlternateAllele = "TCGT";
 
             var refsToRemove = PhasedVariantExtractor.Extract(
                 out allele, clusterVariantSites, referenceSequence,
-                neighborhoodDepthAtSites, neighborhoodNoCallsAtSites, clusterCountsAtSites, chromosome, 20, 100, anchorPosition);
+                neighborhoodDepthAtSites, neighborhoodNoCallsAtSites, clusterRefSp, clusterCountsAtSites, chromosome, 20, 100, anchorPosition);
 
             Assert.Equal("TCTC", allele.ReferenceAllele);
             Assert.Equal("TCGT", allele.AlternateAllele);
@@ -1000,14 +1020,14 @@ neighborhoodDepthAtSites, neighborhoodNoCallsAtSites, clusterCountsAtSites, chro
             neighborhoodDepthAtSites = new int[] { 100, 200 };
             neighborhoodNoCallsAtSites = new int[] { 0, 0 };
             clusterCountsAtSites = new int[] { 90, 190 };
-
+            clusterRefSp = 90;
 
             clusterVariantSites[0].VcfReferenceAllele = "TCTC";
             clusterVariantSites[0].VcfAlternateAllele = "TCGT";
 
             refsToRemove = PhasedVariantExtractor.Extract(
                 out allele, clusterVariantSites, referenceSequence,
-                neighborhoodDepthAtSites, neighborhoodNoCallsAtSites, clusterCountsAtSites, chromosome, 20, 100, anchorPosition);
+                neighborhoodDepthAtSites, neighborhoodNoCallsAtSites, clusterRefSp, clusterCountsAtSites, chromosome, 20, 100, anchorPosition);
 
             Assert.Equal("TC", allele.ReferenceAllele);
             Assert.Equal("GT", allele.AlternateAllele);
@@ -1029,13 +1049,14 @@ neighborhoodDepthAtSites, neighborhoodNoCallsAtSites, clusterCountsAtSites, chro
             var neighborhoodDepthAtSites = new int[] { 100, 200 };
             var neighborhoodNoCallsAtSites = new int[] { 0, 0 };
             var clusterCountsAtSites = new int[] { 90, 190 };
+            var clusterRefSp = 90;
 
             clusterVariantSites[0].VcfReferenceAllele = "TCTCAAAAAACGT";
             clusterVariantSites[0].VcfAlternateAllele = "TCGTACGT";
 
             var refsToRemove = PhasedVariantExtractor.Extract(
                 out allele, clusterVariantSites, referenceSequence,
-                neighborhoodDepthAtSites, neighborhoodNoCallsAtSites, clusterCountsAtSites, chromosome, 20, 100, anchorPosition);
+                neighborhoodDepthAtSites, neighborhoodNoCallsAtSites, clusterRefSp, clusterCountsAtSites, chromosome, 20, 100, anchorPosition);
 
             Assert.Equal("TCAAAAA", allele.ReferenceAllele);
             Assert.Equal("GT", allele.AlternateAllele);

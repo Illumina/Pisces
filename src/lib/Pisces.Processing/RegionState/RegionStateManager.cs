@@ -81,9 +81,6 @@ namespace Pisces.Processing.RegionState
             // Get the minimum anchor (num mapped bases flanking this one in the read) by looking at both sides
             var leftAnchor = basePosition - alignmentStartPosition;
             var rightAnchor = alignmentEndPosition - basePosition;
-
-            bool lessAnchoredOnRight = false;
-
             
             var minAnchor = int.MinValue;
             if (leftAnchor >= rightAnchor)

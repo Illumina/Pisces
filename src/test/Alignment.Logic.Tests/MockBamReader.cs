@@ -50,7 +50,6 @@ namespace Alignment.Logic.Tests
                     if (_alignments[_currentIndex].Position >= position)
                     {
                         return true;
-                        break;
                     }
                 }
 

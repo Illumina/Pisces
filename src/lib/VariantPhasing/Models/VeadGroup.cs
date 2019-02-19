@@ -12,6 +12,15 @@ namespace VariantPhasing.Models
         public VariantSite[] SiteResults { get { return _representativeVead.SiteResults; } }
         public Vead RepresentativeVead { get { return _representativeVead; } }
         private readonly Vead _representativeVead;
+
+        public int NumSitesPerVead	
+        {	
+            get	
+            {	
+                return RepresentativeVead.SiteResults.Count(vs => vs.HasRefAndAltData);	
+            }	
+        }
+
         private int NumSitesInGroup
         {
             get

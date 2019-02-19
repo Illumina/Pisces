@@ -1,0 +1,46 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>netcoreapp2.0</TargetFramework>
+    <AssemblyName>AdaptiveGenotyper</AssemblyName>
+    <RootNamespace>AdaptiveGenotyper</RootNamespace>
+    <GenerateAssemblyConfigurationAttribute>false</GenerateAssemblyConfigurationAttribute>
+    <GenerateAssemblyCompanyAttribute>false</GenerateAssemblyCompanyAttribute>
+    <GenerateAssemblyProductAttribute>false</GenerateAssemblyProductAttribute>
+    <Version>5.2.10.49</Version>
+    <Copyright>Copyright © Illumina 2019</Copyright>
+    <RepositoryUrl>https://github.com/Illumina/Pisces</RepositoryUrl>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="BetaBinomialModel.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="..\..\..\redist\FileCompression.dll" Link="FileCompression.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </Content>
+    <Content Include="..\..\..\redist\libFileCompression.so" Link="libFileCompression.so">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </Content>
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="MathNet.Numerics" Version="4.5.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\lib\CommandLine.IO\CommandLine.Util.csproj" />
+    <ProjectReference Include="..\..\lib\CommandLine.Options\CommandLine.Options.csproj" />
+    <ProjectReference Include="..\..\lib\Common.IO\Common.IO.csproj" />
+    <ProjectReference Include="..\..\lib\Pisces.Calculators\Pisces.Calculators.csproj" />
+    <ProjectReference Include="..\..\lib\Pisces.Domain\Pisces.Domain.csproj" />
+    <ProjectReference Include="..\..\lib\Pisces.Genotyping\Pisces.Genotyping.csproj" />
+    <ProjectReference Include="..\..\lib\Pisces.IO\Pisces.IO.csproj" />
+    <ProjectReference Include="..\..\lib\Pisces.Processing\Pisces.Processing.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -100,7 +100,7 @@ namespace CommandLine.Options
                     value=> options.TrimMnvPriors = bool.Parse(value)
                 },
                 {
-                    "coverageMethod=",
+                    "coveragemethod=",
                     OptionTypes.STRING + "\'approximate\' or \'exact\'. Exact is more precise but requires more memory (minimum 8 GB).  Default approximate",
                     value=> options.CoverageMethod= ConvertToCoverageMethod(value)
                 },            

@@ -54,14 +54,13 @@ namespace Pisces.Domain.Options
         public int MaxGapBetweenMNV = 1;
         public bool UseMNVReallocation = true;
         public CoverageMethod CoverageMethod = CoverageMethod.Approximate;
-        public string MonoPath; //only needed if running on Linux cluster, and we plan to spawn processes
         public bool Collapse = true;
         public string PriorsPath;
         public bool TrimMnvPriors;
         public float CollapseFreqThreshold = 0f;
         public float CollapseFreqRatioThreshold = 0.5f;
         public bool ExcludeMNVsFromCollapsing = false;
-        public bool SkipNonIntervalAlignments = false;  //keep this off. it currently has bugs, speed issues, and no plan to fix it)
+        public bool SkipNonIntervalAlignments = false;  //keep this off. it currently has bugs, speed issues, and no plan to fix it. this line is still here to remind ourselves not to try it again.
 	    public List<string> ForcedAllelesFileNames = new List<string>();
         public bool UseStitchedXDInfo = false;
         public uint TrackedAnchorSize = 5;

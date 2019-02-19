@@ -69,28 +69,27 @@ namespace VariantPhasing.Tests.Logic
 
 
             //have to replace variants at positon 116380048 (we call two new MNVS here)
-            var nbhd1 = new VcfNeighborhood(new VariantCallingParameters(), 0, "chr2", vs1, vs2, "");
-            nbhd1.SetRangeOfInterest();
+            var nbhd1 = new VcfNeighborhood( 0, "chr2", vs1, vs2);
+            var calledNbh1 = new CallableNeighborhood(nbhd1, new VariantCallingParameters());
 
             //have to replace variants at positon 116380051 and 52  (we call one new MNV at 51)
-            var nbhd2 = new VcfNeighborhood(new VariantCallingParameters(), 0, "chr7", vs4, vs5, "");
-            nbhd2.SetRangeOfInterest();
+            var nbhd2 = new VcfNeighborhood(0, "chr7", vs4, vs5);
+            var calledNbh2 = new CallableNeighborhood(nbhd2, new VariantCallingParameters());
 
-         
             VcfMerger merger = new VcfMerger(reader);
             List<CalledAllele> allelesPastNbh = new List<CalledAllele>();
 
-            nbhd1.CalledVariants = new Dictionary<int, List<CalledAllele>> { { originalVcfVariant1.ReferencePosition, new List<CalledAllele> {originalVcfVariant1, originalVcfVariant2 } } };
-            nbhd2.CalledVariants = new Dictionary<int, List<CalledAllele>> { { originalVcfVariant4.ReferencePosition, new List<CalledAllele> {originalVcfVariant4 } } };
+            calledNbh1.CalledVariants = new Dictionary<int, List<CalledAllele>> { { originalVcfVariant1.ReferencePosition, new List<CalledAllele> {originalVcfVariant1, originalVcfVariant2 } } };
+            calledNbh2.CalledVariants = new Dictionary<int, List<CalledAllele>> { { originalVcfVariant4.ReferencePosition, new List<CalledAllele> {originalVcfVariant4 } } };
 
 
             allelesPastNbh = merger.WriteVariantsUptoChr(writer, allelesPastNbh, nbhd1.ReferenceName);
 
-            allelesPastNbh = merger.WriteVariantsUptoIncludingNbhd(nbhd1, writer, allelesPastNbh);
+            allelesPastNbh = merger.WriteVariantsUptoIncludingNbhd(calledNbh1, writer, allelesPastNbh);
 
             allelesPastNbh = merger.WriteVariantsUptoChr(writer, allelesPastNbh, nbhd2.ReferenceName);
 
-            allelesPastNbh = merger.WriteVariantsUptoIncludingNbhd(nbhd2, writer, allelesPastNbh);
+            allelesPastNbh = merger.WriteVariantsUptoIncludingNbhd(calledNbh2, writer, allelesPastNbh);
 
             merger.WriteRemainingVariants(writer, allelesPastNbh);
 
@@ -130,7 +129,7 @@ namespace VariantPhasing.Tests.Logic
             //Of which we said, 100 will get sucked up. So that leaves 744 / 1000 calls for a reference.
             //So, we can still make a confident ref call. 
 
-            var mockNeighborhood = new Mock<IVcfNeighborhood>();
+            var mockNeighborhood = new Mock<ICallableNeighborhood>();
             mockNeighborhood.Setup(n => n.GetOriginalVcfVariants()).Returns(variantsUsedByCaller.ToList());
             mockNeighborhood.Setup(n => n.CalledVariants).Returns(stagedCalledMNVs);
             mockNeighborhood.Setup(n => n.CalledRefs).Returns(stagedCalledRefs);
@@ -247,7 +246,7 @@ namespace VariantPhasing.Tests.Logic
            
             var variantsUsedByCaller2 = new List<CalledAllele>() {originalVcfVariant, originalVcfVariant2, originalVcfVariant3 };
 
-            var nbhd = new Mock<IVcfNeighborhood>();
+            var nbhd = new Mock<ICallableNeighborhood>();
             nbhd.Setup(n => n.GetOriginalVcfVariants()).Returns(variantsUsedByCaller2.ToList());
 
             var stagedCalledMNVs2 = new Dictionary<int, List<CalledAllele>>() {

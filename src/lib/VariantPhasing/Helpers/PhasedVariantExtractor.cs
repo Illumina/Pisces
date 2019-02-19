@@ -38,8 +38,8 @@ namespace VariantPhasing.Logic
         /// <param name="anchorPosition">if we are forcing the allele to be at a given position, instead of the poisition it would naturally be at in the VCF file</param>
         /// <returns></returns>
         public static Dictionary<int, SuckedUpRefRecord> Extract(out CalledAllele allele,
-               VariantSite[] clusterVariantSites, string referenceSequence, int[] neighborhoodDepthAtSites, int[] neighborhoodNoCallsAtSites, int[] clusterCountsAtSites,
-               string chromosome, int qNoiselevel, int maxQscore, int anchorPosition = -1)
+               VariantSite[] clusterVariantSites, string referenceSequence, int[] neighborhoodDepthAtSites, int[] neighborhoodNoCallsAtSites, int clusterRefSupport,
+               int[] clusterCountsAtSites, string chromosome, int qNoiselevel, int maxQscore, int anchorPosition = -1)
         {
             if (clusterVariantSites.Length != neighborhoodDepthAtSites.Length || neighborhoodDepthAtSites.Length != clusterCountsAtSites.Length)
             {
@@ -103,6 +103,10 @@ namespace VariantPhasing.Logic
                 }
 
 
+
+
+                // Nima: In diploid mode (usingAnchor == 1), any ref after anchor gets used up. I'm not sure if this is intented.
+                // TJD - yes, intended.  For germline we phase a whole anchored block at a time, including reference
                 if (differenceStarted || usingAnchor)
                 {
                     var gapLength = currentPosition - lastRefBaseSitePosition - 1;
@@ -163,7 +167,7 @@ namespace VariantPhasing.Logic
             if (!differenceStarted || (alleleReference.Length == 0) && (alleleAlternate.Length == 0))
             {
                 //taking out the preceding bases, the phased variant compacted to nothing!
-                allele = Create(chromosome, -1, alleleReference, alleleAlternate, varCount, noCallCount, totalCoverage, AlleleCategory.Reference, qNoiselevel, maxQscore);
+                allele = Create(chromosome, -1, alleleReference, alleleAlternate, varCount, noCallCount, totalCoverage, clusterRefSupport, AlleleCategory.Reference, qNoiselevel, maxQscore);
                 return referenceRemoval;
             }
 
@@ -183,21 +187,21 @@ namespace VariantPhasing.Logic
             //compacted to an insertion
             if ((alleleReference.Length == 0) && (alleleAlternate.Length != 0))
                 allele = Create(chromosome, trueStartPosition - 1, prependableBase + alleleReference, prependableBase + alleleAlternate,
-                    varCount, noCallCount, totalCoverage, AlleleCategory.Insertion, qNoiselevel, maxQscore);
+                    varCount, noCallCount, totalCoverage, clusterRefSupport, AlleleCategory.Insertion, qNoiselevel, maxQscore);
             //compacted to an insertion
             else if ((alleleReference.Length != 0) && (alleleAlternate.Length == 0))
                 allele = Create(chromosome, trueStartPosition - 1, prependableBase + alleleReference, prependableBase + alleleAlternate,
-                    varCount, noCallCount, totalCoverage, AlleleCategory.Deletion, qNoiselevel, maxQscore);
+                    varCount, noCallCount, totalCoverage, clusterRefSupport, AlleleCategory.Deletion, qNoiselevel, maxQscore);
             else  //MNV,pretty much what we were expecting. (and every time we are using an anchor)
             {
                 allele = Create(chromosome, trueStartPosition, alleleReference, alleleAlternate,
-                    varCount, noCallCount, totalCoverage, AlleleCategory.Mnv, qNoiselevel, maxQscore);
+                    varCount, noCallCount, totalCoverage, clusterRefSupport, AlleleCategory.Mnv, qNoiselevel, maxQscore);
             }
 
 
             if (varCount == 0)
                 allele = Create(chromosome, trueStartPosition, alleleReference, ".",
-                   varCount, noCallCount, totalCoverage, AlleleCategory.Reference, qNoiselevel, maxQscore);
+                   varCount, noCallCount, totalCoverage, clusterRefSupport, AlleleCategory.Reference, qNoiselevel, maxQscore);
 
             foreach (var suckedupRefPos in referenceCallsSuckedIntoMnv)
             {
@@ -227,12 +231,13 @@ namespace VariantPhasing.Logic
         /// <returns></returns>
 
         public static CalledAllele Create(string chromosome, int alleleCoordinate, string alleleReference,
-            string alleleAlternate, int varCount, int noCallCount, int totalCoverage, AlleleCategory category, int qNoiselevel, int maxQscore)
+            string alleleAlternate, int varCount, int noCallCount, int totalCoverage, int refSpt, AlleleCategory category, int qNoiselevel, int maxQscore)
         {
             if (totalCoverage < varCount)  //sometimes the orignal vcf and the bam dont agree...
                 totalCoverage = varCount;
 
-            int refSpt = totalCoverage - varCount;
+            // Nima: Commented this line for pics-1017
+            //refSpt = totalCoverage - varCount;
 
             if (category == AlleleCategory.Reference)
             {

@@ -4,9 +4,9 @@
     <OutputType>Exe</OutputType>
     <TargetFramework>netcoreapp2.0</TargetFramework>
     <RepositoryUrl>https://github.com/Illumina/Pisces</RepositoryUrl>
-    <Version>5.2.9.122</Version>
+    <Version>5.2.10.49</Version>
     <Company>Illumina</Company>
-    <Copyright>Copyright © Illumina 2018</Copyright>
+    <Copyright>Copyright © Illumina 2019</Copyright>
   </PropertyGroup>
 
   <ItemGroup>

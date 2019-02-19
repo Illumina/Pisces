@@ -21,4 +21,10 @@ namespace Pisces.Domain.Options
         public int MaxNumNewClustersPerSite = 100;
         public int ClusterConstraint = -1;
     }
+
+    public class SoftClipSupportParameters
+    {	
+        public bool UseSoftClippedReads = false;	
+        public int MinSizeForClipRescue = 6;	
+    }
 }

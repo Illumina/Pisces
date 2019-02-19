@@ -5,7 +5,9 @@ namespace Pisces.Domain.Types
     public enum PloidyModel
     {
         Somatic,
-        Diploid 
+        DiploidByThresholding,
+        DiploidByAdaptiveGT,
+        Haploid
     };
 
     public enum NoiseModel  //tjd - might use this with new Q model.

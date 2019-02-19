@@ -246,7 +246,10 @@ namespace Pisces.Domain.Logic
 
 
             //Do not create a variant if the qualities aren't good enough
-            //TODO - GB: this logic was pulled directly from existing Pisces ProcessReadCigarString. I believe it is correcting for the case where you have a deletion at the end of a read, but does that happen? Wouldn't that just be the end of the read... -- just defensive coding
+            //GB: This logic  is correcting for the case where you have a deletion at the end of a read, but does that happen? Wouldn't that just be the end of the read... -- just defensive coding
+            //TJD: We are seeing indels from non-std workflows, where the indel is the only elements in the cigar string. Presumably this is from hard clipping?
+            //Currently we warn the user during the cigar validation step. But after that we should continue gracefully w/out
+            //array out of bounds issues or otherwise throwing.
             bool qualitiesGoodEnough = CheckDeletionQuality(alignment, opStartIndexInRead, _minimumBaseCallQuality);
 
             if (!qualitiesGoodEnough) return null;
@@ -262,7 +265,14 @@ namespace Pisces.Domain.Logic
 
         public static bool CheckDeletionQuality(Read alignment, int opStartIndexInRead, int MinimumBaseCallQuality)
         {
-            var qualityOfBaseAfterDel = opStartIndexInRead < alignment.Qualities.Length ? alignment.Qualities[opStartIndexInRead] : alignment.Qualities[opStartIndexInRead - 1];
+
+            //Defensive coding. If someone sends through a cigar string that is only a deletion, (ie, no bases and no q scores)
+            //then we warn them (up stream of here,in the cigar validation step) 
+            //and the Deletion itself will end up with a zero quality score.
+            if (alignment.Qualities.Length == 0)
+                return false;
+
+            var qualityOfBaseAfterDel = ( opStartIndexInRead < alignment.Qualities.Length ) ? alignment.Qualities[opStartIndexInRead] : alignment.Qualities[opStartIndexInRead - 1];
 
             //set this just incase there is no preceding base.  defensive coding. 
             var qualityOfBaseBeforeDel = qualityOfBaseAfterDel;
@@ -457,6 +467,9 @@ namespace Pisces.Domain.Logic
         /// <param name="read"></param>
         private void Annotate(List<CandidateAllele> candidates, Read read)
         {
+            if (candidates.Count == 0)
+                return;
+
             var firstOperation = read.CigarData[0];
             var lastOperation = read.CigarData[read.CigarData.Count - 1];
 

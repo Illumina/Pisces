@@ -13,6 +13,7 @@
         RMxN,
 		ForcedReport,
         OffTarget,
-        NoCall
+        NoCall,
+        Unknown
     }
 }

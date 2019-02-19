@@ -1,7 +1,9 @@
 ﻿using System;
+using System.IO;
 using System.Collections.Generic;
 using Pisces.Domain.Options;
 using Pisces.Domain.Types;
+using Pisces.Genotyping;
 using Common.IO.Utility;
 using CommandLine.NDesk.Options;
 
@@ -71,18 +73,43 @@ namespace CommandLine.Options
                 },
                 {
                     "ploidy=",
-                    OptionTypes.STRING +  $" 'somatic' or 'diploid'. default, {options.PloidyModel}.",
+                    OptionTypes.STRING +  $" 'somatic' or 'diploid'. default, {options.PloidyModel}. To test drive the new adaptive model, try 'DiploidByAdaptiveGT' ",
                     value => options.PloidyModel = ConvertToPloidy(value)
                 },
                 {
                     "diploidsnvgenotypeparameters=",
-                    OptionTypes.STRING + " A,B,C. default 0.20,0.70,0.80",
+                    OptionTypes.STRING + " A,B,C. default " + options.DiploidSNVThresholdingParameters.ToString(),
                     value=> options.DiploidSNVThresholdingParameters = ConvertToDiploidThresholding(value)
                 },
                 {
                     "diploidindelgenotypeparameters=",
-                    OptionTypes.STRING + " A,B,C. default 0.20,0.70,0.80",
+                    OptionTypes.STRING + " A,B,C. default " + options.DiploidINDELThresholdingParameters.ToString(),
                     value=> options.DiploidINDELThresholdingParameters =ConvertToDiploidThresholding(value)
+                },
+                {
+                    "adaptivegenotypeparameters_fromfile=",
+                    OptionTypes.PATH + " file name. default, none.",
+                    value=> options.AdaptiveGenotypingParameters =  UpdateAdaptiveGenotypingParameters(options.AdaptiveGenotypingParameters , value )
+                },
+                 {
+                    "adaptivegenotypeparameters_snvmodel=",
+                    OptionTypes.STRING + " A,B,C,D. default " + OptionHelpers.ListOfParamsToDelimiterSeparatedString( options.AdaptiveGenotypingParameters.SnvModel),
+                    value=> options.AdaptiveGenotypingParameters.SnvModel = ConvertToAdaptiveGenotypingParameters(value)
+                },
+                {
+                    "adaptivegenotypeparameters_indelmodel=",
+                    OptionTypes.STRING + " A,B,C. default " + OptionHelpers.ListOfParamsToDelimiterSeparatedString( options.AdaptiveGenotypingParameters.IndelModel),
+                    value=>  options.AdaptiveGenotypingParameters.IndelModel = ConvertToAdaptiveGenotypingParameters(value)
+                },
+                 {
+                    "adaptivegenotypeparameters_snvprior=",
+                    OptionTypes.STRING + " A,B,C,D. default " + OptionHelpers.ListOfParamsToDelimiterSeparatedString( options.AdaptiveGenotypingParameters.SnvPrior),
+                    value=> options.AdaptiveGenotypingParameters.SnvPrior = ConvertToAdaptiveGenotypingParameters(value)
+                },
+                {
+                    "adaptivegenotypeparameters_indelprior=",
+                    OptionTypes.STRING + " A,B,C. default " + OptionHelpers.ListOfParamsToDelimiterSeparatedString( options.AdaptiveGenotypingParameters.IndelPrior),
+                    value=>  options.AdaptiveGenotypingParameters.IndelPrior = ConvertToAdaptiveGenotypingParameters(value)
                 },
                 {
                     "sbmodel=",
@@ -91,22 +118,27 @@ namespace CommandLine.Options
                 },
                 {
                     "maxvq|maxvariantqscore=",
-                    OptionTypes.INT + " MaximumVariantQScore to cap output variant Qscores",
+                    OptionTypes.INT + " MaximumVariantQScore to cap output variant Qscores. Default, " + options.MaximumVariantQScore,
                     value=>options.MaximumVariantQScore = int.Parse(value)
                 },
                 {
                     "maxgq|maxgenotypeqscore=",
-                    OptionTypes.INT + " Maximum genotype QScore to cap output variant Qscores ",
+                    OptionTypes.INT + " Maximum genotype QScore to cap output genotype Qscores. Default, " + options.MaximumGenotypeQScore,
                     value=>options.MaximumGenotypeQScore = int.Parse(value)
                 },
                 {
+                    "maxgp|maxgenotypeposteriorscore=",
+                    OptionTypes.INT + " Maximum genotype posterior score to cap output genotype posteriors. Default, " + options.AdaptiveGenotypingParameters.MaxGenotypePosteriors,
+                    value=>options.AdaptiveGenotypingParameters.MaxGenotypePosteriors = int.Parse(value)
+                },
+                {
                     "mingq|mingenotypeqscore=",
-                    OptionTypes.INT + " Minimum genotype QScore to cap output variant Qscores ",
+                    OptionTypes.INT + " Minimum genotype QScore to cap output genotype Qscores. Default, " + options.MinimumGenotypeQScore,
                     value=>options.MinimumGenotypeQScore = int.Parse(value)
                 },
                 {
                     "sbfilter|maxacceptablestrandbiasfilter=",
-                    OptionTypes.FLOAT + " Strand bias cutoff",
+                    OptionTypes.FLOAT + " Strand bias cutoff. Default, " + options.StrandBiasAcceptanceCriteria,
                     value=>options.StrandBiasAcceptanceCriteria = float.Parse(value)
                 },
                 {
@@ -184,12 +216,50 @@ namespace CommandLine.Options
             return diploidThresholdingParameters;
         }
 
+
+        private static double[] ConvertToAdaptiveGenotypingParameters(string value)
+        {
+            return (OptionHelpers.ParseStringToDouble(value.Split(OptionHelpers.Delimiter)));
+        }
+
+        private static List<MixtureModelInput> ReadAdaptiveGenotypingParametersFromFile(string value)
+        {
+            var ListOfMixtureModels = MixtureModel.ReadModelsFile(value); 
+
+            return ListOfMixtureModels;
+        }
+
+        private static AdaptiveGenotypingParameters UpdateAdaptiveGenotypingParameters(AdaptiveGenotypingParameters parameters, string inputModelFilePath)
+        {
+
+            if (File.Exists(inputModelFilePath))
+            {
+                var newModels = MixtureModel.ReadModelsFile(inputModelFilePath);
+
+                parameters.SnvModel = newModels[0].Means;
+                parameters.SnvPrior = newModels[0].Weights;
+
+                parameters.IndelModel = newModels[1].Means;
+                parameters.IndelPrior = newModels[1].Weights;
+            }
+            else
+            {
+                throw new ArgumentException("No AdaptiveGT model file found at " + inputModelFilePath);
+            }
+           
+
+            return parameters;
+        }
+
+
         private static PloidyModel ConvertToPloidy(string value)
         {
-            if (value.ToLower().Contains("somatic"))
+            if (value.ToLower() == "somatic")
                 return PloidyModel.Somatic;
-            else if (value.ToLower().Contains("diploid"))
-                return PloidyModel.Diploid;
+            else if (value.ToLower() == "diploid")
+                return PloidyModel.DiploidByThresholding;
+            else if (value.ToLower() == "diploidbyadaptivegt")
+                return PloidyModel.DiploidByAdaptiveGT;
             else
                 throw new ArgumentException(string.Format("Unknown ploidy model '{0}'", value));
         }

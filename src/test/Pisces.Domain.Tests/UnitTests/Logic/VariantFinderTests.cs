@@ -500,7 +500,6 @@ new CandidateVariantsTest(_readStartPos, "TTT" + "TTTT" + "TTT", cigarString, "A
             var badOnlyAtRightOfDel = CandidateFinderTestHelpers.QualitiesArray(cigarString, _qualityCutoff, _qualityCutoff - 1, new[] { variantPositionInRead });
             var badEverywhereExceptBookendsOfDel = CandidateFinderTestHelpers.QualitiesArray(cigarString, _qualityCutoff - 1, _qualityCutoff, new[] { variantPositionInRead - 1, variantPositionInRead });
 
-
             ExecuteTest(new CandidateVariantsTest(_readStartPos, refRead, cigarString, altRead, goodQualities)
             {
                 Expectations = new CandidateVariantTestExpectations(1, typeExpected, refAllele, altAllele, _readStartPos + variantPositionInRead - 1, false, false)
@@ -728,6 +727,23 @@ new CandidateVariantsTest(_readStartPos, "TTT" + "TTTT" + "TTT", cigarString, "A
                 })
             });
 
+
+            // Entire read is an deletion. No anchor; we used to throw an exception.
+            // As of 5.2.10,  we will allow and log a warning.
+            //Note: This deletion has no Q score so there will be no candidate variant returned. The deletion will not count towards var calling.
+            cigarString = "5D";
+            variantPositionInRead = 0;
+            refRead = "ACAAG";
+            altRead = "";
+            refAllele = "NACAAG";
+            altAllele = "N";
+            goodQualities = CandidateFinderTestHelpers.QualitiesArray(cigarString, _qualityCutoff);
+
+            ExecuteTest(new CandidateVariantsTest(_readStartPos, refRead, cigarString, altRead, goodQualities)
+            {
+                Expectations = new CandidateVariantTestExpectations(0, typeExpected, refAllele, altAllele, _readStartPos + variantPositionInRead - 1, true, true)
+            });
+
         }
 
         public void InsertionTests()
@@ -924,22 +940,20 @@ new CandidateVariantsTest(_readStartPos, "TTT" + "TTTT" + "TTT", cigarString, "A
             });
 
 
-            // Entire read is an insertion. No anchor; throw an exception.
+            // Entire read is an insertion. No anchor; we used to throw an exception.
+            // As of 5.2.10,  we will allow and log a warning.
             cigarString = "5I";
             variantPositionInRead = 0;
             refRead = "AAGT";
             altRead = "CAAGT";
             refAllele = "N";
-            altAllele = "NC";
+            altAllele = "NCAAGT";
             goodQualities = CandidateFinderTestHelpers.QualitiesArray(cigarString, _qualityCutoff);
 
-            Assert.Throws<System.IO.InvalidDataException>(
-                () => ExecuteTest(new CandidateVariantsTest(_readStartPos, refRead, cigarString, altRead, goodQualities)
-                {
-                    Expectations =
-                        new CandidateVariantTestExpectations(0, typeExpected, refAllele, altAllele,
-                            _readStartPos + variantPositionInRead - 1, true, true)
-                }));
+            ExecuteTest(new CandidateVariantsTest(_readStartPos, refRead, cigarString, altRead, goodQualities)
+            {
+                Expectations = new CandidateVariantTestExpectations(1, typeExpected, refAllele, altAllele, _readStartPos + variantPositionInRead - 1, true, true)
+            });
 
 
             cigarString = "3M5I1M";

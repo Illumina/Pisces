@@ -34,15 +34,15 @@ namespace VariantQualityRecalibration
         protected override void ProgramExecution()
         {
            
-            Logger.WriteToLog("Generating counts file");
-            string countsFile = Counts.WriteCountsFile(_options.InputVcf, _options.OutputDirectory, _options.LociCount);
 
+            Logger.WriteToLog("Generating counts files");
+            SignatureSorterResultFiles results = SignatureSorter.StrainVcf(_options);
+             
             Logger.WriteToLog("Starting Recalibration");
 
             try
             {
-                QualityRecalibration.Recalibrate(_options.InputVcf, countsFile, _options.OutputDirectory, _options.BaseQNoise,
-                    _options.ZFactor, _options.MaxQScore, _options.FilterQScore, _options.QuotedCommandLineArgumentsString);
+                QualityRecalibration.Recalibrate(results, _options);
             }
             catch (Exception e)
             {

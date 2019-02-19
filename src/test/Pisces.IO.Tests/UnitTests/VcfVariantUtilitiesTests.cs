@@ -275,12 +275,28 @@ namespace Pisces.IO.Tests.UnitTests
             Assert.Equal(Genotype.HomozygousAlt, allele.Genotype);
             Assert.Equal(AlleleCategory.Snv, allele.Type);
 
-            vcfVar.Genotypes[0]["GT"] = "1/1";
-            vcfVar.Filters = "lowvariantfreq;multiallelicsite";
+            //vcfVar.Genotypes[0]["GT"] = "1/1";
+            vcfVar.Filters = "lowvariantfreq;MultiAllelicSite";
             allele = VcfVariantUtilities.ConvertUnpackedVariant(vcfVar);
 
             Assert.Equal(vcfVar.ReferenceName, allele.Chromosome);
             Assert.Equal(new List<FilterType>() { FilterType.LowVariantFrequency, FilterType.MultiAllelicSite }, allele.Filters);
+            Assert.Equal(Genotype.HomozygousAlt, allele.Genotype);
+            Assert.Equal(AlleleCategory.Snv, allele.Type);
+            
+            vcfVar.Filters = "lowsupport";
+            allele = VcfVariantUtilities.ConvertUnpackedVariant(vcfVar);
+
+            Assert.Equal(vcfVar.ReferenceName, allele.Chromosome);
+            Assert.Equal(new List<FilterType>() { FilterType.Unknown }, allele.Filters);
+            Assert.Equal(Genotype.HomozygousAlt, allele.Genotype);
+            Assert.Equal(AlleleCategory.Snv, allele.Type);
+
+            vcfVar.Filters = "pass";
+            allele = VcfVariantUtilities.ConvertUnpackedVariant(vcfVar);
+
+            Assert.Equal(vcfVar.ReferenceName, allele.Chromosome);
+            Assert.Equal(new List<FilterType>() {  }, allele.Filters);
             Assert.Equal(Genotype.HomozygousAlt, allele.Genotype);
             Assert.Equal(AlleleCategory.Snv, allele.Type);
 

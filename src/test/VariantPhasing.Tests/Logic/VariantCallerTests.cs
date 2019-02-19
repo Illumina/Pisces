@@ -27,15 +27,16 @@ namespace VariantPhasing.Tests.Logic
             //since there is an alt at position 124 ( a call of 156 alt / 1000 total, that means 844 original ref calls.
             //Of which we said, 100 will get sucked up. So that leaves 744 / 1000 calls for a reference.
             //So, we can still make a confident ref call. (we will call it 0/., since we know its not a homozygous ref)
+            
+            var nbhd = new VcfNeighborhood(0, "chr1", vs1, vs2);
 
-            var nbhd = new VcfNeighborhood(new VariantCallingParameters(), 0, "chr1", vs1, vs2, "");
-            nbhd.SetRangeOfInterest();
+            var callableNbhd = new CallableNeighborhood(nbhd, new VariantCallingParameters());
 
-            caller.CallMNVs(nbhd);
-            caller.CallRefs(nbhd);
+            caller.CallMNVs(callableNbhd);
+            caller.CallRefs(callableNbhd);
 
-            var acceptedMNVs = nbhd.CalledVariants;
-            var acceptedRefs = nbhd.CalledRefs;
+            var acceptedMNVs = callableNbhd.CalledVariants;
+            var acceptedRefs = callableNbhd.CalledRefs;
 
             Assert.Equal(0, acceptedMNVs.Count);
             Assert.Equal(2, acceptedRefs.Count);
@@ -64,9 +65,11 @@ namespace VariantPhasing.Tests.Logic
             //Of which we said, 100 will get sucked up. So that leaves 744 / 1000 calls for a reference.
             //So, we can still make a confident ref call. 
 
-            var nbhd = new VcfNeighborhood(vcParams, 0, "chr1", vs1, vs2, "");
-            nbhd.SetRangeOfInterest();
-            nbhd.AddAcceptedPhasedVariant(
+            var nbhd = new VcfNeighborhood(0, "chr1", vs1, vs2);
+            var callableNeighbor1 = new CallableNeighborhood(nbhd, vcParams);
+
+
+            callableNeighbor1.AddAcceptedPhasedVariant(
                 new CalledAllele(AlleleCategory.Snv)
                 {
                     Chromosome = "chr1",
@@ -77,13 +80,13 @@ namespace VariantPhasing.Tests.Logic
                     TotalCoverage = 1000,
                     AlleleSupport = 500
                 });
-            nbhd.UsedRefCountsLookup = new Dictionary<int, SuckedUpRefRecord>() { };
+            callableNeighbor1.UsedRefCountsLookup = new Dictionary<int, SuckedUpRefRecord>() { };
 
-            caller.CallMNVs(nbhd);
-            caller.CallRefs(nbhd);
+            caller.CallMNVs(callableNeighbor1);
+            caller.CallRefs(callableNeighbor1);
 
-            var acceptedMNVs = nbhd.CalledVariants;
-            var acceptedRefs = nbhd.CalledRefs;
+            var acceptedMNVs = callableNeighbor1.CalledVariants;
+            var acceptedRefs = callableNeighbor1.CalledRefs;
 
             Assert.Equal(1, acceptedMNVs.Count);
             Assert.Equal(1, acceptedMNVs[123].Count);
@@ -106,14 +109,14 @@ namespace VariantPhasing.Tests.Logic
 
             // If one has been sucked up and there are refs remaining, we should output it as a ref. 
             var suckedUpRefRecord100 = new SuckedUpRefRecord() { Counts = 100, AlleleThatClaimedIt = new CalledAllele() };
-            nbhd.UsedRefCountsLookup = new Dictionary<int, SuckedUpRefRecord>() { { 124, suckedUpRefRecord100 } };
+            callableNeighbor1.UsedRefCountsLookup = new Dictionary<int, SuckedUpRefRecord>() { { 124, suckedUpRefRecord100 } };
 
 
-            caller.CallMNVs(nbhd);
-            caller.CallRefs(nbhd);
+            caller.CallMNVs(callableNeighbor1);
+            caller.CallRefs(callableNeighbor1);
 
-            acceptedMNVs = nbhd.CalledVariants;
-            acceptedRefs = nbhd.CalledRefs;
+            acceptedMNVs = callableNeighbor1.CalledVariants;
+            acceptedRefs = callableNeighbor1.CalledRefs;
 
             Assert.Equal(1, acceptedMNVs.Count);
             Assert.Equal(1, acceptedMNVs[123].Count);
@@ -137,13 +140,13 @@ namespace VariantPhasing.Tests.Logic
             // If one has been sucked up all the way 
             // we should output it as a null.
             var suckedUpRefRecord1000  = new SuckedUpRefRecord() { Counts = 1000, AlleleThatClaimedIt = new CalledAllele() };
-            nbhd.UsedRefCountsLookup = new Dictionary<int, SuckedUpRefRecord>() { { 124, suckedUpRefRecord1000 } };
+            callableNeighbor1.UsedRefCountsLookup = new Dictionary<int, SuckedUpRefRecord>() { { 124, suckedUpRefRecord1000 } };
 
-            caller.CallMNVs(nbhd);
-            caller.CallRefs(nbhd);
+            caller.CallMNVs(callableNeighbor1);
+            caller.CallRefs(callableNeighbor1);
 
-            acceptedMNVs = nbhd.CalledVariants;
-            acceptedRefs = nbhd.CalledRefs;
+            acceptedMNVs = callableNeighbor1.CalledVariants;
+            acceptedRefs = callableNeighbor1.CalledRefs;
 
             Assert.Equal(1, acceptedMNVs.Count);
             Assert.Equal(1, acceptedMNVs[123].Count);
@@ -194,9 +197,10 @@ namespace VariantPhasing.Tests.Logic
             var vcParams = new VariantCallingParameters();
             vcParams.Validate();
             var caller = new VariantCaller(vcParams, new BamFilterParameters());
-            var nbhd = new VcfNeighborhood(vcParams, 0, "chr1", vs1, vs2, "");
-            nbhd.AddVariantSite(vs3, "RRRRR"); //note, we do not add vs4, that is not going to get used for phasing. Sps it is a variant that failed filters.
-            nbhd.SetRangeOfInterest();
+            var nbhd = new VcfNeighborhood(0, "chr1", vs1, vs2);
+            nbhd.AddVariantSite(vs3); //note, we do not add vs4, that is not going to get used for phasing. Sps it is a variant that failed filters.
+
+            var callableNbhd = new CallableNeighborhood(nbhd, vcParams, null);
 
             //now stage one candidate MNV:
             var newMNV = new CalledAllele(AlleleCategory.Snv)
@@ -211,15 +215,15 @@ namespace VariantPhasing.Tests.Logic
             };
 
 
-            nbhd.AddAcceptedPhasedVariant(newMNV);
+            callableNbhd.AddAcceptedPhasedVariant(newMNV);
             var suckedUpRefRecord1000 = new SuckedUpRefRecord() { Counts = 1000, AlleleThatClaimedIt = new CalledAllele() };
-            nbhd.UsedRefCountsLookup = new Dictionary<int, SuckedUpRefRecord>() { { 124, suckedUpRefRecord1000 } };
+            callableNbhd.UsedRefCountsLookup = new Dictionary<int, SuckedUpRefRecord>() { { 124, suckedUpRefRecord1000 } };
 
-            caller.CallMNVs(nbhd);
-            caller.CallRefs(nbhd);
+            caller.CallMNVs(callableNbhd);
+            caller.CallRefs(callableNbhd);
 
-            var acceptedMNVs = nbhd.CalledVariants;
-            var acceptedRefs = nbhd.CalledRefs;
+            var acceptedMNVs = callableNbhd.CalledVariants;
+            var acceptedRefs = callableNbhd.CalledRefs;
 
 
             var vcfVariant0asRef = new VcfVariant()
@@ -283,9 +287,10 @@ namespace VariantPhasing.Tests.Logic
             var caller = new VariantCaller(variantCallingParameters, new BamFilterParameters());
 
             
-            var nbhd = new VcfNeighborhood(new VariantCallingParameters(), 0, "chr1", vs1, vs2, "");
-            nbhd.SetRangeOfInterest();
-            nbhd.AddAcceptedPhasedVariant(
+            var nbhd = new VcfNeighborhood(0, "chr1", vs1, vs2);
+            var callableNeihborhood = new CallableNeighborhood(nbhd, new VariantCallingParameters());
+
+            callableNeihborhood.AddAcceptedPhasedVariant(
                 new CalledAllele(AlleleCategory.Snv)
                 {
                     Chromosome = "chr1",
@@ -296,13 +301,13 @@ namespace VariantPhasing.Tests.Logic
                     TotalCoverage = 1000,
                     AlleleSupport = 500
                 });
-            nbhd.UsedRefCountsLookup = new Dictionary<int, SuckedUpRefRecord>() { };
+            callableNeihborhood.UsedRefCountsLookup = new Dictionary<int, SuckedUpRefRecord>() { };
 
-            caller.CallMNVs(nbhd);
-            caller.CallRefs(nbhd);
+            caller.CallMNVs(callableNeihborhood);
+            caller.CallRefs(callableNeihborhood);
 
-            var acceptedMNVs = nbhd.CalledVariants;
-            var acceptedRefs = nbhd.CalledRefs;
+            var acceptedMNVs = callableNeihborhood.CalledVariants;
+            var acceptedRefs = callableNeihborhood.CalledRefs;
 
             Assert.Equal(1, acceptedMNVs.Count);
             Assert.Equal(1, acceptedMNVs[123].Count);

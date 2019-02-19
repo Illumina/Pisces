@@ -276,7 +276,7 @@ namespace Pisces.IO.Tests
 
 
         [Fact]
-        public void TestDiploidStyleWithVariants()
+        public void TestDiploidThresholdingStyleWithVariants()
         {
             var outputFile = Path.Combine(TestPaths.LocalTestDataDirectory, "VcfFileWriterTests_Crushed.vcf");
             File.Delete(outputFile);
@@ -355,6 +355,102 @@ namespace Pisces.IO.Tests
             var variantLine = @"chr4	55141055	.	AA	GA,G	0	PASS	DP=5394	GT:GQ:AD:DP:VF:NL:SB:NC	1/2:0:2387,2000:5394:0.8133:23:0.0000:0.0000";
             var fileLines = File.ReadAllLines(outputFile);
             Assert.True(fileLines.Contains(variantLine));
+        }
+
+
+        [Fact]
+        public void TestAdaptiveGTStyleWithVariants()
+        {
+            var outDir = Path.Combine(TestPaths.LocalScratchDirectory, "AdaptiveGTVcfWriting");
+            var outputFile = Path.Combine(outDir, "VcfFileWriterTests_Crushed.vcf");
+
+            TestUtilities.TestHelper.RecreateDirectory(outDir);
+
+            var context = new VcfWriterInputContext
+            {
+                QuotedCommandLineString = "myCommandLine",
+                SampleName = "mySample",
+                ReferenceName = "myReference",
+                ContigsByChr = new List<Tuple<string, long>>
+                {
+                    new Tuple<string, long>("chr1", 10001),
+                    new Tuple<string, long>("chrX", 500)
+                }
+            };
+
+            var writer = new VcfFileWriter(outputFile,
+                new VcfWriterConfig
+                {
+                    DepthFilterThreshold = 500,
+                    VariantQualityFilterThreshold = 20,
+                    StrandBiasFilterThreshold = 0.5f,
+                    FrequencyFilterThreshold = 0.007f,
+                    MinFrequencyThreshold = 0.007f,
+                    ShouldOutputNoCallFraction = true,
+                    ShouldOutputStrandBiasAndNoiseLevel = true,
+                    ShouldFilterOnlyOneStrandCoverage = true,
+                    ShouldReportGp = true,
+                    EstimatedBaseCallQuality = 23,
+                    AllowMultipleVcfLinesPerLoci = false,
+                    PloidyModel= PloidyModel.DiploidByAdaptiveGT
+                },
+                context);
+
+            var candidates = new List<CalledAllele>()
+            {
+                new CalledAllele(AlleleCategory.Snv)
+                {
+                    AlleleSupport = 2387,
+                    TotalCoverage = 5394,
+                    Chromosome = "chr4",
+                    ReferencePosition = 55141055,
+                    ReferenceAllele = "A",
+                    AlternateAllele = "G",
+                    Filters = new List<FilterType>() {},
+                    FractionNoCalls = 0,
+                    Genotype = Genotype.HeterozygousAlt1Alt2,
+                    NumNoCalls = 0,
+                    ReferenceSupport = 7,
+                    NoiseLevelApplied = 23,
+                    GenotypePosteriors = new float[]{1F,2F, 3F },
+                },
+
+                new CalledAllele(AlleleCategory.Deletion)
+                {
+                    AlleleSupport = 2000,
+                    TotalCoverage = 5394,
+                    Chromosome = "chr4",
+                    ReferencePosition = 55141055,
+                    ReferenceAllele = "AA",
+                    AlternateAllele = "G",
+                    Filters = new List<FilterType>() {},
+                    FractionNoCalls = 0,
+                    Genotype = Genotype.HeterozygousAlt1Alt2,
+                    NumNoCalls = 0,
+                    ReferenceSupport = 7,
+                    NoiseLevelApplied = 23,
+                    GenotypePosteriors = new float[]{1F,2F, 3F },
+                }
+            };
+
+            writer.WriteHeader();
+            writer.Write(candidates);
+            writer.Dispose();
+
+            Assert.Throws<IOException>(() => writer.WriteHeader());
+            Assert.Throws<IOException>(() => writer.Write(candidates));
+            writer.Dispose();
+
+            var variantLineWithGP = @"chr4	55141055	.	AA	GA,G	0	PASS	DP=5394	GT:GQ:AD:DP:VF:NL:SB:NC:GP	1/2:0:2387,2000:5394:0.8133:23:0.0000:0.0000:1.00,2.00,3.00";
+            var variantLineWithGPFormat = "##FORMAT=<ID=GP,Number=G,Type=Float,Description=\"Genotype Posterior\">";
+            var variantLineWithLowVFFilter = "##FILTER=<ID=LowVariantFreq,Description=\"Variant frequency less than 0.0070\">";
+            var variantLineWithMultiAllelicFilter = "##FILTER=<ID=MultiAllelicSite,Description=\"Variant does not conform to diploid model\">";
+
+            var fileLines = File.ReadAllLines(outputFile);
+            Assert.True(fileLines.Contains(variantLineWithGP));
+            Assert.True(fileLines.Contains(variantLineWithGPFormat));
+            Assert.True(fileLines.Contains(variantLineWithLowVFFilter));
+            Assert.True(fileLines.Contains(variantLineWithMultiAllelicFilter));
         }
 
 
@@ -605,7 +701,7 @@ namespace Pisces.IO.Tests
                     ShouldFilterOnlyOneStrandCoverage = true,
                     EstimatedBaseCallQuality = 23,
                     IndelRepeatFilterThreshold = 10,
-                    PloidyModel = PloidyModel.Diploid,
+                    PloidyModel = PloidyModel.DiploidByThresholding,
                     GenotypeQualityFilterThreshold = 25,
                     RMxNFilterMaxLengthRepeat = 5,
                     RMxNFilterMinRepetitions = 9,
@@ -1174,7 +1270,7 @@ namespace Pisces.IO.Tests
 
             Assert.Equal(formatLowGQ, config.GenotypeQualityFilterThreshold.HasValue);
 
-            Assert.Equal(formatMulti, config.PloidyModel == PloidyModel.Diploid);
+            Assert.Equal(formatMulti, config.PloidyModel == PloidyModel.DiploidByThresholding);
 
             Assert.Equal(formatRepeat, config.IndelRepeatFilterThreshold.HasValue);
 
