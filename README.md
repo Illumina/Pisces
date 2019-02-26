@@ -67,7 +67,6 @@ https://github.com/Illumina/Pisces/wiki/Frequently-Asked-Questions
 techsupport@illumina.com
 
 If you are using Pisces, feel free to introduce yourself!
-POC
 [Tamsen Dunn](https://www.linkedin.com/in/tamsen-dunn-7340145) and
 [Gwenn Berry](https://www.linkedin.com/in/gwenn-berry-43071939)
 
