@@ -73,7 +73,7 @@ https://github.com/Illumina/Pisces/wiki/Frequently-Asked-Questions
 
 general questions:
 techsupport@illumina.com
-PIsces-specific:
+Pisces-specific:
 [Tamsen Dunn](https://www.linkedin.com/in/tamsen-dunn-7340145) and
 [Gwenn Berry](https://www.linkedin.com/in/gwenn-berry-43071939)
 If you are using Pisces, feel free to introduce yourself!
