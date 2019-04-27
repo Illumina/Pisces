@@ -626,9 +626,9 @@ namespace VariantPhasing.Tests.Logic
             //chr12:121431782-121432182:COSM46441:TGC:TACCTA:chr12:121432185-121432585-1322/2_rev	121432114	75M	GGGCCCCCCCCAGGGCCAGGCCCGGGACCTGCGCTGCCCGCTCACAGCTCCCCTGGCCTGCCTCCACCTGC-CCTC
 
             var read = new BamAlignment();
-            read.Bases = "GGGCCCCCCCCAGGGCCAGGCCCGGGACCTGCGCTGCCCGCTCACAGCTCCCCTGGCCTGCCTCCACCTACCTAC";
+            read.Bases = "GGGCCCCCCCCAGGGCCAGGCCCGGGACCTGCGCTGCCCGCTCACAGCTCCCCTGGCCTGCCTCCACCTACCTACCCCCCC";
             //vcf coords  12-345678910-11,12,13,14
-            read.CigarData = new CigarAlignment("71M3I1M");
+            read.CigarData = new CigarAlignment("71M3I7M");
             read.Position = 121432114;
             read.Qualities = new byte[read.Bases.Length];
 
@@ -638,7 +638,27 @@ namespace VariantPhasing.Tests.Logic
             vs1.VcfAlternateAllele = "CCTA"; //read should match ALT for this test
 
 
+            var vs2 = new VariantSite();
+            vs2.VcfReferencePosition = 121432186;
+            vs2.VcfReferenceAllele = "C";
+            vs2.VcfAlternateAllele = "CGGG"; //read should NOT match ALT for this test
+
+
+            var vs3 = new VariantSite();
+            vs3.VcfReferencePosition = 121432187;
+            vs3.VcfReferenceAllele = "C";
+            vs3.VcfAlternateAllele = "CGGG"; //read should NOT match ALT for this test
+
+            var vs4 = new VariantSite();
+            vs4.VcfReferencePosition = 121432188;
+            vs4.VcfReferenceAllele = "C";
+            vs4.VcfAlternateAllele = "C"; //simple ref
+
+
+
             var vsFromVcf = new List<VariantSite>() { vs1 };
+            var multipleVsFromVcf1 = new List<VariantSite>() { vs1, vs2, vs3 };
+            var multipleVsFromVcf2 = new List<VariantSite>() { vs2, vs3, vs4 };
 
             //given a variant site, is it in the read?
             ExecuteTest(read, 0, vsFromVcf, (foundVariants) =>
@@ -653,7 +673,157 @@ namespace VariantPhasing.Tests.Logic
                 Assert.Equal(matchedVariants[0].VcfReferenceAllele, "C");
                 Assert.Equal(matchedVariants[0].VcfAlternateAllele, "CCTA");
             });
+
+
+            //bug PICS-1123 test.
+            ExecuteTest(read, 0, multipleVsFromVcf1, (foundVariants) =>
+            {
+                Assert.Equal(foundVariants[SubsequenceType.MatchOrMismatchSequence].Count, 2);
+                Assert.Equal(foundVariants[SubsequenceType.InsertionSquence].Count, 1);
+                Assert.Equal(foundVariants[SubsequenceType.DeletionSequence].Count, 0);
+
+            }, (matchedVariants) =>
+            {
+                Assert.Equal(matchedVariants[0].VcfReferencePosition, 121432185);
+                Assert.Equal(matchedVariants[0].VcfReferenceAllele, "C");
+                Assert.Equal(matchedVariants[0].VcfAlternateAllele, "CCTA");
+
+                Assert.Equal(matchedVariants[1].VcfReferencePosition, 121432186);
+                Assert.Equal(matchedVariants[1].VcfReferenceAllele, "C");
+                Assert.Equal(matchedVariants[1].VcfAlternateAllele, "C");
+
+                Assert.Equal(matchedVariants[2].VcfReferencePosition, 121432187);
+                Assert.Equal(matchedVariants[2].VcfReferenceAllele, "C");
+                Assert.Equal(matchedVariants[2].VcfAlternateAllele, "C");
+            });
+
+            //slightly diff case
+            ExecuteTest(read, 0, multipleVsFromVcf2, (foundVariants) =>
+            {
+                Assert.Equal(foundVariants[SubsequenceType.MatchOrMismatchSequence].Count, 2);
+                Assert.Equal(foundVariants[SubsequenceType.InsertionSquence].Count, 1);
+                Assert.Equal(foundVariants[SubsequenceType.DeletionSequence].Count, 0);
+
+            }, (matchedVariants) =>
+            {
+                Assert.Equal(matchedVariants[0].VcfReferencePosition, 121432186);
+                Assert.Equal(matchedVariants[0].VcfReferenceAllele, "C");
+                Assert.Equal(matchedVariants[0].VcfAlternateAllele, "C");
+
+                Assert.Equal(matchedVariants[1].VcfReferencePosition, 121432187);
+                Assert.Equal(matchedVariants[1].VcfReferenceAllele, "C");
+                Assert.Equal(matchedVariants[1].VcfAlternateAllele, "C");
+
+                Assert.Equal(matchedVariants[2].VcfReferencePosition, 121432188);
+                Assert.Equal(matchedVariants[2].VcfReferenceAllele, "C");
+                Assert.Equal(matchedVariants[2].VcfAlternateAllele, "C");
+            });
+
         }
+
+        [Fact]
+        public void ProcessMixedDeletionsReadTest()
+        {
+
+            var read = new BamAlignment();
+            read.Bases = "GGGCCCCCCCCAGGGCCAGGCCCGGGACCTGCGCTGCCCGCTCACAGCTCCCCTGGCCTGCCTCCACCTACCTACCCCCCC";
+            //vcf coords  12-345678910-11,12,13,14
+            read.CigarData = new CigarAlignment("71M3D10M");
+            read.Position = 121432114;
+            read.Qualities = new byte[read.Bases.Length];
+
+            var vs1 = new VariantSite();
+            vs1.VcfReferencePosition = 121432185;
+            vs1.VcfReferenceAllele = "CGGG";
+            vs1.VcfAlternateAllele = "C"; //read should match ALT for this test
+
+
+            var vs2 = new VariantSite();
+            vs2.VcfReferencePosition = 121432186;
+            vs2.VcfReferenceAllele = "CAA";
+            vs2.VcfAlternateAllele = "C"; //read should NOT match ALT for this test
+
+
+            var vs3 = new VariantSite();
+            vs3.VcfReferencePosition = 121432187;
+            vs3.VcfReferenceAllele = "CCACAC";
+            vs3.VcfAlternateAllele = "C"; //read should NOT match ALT for this test
+
+            var vs4 = new VariantSite();
+            vs4.VcfReferencePosition = 121432188;
+            vs4.VcfReferenceAllele = "C";
+            vs4.VcfAlternateAllele = "C"; //simple ref
+
+
+
+            var vsFromVcf = new List<VariantSite>() { vs1 };
+            var multipleVsFromVcf1 = new List<VariantSite>() { vs1, vs2, vs3 };
+            var multipleVsFromVcf2 = new List<VariantSite>() { vs2, vs3, vs4 };
+           
+            //given a variant site, is it in the read?
+         
+            ExecuteTest(read, 0, vsFromVcf, (foundVariants) =>
+            {
+                Assert.Equal(foundVariants[SubsequenceType.MatchOrMismatchSequence].Count, 2);
+                Assert.Equal(foundVariants[SubsequenceType.InsertionSquence].Count, 0);
+                Assert.Equal(foundVariants[SubsequenceType.DeletionSequence].Count, 1);
+
+            }, (matchedVariants) =>
+            {
+                Assert.Equal(matchedVariants[0].VcfReferencePosition, 121432185);
+                Assert.Equal(matchedVariants[0].VcfReferenceAllele, "CGGG");
+                Assert.Equal(matchedVariants[0].VcfAlternateAllele, "C");
+            });
+
+
+            //bug PICS-1123 test, except for deletions
+            ExecuteTest(read, 0, multipleVsFromVcf1, (foundVariants) =>
+            {
+                Assert.Equal(foundVariants[SubsequenceType.MatchOrMismatchSequence].Count, 2);
+                Assert.Equal(foundVariants[SubsequenceType.InsertionSquence].Count, 0);
+                Assert.Equal(foundVariants[SubsequenceType.DeletionSequence].Count, 1);
+
+            }, (matchedVariants) =>
+            {
+                Assert.Equal(matchedVariants[0].VcfReferencePosition, 121432185);
+                Assert.Equal(matchedVariants[0].VcfReferenceAllele, "CGGG");
+                Assert.Equal(matchedVariants[0].VcfAlternateAllele, "C");
+
+                Assert.Equal(matchedVariants[1].VcfReferencePosition, 121432186);
+                Assert.Equal(matchedVariants[1].VcfReferenceAllele, "N"); //should be X. this corner case in not yet handled.
+                Assert.Equal(matchedVariants[1].VcfAlternateAllele, "N"); //should be X. this corner case in not yet handled.
+
+                Assert.Equal(matchedVariants[2].VcfReferencePosition, 121432187);
+                Assert.Equal(matchedVariants[2].VcfReferenceAllele, "N"); //should be X. this corner case in not yet handled.
+                Assert.Equal(matchedVariants[2].VcfAlternateAllele, "N"); //should be X. this corner case in not yet handled.
+            });
+
+            //slightly diff case. We have 2 deletions and a reference call in "multipleVsFromVcf2", at positions 186,187,188
+            //But the only deletion in the read "CGGG" -> "C" is not the one we are lookng for, which is at position 185.
+            //POsitons 186 and 187 are deleted postions in the read (and thus causing chaos in the current alg)
+            ExecuteTest(read, 0, multipleVsFromVcf2, (foundVariants) =>
+            {
+                Assert.Equal(foundVariants[SubsequenceType.MatchOrMismatchSequence].Count, 2);
+                Assert.Equal(foundVariants[SubsequenceType.InsertionSquence].Count, 0);
+                Assert.Equal(foundVariants[SubsequenceType.DeletionSequence].Count, 1);
+
+            }, (matchedVariants) =>
+            {
+                Assert.Equal(matchedVariants[0].VcfReferencePosition, 121432186);
+                Assert.Equal(matchedVariants[0].VcfReferenceAllele, "N"); //should be X. Its a deleted base.
+                Assert.Equal(matchedVariants[0].VcfAlternateAllele, "N"); //should be X. Its a deleted base.
+
+                Assert.Equal(matchedVariants[1].VcfReferencePosition, 121432187);
+                Assert.Equal(matchedVariants[1].VcfReferenceAllele, "N"); //should be X. Its a deleted base.
+                Assert.Equal(matchedVariants[1].VcfAlternateAllele, "N"); //should be X. Its a deleted base.
+
+                Assert.Equal(matchedVariants[2].VcfReferencePosition, 121432188);
+                Assert.Equal(matchedVariants[2].VcfReferenceAllele, "N"); //should be C.
+                Assert.Equal(matchedVariants[2].VcfAlternateAllele, "N"); //should be C.
+            });
+
+        }
+
 
         private void ExecuteTest(BamAlignment read, int minBaseCallQuality, List<VariantSite> vsFromVcf, Action<Dictionary<SubsequenceType, List<VariantSite>>> setCandidatesAssertions = null,
             Action<VariantSite[]> matchVariantsAssertions = null)
@@ -661,22 +831,145 @@ namespace VariantPhasing.Tests.Logic
             var readProcessor = new VeadFinder(new BamFilterParameters() { MinimumBaseCallQuality = minBaseCallQuality });
             int lastPos;
             var foundVariants
-                = readProcessor.SetCandidateVariantsFoundInRead(minBaseCallQuality, read, out lastPos);
+                = VeadFinder.SetCandidateVariantsFoundInRead(minBaseCallQuality, read, out lastPos);
 
-            //if (setCandidatesAssertions != null)
-            //{
             setCandidatesAssertions(foundVariants);
-            //}
 
             var matchedVariants
                        = readProcessor.MatchReadVariantsWithVcfVariants(vsFromVcf, foundVariants, read.Position + 1, lastPos);
 
-            //if (matchVariantsAssertions != null)
-            //{
             matchVariantsAssertions(matchedVariants);
-            //}
 
             readProcessor.FindVariantResults(vsFromVcf, read);
+
+        }
+
+
+        [Fact]
+        public void CheckSimpleSNPQuery()
+        {
+            var minBaseCallQuality = 0;
+            var readProcessor = new VeadFinder(new BamFilterParameters() { MinimumBaseCallQuality = minBaseCallQuality });
+            int lastPos;
+
+            var read = new BamAlignment();
+            read.Bases = "AA" + "ACGTACGT" + "GGGG";
+            //vcf coords  1,2-3,4,5,6,7,8,9,10-11,12,13,14
+            read.CigarData = new CigarAlignment("2S8M4S");
+            read.Position = 3 - 1;
+            read.Qualities = new byte[read.Bases.Length];
+
+
+            //check you find a simple SNP
+            var foundVariants
+                = VeadFinder.SetCandidateVariantsFoundInRead(minBaseCallQuality, read, out lastPos);
+
+            Assert.Equal(11, lastPos); //last index with value
+            Assert.Equal(0, foundVariants[SubsequenceType.DeletionSequence].Count);
+            Assert.Equal(0, foundVariants[SubsequenceType.InsertionSquence].Count);
+            Assert.Equal(1, foundVariants[SubsequenceType.MatchOrMismatchSequence].Count);
+
+            Assert.Equal("RRRRRRRR", foundVariants[SubsequenceType.MatchOrMismatchSequence][0].TrueRefAllele);
+            Assert.Equal("ACGTACGT", foundVariants[SubsequenceType.MatchOrMismatchSequence][0].TrueAltAllele);
+        }
+
+        [Fact]
+        public void FindMixOfInsertionsAndSnpsromReadTest()
+        {
+            var minBaseCallQuality = 0;
+            var readProcessor = new VeadFinder(new BamFilterParameters() { MinimumBaseCallQuality = minBaseCallQuality });
+            int lastPos;
+
+            var read = new BamAlignment();
+            read.Bases = "AA" + "ACGT" + "GG" + "ACGT" + "GGGG";
+            //vcf coords  1,2  -3,4,5,6,  -X,X-  7,8,9,10, - 11,12,13,14,
+            read.CigarData = new CigarAlignment("2S4M2I4M4S");
+            read.Position = 3 - 1;
+            read.Qualities = new byte[read.Bases.Length];
+
+
+            //check you find  an insertion
+            var thereIsAnInsertionInThisRead
+            = VeadFinder.SetCandidateVariantsFoundInRead(minBaseCallQuality, read, out lastPos);
+
+
+            Assert.Equal(11, lastPos); //last index with value
+            Assert.Equal(0, thereIsAnInsertionInThisRead[SubsequenceType.DeletionSequence].Count);
+            Assert.Equal(1, thereIsAnInsertionInThisRead[SubsequenceType.InsertionSquence].Count);
+            Assert.Equal(2, thereIsAnInsertionInThisRead[SubsequenceType.MatchOrMismatchSequence].Count);
+
+            //occupies positions 3,4,5,6
+            Assert.Equal("RRRR", thereIsAnInsertionInThisRead[SubsequenceType.MatchOrMismatchSequence][0].TrueRefAllele);
+            Assert.Equal("ACGT", thereIsAnInsertionInThisRead[SubsequenceType.MatchOrMismatchSequence][0].TrueAltAllele);
+            Assert.Equal("RRRR", thereIsAnInsertionInThisRead[SubsequenceType.MatchOrMismatchSequence][0].VcfReferenceAllele);
+            Assert.Equal("ACGT", thereIsAnInsertionInThisRead[SubsequenceType.MatchOrMismatchSequence][0].VcfAlternateAllele);
+            Assert.Equal(3, thereIsAnInsertionInThisRead[SubsequenceType.MatchOrMismatchSequence][0].VcfReferencePosition);
+            Assert.Equal(3, thereIsAnInsertionInThisRead[SubsequenceType.MatchOrMismatchSequence][0].TrueFirstBaseOfDiff);
+
+            Assert.Equal("RRRR", thereIsAnInsertionInThisRead[SubsequenceType.MatchOrMismatchSequence][1].TrueRefAllele);
+            Assert.Equal("ACGT", thereIsAnInsertionInThisRead[SubsequenceType.MatchOrMismatchSequence][1].TrueAltAllele);
+            Assert.Equal("RRRR", thereIsAnInsertionInThisRead[SubsequenceType.MatchOrMismatchSequence][1].VcfReferenceAllele);
+            Assert.Equal("ACGT", thereIsAnInsertionInThisRead[SubsequenceType.MatchOrMismatchSequence][1].VcfAlternateAllele);
+            Assert.Equal(7, thereIsAnInsertionInThisRead[SubsequenceType.MatchOrMismatchSequence][1].VcfReferencePosition);
+            Assert.Equal(7, thereIsAnInsertionInThisRead[SubsequenceType.MatchOrMismatchSequence][1].TrueFirstBaseOfDiff);
+
+            //Assert.Equal("RRRR", foundVariants[SubsequenceType.InsertionSquence][0].TrueRefAllele);//
+            //Assert.Equal("ACGT", foundVariants[SubsequenceType.InsertionSquence][0].TrueAltAllele);//GG
+            Assert.Equal("", thereIsAnInsertionInThisRead[SubsequenceType.InsertionSquence][0].VcfReferenceAllele);
+            Assert.Equal("GG", thereIsAnInsertionInThisRead[SubsequenceType.InsertionSquence][0].VcfAlternateAllele);
+            Assert.Equal(6, thereIsAnInsertionInThisRead[SubsequenceType.InsertionSquence][0].VcfReferencePosition);
+            Assert.Equal(7, thereIsAnInsertionInThisRead[SubsequenceType.InsertionSquence][0].TrueFirstBaseOfDiff);
+
+
+            //check we get the right query result before and after the indel
+
+            var vsSnpToQuery = new VariantSite() { VcfReferencePosition = 6, VcfAlternateAllele = "T", VcfReferenceAllele = "T" };
+            var vsInserQuery = new VariantSite() { VcfReferencePosition = 6, VcfAlternateAllele = "TTT", VcfReferenceAllele = "T" };
+            var vsDelQuery = new VariantSite() { VcfReferencePosition = 6, VcfAlternateAllele = "T", VcfReferenceAllele = "TTT" };
+
+            var matchedVariants
+                      = readProcessor.MatchReadVariantsWithVcfVariants(new List<VariantSite> { vsSnpToQuery, vsInserQuery, vsDelQuery }, thereIsAnInsertionInThisRead, read.Position + 1, lastPos);
+
+            //ie, we saw the ref we were looking for
+            Assert.Equal(11, lastPos); //last index with value
+            Assert.Equal(3, matchedVariants.Length);
+            Assert.Equal(6, matchedVariants[0].VcfReferencePosition);
+            Assert.Equal("T", matchedVariants[0].VcfReferenceAllele);
+            Assert.Equal("T", matchedVariants[0].VcfAlternateAllele);
+
+            //we didnt see the insertion, but we did exactly find a different insertion
+            Assert.Equal(6, matchedVariants[1].VcfReferencePosition);
+            Assert.Equal("X", matchedVariants[1].VcfReferenceAllele);
+            Assert.Equal("X", matchedVariants[1].VcfAlternateAllele);
+
+            //we saw the ref and not the deletion
+            Assert.Equal(6, matchedVariants[2].VcfReferencePosition);
+            Assert.Equal("T", matchedVariants[2].VcfReferenceAllele);
+            Assert.Equal("T", matchedVariants[2].VcfAlternateAllele);
+
+            vsSnpToQuery = new VariantSite() { VcfReferencePosition = 7, VcfAlternateAllele = "A", VcfReferenceAllele = "A" };
+            vsInserQuery = new VariantSite() { VcfReferencePosition = 7, VcfAlternateAllele = "AAA", VcfReferenceAllele = "A" };
+            vsDelQuery = new VariantSite() { VcfReferencePosition = 7, VcfAlternateAllele = "A", VcfReferenceAllele = "AAA" };
+
+
+            matchedVariants
+                      = readProcessor.MatchReadVariantsWithVcfVariants(new List<VariantSite> { vsSnpToQuery, vsInserQuery, vsDelQuery }, thereIsAnInsertionInThisRead, read.Position + 1, lastPos);
+
+            Assert.Equal(3, matchedVariants.Length);
+            Assert.Equal(7, matchedVariants[0].VcfReferencePosition);
+            Assert.Equal("A", matchedVariants[0].VcfReferenceAllele);
+            Assert.Equal("A", matchedVariants[0].VcfAlternateAllele);
+
+            //we saw the ref and not the deletion
+            Assert.Equal(7, matchedVariants[1].VcfReferencePosition);
+            Assert.Equal("A", matchedVariants[1].VcfReferenceAllele);
+            Assert.Equal("A", matchedVariants[1].VcfAlternateAllele);
+
+            //we saw the ref and not the deletion
+            Assert.Equal(7, matchedVariants[2].VcfReferencePosition);
+            Assert.Equal("A", matchedVariants[2].VcfReferenceAllele);
+            Assert.Equal("A", matchedVariants[2].VcfAlternateAllele);
+
 
         }
 
@@ -691,7 +984,7 @@ namespace VariantPhasing.Tests.Logic
             CheckWeCanFindAnMNVInARead_healthyMNV();
             CheckWeCanFindAnMNVInARead_pathologicalMNV();
             CheckWeCanFindARefInARead();
-       
+
         }
 
         private static void CheckWeCanFindASnpInARead()
@@ -873,7 +1166,7 @@ namespace VariantPhasing.Tests.Logic
             var vs1 = new VariantSite();
             vs1.VcfReferencePosition = 4;
             vs1.VcfReferenceAllele = "ATA";
-            vs1.VcfAlternateAllele = "ACG";  
+            vs1.VcfAlternateAllele = "ACG";
 
             Assert.Equal(VeadFinder.StateOfPhasingSiteInRead.FoundThisVariant, VeadFinder.CheckVariantSequenceForMatchInVariantSiteFromRead(vcfSNP, vs1));
 
@@ -988,7 +1281,7 @@ namespace VariantPhasing.Tests.Logic
             Assert.Equal(VeadFinder.StateOfPhasingSiteInRead.HaveInsufficientData, VeadFinder.CheckVariantSequenceForMatchInVariantSiteFromRead(vcfSNP, vs8));
         }
 
-            private static void CheckWeCanFindARefInARead()
+        private static void CheckWeCanFindARefInARead()
         {
             //for this case "found this varaint" or "found reference variant" are interchangeable results.
             //This variant we are looking for *is* the reference.

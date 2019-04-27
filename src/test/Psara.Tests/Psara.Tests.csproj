@@ -8,15 +8,15 @@
     <GenerateAssemblyConfigurationAttribute>false</GenerateAssemblyConfigurationAttribute>
     <GenerateAssemblyCompanyAttribute>false</GenerateAssemblyCompanyAttribute>
     <GenerateAssemblyProductAttribute>false</GenerateAssemblyProductAttribute>
-    <Version>5.2.10.49</Version>
+    <Version>5.2.11.163</Version>
     <Copyright>Copyright © Illumina 2019</Copyright>
+    <RepositoryUrl>https://github.com/Illumina/Pisces</RepositoryUrl>
   </PropertyGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\..\exe\Psara\Psara.csproj" />
     <ProjectReference Include="..\..\lib\CommandLine.IO\CommandLine.Util.csproj" />
     <ProjectReference Include="..\..\lib\Common.IO\Common.IO.csproj" />
-    <ProjectReference Include="..\..\lib\Pisces.Domain\Pisces.Domain.csproj" />
     <ProjectReference Include="..\..\lib\Pisces.IO\Pisces.IO.csproj" />
     <ProjectReference Include="..\TestUtilities\TestUtilities.csproj" />
   </ItemGroup>
@@ -62,3 +62,4 @@
   </ItemGroup>
 
 </Project>
+

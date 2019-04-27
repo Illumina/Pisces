@@ -2,20 +2,29 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using Pisces.IO.Sequencing;
 using Pisces.Calculators;
+using Pisces.Domain.Options;
 using Pisces.Domain.Types;
+using Pisces.Domain.Models.Alleles;
 using Common.IO.Utility;
-using Common.IO;
 using Pisces.IO;
 
 namespace VariantQualityRecalibration
 {
+    public class QualityRecalibrationData
+    {
+        public Dictionary<MutationCategory, int> BasicLookupTable { get; set; }
+        public Dictionary<MutationCategory, int> AmpliconEdgeVariantsLookupTable { get; set; }
+        public Dictionary<string, List<int>> AmpliconEdgeVariantsList { get; set; }
+
+        public Dictionary<MutationCategory, int> EdgeRiskLookupTable { get; set; }
+    }
+
     public class QualityRecalibration
     {
         public static void Recalibrate(SignatureSorterResultFiles countsFilePaths, VQROptions options)
         {
-            string vcfFileName = Path.GetFileName(options.InputVcf);
+            string vcfFileName = Path.GetFileName(options.VcfPath);
             string vcfOut = Path.Combine(options.OutputDirectory, vcfFileName + ".recal");
 
             if (File.Exists(vcfOut))
@@ -23,18 +32,22 @@ namespace VariantQualityRecalibration
 
             try
             {
-                DoRecalibrationWork(vcfOut, countsFilePaths, options);
+                //Read in the results files that have the data for the error modes detected.
+                //Decide which types of variants we want to re-Qscore
+                var recalibrationData = GetRecalibrationTables(countsFilePaths, options);
 
+                //Update Vcf, variant by variant, based on the table data.
+                VcfUpdater<QualityRecalibrationData>.UpdateVcfAlleleByAllele(vcfOut, options, false, recalibrationData, UpdateAllele, CanSkipVcfLines,
+                    VQRVcfWriter.GetVQRVcfFileWriter);
 
+                //let the user know it worked
                 if (File.Exists(vcfOut))
-                {
-                    Logger.WriteToLog("The following vcf was recalibrated: " + options.InputVcf);
-                }
+                    Logger.WriteToLog("The following vcf was recalibrated: " + options.VcfPath);
 
             }
             catch (Exception ex)
             {
-                Logger.WriteToLog("Recalibrate failed for " + options.InputVcf);
+                Logger.WriteToLog("Recalibrate failed for " + options.VcfPath);
                 Logger.WriteToLog("Exception: " + ex);
             }
 
@@ -42,18 +55,14 @@ namespace VariantQualityRecalibration
         }
 
 
-        private static void DoRecalibrationWork(string vcfOut, SignatureSorterResultFiles resultsFilePaths, 
+        private static QualityRecalibrationData GetRecalibrationTables(SignatureSorterResultFiles resultsFilePaths,
             VQROptions options)
         {
-           
+
             CountData BasicCounts = null;
             CountData EdgeCounts = null;
 
-            Dictionary<MutationCategory, int> BasicLookupTable = null;
-            Dictionary<MutationCategory, int> AmpliconEdgeVariantsLookupTable = null;
-            Dictionary<string, List<int>> AmpliconEdgeVariantsList = null;
-
-            Dictionary<MutationCategory, int> EdgeRiskLookupTable = null;
+            QualityRecalibrationData recalibrationData = new QualityRecalibrationData();
 
             if (options.DoBasicChecks)
             {
@@ -62,25 +71,24 @@ namespace VariantQualityRecalibration
                 if (!File.Exists(resultsFilePaths.BasicCountsFilePath))
                 {
                     Logger.WriteToLog("Cannot do basic recalibration. Cannot find {0} ", resultsFilePaths.BasicCountsFilePath);
-                    return;
                 }
                 else
                 {
                     Logger.WriteToLog("Found counts file: {0} ", resultsFilePaths.BasicCountsFilePath);
-                }
 
-                BasicCounts = CountsFileReader.ReadCountsFile(resultsFilePaths.BasicCountsFilePath);
-                BasicLookupTable = GetPhredScaledCalibratedRates(options.BaseQNoise, options.ZFactor, BasicCounts);
+                    BasicCounts = CountsFileReader.ReadCountsFile(resultsFilePaths.BasicCountsFilePath);
+                    recalibrationData.BasicLookupTable = GetPhredScaledCalibratedRates(options.BamFilterParams.MinimumBaseCallQuality, options.ZFactor, BasicCounts);
 
-                //if no work to do here...
-                if ((BasicLookupTable == null) || (BasicLookupTable.Count == 0))
-                {
-                    Logger.WriteToLog("No general recalibration needed.");
-                    return;
-                }
-                else
-                {
-                    Logger.WriteToLog("General mutation bias detected. This sample may have sample-specific prep issues such as FFPE or oxidation damage.");
+
+                    //if no work to do here...
+                    if ((recalibrationData.BasicLookupTable == null) || (recalibrationData.BasicLookupTable.Count == 0))
+                    {
+                        Logger.WriteToLog("No general recalibration needed.");
+                    }
+                    else
+                    {
+                        Logger.WriteToLog("General mutation bias detected. This sample may have sample-specific prep issues such as FFPE or oxidation damage.");
+                    }
                 }
             }
 
@@ -90,25 +98,23 @@ namespace VariantQualityRecalibration
                 if (!File.Exists(resultsFilePaths.AmpliconEdgeCountsFilePath))
                 {
                     Logger.WriteToLog("Cannot do amplicon-position based recalibration. Cannot find {0} ", resultsFilePaths.AmpliconEdgeCountsFilePath);
-                    return;
                 }
                 else
                 {
                     Logger.WriteToLog("Found counts file: {0} ", resultsFilePaths.AmpliconEdgeCountsFilePath);
+
+
+                    EdgeCounts = CountsFileReader.ReadCountsFile(resultsFilePaths.AmpliconEdgeCountsFilePath);
+                    recalibrationData.AmpliconEdgeVariantsLookupTable = GetPhredScaledCalibratedRates(options.BamFilterParams.MinimumBaseCallQuality, options.ZFactor, EdgeCounts);
+                    recalibrationData.AmpliconEdgeVariantsList = VariantListReader.ReadVariantListFile(resultsFilePaths.AmpliconEdgeSuspectListFilePath);
+
+
+                    if ((recalibrationData.AmpliconEdgeVariantsLookupTable == null) || (recalibrationData.AmpliconEdgeVariantsLookupTable.Count == 0))
+                    {
+                        Logger.WriteToLog("No position-in-amplicon recalibration needed.");
+                    }
                 }
 
-                EdgeCounts = CountsFileReader.ReadCountsFile(resultsFilePaths.AmpliconEdgeCountsFilePath);
-                AmpliconEdgeVariantsLookupTable = GetPhredScaledCalibratedRates(options.BaseQNoise, options.ZFactor, EdgeCounts);
-                AmpliconEdgeVariantsList = VariantListReader.ReadVariantListFile(resultsFilePaths.AmpliconEdgeSuspectListFilePath);
-
-
-
-                if ((AmpliconEdgeVariantsLookupTable == null) || (AmpliconEdgeVariantsLookupTable.Count == 0))
-                {
-                    Logger.WriteToLog("No position-in-amplicon recalibration needed.");
-                    return;
-                }
-              
             }
 
             //compare edge-issues with FFPE-like issues.
@@ -116,44 +122,80 @@ namespace VariantQualityRecalibration
             //Look at the diff in percents. 
             //If a variant is X more likely to be called when its by an edge - thats an estimate of the error.
             if (options.DoBasicChecks && options.DoAmpliconPositionChecks)
-            {
+                recalibrationData.EdgeRiskLookupTable = GetPhredScaledCalibratedRatesForEdges(options.BamFilterParams.MinimumBaseCallQuality, options.AlignmentWarningThreshold, BasicCounts, EdgeCounts);
 
-               EdgeRiskLookupTable = GetPhredScaledCalibratedRatesForEdges(options.BaseQNoise, options.AlignmentWarningThreshold, BasicCounts, EdgeCounts);
-            }
 
-            using (VcfReader reader = new VcfReader(options.InputVcf))
-            using (VcfRewriter writer = new VcfRewriter(vcfOut))
-            {
-                writer.WriteHeader(reader.HeaderLines, options.QuotedCommandLineArgumentsString);
-
-                var originalVar = new VcfVariant();
-                while (reader.GetNextVariant(originalVar))
-                {
-
-                    var cat = MutationCounter.GetMutationCategory(originalVar);
-
-                    if (options.DoBasicChecks && BasicLookupTable.ContainsKey(cat))
-                    {
-                        UpdateVariant(options.MaxQScore, options.FilterQScore, BasicLookupTable, originalVar, cat, false);
-                    }
-
-                    if (options.DoAmpliconPositionChecks
-                        && AmpliconEdgeVariantsLookupTable.ContainsKey(cat) 
-                        && AmpliconEdgeVariantsList.ContainsKey(originalVar.ReferenceName)
-                        && AmpliconEdgeVariantsList[originalVar.ReferenceName].Contains(originalVar.ReferencePosition))
-                    {
-                        
-                        UpdateVariant(options.MaxQScore, options.FilterQScore, EdgeRiskLookupTable, originalVar, cat, true);
-                    }
-
-                    writer.WriteVariantLine(originalVar);
-                }
-
-            }
+            return recalibrationData;
         }
 
-        public static void UpdateVariant(int maxQscore, int filterQScore, Dictionary<MutationCategory, int> qCalibratedRates, VcfVariant originalVar, MutationCategory cat,
-            bool subsample)
+        private static TypeOfUpdateNeeded UpdateAllele(VcfConsumerAppOptions appOptions, QualityRecalibrationData recalibrationData, CalledAllele inAllele, out List<CalledAllele> outAlleles)
+        {
+            outAlleles = new List<CalledAllele> { inAllele };
+            VQROptions options = (VQROptions)appOptions;
+            var cat = MutationCounter.GetMutationCategory(inAllele);
+            TypeOfUpdateNeeded updateHappened = TypeOfUpdateNeeded.NoChangeNeeded;
+
+            if (options.DoBasicChecks && recalibrationData.BasicLookupTable.ContainsKey(cat))
+            {
+                UpdateVariantQScoreAndRefilter(options.MaxQScore, options.VariantCallingParams.MinimumVariantQScoreFilter, recalibrationData.BasicLookupTable, inAllele, cat, false);
+                updateHappened = TypeOfUpdateNeeded.Modify;
+            }
+
+            if (options.DoAmpliconPositionChecks
+                && recalibrationData.AmpliconEdgeVariantsLookupTable.ContainsKey(cat)
+                && recalibrationData.AmpliconEdgeVariantsList.ContainsKey(inAllele.Chromosome)
+                && recalibrationData.AmpliconEdgeVariantsList[inAllele.Chromosome].Contains(inAllele.ReferencePosition))
+            {
+                UpdateVariantQScoreAndRefilter(options.MaxQScore, options.VariantCallingParams.MinimumVariantQScoreFilter, recalibrationData.EdgeRiskLookupTable, inAllele, cat, true);
+                updateHappened = TypeOfUpdateNeeded.Modify;
+            }
+
+            return updateHappened;
+        }
+
+
+        public static TypeOfUpdateNeeded CanSkipVcfLines(List<string> originalVarStrings)
+        {
+            foreach (var s in originalVarStrings)
+            {
+                var lineResult = CanSkipVcfLine(s);
+
+                if (lineResult == TypeOfUpdateNeeded.Modify)
+                    return TypeOfUpdateNeeded.Modify;
+            }
+
+            return TypeOfUpdateNeeded.NoChangeNeeded;
+        }
+        public static TypeOfUpdateNeeded CanSkipVcfLine(string originalVarString)
+        {
+            var splat = originalVarString.Split();
+
+            int refIndex = 3;
+            int altIndex = 4;
+            int filterIndex = 6;
+
+            //skip all ref calls
+            if (splat[altIndex] == ".")
+                return TypeOfUpdateNeeded.NoChangeNeeded;
+
+            //skip everything not a SNP
+            if (splat[refIndex].Length > 1)
+                return TypeOfUpdateNeeded.NoChangeNeeded;
+
+            //skip everything not a SNP
+            if (splat[altIndex].Length > 1)
+                return TypeOfUpdateNeeded.NoChangeNeeded;
+
+            //skip all ForcedReport variants, bc they are not real.
+            if (splat[filterIndex].ToLower().Contains("ForcedReport"))
+                return TypeOfUpdateNeeded.NoChangeNeeded;
+
+            //if its a real SNP, we better check if we need to do somthing
+            return TypeOfUpdateNeeded.Modify;
+        }
+
+        public static void UpdateVariantQScoreAndRefilter(int maxQscore, int filterQScore, Dictionary<MutationCategory, int> qCalibratedRates, CalledAllele originalVar, MutationCategory cat,
+        bool subsample)
         {
             double depth;
             double callCount;
@@ -171,9 +213,9 @@ namespace VariantQualityRecalibration
             // tjd-
 
             double denominator = MathOperations.QtoP(qCalibratedRates[cat]);
-            double subSampleToThis = 1.0 / denominator;     
+            double subSampleToThis = 1.0 / denominator;
 
-            if ((qCalibratedRates[cat] == 0) || (denominator ==0))
+            if ((qCalibratedRates[cat] == 0) || (denominator == 0))
                 subsample = false;
 
             bool canUpdateQ = HaveInfoToUpdateQ(originalVar, out depth, out callCount);
@@ -187,67 +229,50 @@ namespace VariantQualityRecalibration
             if (canUpdateQ)
             {
                 int newQ = VariantQualityCalculator.AssignPoissonQScore(
-                   (int) callCount, (int) depth, qCalibratedRates[cat], maxQscore);
+                   (int)callCount, (int)depth, qCalibratedRates[cat], Math.Min(originalVar.VariantQscore, maxQscore));  //note, using "originalVar.VariantQscore" and the maxQ stops us from ever RAISING the q score over these values.
 
-                InsertNewQ(qCalibratedRates, originalVar, cat, newQ);
-               
+                InsertNewQ(qCalibratedRates, originalVar, cat, newQ, true);
+
                 //update filters if needed
-                if (newQ < filterQScore)            
+                if (newQ < filterQScore)
                 {
-                    var vcfConfig = new VcfWriterConfig();
-                    vcfConfig.VariantQualityFilterThreshold = filterQScore;
-                    var formatter = new VcfFormatter(vcfConfig );
-                    
-                    string lowQString = formatter.MapFilter(FilterType.LowVariantQscore);
-                    string passString = VcfFormatter.PassFilter;
-
-                    if (originalVar.Filters.Contains(lowQString))
+                    if (originalVar.Filters.Contains(FilterType.LowVariantQscore))
                         return;
 
-                    if (originalVar.Filters == passString)
-                        originalVar.Filters = lowQString;
-                    else
-                        originalVar.Filters += VcfFormatter.FilterSeparator + lowQString;
+                    originalVar.Filters.Add(FilterType.LowVariantQscore);
 
                 }
             }
         }
 
-        public static void InsertNewQ(Dictionary<MutationCategory, int> qCalibratedRates, VcfVariant originalVar, MutationCategory cat, int newQ)
+        public static void InsertNewQ(Dictionary<MutationCategory, int> qCalibratedRates, CalledAllele originalVar, MutationCategory cat, int newQ, bool isSomatic)
         {
-            originalVar.Quality = newQ;
-            if (originalVar.Genotypes[0].ContainsKey("GQ"))
-                originalVar.Genotypes[0]["GQ"] = newQ.ToString();
-            if (originalVar.Genotypes[0].ContainsKey("GQX"))
-                originalVar.Genotypes[0]["GQX"] = newQ.ToString();
-            if (originalVar.Genotypes[0].ContainsKey("NL"))
-                originalVar.Genotypes[0]["NL"] = qCalibratedRates[cat].ToString();
+            originalVar.VariantQscore = newQ;
+            originalVar.NoiseLevelApplied = qCalibratedRates[cat];
+
+            if (isSomatic)
+                originalVar.GenotypeQscore = newQ;
         }
 
-        public static bool HaveInfoToUpdateQ(VcfVariant originalVar, out double depth, out double callCount)
+        public static bool HaveInfoToUpdateQ(CalledAllele originalVar, out double depth, out double callCount)
         {
-            bool canUpdateQ = false;
+            //cases where we dont know what to do:
             depth = -1;
             callCount = -1;
 
-            if ((originalVar.InfoFields == null) || (originalVar.Genotypes == null)
-                || (originalVar.Genotypes.Count < 1))
+            if (originalVar.VariantQscore < 1)
                 return false;
 
-            if (originalVar.InfoFields.ContainsKey("DP"))
-                canUpdateQ = double.TryParse(originalVar.InfoFields["DP"], out depth);
+            if ((originalVar.Type == AlleleCategory.Unsupported) || (originalVar.Type == AlleleCategory.NonReference))
+                return false;
 
-            if (originalVar.Genotypes[0].ContainsKey("AD"))
-            {
-                string[] spat = originalVar.Genotypes[0]["AD"].Split(',');
 
-                if (spat.Length == 2)
-                    canUpdateQ = (canUpdateQ && double.TryParse(spat[1], out callCount));
-            }
-
-            return canUpdateQ;
+            //otherwise, we should handle it:
+            depth = originalVar.TotalCoverage;
+            callCount = originalVar.AlleleSupport;
+            return true;
         }
-        
+
         private static
           Dictionary<MutationCategory, int> GetPhredScaledCalibratedRatesForEdges(int baselineQNoise, double warningThreshold, CountData basicCountsData, CountData edgeIssueCountsData)
         {
@@ -262,7 +287,7 @@ namespace VariantQualityRecalibration
 
             double MutationRateInEdge = edgeIssueCountsData.ObservedMutationRate;
 
-            double MuationsCalledNotInEdge = basicCountsData.TotalMutations -edgeIssueCountsData.TotalMutations;
+            double MuationsCalledNotInEdge = basicCountsData.TotalMutations - edgeIssueCountsData.TotalMutations;
             double TotalLociNotInEdge = basicCountsData.NumPossibleVariants - edgeIssueCountsData.NumPossibleVariants;
 
             double MutationRateNotInEdge = MuationsCalledNotInEdge / TotalLociNotInEdge;
@@ -278,28 +303,28 @@ namespace VariantQualityRecalibration
             //error rate in edge region, Given You Called a Variant.
             double EstimatedErrorRateInEdgeRegions = HowManyAreProbablyWrong / edgeIssueCountsData.TotalMutations;
 
-            
+
             foreach (var cat in edgeIssueCountsData.CountsByCategory.Keys)
             {
                 double countsAtEdge = edgeIssueCountsData.CountsByCategory[cat];
                 double overallMutations = edgeIssueCountsData.TotalMutations;
 
                 double proportion = countsAtEdge / edgeIssueCountsData.TotalMutations;
-               
+
                 //how much this particular variant category contributed to the error rate increase
                 double estimatedErrorRateByCategory = proportion * EstimatedErrorRateInEdgeRegions;
-                int riskAsQRate = (int) MathOperations.PtoQ(estimatedErrorRateByCategory);
+                int riskAsQRate = (int)MathOperations.PtoQ(estimatedErrorRateByCategory);
                 AdjustedErrorRates.Add(cat, riskAsQRate);
             }
 
             return AdjustedErrorRates;
         }
 
-            private static
-            Dictionary<MutationCategory, int> GetPhredScaledCalibratedRates(int baselineQNoise, double zFactor, CountData counts)
+        private static
+        Dictionary<MutationCategory, int> GetPhredScaledCalibratedRates(int baselineQNoise, double zFactor, CountData counts)
         {
             double baseNoiseRate = MathOperations.QtoP(baselineQNoise);
- 
+
             var countsByCategory = counts.CountsByCategory;
             var PhredScaledRatesByCategory = new Dictionary<MutationCategory, int>();
 

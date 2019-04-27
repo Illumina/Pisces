@@ -27,13 +27,15 @@ namespace VariantPhasing.Tests.Logic
             var vcfFilePath = Path.Combine(TestPaths.LocalTestDataDirectory, "verymutated.genome.vcf");
 
             var neighborhoodManager = CreateNbhdBuilder(_sourceVcf0);
-            Assert.Equal(0, neighborhoodManager.GetBatchOfCallableNeighborhoods(0).Count());
+            var numRaw = 0;
+            Assert.Equal(0, neighborhoodManager.GetBatchOfCallableNeighborhoods(0, out numRaw).Count());
+            Assert.Equal(0, numRaw);
 
-            List<VcfVariant> LotsOfCoLocatedVariants = VcfReader.GetAllVariantsInFile(vcfFilePath);
             neighborhoodManager = CreateNbhdBuilder(_sourceVcf_Mutated);
 
-            var neighborhoods = neighborhoodManager.GetBatchOfCallableNeighborhoods(0);
+            var neighborhoods = neighborhoodManager.GetBatchOfCallableNeighborhoods(0, out numRaw);
             Assert.Equal(1, neighborhoods.Count());
+            Assert.Equal(1, numRaw);
             Assert.Equal(12, neighborhoods.First().VcfVariantSites.Count());
 
         }
@@ -42,12 +44,7 @@ namespace VariantPhasing.Tests.Logic
         public void CreateCallableNbhdsTests()
         {
             var vcfFilePath = Path.Combine(TestPaths.LocalTestDataDirectory, "verymutated.genome.vcf");
-            var variantSource = new VcfReader(vcfFilePath);
-
-        
-            List<VcfVariant> LotsOfCoLocatedVariants = VcfReader.GetAllVariantsInFile(vcfFilePath);
-          
-
+            var variantSource = new AlleleReader(vcfFilePath);
             var vcfNeighborhood = new VcfNeighborhood(0, "chr1", new VariantSite(123), new VariantSite(125));
             List<VcfNeighborhood> VcfNeighborhoods = new List<VcfNeighborhood>() { vcfNeighborhood };
 
@@ -117,24 +114,28 @@ namespace VariantPhasing.Tests.Logic
             // - When there are neighborhoods available but they cannot join
             // -------------------------------------------------
             var neighborhoodManager = CreateNbhdBuilder(_sourceVcf0);
-            Assert.Equal(0, neighborhoodManager.GetBatchOfCallableNeighborhoods(0).Count());
+            var numRaw = 0;
+            Assert.Equal(0, neighborhoodManager.GetBatchOfCallableNeighborhoods(0, out numRaw).Count());
+            Assert.Equal(0, numRaw);
 
             neighborhoodManager = CreateNbhdBuilder(_sourceVcf1);
 
-            var neighborhoods = neighborhoodManager.GetBatchOfCallableNeighborhoods(0);
+            var neighborhoods = neighborhoodManager.GetBatchOfCallableNeighborhoods(0, out numRaw);
+            Assert.Equal(1, numRaw);
             Assert.Equal(1, neighborhoods.Count());
             Assert.True(neighborhoods.First().HasVariants);
             NeighborhoodTestHelpers.CheckNeighborhoodVariants(new List<VcfVariant>() { variant, secondVariant }, neighborhoods.First());
 
             neighborhoodManager = CreateNbhdBuilder(_sourceVcf2);
-            neighborhoods = neighborhoodManager.GetBatchOfCallableNeighborhoods(0);
-
+            neighborhoods = neighborhoodManager.GetBatchOfCallableNeighborhoods(0, out numRaw);
+            Assert.Equal(1, numRaw);
             Assert.Equal(1, neighborhoods.Count());
             Assert.True(neighborhoods.First().HasVariants);
             NeighborhoodTestHelpers.CheckNeighborhoodVariants(new List<VcfVariant>() { variant, secondVariant, thirdVariant }, neighborhoods.First());
 
             neighborhoodManager = CreateNbhdBuilder(_sourceVcf3);
-            neighborhoods = neighborhoodManager.GetBatchOfCallableNeighborhoods(0);
+            neighborhoods = neighborhoodManager.GetBatchOfCallableNeighborhoods(0, out numRaw);
+            Assert.Equal(2, numRaw);
             Assert.Equal(2, neighborhoods.Count());
             var neighborhood1 = neighborhoods.Last();
             Assert.True(neighborhood1.HasVariants);
@@ -143,7 +144,8 @@ namespace VariantPhasing.Tests.Logic
 
             // Different phasing distance
             neighborhoodManager = CreateNbhdBuilder(_sourceVcf4, 5);
-            neighborhoods = neighborhoodManager.GetBatchOfCallableNeighborhoods(0);
+            neighborhoods = neighborhoodManager.GetBatchOfCallableNeighborhoods(0, out numRaw);
+            Assert.Equal(1, numRaw);
             Assert.Equal(1, neighborhoods.Count());
             Assert.True(neighborhoods.First().HasVariants);
             NeighborhoodTestHelpers.CheckNeighborhoodVariants(new List<VcfVariant>() { variant, secondVariant, fourthVariant, fifthVariant }, neighborhoods.First());
@@ -154,7 +156,8 @@ namespace VariantPhasing.Tests.Logic
 
             // Passing Only
             neighborhoodManager = CreateNbhdBuilder(_sourceVcf5);
-            neighborhoods = neighborhoodManager.GetBatchOfCallableNeighborhoods(0);
+            neighborhoods = neighborhoodManager.GetBatchOfCallableNeighborhoods(0, out numRaw);
+            Assert.Equal(2, numRaw);
             Assert.Equal(2, neighborhoods.Count());
             Assert.True(neighborhoods.First().HasVariants);
             NeighborhoodTestHelpers.CheckNeighborhoodVariants(new List<VcfVariant>() { variant, secondVariant }, neighborhoods.First());
@@ -162,14 +165,16 @@ namespace VariantPhasing.Tests.Logic
 
             // Passing Only, Larger phasing distance
             neighborhoodManager = CreateNbhdBuilder(_sourceVcf5,5);
-            neighborhoods = neighborhoodManager.GetBatchOfCallableNeighborhoods(0);
+            neighborhoods = neighborhoodManager.GetBatchOfCallableNeighborhoods(0, out numRaw);
+            Assert.Equal(1, numRaw);
             Assert.Equal(1, neighborhoods.Count());
             Assert.True(neighborhoods.First().HasVariants);
             NeighborhoodTestHelpers.CheckNeighborhoodVariants(new List<VcfVariant>() { variant, secondVariant, fourthVariant, fifthVariant }, neighborhoods.First());
 
             // Passing Only = false
             neighborhoodManager = CreateNbhdBuilder(_sourceVcf5, passingOnly: false);
-            neighborhoods = neighborhoodManager.GetBatchOfCallableNeighborhoods(0);
+            neighborhoods = neighborhoodManager.GetBatchOfCallableNeighborhoods(0, out numRaw);
+            Assert.Equal(2, numRaw);
             Assert.Equal(2, neighborhoods.Count());
             Assert.True(neighborhoods.First().HasVariants);
             NeighborhoodTestHelpers.CheckNeighborhoodVariants(new List<VcfVariant>() { variant, secondVariant, thirdVariantFailing }, neighborhoods.First());
@@ -177,20 +182,60 @@ namespace VariantPhasing.Tests.Logic
 
             // Passing Only = false, Larger phasing distance
             neighborhoodManager = CreateNbhdBuilder(_sourceVcf5,5, false);
-            neighborhoods = neighborhoodManager.GetBatchOfCallableNeighborhoods(0);
+            neighborhoods = neighborhoodManager.GetBatchOfCallableNeighborhoods(0, out numRaw);
+            Assert.Equal(1, numRaw);
             Assert.Equal(1, neighborhoods.Count());
             Assert.True(neighborhoods.First().HasVariants);
             NeighborhoodTestHelpers.CheckNeighborhoodVariants(new List<VcfVariant>() { variant, secondVariant, thirdVariantFailing, fourthVariant, fifthVariant }, neighborhoods.First());
 
+
+            // -------------------------------------------------
+            // Passing/Failing Variants Allowed, with min passing variants in neighborhood
+            // -------------------------------------------------
+
+            // Passing Only = false, require at least one passing var
+            neighborhoodManager = CreateNbhdBuilder(_sourceVcf5, passingOnly: false, minPassingVariantsInNbhd: 1);
+            neighborhoods = neighborhoodManager.GetBatchOfCallableNeighborhoods(0, out numRaw);
+            Assert.Equal(2, numRaw);
+            Assert.Equal(2, neighborhoods.Count());
+            Assert.True(neighborhoods.First().HasVariants);
+            NeighborhoodTestHelpers.CheckNeighborhoodVariants(new List<VcfVariant>() { variant, secondVariant, thirdVariantFailing }, neighborhoods.First());
+            NeighborhoodTestHelpers.CheckNeighborhoodVariants(new List<VcfVariant>() { fourthVariant, fifthVariant }, neighborhoods.Last());
+
+            // Passing Only = false, require at least two passing var
+            neighborhoodManager = CreateNbhdBuilder(_sourceVcf5, passingOnly: false, minPassingVariantsInNbhd: 2);
+            neighborhoods = neighborhoodManager.GetBatchOfCallableNeighborhoods(0, out numRaw);
+            Assert.Equal(2, numRaw);
+            Assert.Equal(2, neighborhoods.Count());
+            Assert.True(neighborhoods.First().HasVariants);
+            NeighborhoodTestHelpers.CheckNeighborhoodVariants(new List<VcfVariant>() { variant, secondVariant, thirdVariantFailing }, neighborhoods.First());
+            NeighborhoodTestHelpers.CheckNeighborhoodVariants(new List<VcfVariant>() { fourthVariant, fifthVariant }, neighborhoods.Last());
+
+            // Passing Only = false, require at least three passing var
+            neighborhoodManager = CreateNbhdBuilder(_sourceVcf5, passingOnly: false, minPassingVariantsInNbhd: 3);
+            neighborhoods = neighborhoodManager.GetBatchOfCallableNeighborhoods(0, out numRaw);
+            Assert.Equal(2, numRaw);
+            Assert.Equal(1, neighborhoods.Count());
+            Assert.True(neighborhoods.First().HasVariants);
+            NeighborhoodTestHelpers.CheckNeighborhoodVariants(new List<VcfVariant>() { fourthVariant, fifthVariant }, neighborhoods.First());
+
+            // Passing Only = false, require at least four passing var - OR be composed of all passing
+            neighborhoodManager = CreateNbhdBuilder(_sourceVcf5, passingOnly: false, minPassingVariantsInNbhd: 4);
+            neighborhoods = neighborhoodManager.GetBatchOfCallableNeighborhoods(0, out numRaw);
+            Assert.Equal(2, numRaw);
+            Assert.Equal(1, neighborhoods.Count());
+            Assert.True(neighborhoods.First().HasVariants);
+            NeighborhoodTestHelpers.CheckNeighborhoodVariants(new List<VcfVariant>() { fourthVariant, fifthVariant }, neighborhoods.First());
+
         }
 
-        
-        private NeighborhoodBuilder CreateNbhdBuilder(string sourceVcf, int phasingDistance = 2, bool passingOnly = true)
+
+        private NeighborhoodBuilder CreateNbhdBuilder(string sourceVcf, int phasingDistance = 2, bool passingOnly = true, int minPassingVariantsInNbhd = 0)
         {
-            var variantSource = new VcfReader(sourceVcf);
+            var variantSource = new AlleleReader(sourceVcf);
 
             return new NeighborhoodBuilder(
-                new PhasableVariantCriteria() {ChrToProcessArray= new string[] { },PassingVariantsOnly = passingOnly, PhasingDistance=phasingDistance}, 
+                new PhasableVariantCriteria() {ChrToProcessArray= new string[] { },PassingVariantsOnly = passingOnly, PhasingDistance=phasingDistance, MinPassingVariantsInNbhd = minPassingVariantsInNbhd}, 
                 new VariantCallingParameters(), variantSource, null, 10);
         }
 
@@ -214,7 +259,9 @@ namespace VariantPhasing.Tests.Logic
             var sourceVcf = Path.Combine(TestPaths.LocalTestDataDirectory, "NbhdBuilderForcedGT.genome.vcf");
             var neighborhoodManager = CreateNbhdBuilder(sourceVcf,10);
 
-            var neighborhoods = neighborhoodManager.GetBatchOfCallableNeighborhoods(0);
+            var numRaw = 0;
+            var neighborhoods = neighborhoodManager.GetBatchOfCallableNeighborhoods(0, out numRaw);
+            Assert.Equal(1, numRaw);
             Assert.Equal(1, neighborhoods.Count());
             Assert.True(neighborhoods.First().HasVariants);
             var neighborhood = neighborhoods.First();

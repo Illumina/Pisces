@@ -13,7 +13,7 @@ using Pisces.Domain.Types;
 
 namespace Pisces.Logic
 {
-    public class SomaticVariantCaller : ISomaticVariantCaller
+    public class SmallVariantCaller : ISmallVariantCaller
     {
         private readonly IAlignmentSource _alignmentSource;
         private readonly ICandidateVariantFinder _variantFinder;
@@ -22,14 +22,16 @@ namespace Pisces.Logic
         private readonly IStateManager _stateManager;
         private readonly ChrReference _chrReference;
         private readonly IRegionMapper _regionMapper;
-        private readonly IStrandBiasFileWriter _biasFileWriter;
+        private readonly IStrandBiasFileWriter _strandBiasFileWriter;
+        private readonly IAmpliconBiasFileWriter _ampliconBiasFileWriter;
         private readonly ChrIntervalSet _intervalSet;
 		private readonly HashSet<Tuple<string, int, string, string>> _forcedGtAlleles;
 	    private readonly SortedList<int, List<Tuple<string, string>>> _unProcessedForcedAllelesByPos;
+        private readonly bool _writeBiasFiles;
 
-		public SomaticVariantCaller(IAlignmentSource alignmentSource, ICandidateVariantFinder variantFinder, IAlleleCaller alleleCaller, 
+        public SmallVariantCaller(IAlignmentSource alignmentSource, ICandidateVariantFinder variantFinder, IAlleleCaller alleleCaller, 
             IVcfWriter<CalledAllele> vcfWriter, IStateManager stateManager, ChrReference chrReference, IRegionMapper regionMapper, 
-            IStrandBiasFileWriter biasFileWriter, ChrIntervalSet intervalSet = null, HashSet<Tuple<string, int, string, string>> forcedGTAlleles = null)
+            IStrandBiasFileWriter strandBiasFileWriter, IAmpliconBiasFileWriter ampBiasFileWriter, ChrIntervalSet intervalSet = null, HashSet<Tuple<string, int, string, string>> forcedGTAlleles = null)
         {
             _alignmentSource = alignmentSource;
             _variantFinder = variantFinder;
@@ -38,11 +40,12 @@ namespace Pisces.Logic
             _stateManager = stateManager;
             _chrReference = chrReference;
             _regionMapper = regionMapper;
-            _biasFileWriter = biasFileWriter;
+            _strandBiasFileWriter = strandBiasFileWriter;
+            _ampliconBiasFileWriter = ampBiasFileWriter;
             _intervalSet = intervalSet;
             _forcedGtAlleles = forcedGTAlleles;
             _unProcessedForcedAllelesByPos = CreateForcedAllelePos(_forcedGtAlleles);
-
+            _writeBiasFiles = (strandBiasFileWriter != null && ampBiasFileWriter != null);
         }
 
         private SortedList<int, List<Tuple<string, string>>> CreateForcedAllelePos(HashSet<Tuple<string, int, string, string>> forcedGtAlleles)
@@ -84,6 +87,7 @@ namespace Pisces.Logic
 
             while ((read = _alignmentSource.GetNextRead()) != null)
             {
+                
                 // find candidate variants
                 var candidateVariants = _variantFinder.FindCandidates(read, _chrReference.Sequence,  _chrReference.Name);
 
@@ -93,7 +97,7 @@ namespace Pisces.Logic
                 _stateManager.AddAlleleCounts(read);
 
 
-                //createCandiateAllele for foredAlleles              
+                //createCandiateAllele for forcedAlleles              
                 AddForcedAlleleAsCandidate(_alignmentSource.LastClearedPosition);
 
                 // call anything possible to call
@@ -170,9 +174,11 @@ namespace Pisces.Logic
                 // write to vcf
                 _vcfWriter.Write(BaseCalledAlleles, _regionMapper);
 
-                if (_biasFileWriter != null)
+                //always coupled together for simplicty, so no need for two checks.
+                if (_writeBiasFiles)
                 {
-                    _biasFileWriter.Write(BaseCalledAlleles);
+                    _strandBiasFileWriter.Write(BaseCalledAlleles);
+                    _ampliconBiasFileWriter.Write(BaseCalledAlleles);
                 }
             }
 

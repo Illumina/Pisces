@@ -4,8 +4,8 @@ using System.Runtime.InteropServices;
 
 [assembly: AssemblyDescription("")]
 [assembly: AssemblyConfiguration("")]
-[assembly: AssemblyCompany("")]
-[assembly: AssemblyProduct("Uncrush.Tests")]
+[assembly: AssemblyCompany("Illumina")]
+[assembly: AssemblyProduct("Reformat.Tests")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 

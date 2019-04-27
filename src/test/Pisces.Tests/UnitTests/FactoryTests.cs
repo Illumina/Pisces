@@ -307,10 +307,11 @@ namespace Pisces.Tests.UnitTests
                 {
                     MinimumCoverage = 10,
                     LowDepthFilter = 10,
+                    AmpliconBiasFilterThreshold = 0.01F
                 },
                 VcfWritingParameters = new VcfWritingParameters()
                 {
-                    OutputGvcfFile = false
+                    OutputGvcfFile = false,
                 }
             };
 
@@ -339,11 +340,12 @@ namespace Pisces.Tests.UnitTests
             Assert.True(File.Exists(outputFile));
             Assert.Equal(outputFile, Path.ChangeExtension(_bamChr19, ".vcf"));
 
-            var reader = new VcfReader(outputFile);
+            var reader = new AlleleReader(outputFile);
             var header = reader.HeaderLines;
             Assert.Equal(header[7], "##FILTER=<ID=q30,Description=\"Quality score less than 30\">");
-            Assert.Equal(header[8], "##FILTER=<ID=SB,Description=\"Variant strand bias too high\">");
-            Assert.Equal(header[9], "##FILTER=<ID=R5x9,Description=\"Repeats of part or all of the variant allele (max repeat length 5) in the reference greater than or equal to 9\">");
+            Assert.Equal(header[8], "##FILTER=<ID=AB,Description=\"Amplicon bias - disparate variant frequencies detected by amplicon\">");
+            Assert.Equal(header[9], "##FILTER=<ID=SB,Description=\"Variant strand bias too high\">");
+            Assert.Equal(header[10], "##FILTER=<ID=R5x9,Description=\"Repeats of part or all of the variant allele (max repeat length 5) in the reference greater than or equal to 9\">");
         }
 
         // Verify default output files to same directory as BAM files by default with the genome.vcf extension.

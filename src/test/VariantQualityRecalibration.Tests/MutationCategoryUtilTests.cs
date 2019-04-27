@@ -1,66 +1,58 @@
 ﻿using System;
-using Pisces.IO.Sequencing;
+using Pisces.Domain.Models.Alleles;
 using Xunit;
 
 namespace VariantQualityRecalibration.Tests
 {
     public class MutationCategoryUtilTests
     {
+        private CalledAllele MakeDummyAllele(string reference, string alt)
+        {
+            var v = new CalledAllele() { ReferenceAllele = reference, AlternateAllele = alt };
+            v.SetType();
+            return v;
+        }
+
         [Fact]
         public void GetMutationCategory_VariantInput()
         {
-            var v = new VcfVariant();
-           
-            v.ReferenceAllele = "A";
-            v.VariantAlleles = new string[] { "C" };
+            var v = MakeDummyAllele("A", "C");
+            Assert.Equal(MutationCategory.AtoC, MutationCounter.GetMutationCategory(v));
+    
+            v = MakeDummyAllele("G", "T");
+            Assert.Equal(MutationCategory.GtoT, MutationCounter.GetMutationCategory(v));
+
+            v = MakeDummyAllele("A", "c");
             Assert.Equal(MutationCategory.AtoC, MutationCounter.GetMutationCategory(v));
 
-            v.ReferenceAllele = "G";
-            v.VariantAlleles = new string[] { "T" };
+            v = MakeDummyAllele("G", "t");
             Assert.Equal(MutationCategory.GtoT, MutationCounter.GetMutationCategory(v));
 
-            v.ReferenceAllele = "A";
-            v.VariantAlleles = new string[] { "c" };
-            Assert.Equal(MutationCategory.AtoC, MutationCounter.GetMutationCategory(v));
-
-            v.ReferenceAllele = "g";
-            v.VariantAlleles = new string[] { "t" };
+            v = MakeDummyAllele("G", "t");
             Assert.Equal(MutationCategory.GtoT, MutationCounter.GetMutationCategory(v));
 
-            v.ReferenceAllele = "G";
-            v.VariantAlleles = new string[] { "t" };
-            Assert.Equal(MutationCategory.GtoT, MutationCounter.GetMutationCategory(v));
-
-            v.ReferenceAllele = "G";
-            v.VariantAlleles = new string[] { "TT" };
+            v = MakeDummyAllele("G", "TT");
             Assert.Equal(MutationCategory.Insertion, MutationCounter.GetMutationCategory(v));
 
-            v.ReferenceAllele = "GGG";
-            v.VariantAlleles = new string[] { "T" };
+            v = MakeDummyAllele("GGG", "T");
             Assert.Equal(MutationCategory.Deletion, MutationCounter.GetMutationCategory(v));
 
-            v.ReferenceAllele = "GG";
-            v.VariantAlleles = new string[] { "TZ" };
+            v = MakeDummyAllele("GG", "TZ");
             Assert.Equal(MutationCategory.Other, MutationCounter.GetMutationCategory(v));
 
-            v.ReferenceAllele = "G";
-            v.VariantAlleles = new string[] { "G" };
+            v = MakeDummyAllele("G", "G");
             Assert.Equal(MutationCategory.Reference, MutationCounter.GetMutationCategory(v));
 
-            v.ReferenceAllele = "G";
-            v.VariantAlleles = new string[] { "g" };
+            v = MakeDummyAllele("G", "g");
             Assert.Equal(MutationCategory.Reference, MutationCounter.GetMutationCategory(v));
 
-            v.ReferenceAllele = "g";
-            v.VariantAlleles = new string[] { "G" };
+            v = MakeDummyAllele("g", "G");
             Assert.Equal(MutationCategory.Reference, MutationCounter.GetMutationCategory(v));
 
-            v.ReferenceAllele = "g";
-            v.VariantAlleles = new string[] { "g" };
+            v = MakeDummyAllele("g", "g");
             Assert.Equal(MutationCategory.Reference, MutationCounter.GetMutationCategory(v));
 
-            v.ReferenceAllele = "G";
-            v.VariantAlleles = new string[] { "." };
+            v = MakeDummyAllele("G", ".");
             Assert.Equal(MutationCategory.Reference, MutationCategoryUtil.GetMutationCategory(v));
         }
 

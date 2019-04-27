@@ -13,6 +13,7 @@ namespace VariantPhasing.Models
         public string ReferenceName;
         public int VcfReferencePosition; //1-based
         public CalledAllele OriginalAlleleFromVcf;
+        public bool IsPassing;
 
         public int TrueFirstBaseOfDiff
         {
@@ -70,7 +71,17 @@ namespace VariantPhasing.Models
             VcfReferenceAllele = variant.ReferenceAllele;
             VcfAlternateAllele = variant.AlternateAllele;
             OriginalAlleleFromVcf = variant;
+            IsPassing = IsAcceptablePhasingCandidate(variant);
         }
+
+        private bool IsAcceptablePhasingCandidate(CalledAllele allele)
+        {
+            var filters = allele.Filters;
+
+            return (filters.Count == 0);
+
+        }
+
 
         private bool IsInsertionOrDeletion()
         {
@@ -101,6 +112,7 @@ namespace VariantPhasing.Models
                 ReferenceName = ReferenceName,
                 VcfReferencePosition = VcfReferencePosition,
                 OriginalAlleleFromVcf = OriginalAlleleFromVcf,
+                IsPassing = IsPassing
             };
             return vs;
         }

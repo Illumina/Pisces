@@ -11,5 +11,6 @@ namespace Pisces.Interfaces
         bool SourceIsStitched { get; }
 
         bool SourceIsCollapsed { get; }
+
     }
 }

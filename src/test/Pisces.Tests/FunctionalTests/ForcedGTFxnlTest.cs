@@ -29,7 +29,7 @@ namespace Pisces.Tests.FunctionalTests
             Program.Main(new string[] { "-g", genomeDirectory, "-bam", phixBam, "-o",
                 outputDirectory, "-c", "2" , "-minbq" , "10", "-minvq", "1" , "-minvf" , "0.00001" ,
                 "-nl" , "40" ,
-                "-callMNVs" , "TRUE" , "-maxmnvlength","10", "-maxgapbetweenmnv", "5", "-ncfilter", "1" } );
+                "-callMNVs" , "TRUE" , "-maxmnvlength","10", "-maxgapbetweenmnv", "5", "-ncfilter", "1", "-abfilter", "0.01" } );
 
 
             //this is the MNV we are concerned about. 
@@ -48,7 +48,8 @@ namespace Pisces.Tests.FunctionalTests
                 outputDirectory, "-c", "2" , "-minbq" , "10", "-minvq", "1" , "-minvf" , "0.00001" ,
                 "-nl" , "40" ,
                 "-callMNVs" , "TRUE" , "-maxmnvlength","10", "-maxgapbetweenmnv", "5" ,
-                "-forcedalleles", inputForcedGTVcf , "-ncfilter", "1"});
+                "-forcedalleles", inputForcedGTVcf , "-ncfilter", "1","-abfilter", "0.01" });
+       
 
 
 
@@ -101,7 +102,7 @@ namespace Pisces.Tests.FunctionalTests
                 outputDirectory, "-c", "2" , "-minbq" , "10", "-minvq", "20" , "-minvf" , "0.00001" ,
                 "-nl" , "40" ,
                 "-callMNVs" , "TRUE" , "-maxmnvlength","10", "-maxgapbetweenmnv", "5" ,
-                "-forcedalleles", inputForcedGTVcf, "-ncfilter", "1" });
+                "-forcedalleles", inputForcedGTVcf, "-ncfilter", "1" ,"-abfilter", "0.01" });
 
             Assert.True(File.Exists(outputVcf));
             TestUtilities.TestHelper.CompareFiles(outputVcf, expectedVcfWithForcedGT_test2);

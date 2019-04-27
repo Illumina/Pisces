@@ -22,5 +22,52 @@ namespace Alignment.Domain.Tests
             Assert.Equal(-1, alignment.EndPosition);
         }
     }
+
+    public class CigarAlignmentTests
+    {
+        [Fact]
+        public void HasIndels()
+        {
+            var cigar = new CigarAlignment("1M1I5M");
+            Assert.True(cigar.HasIndels);
+
+            cigar = new CigarAlignment("1M1D5M");
+            Assert.True(cigar.HasIndels);
+
+            cigar = new CigarAlignment("5M");
+            Assert.False(cigar.HasIndels);
+
+            cigar.Add(new CigarOp('I', 1));
+            Assert.True(cigar.HasIndels);
+
+            cigar.Clear();
+            Assert.False(cigar.HasIndels);
+
+            cigar.Add(new CigarOp('I', 1));
+            Assert.True(cigar.HasIndels);
+        }
+
+        [Fact]
+        public void HasSoftclips()
+        {
+            var cigar = new CigarAlignment("1S5M");
+            Assert.True(cigar.HasSoftclips);
+
+            cigar = new CigarAlignment("5M1S");
+            Assert.True(cigar.HasSoftclips);
+
+            cigar = new CigarAlignment("5M");
+            Assert.False(cigar.HasSoftclips);
+
+            cigar.Add(new CigarOp('S', 1));
+            Assert.True(cigar.HasSoftclips);
+
+            cigar.Clear();
+            Assert.False(cigar.HasSoftclips);
+
+            cigar.Add(new CigarOp('S', 1));
+            Assert.True(cigar.HasSoftclips);
+        }
+    }
 }
    

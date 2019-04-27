@@ -2,11 +2,12 @@
 using System.Collections.Generic;
 using System.Linq;
 using Common.IO.Utility;
+using Gemini.IndelCollection;
 using Gemini.Models;
-using Gemini.Types;
 using Gemini.Utility;
 using Pisces.Domain.Models.Alleles;
 using Pisces.Domain.Types;
+using ReadRealignmentLogic.Models;
 
 namespace Gemini.CandidateIndelSelection
 {
@@ -18,7 +19,6 @@ namespace Gemini.CandidateIndelSelection
         private readonly int _strictAnchorThreshold;
         private readonly int _strictFoundThreshold;
         private readonly int _maxMess;
-        private const int NumEvidenceDataPoints = 9;
 
 
         public BasicIndelFilterer(int foundThreshold, int anchorThreshold, bool debug, int strictAnchorThreshold = 0, int strictFoundThreshold = 0, int maxMess = 20)
@@ -41,34 +41,6 @@ namespace Gemini.CandidateIndelSelection
             public int PoorEdge;
         }
 
-        public Dictionary<string, List<PreIndel>> MergeIndelEvidence(List<Dictionary<string, int[]>> indelStringLookups)
-        {
-            var mergedLookup = new Dictionary<string, int[]>();
-            var keys = indelStringLookups.SelectMany(x=>x.Keys).Distinct();
-
-            foreach (var key in keys)
-            {
-                var evidence = new int[NumEvidenceDataPoints];
-
-                foreach (var indelStringLookup in indelStringLookups)
-                {
-                    if (indelStringLookup.ContainsKey(key))
-                    {
-                        var originalEvidence = indelStringLookup[key];
-                        for (var i = 0; i < NumEvidenceDataPoints; i++)
-                        {
-                            evidence[i] += originalEvidence[i];
-                        }
-                    }
-                }
-
-                mergedLookup[key] = evidence;
-            }
-
-            var indelsLookup = GetRealignablePreIndels(mergedLookup, false);
-            return indelsLookup;
-        }
-
         private static HashableIndel GetHashableIndel(PreIndel preIndel, int score = 0)
         {
             var indelIdentifier = new HashableIndel
@@ -85,21 +57,48 @@ namespace Gemini.CandidateIndelSelection
                 InMulti = preIndel.InMulti,
                 OtherIndel = preIndel.OtherIndel
             };
-            return indelIdentifier;
+            return Helper.CopyHashable(indelIdentifier);
         }
 
-        public Dictionary<string, List<PreIndel>> GetRealignablePreIndels(Dictionary<string, int[]> indelStringLookup, bool allowRescue)
+        public Dictionary<string, List<PreIndel>> GetRealignablePreIndels(Dictionary<string, IndelEvidence> indelStringLookup, bool allowRescue, int regionEdgeThreshold = int.MaxValue)
         {
             var statusCounter = new IndelStatusCounter();
             var edgeThreshold = Math.Max(_foundThreshold + 1, _foundThreshold * 1.5);
             var indelsToAdd = new List<PreIndel>();
-            var multiIndelsToRecalculate = new Dictionary<HashableIndel, List<int[]>>();
+            var multiIndelsToRecalculate = new Dictionary<HashableIndel, List<IndelEvidence>>();
+            var indelsToRemove = new List<string>();
+
+            var numImmediatelySkipped = 0;
+            var numProcessed = 0;
 
             // TODO different way of doing this, bc we don't use the indel after that
             var indelsLookup = new Dictionary<string, List<PreIndel>>();
             foreach (var key in indelStringLookup.Keys)
             {
                 var indelMetrics = indelStringLookup[key];
+                var keepForNextRegion = indelMetrics.Position >= regionEdgeThreshold;
+
+                if (indelMetrics.Observations == 0 && !keepForNextRegion)
+                {
+                    indelMetrics.Outcome = Outcome.LowObservations;
+                    continue;
+                }
+                numProcessed++;
+
+                if (indelMetrics.Observations < _strictFoundThreshold && !keepForNextRegion)
+                {
+                    indelMetrics.Outcome = Outcome.LowObservations;
+                    numImmediatelySkipped++;
+                    continue;
+                }
+
+                // No reputable evidence!
+                if (indelMetrics.ReputableSupport < 1 && !keepForNextRegion)
+                {
+                    indelMetrics.Outcome = Outcome.LowReputableSupport;
+                    numImmediatelySkipped++;
+                    continue;
+                }
 
                 var entryIndelKeys = ExtractIndelsFromKeyString(key);
                 if (entryIndelKeys == null)
@@ -111,12 +110,13 @@ namespace Gemini.CandidateIndelSelection
                     foreach (var entryIndel in entryIndelKeys)
                     {
                         var multiKey = GetHashableIndel(entryIndel);
-                        if (!multiIndelsToRecalculate.ContainsKey(multiKey))
-                        {
-                            multiIndelsToRecalculate.Add(multiKey, new List<int[]>());
-                        }
 
-                        multiIndelsToRecalculate[multiKey].Add(indelMetrics);
+                        if (!multiIndelsToRecalculate.TryGetValue(multiKey, out var existingIndelMetrics))
+                        {
+                            existingIndelMetrics = new List<IndelEvidence>();
+                            multiIndelsToRecalculate[multiKey] = existingIndelMetrics;
+                        }
+                        existingIndelMetrics.Add(indelMetrics);
                     }
                 }
                 else
@@ -128,62 +128,72 @@ namespace Gemini.CandidateIndelSelection
                     {
                         indelsToAdd.AddRange(entryIndels);
                     }
+                    else
+                    {
+                        indelsToRemove.Add(key);
+                    }
                 }
             }
 
             foreach (var indelToRecalculate in multiIndelsToRecalculate)
             {
-                var hashable = indelToRecalculate.Key;
-                var indel = new PreIndel(new CandidateAllele(hashable.Chromosome, hashable.ReferencePosition,
-                    hashable.ReferenceAllele, hashable.AlternateAllele, hashable.Type));
-                indel.InMulti = hashable.InMulti;
-                indel.OtherIndel = hashable.OtherIndel;
-
-                var metrics = new int[9];
-                foreach (var metricsList in indelToRecalculate.Value)
-                {
-                    for (var i = 0; i < 9; i++)
-                    {
-                        metrics[i] += metricsList[i];
-                    }
-                }
-
-                var entryIndels = ExtractIndelsFromEntry(metrics, indel.ToString() + "|" + indel.OtherIndel,
-                    statusCounter, edgeThreshold, allowRescue, new List<PreIndel>(){indel});
-                if (entryIndels != null)
-                {
-                    indelsToAdd.AddRange(entryIndels);
-                }
+                RecalculateIndelAndAddIfNeeded(allowRescue, indelToRecalculate, statusCounter, edgeThreshold, indelsToAdd);
             }
 
             foreach (var indel in indelsToAdd)
             {
-                if (!indelsLookup.ContainsKey(indel.Chromosome))
+                if (!indelsLookup.TryGetValue(indel.Chromosome, out var indelsForChrom))
                 {
-                    indelsLookup.Add(indel.Chromosome, new List<PreIndel>());
+                    indelsForChrom = new List<PreIndel>();
+                    indelsLookup.Add(indel.Chromosome, indelsForChrom);
                 }
-
-                indelsLookup[indel.Chromosome].Add(indel);
+                indelsForChrom.Add(indel);
             }
 
-            Logger.WriteToLog(
-                $"Completed filtering indels (rescuing {(allowRescue ? "is" : "not")} enabled): Discarded {statusCounter.BelowThreshold} below thresholds ({statusCounter.Rescued} rescued), {statusCounter.PoorSingle} low quality with single observation, {statusCounter.PoorEdge} very low quality with <= {edgeThreshold} observations. Kept {statusCounter.Kept} observed events.");
+            foreach (var badIndel in indelsToRemove)
+            {
+                indelStringLookup.Remove(badIndel);
+            }
+
+            statusCounter.BelowThreshold += numImmediatelySkipped;
             return indelsLookup;
+        }
+
+        private void RecalculateIndelAndAddIfNeeded(bool allowRescue, KeyValuePair<HashableIndel, List<IndelEvidence>> indelToRecalculate,
+            IndelStatusCounter statusCounter, double edgeThreshold, List<PreIndel> indelsToAdd)
+        {
+            var hashable = indelToRecalculate.Key;
+            var indel = new PreIndel(new CandidateAllele(hashable.Chromosome, hashable.ReferencePosition,
+                hashable.ReferenceAllele, hashable.AlternateAllele, hashable.Type));
+            indel.InMulti = hashable.InMulti;
+            indel.OtherIndel = hashable.OtherIndel;
+
+            var metrics = new IndelEvidence();
+            foreach (var metricsList in indelToRecalculate.Value)
+            {
+                metrics.AddIndelEvidence(metricsList);
+            }
+
+            var entryIndels = ExtractIndelsFromEntry(metrics, indel.ToString() + "|" + indel.OtherIndel,
+                statusCounter, edgeThreshold, allowRescue, new List<PreIndel>() {indel});
+            if (entryIndels != null)
+            {
+                indelsToAdd.AddRange(entryIndels);
+            }
         }
 
 
         private bool IsStrong(float avgQuals, float reputableSupportFraction, float avgAnchorLeft, float avgMess, float avgAnchorRight, float reverseSupport, int observationCount, float fwdSupport, string i, float stitchedSupport)
         {
-            if (Math.Min(avgAnchorLeft, avgAnchorRight) < _strictAnchorThreshold)
-            {
-                return false;
-            }
             if (observationCount < _strictFoundThreshold)
             {
                 return false;
             }
 
-            // TODO maybe also look at average min anchor for each read? if it was only at the beginnings or the ends, that could be interesting
+            if (Math.Min(avgAnchorLeft, avgAnchorRight) < _strictAnchorThreshold)
+            {
+                return false;
+            }
 
             // TODO these are magic right now, fix this
             var isStrong = avgQuals > 32 &&
@@ -194,34 +204,6 @@ namespace Gemini.CandidateIndelSelection
                        &&
                        ((observationCount > 2 && avgAnchorLeft > 20 && avgAnchorRight > 20) ||
                         avgAnchorLeft > 30 && avgAnchorRight > 30);
-
-            if (i.Contains("|") && !isStrong)
-            {
-                isStrong = avgQuals > 34 && avgMess <= 1 && i.Contains("|") && avgAnchorLeft > 10 &&
-                           avgAnchorRight > 10;
-            }
-
-            return isStrong;
-        }
-
-        private bool IsStrongNew(float avgQuals, float reputableSupportFraction, float avgAnchorLeft, float avgMess, float avgAnchorRight, float reverseSupport, int observationCount, float fwdSupport, string i)
-        {
-            if (Math.Min(avgAnchorLeft, avgAnchorRight) < _strictAnchorThreshold)
-            {
-                return false;
-            }
-            if (observationCount < _strictFoundThreshold)
-            {
-                return false;
-            }
-
-            var isStrong = (avgQuals > 32 && reputableSupportFraction > 0.75 && avgMess <= Math.Max(1.5, Math.Min(avgAnchorLeft, avgAnchorRight) / 20) &&
-                        (
-                            (Math.Min(avgAnchorLeft, avgAnchorRight) > Math.Max(30, _anchorThreshold * 3)) && avgMess <= 0.4)) // One or more and super clean, very anchored
-                       ||
-                       ((observationCount > _foundThreshold * 0.5 && Math.Min(avgAnchorLeft, avgAnchorRight) > Math.Max(20, _anchorThreshold * 2)) // Rescue low freq but not super low, with good anchor
-                        ||
-                        (observationCount >= _foundThreshold * 1.5 && Math.Min(avgAnchorLeft, avgAnchorRight) > _anchorThreshold * 0.5)); // rescue high freq low anchor
 
             if (i.Contains("|") && !isStrong)
             {
@@ -266,20 +248,22 @@ namespace Gemini.CandidateIndelSelection
 
         }
 
-        private List<PreIndel> ExtractIndelsFromEntry(int[] indelMetrics, string keyString,
+        private List<PreIndel> ExtractIndelsFromEntry(IndelEvidence indelMetrics, string keyString,
             IndelStatusCounter statusCounter,
             double edgeThreshold, bool allowRescue, List<PreIndel> indels)
         {
             var indelsToAdd = new List<PreIndel>();
-            var observationCount = indelMetrics[0];
-            var anchorLeft = indelMetrics[1];
-            var anchorRight = indelMetrics[2];
-            var mess = indelMetrics[3];
-            var quals = indelMetrics[4];
-            var fwdSupport = indelMetrics[5] / (float) observationCount;
-            var reverseSupport = indelMetrics[6] / (float) observationCount;
-            var stitchedSupport = indelMetrics[7] / (float)observationCount;
-            var reputableSupportFraction = indelMetrics[8] / (float) observationCount;
+            var observationCount = indelMetrics.Observations;
+            var anchorLeft = indelMetrics.LeftAnchor;
+            var anchorRight = indelMetrics.RightAnchor;
+            var mess = indelMetrics.Mess;
+            var quals = indelMetrics.Quality;
+            var fwdSupport = indelMetrics.Forward / (float) observationCount;
+            var reverseSupport = indelMetrics.Reverse / (float) observationCount;
+            var stitchedSupport = indelMetrics.Stitched / (float)observationCount;
+            var reputableSupportFraction = indelMetrics.ReputableSupport / (float) observationCount;
+            var numFromUnanchoredRepeat = indelMetrics.IsRepeat;
+            var numFromMateUnmapped = indelMetrics.IsSplit;
 
             var avgAnchorLeft = anchorLeft / (float) observationCount;
             var avgAnchorRight = anchorRight / (float) observationCount;
@@ -304,9 +288,9 @@ namespace Gemini.CandidateIndelSelection
             else if (indels.Count > 1)
             {
                 var indel1 = GetIndelFromEntry(indels[0], anchorLeft, anchorRight, observationCount, mess, fwdSupport,
-                    reverseSupport, reputableSupportFraction, avgQuals, stitchedSupport);
+                    reverseSupport, reputableSupportFraction, avgQuals, stitchedSupport, numFromMateUnmapped, numFromUnanchoredRepeat);
                 var indel2 = GetIndelFromEntry(indels[1], anchorLeft, anchorRight, observationCount, mess, fwdSupport,
-                    reverseSupport, reputableSupportFraction, avgQuals, stitchedSupport);
+                    reverseSupport, reputableSupportFraction, avgQuals, stitchedSupport, numFromMateUnmapped, numFromUnanchoredRepeat);
 
                 indel1.InMulti = true;
                 indel2.InMulti = true;
@@ -320,69 +304,41 @@ namespace Gemini.CandidateIndelSelection
             else
             {
                 var indel = GetIndelFromEntry(indels[0], anchorLeft, anchorRight, observationCount, mess, fwdSupport,
-                    reverseSupport, reputableSupportFraction, avgQuals, stitchedSupport);
+                    reverseSupport, reputableSupportFraction, avgQuals, stitchedSupport, numFromMateUnmapped, numFromUnanchoredRepeat);
 
                 indelsToAdd.Add(indel);
             }
 
-            if (indels.Count == 1 && indelsToAdd[0].Length == 1 && (observationCount < _foundThreshold * 0.8 || observationCount < 2))
+            if (indels.Count == 1 && indelsToAdd[0].Length == 1 && (observationCount < _foundThreshold * 0.8 || observationCount <= 2))
             {
-                isStrong = false;
+                indelMetrics.Outcome = Outcome.SuperWeakSmall;
+                return null;
             }
-            if (ShouldRemoveVariant(observationCount, avgAnchorLeft, avgAnchorRight, isStrong, statusCounter, keyString,
+            if (ShouldRemoveVariant(observationCount, avgAnchorLeft, avgAnchorRight, isStrong, statusCounter,
                 avgQuals,
-                avgMess, fwdSupport, reverseSupport, reputableSupportFraction, anchorLeft, anchorRight, edgeThreshold, stitchedSupport))
+                avgMess, anchorLeft, anchorRight, edgeThreshold, indelMetrics))
             {
                 return null;
             }
 
-            if (_debug)
-            {   
-                Logger.WriteToLog("KEPT:\t" + VariantDetailsString(keyString, observationCount, avgQuals, avgMess, avgAnchorLeft, avgAnchorRight, fwdSupport, reverseSupport, stitchedSupport, reputableSupportFraction));
-            }
-
             statusCounter.Kept++;
-
-            // TODO determine whether further consideration needs to be done for different variant types
-
-
 
             return indelsToAdd;
         }
 
-        private static string VariantDetailsString(string keyString, int observationCount, float avgQuals, float avgMess,
-            float avgAnchorLeft, float avgAnchorRight, float fwdSupport, float reverseSupport, float stitchedSupport,
-            float reputableSupportFraction)
-        {
-            var resultString = keyString + ", o:" + observationCount + ", q:" + avgQuals + ", m:" + avgMess +
-                               ", a:" +
-                               Math.Min(avgAnchorLeft, avgAnchorRight) + ", f:" + fwdSupport + ", r:" +
-                               reverseSupport + ", s:" + stitchedSupport +
-                               ", reput:" + reputableSupportFraction;
-
-            return resultString;
-        }
-
         private bool ShouldRemoveVariant(int observationCount, float avgAnchorLeft, float avgAnchorRight, bool isStrong,
-            IndelStatusCounter statusCounter, string keyString, float avgQuals, float avgMess, float fwdSupport, float reverseSupport,
-            float reputableSupportFraction, int anchorLeft, int anchorRight, double edgeThreshold, float stitchedSupport)
+            IndelStatusCounter statusCounter, float avgQuals, float avgMess, int anchorLeft, int anchorRight, double edgeThreshold, IndelEvidence evidence)
         {
             if (observationCount < _foundThreshold || avgAnchorLeft < _anchorThreshold || avgAnchorRight < _anchorThreshold || avgMess > _maxMess)
             {
                 if (isStrong)
                 {
+                    evidence.Outcome = Outcome.Rescued;
                     statusCounter.Rescued++;
-                    if(_debug){
-                        Logger.WriteToLog("RESCUED:\t" + VariantDetailsString(keyString, observationCount, avgQuals, avgMess, avgAnchorLeft, avgAnchorRight, fwdSupport, reverseSupport, stitchedSupport, reputableSupportFraction));
-
-                    }
                 }
                 else
                 {
-                    if(_debug){
-                        Logger.WriteToLog("BELOW THRESH:\t" + VariantDetailsString(keyString, observationCount, avgQuals, avgMess, avgAnchorLeft, avgAnchorRight, fwdSupport, reverseSupport, stitchedSupport, reputableSupportFraction));
-
-                    }
+                    evidence.Outcome = Outcome.BelowThreshold;
                     statusCounter.BelowThreshold++;
                     return true;
                 }
@@ -391,10 +347,7 @@ namespace Gemini.CandidateIndelSelection
 
             if (observationCount == 1 && (Math.Min(anchorLeft, anchorRight) < 5 || avgMess > 1 || avgQuals < 30))
             {
-                if (_debug){
-                    Logger.WriteToLog("POOR SINGLE:\t" + VariantDetailsString(keyString, observationCount, avgQuals, avgMess, avgAnchorLeft, avgAnchorRight, fwdSupport, reverseSupport, stitchedSupport, reputableSupportFraction));
-
-                }
+                evidence.Outcome = Outcome.PoorSingle;
                 statusCounter.PoorSingle++;
                 // Even if we want to allow single-observation variants to be realigned against, maybe let's avoid the really junky ones
                 return true;
@@ -402,13 +355,7 @@ namespace Gemini.CandidateIndelSelection
 
             if ((observationCount <= edgeThreshold) && (avgMess > 2 || avgQuals < 25))
             {
-                if (_debug)
-                {
-                    Logger.WriteToLog("POOR EDGE:\t" + VariantDetailsString(keyString, observationCount, avgQuals,
-                                          avgMess, avgAnchorLeft, avgAnchorRight, fwdSupport, reverseSupport,
-                                          stitchedSupport, reputableSupportFraction));
-                }
-
+                evidence.Outcome = Outcome.PoorEdge;
                 statusCounter.PoorEdge++;
                 return true;
             }
@@ -416,6 +363,7 @@ namespace Gemini.CandidateIndelSelection
             return false;
         }
 
+        // TODO EXTRACT TO SHARED
         private static PreIndel GetIndelKey(string splittedIndel)
         {
             var splitString = splittedIndel.Split(' ').SelectMany(x => x.Split(':', '>')).ToList();
@@ -433,22 +381,27 @@ namespace Gemini.CandidateIndelSelection
 
         private static PreIndel GetIndelFromEntry(PreIndel indel, int anchorLeft, int anchorRight,
             int observationCount, int mess, float fwdSupport, float reverseSupport, float reputableSupport,
-            float avgQuals, float stitchedSupport)
+            float avgQuals, float stitchedSupport, int numFromMateUnmapped, int numFromUnanchoredRepeat)
         {
-
             var averageAnchor = (anchorLeft + anchorRight) /
                                 observationCount;
-            var averageMess = (mess / observationCount) -
-                              Math.Abs(indel.ReferenceAllele.Length - indel.AlternateAllele.Length);
+            var averageMess = (mess / (float)observationCount);
 
             var balance = Math.Max(1,
                 (fwdSupport >= reverseSupport ? reverseSupport / fwdSupport : fwdSupport / reverseSupport) + stitchedSupport);
 
+            balance = fwdSupport >= reverseSupport ? fwdSupport / (Math.Max(1,reverseSupport)) : reverseSupport / Math.Max(1,fwdSupport);
+
             // Still want to care about absolute anchor lengths (maybe reads are variable lengths), but also definitely need to care about anchor balance (3 reads at 90/10 would have same avg anchor as 3 reads at 50/50)
-            var anchorBalance = Math.Max(1, anchorLeft >= anchorRight ? (anchorLeft / (float)anchorRight) : (anchorRight/(float)anchorLeft));
+            var anchorBalance = Math.Max(1, (anchorLeft >= anchorRight ? (anchorLeft / (float)anchorRight) : (anchorRight/(float)anchorLeft)));
+            anchorBalance = anchorLeft >= anchorRight
+                ? anchorLeft / (float) (Math.Max(1, anchorRight)) : anchorRight / (float) (Math.Max(1, anchorLeft));
 
+            var averageCleanAnchor = (averageAnchor - averageMess) / (float)averageAnchor;
 
-            indel.Score = Math.Max(0, (int)(observationCount * (Math.Max(1, averageAnchor / 2 - averageMess)) * balance * anchorBalance * (1 + reputableSupport) * avgQuals / 30));
+            indel.Observations = observationCount;
+            indel.Score = (int)(Math.Max(0, (int)(observationCount * (1/balance) * (1/anchorBalance) * (1 + reputableSupport + (stitchedSupport/balance)) * (avgQuals / 30) * averageCleanAnchor * 10)) * (1 + (indel.Length / 5) ) * ((observationCount - numFromMateUnmapped - numFromUnanchoredRepeat) / (float)observationCount));
+
             return indel;
         }
     }

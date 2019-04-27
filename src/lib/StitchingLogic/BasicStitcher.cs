@@ -9,8 +9,30 @@ using System.Collections.Generic;
 
 namespace StitchingLogic
 {
+    public struct StitchingResult
+    {
+        public readonly bool Stitched;
+        public readonly int NumDisagreements;
+        public readonly int NumAgreements;
+        public readonly int NumNDisagreements;
+
+        public StitchingResult(bool stitched, int numAgreements, int numDisagreements, int numNDisagreements)
+        {
+            Stitched = stitched;
+            NumAgreements = numAgreements;
+            NumDisagreements = numDisagreements;
+            NumNDisagreements = numNDisagreements;
+        }
+    }
+
     public class BasicStitcher : IAlignmentStitcher
     {
+        private const string UnstitchablePairUnableToNifyReturnedIndividually = "Unstitchable pair unable to Nify, returned individually";
+        private const string UnstitchablePairReturnedIndividually = "Unstitchable pair returned individually";
+        private const string UnstitchablePairNIfied = "Unstitchable pair N-ified";
+        private const string ReadsSuccesfullyMerge = "Reads succesfully merge";
+        private const string OverlappingBasesAreRepeatCannotReliablyStitch = "Overlapping bases are repeat, cannot reliably stitch";
+        private const string ReadsOverlapButWeCanTFigureOutTheCigar = "Reads overlap but we can't figure out the cigar";
         private readonly bool _useSoftclippedBases;
         private readonly bool _debug;
         private ReadStatusCounter _statusCounter;
@@ -21,10 +43,11 @@ namespace StitchingLogic
         private readonly CigarReconciler _cigarReconciler;
         private readonly ReadMerger _readMerger;
         private readonly int _thresholdNumDisagreeingBases;
+        private readonly bool _countNsTowardNumDisagreeingBases;
 
         public BasicStitcher(int minBaseCallQuality, bool nifyDisagreements = true, bool useSoftclippedBases = true, bool debug = false,
             bool nifyUnstitchablePairs = false, bool allowRescuedInsertionBaseDisagreement = false, bool ignoreProbeSoftclips = true, int maxReadLength = 1024,
-            bool ignoreReadsAboveMaxLength = false, uint minMapQuality = 1, bool dontStitchHomopolymerBridge = true, int thresholdNumDisagreeingBases = int.MaxValue)
+            bool ignoreReadsAboveMaxLength = false, uint minMapQuality = 1, bool dontStitchHomopolymerBridge = true, int thresholdNumDisagreeingBases = int.MaxValue, bool countNsTowardNumDisagreeingBases = false)
         {
             _nifyUnstitchablePairs = nifyUnstitchablePairs;
             _ignoreProbeSoftclips = ignoreProbeSoftclips;
@@ -35,11 +58,12 @@ namespace StitchingLogic
             _statusCounter = new ReadStatusCounter();
             _cigarReconciler = new CigarReconciler(_statusCounter, _useSoftclippedBases, _debug, _ignoreProbeSoftclips, maxReadLength, minBaseCallQuality, ignoreReadsAboveMaxStitchedLength: ignoreReadsAboveMaxLength, nifyDisagreements: nifyDisagreements);
             _readMerger = new ReadMerger(minBaseCallQuality, allowRescuedInsertionBaseDisagreement, _useSoftclippedBases,
-                nifyDisagreements, _statusCounter, _debug, _ignoreProbeSoftclips);
+                nifyDisagreements, _statusCounter, _debug, _ignoreProbeSoftclips, _countNsTowardNumDisagreeingBases);
             _thresholdNumDisagreeingBases = thresholdNumDisagreeingBases;
+            _countNsTowardNumDisagreeingBases = countNsTowardNumDisagreeingBases;
         }
 
-        public bool TryStitch(AlignmentSet set)
+        public StitchingResult TryStitch(AlignmentSet set)
         {
             try
             {
@@ -58,7 +82,7 @@ namespace StitchingLogic
                         set.PartnerRead2.CigarData, set.PartnerRead2.Position,
                         set.PartnerRead1.SequencedBaseDirectionMap.First() == DirectionType.Reverse, set.IsOutie, set.PartnerRead1.Sequence, set.PartnerRead2.Sequence, set.PartnerRead1.Qualities, set.PartnerRead2.Qualities, r1IsFirstMate);
 
-                    if (stitchingInfo!= null && stitchingInfo.NumDisagreeingBases > _thresholdNumDisagreeingBases)
+                    if (stitchingInfo!= null && stitchingInfo.NumDisagreeingBases + (_countNsTowardNumDisagreeingBases ? stitchingInfo.NumNDisagreements : 0) > _thresholdNumDisagreeingBases)
                     {
                         stitchingInfo = null;
                     }
@@ -70,12 +94,13 @@ namespace StitchingLogic
                         if (stitchedCigar == null)
                         // there's an overlap but we can't figure out the cigar - TODO revisit
                         {
-                            _statusCounter.AddDebugStatusCount("Reads overlap but we can't figure out the cigar");
-                            return false;
+                            AddDebugStatusCount(ReadsOverlapButWeCanTFigureOutTheCigar);
+                            //_statusCounter.AddDebugStatusCount(ReadsOverlapButWeCanTFigureOutTheCigar);
+                            return new StitchingResult(false, stitchingInfo.NumDisagreeingBases, stitchingInfo.NumDisagreeingBases, stitchingInfo.NumNDisagreements);
                         }
 
                         // Returns null if unable to generate consensus
-                        var mergedRead = stitchingInfo.IsSimple ? _readMerger.GenerateConsensusReadForSimple(set.PartnerRead1, set.PartnerRead2, stitchingInfo, set.IsOutie)  : 
+                        var mergedRead = stitchingInfo.IsSimple ? _readMerger.GenerateConsensusRead(set.PartnerRead1, set.PartnerRead2, stitchingInfo, set.IsOutie)  : 
                             _readMerger.GenerateConsensusRead(set.PartnerRead1, set.PartnerRead2,
                             stitchingInfo, set.IsOutie);
 
@@ -90,22 +115,23 @@ namespace StitchingLogic
 
                             if (_dontStitchHomopolymerBridge)
                             {
-                                var bridgeAnchored = OverlapEvaluator.BridgeAnchored(mergedRead);
+                                var bridgeAnchored = stitchingInfo.IsSimple ? 
+                                    OverlapEvaluator.BridgeAnchored(stitchingInfo.OverlapBases) : OverlapEvaluator.BridgeAnchored(mergedRead);
                                 if (!bridgeAnchored)
                                 {
-                                    _statusCounter.AddDebugStatusCount("Overlapping bases are repeat, cannot reliably stitch");
-                                    return false;
+                                    AddDebugStatusCount(OverlappingBasesAreRepeatCannotReliablyStitch);
+                                    //_statusCounter.AddDebugStatusCount(OverlappingBasesAreRepeatCannotReliablyStitch);
+                                    return new StitchingResult(false, stitchingInfo.NumAgreements, stitchingInfo.NumDisagreeingBases, stitchingInfo.NumNDisagreements);
                                 }
                             }
 
                             set.ReadsForProcessing.Add(mergedRead);
 
-                            _statusCounter.AddDebugStatusCount("Reads succesfully merge");
+                            AddDebugStatusCount(ReadsSuccesfullyMerge);
+                            //_statusCounter.AddDebugStatusCount(ReadsSuccesfullyMerge);
 
-                            return true;
+                            return new StitchingResult(true, stitchingInfo.NumAgreements, stitchingInfo.NumDisagreeingBases, stitchingInfo.NumNDisagreements);
                         }
-
-
 
                     }
                 }
@@ -129,24 +155,27 @@ namespace StitchingLogic
                             set.PartnerRead2.MapQuality);
                         set.ReadsForProcessing.Add(mergedRead);
 
-                        _statusCounter.AddDebugStatusCount("Unstitchable pair N-ified");
-                        return true;
+                        AddDebugStatusCount(UnstitchablePairNIfied);
+                        //_statusCounter.AddDebugStatusCount(UnstitchablePairNIfied);
+                        return new StitchingResult(true, 0, 0, 0);
                     }
                     catch (Exception e)
                     {
                         Logger.WriteExceptionToLog(e);
-                        _statusCounter.AddDebugStatusCount("Unstitchable pair unable to Nify, returned individually");
+                        //_statusCounter.AddDebugStatusCount(UnstitchablePairUnableToNifyReturnedIndividually);
+                        AddDebugStatusCount(UnstitchablePairUnableToNifyReturnedIndividually);
                         set.ReadsForProcessing.Add(set.PartnerRead1);
                         set.ReadsForProcessing.Add(set.PartnerRead2);
                     }
                 }
                 else
                 {
-                    _statusCounter.AddDebugStatusCount("Unstitchable pair returned individually");
+                    AddDebugStatusCount(UnstitchablePairReturnedIndividually);
+                    //_statusCounter.AddDebugStatusCount(UnstitchablePairReturnedIndividually);
                     set.ReadsForProcessing.Add(set.PartnerRead1);
                     set.ReadsForProcessing.Add(set.PartnerRead2);
                 }
-                return false;
+                return new StitchingResult(false, 0,0,0);
             }
             catch (Exception e)
             {
@@ -155,6 +184,15 @@ namespace StitchingLogic
 
         }
 
+        private void AddDebugStatusCount(string status)
+        {
+            if (_debug)
+            {
+                _statusCounter.AddDebugStatusCount(status);
+            }
+
+        }
+   
         public ReadStatusCounter GetStatusCounter()
         {
             return _statusCounter;

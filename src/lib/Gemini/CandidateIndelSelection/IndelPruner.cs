@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using Common.IO.Utility;
 using Gemini.Models;
 using Gemini.Utility;
@@ -20,154 +19,126 @@ namespace Gemini.CandidateIndelSelection
             _binSize = binSize;
         }
 
+
+        private List<PreIndel> OrderIndelsByScore(IEnumerable<PreIndel> preIndels)
+        {
+            // Order by score descending, then arbitrarily by allele to make it deterministic
+            return preIndels.OrderByDescending(x => x.Score).ThenByDescending(x => x.Length)
+                .ThenBy(x => x.AlternateAllele).ThenBy(x => x.ReferenceAllele).ToList();
+        }
+
         public List<PreIndel> GetPrunedPreIndelsForChromosome(List<PreIndel> unfilteredPreIndels)
         {
-            // Initialize collections
-            var indelsForChromRaw = unfilteredPreIndels;
+            const int minIndelLengthForCollapsing = 10;
 
-            // Prune the indels
+            var indelsForChromRaw = unfilteredPreIndels;
             var indelsForChrom = new List<PreIndel>();
             var blacklistedIndels = new List<PreIndel>();
-            var collapseSimilarInsertions = true;
-            if (true)
+
+            foreach (var indel in OrderIndelsByScore(indelsForChromRaw))
             {
-                foreach (var indel in indelsForChromRaw)
+                bool addedAsConcurrent = false;
+                // Collapse similar insertions into one
+
+                if (indel.Length >= minIndelLengthForCollapsing && indel.Type == AlleleCategory.Insertion &&
+                    !indel.InMulti)
                 {
+                    // Get other same-length insertions at this position and order by highest score. Low-scoring insertions that have a couple of mismatches from the top insertion can be assumed to be the same insertion and collapsed into it.
+                    var concurrentIndels = indelsForChromRaw.Where(x =>
+                            x.ReferencePosition == indel.ReferencePosition &&
+                            x.AlternateAllele.Length == indel.AlternateAllele.Length && !x.InMulti)
+                        .OrderByDescending(x => x.Score).ToList();
 
-                    bool addedAsConcurrent = false;
-                    if (collapseSimilarInsertions)
+                    if (concurrentIndels.Count() > 2 && concurrentIndels.Max(x => x.Score) == indel.Score &&
+                        concurrentIndels.Count(x => x.Score == indel.Score) == 1)
                     {
-                        if (indel.Length >= 10 && indel.Type == AlleleCategory.Insertion && !indel.InMulti)
+                        if (_debug)
                         {
-                            var concurrentIndels = indelsForChromRaw.Where(x =>
-                                    x.ReferencePosition == indel.ReferencePosition &&
-                                    x.AlternateAllele.Length == indel.AlternateAllele.Length && !x.InMulti)
-                                .OrderByDescending(x => x.Score).ToList();
-
-                            if (concurrentIndels.Count() > 2 && concurrentIndels.Max(x => x.Score) == indel.Score &&
-                                concurrentIndels.Count(x => x.Score == indel.Score) == 1)
-                            {
-                                Logger.WriteToLog(
-                                    $"Multiple concurrent indels!!! {(indel.ReferencePosition + ":" + indel.ReferenceAllele + ">" + indel.AlternateAllele + "(" + indel.Score + ")")} : {concurrentIndels.Count()}");
-
-                                // TODO (Cleanup) remove consensus logic, we're not doing it anymore - instead just taking the best.
-                                // TODO (Improve) maybe be stricter on how much better the best has to be to do this?
-                                // TODO (Improve) maybe check that a particular insertion is only <= n bp off from the confident one before removing it?
-                                var consensusIndel = new StringBuilder();
-
-                                for (int i = 0; i < indel.AlternateAllele.Length; i++)
-                                {
-                                    var bases = new List<char>();
-                                    foreach (var concurrentIndel in concurrentIndels)
-                                    {
-                                        bases.Add(concurrentIndel.AlternateAllele[i]);
-                                    }
-
-                                    var distincted = bases.Distinct();
-                                    if (distincted.Count() > 1)
-                                    {
-                                        consensusIndel.Append('N');
-                                    }
-                                    else
-                                    {
-                                        consensusIndel.Append(distincted.First());
-                                    }
-                                }
-
-                                if (consensusIndel.ToString().Length != indel.AlternateAllele.Length)
-                                {
-                                    throw new Exception("This shouldn't happen");
-                                }
-
-                                if (consensusIndel.ToString() == indel.AlternateAllele)
-                                {
-                                    throw new Exception("Why are these the same");
-                                }
-
-                                indelsForChrom.Add(indel);
-
-                                addedAsConcurrent = true;
-
-                                var indelsToBlacklist = concurrentIndels.Where(x =>
-                                    x.AlternateAllele != indel.AlternateAllele && !x.InMulti).ToList();
-
-                                foreach (var concurrentIndel in indelsToBlacklist)
-                                {
-                                    blacklistedIndels.Add(concurrentIndel);
-                                }
-
-                                var sumOfRemovedIndelScores = indelsToBlacklist.Sum(x => x.Score);
-                                indel.Score += (sumOfRemovedIndelScores / 2);
-
-                                if (indelsToBlacklist.Any() && _debug)
-                                {
-                                    Logger.WriteToLog(
-                                        $"Removed {indelsToBlacklist.Count()} extra variations of {indel} ({indel.Score}). Next highest score: {indelsToBlacklist.Max(x => x.Score)}");
-
-                                }
-                            }
+                            Logger.WriteToLog(
+                                $"Multiple concurrent indels!!! {(indel.ReferencePosition + ":" + indel.ReferenceAllele + ">" + indel.AlternateAllele + "(" + indel.Score + ")")} : {concurrentIndels.Count()}");
                         }
-                    }
 
-                    if (_binSize > 0)
-                    {
-
-                        var nearbyIndels = indelsForChromRaw.Where(x =>
-                                !IndelsMatch(indel, x) && (Math.Abs(x.ReferencePosition - indel.ReferencePosition) <=
-                                                           _binSize
-                                    //|| Math.Abs(x.ReferencePosition - indel.ReferencePosition) <= x.Length && x.Type == indel.Type && x.Length == indel.Length)
-                                ))
-                            .ToList();
-
-                        // TODO consider making the threshold less for larger binsizes?
-                        var sumOfScores = nearbyIndels.Sum(x => x.Score) + indel.Score;
-                        if ((indel.Score / (float)sumOfScores) > 0.5)
-                        {
-                            var indelsToBlacklist = nearbyIndels.Where(x =>
-                                !(
-                                    // Same allele
-                                    (x.ReferencePosition == indel.ReferencePosition &&
-                                  x.ReferenceAllele == indel.ReferenceAllele &&
-                                  x.AlternateAllele == indel.AlternateAllele) 
-                                ||
-                                    // Indel contained in multi other, and other is at least ok-ish quality
-                                (!indel.InMulti && x.InMulti && Helper.MultiIndelContainsIndel(x, indel) && x.Score >= (indel.Score * 0.3)) 
-                                    ||
-                                    // Other contained in multi indel, and other is at least ok-ish quality
-                                    (indel.InMulti && !x.InMulti && Helper.MultiIndelContainsIndel(indel,x) && x.Score >= (indel.Score *0.3)) 
-                                    )
-                                    
-                                    &&  x.Score < (indel.Score * 0.5)).ToList();
-
-                            foreach (var nearbyIndel in indelsToBlacklist)
-                            {
-                                blacklistedIndels.Add(nearbyIndel);
-                            }
-
-                            if (indelsToBlacklist.Any() && _debug)
-                            {
-                                Logger.WriteToLog(
-                                    $"Removed {indelsToBlacklist.Count()} nearby variants to {indel} ({indel.Score}). Next highest score: {indelsToBlacklist.Max(x => x.Score)}");
-
-                            }
-                        }
-                    }
-
-                    if (!addedAsConcurrent)
-                    {
                         indelsForChrom.Add(indel);
-                    }
 
+                        addedAsConcurrent = true;
+
+                        var indelsToBlacklist = concurrentIndels.Where(x =>
+                            x.AlternateAllele != indel.AlternateAllele && !x.InMulti).ToList();
+
+                        foreach (var concurrentIndel in indelsToBlacklist)
+                        {
+                            blacklistedIndels.Add(concurrentIndel);
+                        }
+
+                        var sumOfRemovedIndelScores = indelsToBlacklist.Sum(x => x.Score);
+                        indel.Score += (sumOfRemovedIndelScores / 2); // TODO why did we divide this by two?
+
+                        if (indelsToBlacklist.Any() && _debug)
+                        {
+                            Logger.WriteToLog(
+                                $"Removed {indelsToBlacklist.Count()} extra variations of {indel} ({indel.Score}). Next highest score: {indelsToBlacklist.Max(x => x.Score)}");
+                        }
+                    }
                 }
 
-                foreach (var candidateIndel in blacklistedIndels)
+                if (_binSize > 0)
                 {
-                    //Logger.WriteToLog("Removing candidate indel because of blacklist");
-                    indelsForChrom.Remove(candidateIndel);
+                    PruneOverlappingIndels(indelsForChromRaw, indel, blacklistedIndels, _binSize);
+                }
+
+                if (!addedAsConcurrent)
+                {
+                    indelsForChrom.Add(indel);
                 }
             }
 
+            foreach (var candidateIndel in blacklistedIndels)
+            {
+                indelsForChrom.Remove(candidateIndel);
+            }
+
             return indelsForChrom;
+        }
+
+        private static void PruneOverlappingIndels(List<PreIndel> indelsForChromRaw, PreIndel indel, List<PreIndel> blacklistedIndels, int binSize)
+        {
+            // Prune out stuff that would be overlapping or within buffer 
+            var nearbyIndels = indelsForChromRaw.Where(x =>
+                    !IndelsMatch(indel, x) && (Math.Abs(x.ReferencePosition - indel.ReferencePosition) <=
+                                               binSize + (indel.Type == AlleleCategory.Deletion ? indel.Length : 0)
+                    ))
+                .ToList();
+
+            // TODO consider making the threshold less for larger binsizes?
+            var allScores = nearbyIndels.Select(x => x.Score).OrderByDescending(x => x);
+            long sumOfScores = allScores.Sum() + indel.Score;
+            if ((indel.Score / (float) sumOfScores) > 0.33)
+            {
+                var indelsToBlacklist = nearbyIndels.Where(x =>
+                    !(
+                        // Same allele
+                        (x.ReferencePosition == indel.ReferencePosition &&
+                         x.ReferenceAllele == indel.ReferenceAllele &&
+                         x.AlternateAllele == indel.AlternateAllele)
+                        ||
+                        // Indel contained in multi other, and other is at least ok-ish quality
+                        (!indel.InMulti && x.InMulti && Helper.MultiIndelContainsIndel(x, indel) &&
+                         x.Score >= (indel.Score * 0.3))
+                        ||
+                        // Other contained in multi indel, and other is at least ok-ish quality
+                        (indel.InMulti && !x.InMulti && Helper.MultiIndelContainsIndel(indel, x) &&
+                         x.Score >= (indel.Score * 0.3))
+                    )
+                    && (
+                        // (Much) lower scoring, shorter indel of the same type is likely to just be noise around this
+                        // Note: this could be an issue with concurrent somatic and germline variants, ie if these two observed indels do _not_ represent the same biological event
+                        x.Score < (indel.Score * 0.5) && x.Length <= indel.Length) && x.Type == indel.Type).ToList();
+
+                foreach (var nearbyIndel in indelsToBlacklist)
+                {
+                    blacklistedIndels.Add(nearbyIndel);
+                }
+            }
         }
 
         private static bool IndelsMatch(PreIndel indel1, PreIndel indel2)

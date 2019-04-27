@@ -44,5 +44,22 @@ namespace Pisces.Domain
 
         public static int NumCovContributingAlleleTypes { get { return CoverageContributingAlleles.Length; } }
 
+
+        /// <summary>
+        /// The max number of overlapping amplicons that might happen.
+        /// We could figure this out on the fly, but its probably better (perfomance wise)
+        /// just to allocate a head of time.
+        /// We can throw if the user has a sample that exceeds this, and just have them turn off the amplicon bias detection feature.
+        /// </summary>
+        public static int MaxNumOverlappingAmplicons
+        {
+            get
+            {
+                return _maxNumOverlappingAmplicons;
+            }
+        }
+
+        private static int _maxNumOverlappingAmplicons = 6;
+        
     }
 }

@@ -22,6 +22,25 @@
         MessyStitched,
         MessySplit,
         UnusableSplit,
-        UnstitchImperfect
+        UnstitchImperfect,
+        UnstitchPerfect,
+        LongFragment,
+        UnstitchMessy,
+        UnstitchSingleMismatch,
+        SingleMismatchStitched,
+        UnstitchableAsSingleton,
+        IndelSingleton,
+        IndelUnstitchable,
+        UnstitchForwardMessy,
+        UnstitchReverseMessy,
+        Improper,
+        IndelImproper,
+        UnstitchMessyIndel,
+        UnstitchMessySuspiciousRead,
+        UnstitchMessyIndelSuspiciousRead,
+        UnstitchForwardMessyIndel,
+        UnstitchReverseMessyIndel,
+        Duplicate,
+        UnstitchMessySuspiciousMd
     }
 }

@@ -9,8 +9,6 @@ using CommandLine.Options;
 using Xunit;
 
 
-//TODO - these tests perhpas should migrate to Pisces application tests. 
-//The option parsing code and the application running code is currently too tied together...
 namespace Pisces.Domain.Tests
 {
     public class PiscesApplicationOptionsTests
@@ -20,7 +18,7 @@ namespace Pisces.Domain.Tests
         [Trait("ReqID", "SDS-14")]
         public void CheckLogFolderTest()
         {
-            var bamFilePath = Path.Combine(TestPaths.SharedBamDirectory, "Chr17Chr19.bam");    
+            var bamFilePath = Path.Combine(TestPaths.SharedBamDirectory, "Chr17Chr19.bam");
             var genomePath = Path.Combine(TestPaths.SharedGenomesDirectory, "chr17chr19");
             var outDir = Path.Combine(TestPaths.LocalScratchDirectory, "PiscesApplicationsOptionsTests");
             var defaultLogFolder = "PiscesLogs";
@@ -40,7 +38,7 @@ namespace Pisces.Domain.Tests
             Assert.Equal(Path.Combine(outDir, defaultLogFolder), options.LogFolder);
 
             //check when a bam is specified w/no out folder
-           options = new PiscesApplicationOptions
+            options = new PiscesApplicationOptions
             {
                 BAMPaths = new[] { bamFilePath },
                 GenomePaths = new[] { genomePath },
@@ -104,7 +102,7 @@ namespace Pisces.Domain.Tests
             optionsExpectationsDict.Add(@"-OutFolder C:\out", (o) => Assert.Equal(@"C:\out", o.OutputDirectory));
             optionsExpectationsDict.Add("-ThreadByChr true", (o) => Assert.Equal(true, o.ThreadByChr));
             optionsExpectationsDict.Add("-usestitchedXD true", (o) => Assert.Equal(true, o.UseStitchedXDInfo));
-         
+
             return optionsExpectationsDict;
         }
 
@@ -222,7 +220,7 @@ namespace Pisces.Domain.Tests
             ExecuteParsingOnlyTest(@"-Collapse true", true, (o) => Assert.True(o.Collapse));
             ExecuteParsingOnlyTest(@"-Collapse false", true, (o) => Assert.False(o.Collapse));
 
-            
+
             ExecuteParsingOnlyTest(@"  -PriorsPath C:\path", true, (o) => Assert.Equal(@"C:\path", o.PriorsPath));
             ExecuteParsingOnlyTest(@"  -DiploidSNVGenotypeParameters 0.10,0.20,0.78", true, (o) =>
                     Assert.True(
@@ -336,7 +334,7 @@ namespace Pisces.Domain.Tests
                 GenomePaths = new[] { _existingGenome },
                 IntervalPaths = new[] { _existingInterval }
             };
-           
+
             Assert.NotNull(options_1.BAMPaths);
             Assert.True(options_1.BAMPaths.Length > 0);
 
@@ -358,9 +356,9 @@ namespace Pisces.Domain.Tests
             string bamFolder = TestPaths.SharedBamDirectory;
             var commandLine1 = string.Format("-minvq 40 -minbq 40 -b {0} -t 1000 -g {1} -vqfilter 40", bamFolder, _existingGenome);
             ExecuteParsingAndSetDerivedParams(commandLine1, (o) => Assert.Equal(Environment.ProcessorCount, o.MaxNumThreads));
-            
+
             var commandLine2 = string.Format("-minvq 40 -minbq 40 -b {0} -g {1} -vqfilter 40", bamFolder, _existingGenome);
-            ExecuteParsingAndSetDerivedParams(commandLine2,  (o) => Assert.Equal(Environment.ProcessorCount, o.MaxNumThreads));
+            ExecuteParsingAndSetDerivedParams(commandLine2, (o) => Assert.Equal(Environment.ProcessorCount, o.MaxNumThreads));
 
             var commandLine3 = string.Format("-minvq 40 -minbq 40 -b {0} -g {1} -vqfilter 40 -t 1", bamFolder, _existingGenome);
             ExecuteParsingAndSetDerivedParams(commandLine3, (o) => Assert.Equal(1, o.MaxNumThreads));
@@ -384,7 +382,7 @@ namespace Pisces.Domain.Tests
             // verify log folder
             // ---------------------
             Assert.Equal(Path.Combine(TestPaths.SharedBamDirectory, "PiscesLogs"), option.LogFolder);
-           
+
             // ---------------------------------------------------
             // BAMPath(s) should be specified.
             // ---------------------------------------------------
@@ -407,7 +405,7 @@ namespace Pisces.Domain.Tests
             }, false);
             ExecuteValidationTest(o =>
             {
-                o.BAMPaths = new string[] { TestPaths.SharedBamDirectory } ;
+                o.BAMPaths = new string[] { TestPaths.SharedBamDirectory };
                 o.GenomePaths = new[] { "folder1", "folder2" };
             }, false);
             ExecuteValidationTest(o =>
@@ -418,7 +416,7 @@ namespace Pisces.Domain.Tests
             }, false);
             ExecuteValidationTest(o =>
             {
-                o.BAMPaths = BamProcessorParsingUtils.UpdateBamPathsWithBamsFromFolder( TestPaths.SharedBamDirectory );
+                o.BAMPaths = BamProcessorParsingUtils.UpdateBamPathsWithBamsFromFolder(TestPaths.SharedBamDirectory);
                 o.GenomePaths = new[] { _existingGenome };
                 o.IntervalPaths = new[] { _existingInterval };
             }, true);
@@ -444,7 +442,7 @@ namespace Pisces.Domain.Tests
             }, true);  // dup genomes ok
 
             // intervals
-            ExecuteValidationTest((o) => { o.IntervalPaths = new[] { _existingInterval, _existingInterval }; }, false); 
+            ExecuteValidationTest((o) => { o.IntervalPaths = new[] { _existingInterval, _existingInterval }; }, false);
             ExecuteValidationTest((o) => { o.IntervalPaths = new[] { "nonexistant.picard" }; }, false);
             ExecuteValidationTest((o) =>
             {
@@ -655,7 +653,7 @@ namespace Pisces.Domain.Tests
             {
                 Assert.Equal((int)ExitCodeType.Success, Program.Main(new string[] { "-h" }));
                 Assert.Equal((int)ExitCodeType.Success, Program.Main(new string[] { "--h" }));
-                Assert.Equal((int)ExitCodeType.Success, Program.Main(new string[] { "-Help" }));        
+                Assert.Equal((int)ExitCodeType.Success, Program.Main(new string[] { "-Help" }));
             }
             catch
             {
@@ -701,7 +699,7 @@ namespace Pisces.Domain.Tests
         [Fact]
         public void SaveApplicationOptions()
         {
-            
+
 
             var bamFolder = TestPaths.SharedBamDirectory;
             var applicationOptionsFile = Path.Combine(TestPaths.LocalScratchDirectory, "SomaticVariantCallerOptions2.used.json");
@@ -710,9 +708,9 @@ namespace Pisces.Domain.Tests
 
             var parsingResult = new CommandLineParseResult();
             var commandLine1 = string.Format("-MinVariantQScore 40 -MinBaseCallQuality 40 -BAMPaths {0} -MaxNumThreads 1000 -GenomePaths {1} -VariantQualityFilter 40", bamFolder, _existingGenome);
-          
+
             var options = GetParsedOptions(commandLine1);
-           
+
             options.Save(applicationOptionsFile);
 
             Assert.True(File.Exists(applicationOptionsFile));
@@ -769,10 +767,10 @@ namespace Pisces.Domain.Tests
 
         private void ExecuteValidationTest(Action<PiscesApplicationOptions> testSetup, bool shouldPass)
         {
-            var options = GetBasicOptions();        
+            var options = GetBasicOptions();
             testSetup(options);
             var parser = new PiscesOptionsParser() { Options = options };
-           
+
             if (shouldPass)
                 parser.ValidateAndSetDerivedValues();
             else
@@ -792,6 +790,56 @@ namespace Pisces.Domain.Tests
             options.SetIODirectories("Pisces");
 
             return (options);
+        }
+
+
+        [Fact]
+        public void AmpliconBiasFilterParsingTest()
+        {
+            //happy path. should easily parse.
+            var result1 = VariantCallingOptionsParserUtils.ParseAmpliconBiasFilter("0.20", 0.05F);
+            Assert.Equal(0.2F, result1);
+
+            //should revert to the default.
+            var result2 = VariantCallingOptionsParserUtils.ParseAmpliconBiasFilter("TRUE", 0.01F);
+            Assert.Equal(0.01F, result2);
+
+            //should turn off (nullify)
+            var result3 = VariantCallingOptionsParserUtils.ParseAmpliconBiasFilter("FALSE", 0.01F);
+            Assert.Null(result3);
+
+            //should throw
+            Assert.Throws<ArgumentException>(() => (VariantCallingOptionsParserUtils.ParseAmpliconBiasFilter("WontWork!!", 0.01F)));
+
+            //now test it all the way through the parser...
+
+            //happy path
+            var parser = GetParsedApplicationOptions("-abfilter 0.99");
+            var result4 = ((PiscesApplicationOptions)parser.Options).VariantCallingParameters.AmpliconBiasFilterThreshold;
+            Assert.Equal(0.99F, result4);
+
+            //unset (default is now OFF)
+            parser = GetParsedApplicationOptions("");
+            var result5 = ((PiscesApplicationOptions)parser.Options).VariantCallingParameters.AmpliconBiasFilterThreshold;
+            Assert.Null(result5);
+
+            //turned off
+            parser = GetParsedApplicationOptions("-abfilter FALSE");
+            var result6 = ((PiscesApplicationOptions)parser.Options).VariantCallingParameters.AmpliconBiasFilterThreshold;
+            Assert.Null(result6);
+
+            //turned on, + checking cap. invariant . Will turn ON and use default.
+            parser = GetParsedApplicationOptions("-aBfilTER true");
+            var result7 = ((PiscesApplicationOptions)parser.Options).VariantCallingParameters.AmpliconBiasFilterThreshold;
+            Assert.Equal(0.01F, result7);
+
+
+            //pathological. Make sure the error message involves the argument and the value that cause the problem
+            parser = GetParsedApplicationOptions("-abfilter blah");
+            var parserResult = parser.ParsingResult;
+            Assert.Equal((int)ExitCodeType.BadArguments, parserResult.ExitCode);
+            Assert.True(parserResult.Exception.Message.Contains("AmpliconBias"));
+            Assert.True(parserResult.Exception.Message.Contains("blah"));
         }
 
     }

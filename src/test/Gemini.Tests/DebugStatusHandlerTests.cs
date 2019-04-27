@@ -38,8 +38,8 @@ namespace Gemini.Tests
             var counter = new ReadStatusCounter();
             var handler = new DebugStatusHandler(counter);
             var pair = TestHelpers.GetPair("10M", "10M");
-            TagUtils.ReplaceOrAddStringTag(ref pair.Read1.TagData, "HI", "read1_hi");
-            TagUtils.ReplaceOrAddStringTag(ref pair.Read2.TagData, "HI", "read2_hi");
+            pair.Read1.ReplaceOrAddStringTag("HI", "read1_hi");
+            pair.Read2.ReplaceOrAddStringTag("HI", "read2_hi");
 
             var outAlignment = new BamAlignment(pair.Read1);
             handler.AddCombinedStatusStringTags("HI", pair.Read1, pair.Read2, outAlignment);
@@ -52,11 +52,11 @@ namespace Gemini.Tests
             var counter = new ReadStatusCounter();
             var handler = new DebugStatusHandler(counter);
             var pair = TestHelpers.GetPair("10M", "10M");
-            TagUtils.ReplaceOrAddStringTag(ref pair.Read1.TagData, "HI", "read1_hi");
-            TagUtils.ReplaceOrAddStringTag(ref pair.Read2.TagData, "HI", "read2_hi");
+            pair.Read1.ReplaceOrAddStringTag("HI", "read1_hi");
+            pair.Read2.ReplaceOrAddStringTag("HI", "read2_hi");
 
             var outAlignment = new BamAlignment(pair.Read1);
-            TagUtils.ReplaceOrAddStringTag(ref outAlignment.TagData, "HI", "nothing");
+            outAlignment.ReplaceOrAddStringTag("HI", "nothing");
 
             // Should  not update
             handler.UpdateStatusStringTag("HI", "newvalue", outAlignment);
@@ -70,7 +70,7 @@ namespace Gemini.Tests
             var handler = new DebugStatusHandler(counter);
             var pair = TestHelpers.GetPair("10M", "10M");
 
-            TagUtils.ReplaceOrAddStringTag(ref pair.Read1.TagData, "HI", "nothing");
+            pair.Read1.ReplaceOrAddStringTag("HI", "nothing");
 
             // Should  not update
             handler.AppendStatusStringTag("HI", "newvalue", pair.Read1);

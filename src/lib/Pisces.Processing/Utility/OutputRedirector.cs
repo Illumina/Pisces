@@ -47,7 +47,6 @@ namespace Pisces.Processing.Utility
             catch (ObjectDisposedException)
             {
                 // in case the TextWriter is closed already
-                return;
             }
             catch (Exception ex)
             {

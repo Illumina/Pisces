@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using Pisces.Domain.Models.Alleles;
 using Pisces.IO.Sequencing;
 using Common.IO.Utility;
 
@@ -38,25 +39,16 @@ namespace VariantQualityRecalibration
         }
 
         public static MutationCategory GetMutationCategory(
-            VcfVariant variant)
+           CalledAllele variant)
         {
 
-            if (variant.VariantAlleles.Length == 0)
+            if (variant.Type == Pisces.Domain.Types.AlleleCategory.Reference)
                 return MutationCategory.Reference;
 
 
-            //Be gentle here. This isnt enough that we need to crash a run. 
-            //This would only happen for VQR run on germline / crushed mode.
-            if (variant.VariantAlleles.Length > 1)
-            {
-                // throw new ArgumentException("This method is expecting only one variant allele per variant entry");
-                Logger.WriteToLog("This method is expecting only one variant allele per variant entry, and we found " + variant.ToString());
-                Logger.WriteToLog("Skipping variant");
-                return MutationCategory.Other;
-            }
-
-            return GetMutationCategory(variant.ReferenceAllele, variant.VariantAlleles[0]);
+            return GetMutationCategory(variant.ReferenceAllele, variant.AlternateAllele);
         }
+
 
         public static MutationCategory GetMutationCategory(string referenceAllele, string alternateAllele)
         {

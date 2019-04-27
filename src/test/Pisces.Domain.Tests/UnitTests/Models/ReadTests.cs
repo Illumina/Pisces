@@ -27,7 +27,7 @@ namespace Pisces.Domain.Tests.UnitTests.Models
 
             for (var i = 0; i < read.PositionMap.Length; i++)
             {
-                Assert.Equal(-1, read.PositionMap[i]);  // default for no cigar is -1
+                Assert.Equal(-1, read.PositionMap.GetPositionAtIndex(i));  // default for no cigar is -1
             }
 
             Assert.Throws<ArgumentException>(() => new Read("", read.BamAlignment));  // empty chr
@@ -100,8 +100,8 @@ namespace Pisces.Domain.Tests.UnitTests.Models
             Tests.ReadTests.CompareReads(read, clonedRead);
 
             // verify the arrays are deep copies
-            read.PositionMap[0] = 1000;
-            Assert.False(clonedRead.PositionMap[0] == 1000);
+            read.PositionMap.UpdatePositionAtIndex(0,1000);
+            Assert.False(clonedRead.PositionMap.GetPositionAtIndex(0) == 1000);
             read.SequencedBaseDirectionMap[0] = DirectionType.Stitched;
             Assert.False(clonedRead.SequencedBaseDirectionMap[0] == DirectionType.Stitched);
             read.Qualities[0] = 11;
@@ -198,21 +198,21 @@ namespace Pisces.Domain.Tests.UnitTests.Models
         {
             var read = ReadTestHelper.CreateRead("chr4", "ACCGACTAAC", 4, new CigarAlignment("10M"));
 
-            Verify(new[] { 4, 5, 6, 7, 8, 9, 10, 11, 12, 13 }, read.PositionMap);
+            Verify(new[] { 4, 5, 6, 7, 8, 9, 10, 11, 12, 13 }, read.PositionMap.Map);
 
             read = ReadTestHelper.CreateRead("chr4", "ACCGACTAAC", 4, new CigarAlignment("2S1M4I5D2M1S"));
-            Verify(new[] { -1, -1, 4, -1, -1, -1, -1, 10, 11, -1 }, read.PositionMap);
+            Verify(new[] { -1, -1, 4, -1, -1, -1, -1, 10, 11, -1 }, read.PositionMap.Map);
 
             read = ReadTestHelper.CreateRead("chr1", "ACTTCCCAAAAT", 100, new CigarAlignment("12M"));
 
             for (var i = 0; i < read.PositionMap.Length; i++)
-                Assert.Equal(read.PositionMap[i], read.Position + i);
+                Assert.Equal(read.PositionMap.GetPositionAtIndex(i), read.Position + i);
 
             read = ReadTestHelper.CreateRead("chr1", "ACTTCCCAAAAT", 100, new CigarAlignment("2S5M4I10D1M"));
             Verify(new[]
             {
                 -1, -1, 100, 101, 102, 103, 104, -1, -1, -1, -1, 115
-            }, read.PositionMap);
+            }, read.PositionMap.Map);
 
             Assert.Throws<System.IO.InvalidDataException>(() => ReadTestHelper.CreateRead("chr1", "ACTTCCCAAAAT", 100, new CigarAlignment("100M")));
         }

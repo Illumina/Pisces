@@ -33,12 +33,19 @@ namespace StitchingLogic.Tests
             Assert.True(OverlapEvaluator.IsRepeat("ATGATGATGAT"));  // 3x ATG + AT
             Assert.False(OverlapEvaluator.IsRepeat("ATGATGATGAG")); // 3x ATG + AG
             Assert.False(OverlapEvaluator.IsRepeat("ATGATGATGTG")); // 3x ATG + TG
+            Assert.True(OverlapEvaluator.IsRepeat("TGATGATGATG"));   // 3x ATG, starts with end of unit
+            Assert.True(OverlapEvaluator.IsRepeat("GATGATGATG"));   // 3x ATG, starts with end of unit
+            Assert.True(OverlapEvaluator.IsRepeat("GATGATGATGA"));   // 3x ATG, partials on either side
 
             Assert.True(OverlapEvaluator.IsRepeat("AA"));
             Assert.False(OverlapEvaluator.IsRepeat("ATC"));
             Assert.False(OverlapEvaluator.IsRepeat("AT"));
             Assert.False(OverlapEvaluator.IsRepeat("A"));
             Assert.True(OverlapEvaluator.IsRepeat("ATA"));
+
+            Assert.True(OverlapEvaluator.IsRepeat("ATAT"));
+            Assert.False(OverlapEvaluator.IsRepeat("ATGCAATGCA")); // Unit too long
+
         }
 
         [Fact]
@@ -137,7 +144,7 @@ namespace StitchingLogic.Tests
         {
             var alignmentSet = new AlignmentSet(read1, read2);
             var basicStitcher = new BasicStitcher(10, useSoftclippedBases: useSoftClippedBases);
-            Assert.Equal(expectedResult, basicStitcher.TryStitch(alignmentSet));
+            Assert.Equal(expectedResult, basicStitcher.TryStitch(alignmentSet).Stitched);
             //Assert.Equal(expectedResult, OverlapEvaluator.BridgeAnchored(mergedRead));
         }
 

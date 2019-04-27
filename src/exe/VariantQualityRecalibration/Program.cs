@@ -1,8 +1,12 @@
 ﻿using System;
+using System.IO;
+using System.Collections.Generic;
 using Common.IO.Utility;
 using CommandLine.VersionProvider;
 using CommandLine.Application;
+using CommandLine.Options;
 using CommandLine.Util;
+using Pisces.IO;
 
 namespace VariantQualityRecalibration
 {
@@ -33,7 +37,8 @@ namespace VariantQualityRecalibration
       
         protected override void ProgramExecution()
         {
-           
+
+            AdjustOptions(ref _options);
 
             Logger.WriteToLog("Generating counts files");
             SignatureSorterResultFiles results = SignatureSorter.StrainVcf(_options);
@@ -51,6 +56,28 @@ namespace VariantQualityRecalibration
             }
 
             Logger.WriteToLog("Work complete.");
+        }
+
+        
+        private void AdjustOptions(ref VQROptions vqrOptions)
+        {
+
+            List<string> vcfHeaderLines = AlleleReader.GetAllHeaderLines(vqrOptions.VcfPath);
+          
+            //where to find the Pisces options used to make the original vcf
+            var piscesLogDirectory = Path.Combine(Path.GetDirectoryName(vqrOptions.VcfPath), "PiscesLogs");
+            if (!Directory.Exists(piscesLogDirectory))
+                piscesLogDirectory = Path.GetDirectoryName(vqrOptions.VcfPath);
+
+
+            //figure out the original settings used, use those as the defaults.
+            VcfConsumerAppParsingUtils.TryToUpdateWithOriginalOptions(vqrOptions, vcfHeaderLines, piscesLogDirectory);
+
+            //let anything input on the command line take precedence
+            ApplicationOptionParser.ParseArgs(vqrOptions.CommandLineArguments);
+
+
+            _options.Save(Path.Combine(vqrOptions.LogFolder, _programName + "Options.used.json"));
         }
 
     }

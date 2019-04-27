@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using Alignment.Domain.Sequencing;
 using Alignment.Domain;
@@ -38,7 +37,7 @@ namespace Alignment.Logic
             _pairEvaluator = pairEvaluator ?? new ReadPairEvaluator();
         }
 
-        public ReadPair TryPair(BamAlignment alignment)
+        public ReadPair TryPair(BamAlignment alignment, PairStatus pairStatus = PairStatus.Unknown)
         {
             if (_readsProcessed % 100000 == 0)
             {
@@ -78,7 +77,7 @@ namespace Alignment.Logic
             if (!_readsWaitingForMate.ContainsKey(readIndexer))
             {
                 // TODO do we really need to create a new copy here? I think we're already doing it later
-                _readsWaitingForMate.Add(readIndexer, new ReadPair(new BamAlignment(alignment), readIndexer, GetReadNumber(alignment)));
+                _readsWaitingForMate.Add(readIndexer, new ReadPair(alignment, readIndexer, GetReadNumber(alignment)){PairStatus = pairStatus});
                 return null;
             }
             else
@@ -241,8 +240,6 @@ namespace Alignment.Logic
 
         public IEnumerable<BamAlignment> GetFlushableUnpairedReads()
         {
-            Logger.WriteToLog("At RefId=" + LastRefId + ": Scanning through " + _readsWaitingForMate.Keys.Count + " unmated reads.");
-
             var readyToFlush = new List<BamAlignment>();
 
             foreach (var key in _readsWaitingForMate.Keys.ToList())
@@ -255,10 +252,36 @@ namespace Alignment.Logic
                 }
             }
 
-            Logger.WriteToLog(string.Format("Flushing {0} alignments no longer waiting for pair.", readyToFlush.Count));
-
-
             return readyToFlush;
+        }
+
+        public IEnumerable<ReadPair> GetFlushableUnpairedPairs(int upToPosition = -1)
+        {
+            if (upToPosition > 0)
+            {
+                var unpaired = new List<ReadPair>();
+                var toRemove = new List<string>();
+                foreach (var kvp in _readsWaitingForMate)
+                {
+                    if (kvp.Value.MinPosition <= upToPosition)
+                    {
+                        unpaired.Add(kvp.Value);
+                        toRemove.Add(kvp.Key);
+                    }
+                }
+                foreach (var item in toRemove)
+                {
+                    _readsWaitingForMate.Remove(item);
+                }
+
+                return unpaired;
+            }
+            else
+            {
+                var unpaired = _readsWaitingForMate.Values.ToList();
+                _readsWaitingForMate.Clear();
+                return unpaired;
+            }
         }
     }
 }

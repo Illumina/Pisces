@@ -15,7 +15,7 @@ namespace Pisces.IO.Tests.UnitTests
         public void GetVariantsByChromosome()
         {
             var vcfReader =
-                new VcfReader(Path.Combine(TestPaths.LocalTestDataDirectory, "VcfReader_Extensions.vcf"));
+                new AlleleReader(Path.Combine(TestPaths.LocalTestDataDirectory, "VcfReader_Extensions.vcf"));
 
             //Simple case
             var output = vcfReader.GetVariantsByChromosome(true, true,
@@ -30,7 +30,7 @@ namespace Pisces.IO.Tests.UnitTests
 
             //Custom rule
             var filteredVcfReader =
-                new VcfReader(Path.Combine(TestPaths.LocalTestDataDirectory, "VcfReader_Extensions.vcf"));
+                new AlleleReader(Path.Combine(TestPaths.LocalTestDataDirectory, "VcfReader_Extensions.vcf"));
             var filteredOutput = filteredVcfReader.GetVariantsByChromosome(true, true,
                 new List<AlleleCategory> { AlleleCategory.Insertion, AlleleCategory.Mnv }, candidate => candidate.ReferenceAllele.Length > 3);
             Assert.Equal(1, filteredOutput.Count);

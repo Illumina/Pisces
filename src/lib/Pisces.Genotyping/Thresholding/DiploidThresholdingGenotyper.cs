@@ -11,10 +11,8 @@ namespace Pisces.Genotyping
     {
 
        
-        DiploidThresholdingParameters _diploidSnvThresholdingParameters;
-        DiploidThresholdingParameters _diploidIndelThresholdingParameters;
-
-        PloidyModel _ploidyModel = PloidyModel.DiploidByThresholding;
+        private readonly DiploidThresholdingParameters _diploidSnvThresholdingParameters;
+        private readonly DiploidThresholdingParameters _diploidIndelThresholdingParameters;
 
         public int MinGQScore { get; set; }
         public int MaxGQScore { get; set; }
@@ -49,22 +47,13 @@ namespace Pisces.Genotyping
 	        MinVarFrequency = _diploidSnvThresholdingParameters.MinorVF;
         }
 
-        public PloidyModel PloidyModel
-        {
-            get
-            {
-                return _ploidyModel;
-            }
-        }
+        public PloidyModel PloidyModel { get; } = PloidyModel.DiploidByThresholding;
 
 
         public List<CalledAllele> SetGenotypes(IEnumerable<CalledAllele> alleles)
         {
-            var allelesToPrune = new List<CalledAllele>();
-
-
             var singleGTForLoci = CalculateDiploidGenotype(alleles, MinDepthToGenotype,
-                _diploidSnvThresholdingParameters, _diploidIndelThresholdingParameters, out allelesToPrune);
+                _diploidSnvThresholdingParameters, _diploidIndelThresholdingParameters, out var allelesToPrune);
             int phaseSetIndex = 1;  //reserve -1 for unset, and 0 for reference, and 1 and 2 for alts
             foreach (var allele in alleles)
             {
@@ -102,7 +91,7 @@ namespace Pisces.Genotyping
 
            var preliminaryGenotype = GetPreliminaryGenotype(orderedVariants, parameters, refCall);
 
-            var finalGTForLoci = GenotypeCalculatorUtilities.ConvertSimpleGenotypeToComplextGenotype(alleles, orderedVariants, referenceFrequency, refExists, depthIssue, refCall,
+            var finalGTForLoci = GenotypeCalculatorUtilities.ConvertSimpleGenotypeToComplexGenotype(alleles, orderedVariants, referenceFrequency, refExists, depthIssue, refCall,
               parameters.MinorVF, parameters.SumVFforMultiAllelicSite, preliminaryGenotype);
 
             allelesToPrune = GenotypeCalculatorUtilities.GetAllelesToPruneBasedOnGTCall(finalGTForLoci, orderedVariants, allelesToPrune);

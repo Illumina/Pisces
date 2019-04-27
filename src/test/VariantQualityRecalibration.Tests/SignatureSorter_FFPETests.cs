@@ -10,7 +10,7 @@ namespace VariantQualityRecalibration.Tests
         {
             VQROptions options = new VQROptions()
             {
-                InputVcf = Path.Combine(TestPaths.LocalTestDataDirectory, "Test.vcf"),
+                VcfPath = Path.Combine(TestPaths.LocalTestDataDirectory, "TestSignatureSorter.vcf"),
                 OutputDirectory = TestPaths.LocalScratchDirectory,
                 LociCount = -1,
                 DoBasicChecks = true,
@@ -39,7 +39,7 @@ namespace VariantQualityRecalibration.Tests
 
             VQROptions options = new VQROptions()
             {
-                InputVcf = Path.Combine(TestPaths.LocalTestDataDirectory, "Test.vcf"),
+                VcfPath = Path.Combine(TestPaths.LocalTestDataDirectory, "TestSignatureSorter.vcf"),
                 OutputDirectory = TestPaths.LocalScratchDirectory,
                 LociCount = 1000,
                 DoBasicChecks = true,

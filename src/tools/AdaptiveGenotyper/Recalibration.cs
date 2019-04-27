@@ -9,59 +9,42 @@ namespace AdaptiveGenotyper
 {
     public class Recalibration
     {
-        // The four component model is based on tests based on Ampliseq exome showing that there is a fourth mean 
-        // converging around 0.17 in allele frequency.  This could be a result of a sequencing artifact or ploidy 
-        // differences?
-        private readonly double[] _defaultMeans = new double[] { 0.04, 0.2, 0.5, 0.99 };
+        private readonly AdaptiveGtOptions _options;
 
-        private List<double[]> ModelMeans = new List<double[]>();
-        private List<double[]> Priors = new List<double[]>();
-        private List<RecalibratedVariantsCollection> Variants;
+        public Recalibration(AdaptiveGtOptions options)
+        {
+            _options = options;
+        }
 
-        public void Recalibrate(string vcfIn, string outDir, string modelFile, string quotedCmd)
+        public void Recalibrate()
         {
             // Read in VCF
             Logger.WriteToLog("Reading in vcf for variant frequencies.");
-            Variants = new VariantReader().GetVariantFrequencies(vcfIn);
+            List<RecalibratedVariantsCollection> variants = VariantReader.GetVariantFrequencies(_options.VcfPath);
 
             // Fit new models or load models from file
             List<MixtureModel> models;
-            if (modelFile == null)
-                models = GetNewModels(vcfIn, outDir);
+            if (_options.ModelFile == null)
+                models = GetNewModels(_options.VcfPath, _options.OutputDirectory, variants);
             else
-                models = ApplyModels(vcfIn, modelFile);
+                models = ApplyModels(_options.VcfPath, _options.ModelFile, variants);
 
-            SummarizeModels(models);
-
-            VcfRewriter rewriter = new VcfRewriter(Variants, ModelMeans, Priors);
-            rewriter.Rewrite(vcfIn, outDir, quotedCmd);
+            RecalibrationResults recalibrationResults = SummarizeModels(models, variants);
+            AdaptiveGtWriter.RewriteVcf(_options.VcfPath, _options.OutputDirectory, _options, recalibrationResults);            
         }
 
-        private List<MixtureModel> GetNewModels(string vcfIn, string outDir)
+        private static List<MixtureModel> GetNewModels(string vcfIn, string outDir, List<RecalibratedVariantsCollection> variants)
         {
             var models = new List<MixtureModel>();
 
+            // Perform fitting for SNVs
             Logger.WriteToLog("Finding thresholds for SNVs.");
-            MixtureModel snvModel = new MixtureModel(Variants[0].Ad, Variants[0].Dp, _defaultMeans);
-
-            // Try the 4 component mixture model first
-            try
-            {                
-                snvModel.FitBinomialModel();
-            }
-            catch
-            {
-                // Do the 3 component one if not enough data for 4 components
-                Logger.WriteToLog("Not enough data to fit 4 component mixture model, trying 3 component model...");
-                snvModel = new MixtureModel(Variants[0].Ad, Variants[0].Dp);
-                snvModel.FitBinomialModel();
-            }
+            MixtureModel snvModel = MixtureModel.FitMixtureModel(variants[0].Ad, variants[0].Dp);                       
             models.Add(snvModel);
 
             // Perform fitting for indels
             Logger.WriteToLog("Finding thresholds for indels.");
-            MixtureModel indelModel = new MixtureModel(Variants[1].Ad, Variants[1].Dp);
-            indelModel.FitBinomialModel();
+            MixtureModel indelModel = MixtureModel.FitMixtureModel(variants[1].Ad, variants[1].Dp);
             models.Add(indelModel);
 
             MixtureModel.WriteModelFile(outDir, Path.GetFileName(vcfIn).Replace(".vcf", ".model"), models);
@@ -69,30 +52,53 @@ namespace AdaptiveGenotyper
             
         }
 
-        private List<MixtureModel> ApplyModels(string vcfIn, string modelFile)
+        private static List<MixtureModel> ApplyModels(string vcfIn, string modelFile, List<RecalibratedVariantsCollection> variants)
         {
-            List<MixtureModelInput> modelParams = MixtureModel.ReadModelsFile(modelFile);
+            List<MixtureModelParameters> modelParams = MixtureModel.ReadModelsFile(modelFile);
             var models = new List<MixtureModel>();
 
             Logger.WriteToLog("Applying models");
-            for (int i = 0; i < Variants.Count; i++)
+            for (int i = 0; i < variants.Count; i++)
             {
-                models.Add(new MixtureModel(Variants[i].Ad, Variants[i].Dp, modelParams[i].Means, modelParams[i].Weights));
-                models[i].UpdateClusteringAndQScore();
+                models.Add(MixtureModel.UsePrefitModel(variants[i].Ad, variants[i].Dp, modelParams[i].Means, modelParams[i].Priors));
             }
 
             return models;
         }
 
-        private void SummarizeModels(List<MixtureModel> models)
+        private static RecalibrationResults SummarizeModels(List<MixtureModel> models, List<RecalibratedVariantsCollection> variants)
         {
             for (int m = 0; m < models.Count; m++)
-            {
-                ModelMeans.Add(models[m].Means);
-                Priors.Add(models[m].MixtureWeights);
-                Variants[m].AddMixtureModelResults(models[m]);
-            }
-        }     
+                variants[m].AddMixtureModelResults(models[m]);
 
+            return new RecalibrationResults
+            {
+                SnvResults = new RecalibrationResult
+                {
+                    Means = models[0].Means,
+                    Priors = models[0].MixtureWeights,
+                    Variants = variants[0]
+                },
+                IndelResults = new RecalibrationResult
+                {
+                    Means = models[1].Means,
+                    Priors = models[1].MixtureWeights,
+                    Variants = variants[1]
+                }
+            };
+        }     
+    }
+
+    public class RecalibrationResults
+    {
+        public RecalibrationResult SnvResults { get; set; }
+        public RecalibrationResult IndelResults { get; set; }
+    }
+
+    public class RecalibrationResult
+    {
+        public double[] Means { get; set; }
+        public double[] Priors { get; set; }
+        public RecalibratedVariantsCollection Variants { get; set; }
     }
 }

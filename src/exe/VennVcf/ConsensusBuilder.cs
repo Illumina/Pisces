@@ -454,31 +454,7 @@ namespace VennVcf
             return PB;
         }
 
-		private static void SetProbePoolBias(VcfVariant Consensus, double Value)
-		{
-			if (!Consensus.Genotypes[0].ContainsKey("PB"))
-			{
-				List<string> ConsensusGenotypeTagOrder = new List<string>();
-				foreach (string Key in Consensus.Genotypes[0].Keys)
-				{
-					ConsensusGenotypeTagOrder.Add(Key);
-				}
-				ConsensusGenotypeTagOrder.Add("PB");
-				Consensus.GenotypeTagOrder = ConsensusGenotypeTagOrder.ToArray();
-			}
-
-			Consensus.Genotypes[0]["PB"] = Value.ToString("0.0000");
-		}
-
-		private static string AddFilter(string OldFilters, string NewFilter)
-		{
-			if (OldFilters == "PASS") return NewFilter;
-
-			if (OldFilters.Contains(NewFilter)) return OldFilters;
-
-			return string.Format("{0};{1}", OldFilters, NewFilter);
-		}
-
+		
 		private static int CombineNoiseLevelsByTakingAvgP(int NL1, int NL2)
 		{
 			if (NL1 == NL2)

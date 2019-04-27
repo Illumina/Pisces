@@ -11,7 +11,7 @@ namespace AdaptiveGenotyper.Tests
         public void OpenLogTest()
         {
             var outDir = Path.Combine(TestPaths.LocalScratchDirectory, "GQRoutDir");
-            var options = new GenotyperOptions();
+            var options = new AdaptiveGtOptions();
             options.OutputDirectory = outDir;
             options.LogFileName = "LogText.txt";
 

@@ -26,8 +26,9 @@ namespace StitchingLogic
         // Allocate these once for performance
         private readonly List<char> _stitchedBases = new List<char>(MaxReadLength);
         private readonly List<byte> _stitchedQualities = new List<byte>(MaxReadLength);
+        private bool _treatNasDisagreement;
 
-        public ReadMerger(int minBasecallQuality, bool allowRescuedInsertionBaseDisagreement, bool useSoftclippedBases, bool nifyDisagreements, ReadStatusCounter statusCounter, bool debug, bool ignoreProbeSoftclips)
+        public ReadMerger(int minBasecallQuality, bool allowRescuedInsertionBaseDisagreement, bool useSoftclippedBases, bool nifyDisagreements, ReadStatusCounter statusCounter, bool debug, bool ignoreProbeSoftclips, bool treatNasDisagreement = false)
         {
             _minBasecallQuality = minBasecallQuality;
             _allowRescuedInsertionBaseDisagreement = allowRescuedInsertionBaseDisagreement;
@@ -36,6 +37,7 @@ namespace StitchingLogic
             _statusCounter = statusCounter;
             _debug = debug;
             _ignoreProbeSoftclips = ignoreProbeSoftclips;
+            _treatNasDisagreement = treatNasDisagreement;
         }
 
         // TODO I strongly advise we remove this logic altogether. It is brittle, incomplete, and hasn't been shown to reliably improve results.
@@ -98,7 +100,7 @@ namespace StitchingLogic
             return mergedRead;
         }
 
-        public Read GenerateConsensusReadForSimple(Read read1, Read read2, StitchingInfo stitchingInfo, bool isOutie)
+        public Read GenerateConsensusReadForSimple(Read read1, Read read2, StitchingInfo stitchingInfo, bool isOutie )
         {
             _stitchedBases.Clear();
             _stitchedQualities.Clear();
@@ -162,14 +164,17 @@ namespace StitchingLogic
             var r2SoftclipBeforeR1 = read1.ClipAdjustedPosition - read2.ClipAdjustedPosition;
 
 
+            var expandedDirections = stitchingInfo.StitchedDirections.Expand();
+            var expandedCigar = stitchingInfo.StitchedCigar.ExpandToChars();
 
-            CigarDirectionExpander cigarDirectionExpander = new CigarDirectionExpander(stitchingInfo.StitchedDirections);
-            for (CigarExtensions.CigarOpExpander cigarExpander = new CigarExtensions.CigarOpExpander(stitchingInfo.StitchedCigar);
-                cigarExpander.IsNotEnd() && cigarDirectionExpander.IsNotEnd();
-                cigarExpander.MoveNext(), cigarDirectionExpander.MoveNext())
+            //CigarDirectionExpander cigarDirectionExpander = new CigarDirectionExpander(stitchingInfo.StitchedDirections);
+            //for (CigarExtensions.CigarOpExpander cigarExpander = new CigarExtensions.CigarOpExpander(stitchingInfo.StitchedCigar);
+            //    cigarExpander.IsNotEnd() && cigarDirectionExpander.IsNotEnd();
+            //    cigarExpander.MoveNext(), cigarDirectionExpander.MoveNext())
+            for (int i = 0; i < expandedCigar.Count; i++)
             {
-                var cigarType = cigarExpander.Current;
-                var direction = cigarDirectionExpander.Current;
+                var cigarType = expandedCigar[i];
+                var direction = expandedDirections[i];
 
                 if (cigarType == 'D') continue;
 
@@ -303,12 +308,34 @@ namespace StitchingLogic
                                 var sumQuality = Convert.ToInt32((byte)forwardReadIndexer.QualityAtIndex) +
                                                        Convert.ToInt32((byte)reverseReadIndexer.QualityAtIndex);
 
-                                var sticheredQuality = sumQuality > MaxBaseQuality ? MaxBaseQuality : sumQuality;
+                                var stitchedQuality = sumQuality > MaxBaseQuality ? MaxBaseQuality : sumQuality;
+                                stitchingInfo.NumAgreements++;
 
-                                _stitchedQualities.Add((byte)sticheredQuality);
+                                _stitchedQualities.Add((byte)stitchedQuality);
+                            }
+                            else if (!_treatNasDisagreement && (reverseReadIndexer.BaseAtIndex == 'N' || reverseReadIndexer.QualityAtIndex == 0))
+                            {
+                                _stitchedBases.Add((char)forwardReadIndexer.BaseAtIndex);
+                                var sumQuality = Convert.ToInt32((byte) forwardReadIndexer.QualityAtIndex);
+
+                                var stitchedQuality = sumQuality > MaxBaseQuality ? MaxBaseQuality : sumQuality;
+                                stitchingInfo.NumNDisagreements++;
+
+                                _stitchedQualities.Add((byte)stitchedQuality);
+                            }
+                            else if (!_treatNasDisagreement && (forwardReadIndexer.BaseAtIndex == 'N' || forwardReadIndexer.QualityAtIndex == 0))
+                            {
+                                _stitchedBases.Add((char)reverseReadIndexer.BaseAtIndex);
+                                var sumQuality = Convert.ToInt32((byte)reverseReadIndexer.QualityAtIndex);
+
+                                var stitchedQuality = sumQuality > MaxBaseQuality ? MaxBaseQuality : sumQuality;
+                                stitchingInfo.NumNDisagreements++;
+
+                                _stitchedQualities.Add((byte)stitchedQuality);
                             }
                             else //the bases disagree...
                             {
+                                stitchingInfo.NumDisagreeingBases++;
                                 if (_nifyDisagreements)
                                 {
                                     // we have disagreeing bases AND we chose to always Nify them
@@ -351,10 +378,13 @@ namespace StitchingLogic
             }
 
             // Validate stitched cigar
-            var r2CigarLength = read2.CigarData.Cast<CigarOp>().Sum(op => (int)op.Length);
-            var r1CigarLength = read1.CigarData.Cast<CigarOp>().Sum(op => (int)op.Length);
+            //var r2CigarLength = read2.CigarData.Cast<CigarOp>().Sum(op => (int)op.Length);
+            //var r1CigarLength = read1.CigarData.Cast<CigarOp>().Sum(op => (int)op.Length);
+            var r2CigarLength = read2.CigarData.GetCigarSpan();
+            var r1CigarLength = read1.CigarData.GetCigarSpan();
 
-            var stitchedCigarLength = stitchingInfo.StitchedCigar.Cast<CigarOp>().Sum(op => (int)op.Length);
+            //var stitchedCigarLength = stitchingInfo.StitchedCigar.Cast<CigarOp>().Sum(op => (int)op.Length);
+            var stitchedCigarLength = stitchingInfo.StitchedCigar.GetCigarSpan();
             var earliestStart = Math.Min(read1.ClipAdjustedPosition, read2.ClipAdjustedPosition);
             var latestEnd = Math.Max(read1.ClipAdjustedPosition + r1CigarLength, read2.ClipAdjustedPosition + r2CigarLength);
             //var latestEnd = Math.Max(read1.ClipAdjustedPosition + read1.CigarData.GetReadSpan(), read2.ClipAdjustedPosition + read2.CigarData+ stitchingInfo.InsertionAdjustment);
@@ -389,7 +419,7 @@ namespace StitchingLogic
             var mergedRead = new Read(read1.Chromosome, new BamAlignment
             {
                 Name = read1.Name,
-                Bases = string.Join("", _stitchedBases),
+                Bases = GetSequenceFromArray(_stitchedBases),
                 Position = Math.Min(read1.Position - 1, read2.Position - 1),
                 Qualities = _stitchedQualities.ToArray(),
                 CigarData = stitchingInfo.StitchedCigar
@@ -401,12 +431,16 @@ namespace StitchingLogic
             return mergedRead;
         }
 
+        private string GetSequenceFromArray(List<char> bases)
+        {
+            return new string(bases.ToArray());
+        }
         public Read GenerateConsensusRead(Read read1, Read read2, StitchingInfo stitchingInfo, bool isOutie)
         {
             var mergedRead = new Read(read1.Chromosome, new BamAlignment
             {
                 Name = read1.Name,
-                Bases = string.Join("", stitchingInfo.StitchedBases),
+                Bases = GetSequenceFromArray(stitchingInfo.StitchedBases),
                 Position = Math.Min(read1.Position - 1, read2.Position - 1),
                 Qualities = stitchingInfo.StitchedQualities.ToArray(),
                 CigarData = stitchingInfo.StitchedCigar

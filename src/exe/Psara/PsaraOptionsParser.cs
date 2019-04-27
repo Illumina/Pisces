@@ -24,7 +24,7 @@ namespace Psara
                 {
                     "vcf=",
                     OptionTypes.PATH + " input file name",
-                    value => PsaraOptions.InputVcf = value
+                    value => PsaraOptions.VcfPath = value
                 },
             };
             var commonOps = new OptionSet
@@ -71,15 +71,15 @@ namespace Psara
         public override void ValidateOptions()
         {
 
-            if ((PsaraOptions.InputVcf == null) || !(File.Exists(PsaraOptions.InputVcf)))
+            if ((PsaraOptions.VcfPath == null) || !(File.Exists(PsaraOptions.VcfPath)))
             {
-                throw new ArgumentException(string.Format("Input vcf file is required. {0}", PsaraOptions.InputVcf));
+                throw new ArgumentException(string.Format("Input vcf file is required. {0}", PsaraOptions.VcfPath));
             }
 
             if (string.IsNullOrEmpty(PsaraOptions.OutputDirectory))
             {
                 //try to help by making one
-                PsaraOptions.OutputDirectory = Path.GetDirectoryName(PsaraOptions.InputVcf);
+                PsaraOptions.OutputDirectory = Path.GetDirectoryName(PsaraOptions.VcfPath);
             }
 
             if ((PsaraOptions.OutputDirectory != null) && !(Directory.Exists(PsaraOptions.OutputDirectory)))

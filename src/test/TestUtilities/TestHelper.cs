@@ -34,7 +34,7 @@ namespace TestUtilities
         public static CalledAllele CreateDummyAllele(
           string chrom, int position, string refAllele, string altAllele, int depth, int altCalls)
         {
-            return new CalledAllele(Pisces.Domain.Types.AlleleCategory.Snv)
+            return new CalledAllele(AlleleCategory.Snv)
             {
                 Chromosome = chrom,
                 ReferencePosition = position,
@@ -42,13 +42,11 @@ namespace TestUtilities
                 AlternateAllele = altAllele,
                 TotalCoverage = depth,
                 AlleleSupport = altCalls,
-                Type = Pisces.Domain.Types.AlleleCategory.Snv,
+                Type = AlleleCategory.Snv,
                 ReferenceSupport = depth - altCalls,
                 VariantQscore = 100
             };
         }
-
-   
 
         public static VcfVariant CreateDummyVariant(
             string chrom, int position, string refAllele, string altAllele, int depth, int altCalls)
@@ -173,8 +171,11 @@ namespace TestUtilities
                 new CalledAllele(AlleleCategory.Snv);
 
             calledAllele.ReferencePosition = 1;
-            calledAllele.AlternateAllele = "C";
             calledAllele.ReferenceAllele = "A";
+            if (isReference)
+                calledAllele.AlternateAllele = calledAllele.ReferenceAllele;
+            else
+                calledAllele.AlternateAllele = "C";
             calledAllele.AlleleSupport = isReference ? 490 : 10;
             calledAllele.TotalCoverage = 490;
             calledAllele.NumNoCalls = 10;
@@ -184,10 +185,23 @@ namespace TestUtilities
             return calledAllele;
         }
 
+        /// <summary>
+        /// Try your best to remove all cruft before re-running tests.
+        /// Dont crash if the test runner is having trouble letting go of a directory.
+        /// </summary>
+        /// <param name="directory"></param>
         public static void RecreateDirectory(string directory)
         {
-            AgressivelyRemoveDirectory(directory);
-            Directory.CreateDirectory(directory);
+            try
+            {
+                AgressivelyRemoveDirectory(directory);
+                Directory.CreateDirectory(directory);
+            }
+            catch
+            {
+                if (!(Directory.Exists(directory)))
+                    Directory.CreateDirectory(directory);
+            }
         }
 
         /// <summary>

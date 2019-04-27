@@ -12,12 +12,12 @@ namespace Pisces.Genotyping.Tests
     public class DiploidAdaptiveGenotyperTests
     {
 
-        private AdaptiveGenotypingParameters _adaptiveGenotypingParameters = new AdaptiveGenotypingParameters();
-        private int _minCalledVariantDepth = 100;
-        private int _minGQscore = 0;
-        private int _maxGQscore = 100;
+        private readonly AdaptiveGenotypingParameters _adaptiveGenotypingParameters = new AdaptiveGenotypingParameters();
+        private readonly int _minCalledVariantDepth = 100;
+        private readonly int _minGQscore = 0;
+        private readonly int _maxGQscore = 100;
 
-        private void ExecuteAdaptiveGenotypeerTest(
+        private void ExecuteAdaptiveGenotyperTest(
             Genotype expectedGenotype, int expectedNumAllelesToPrune,
             float? refFrequency, List<float> altFrequencies, List<FilterType> filters, int coverage)
         {
@@ -28,7 +28,7 @@ namespace Pisces.Genotyping.Tests
             {
                 var variant = TestHelper.CreatePassingVariant(true);
                 variant.AlleleSupport = (int)(refFrequency * coverage);
-                variant.TotalCoverage = (int)coverage;
+                variant.TotalCoverage = coverage;
                 variant.ReferenceSupport = variant.AlleleSupport;
                 alleles.Add(variant);
             }
@@ -41,7 +41,7 @@ namespace Pisces.Genotyping.Tests
             {
                 var variant = TestHelper.CreatePassingVariant(false);
                 variant.AlleleSupport = (int)(vf * coverage);
-                variant.TotalCoverage = (int)coverage;
+                variant.TotalCoverage = coverage;
                 variant.ReferenceSupport = (int)(refFreq * coverage);
                 alleles.Add(variant);
             }
@@ -60,8 +60,53 @@ namespace Pisces.Genotyping.Tests
             }
         }
 
-     
+
+        [Fact]
+        public void ExpectRefTests()
+        {
+            ExecuteAdaptiveGenotyperTest(Genotype.HomozygousRef, 2, 0.95f, new List<float> { 0.01f, 0.01f }, new List<FilterType> { FilterType.LowDepth }, 1000);
+        }
+
+        [Fact]
+        public void ExpectHomozygousAltTests()
+        {
+            ExecuteAdaptiveGenotyperTest(Genotype.HomozygousAlt, 1, 0.02f, new List<float> { 0.95f, 0.01f }, new List<FilterType> { FilterType.LowDepth }, 10000);
+        }
+
+        [Fact]
+        public void ExpectHeterozygousAltTests()
+        {
+            ExecuteAdaptiveGenotyperTest(Genotype.HeterozygousAltRef, 1, 0.34f, new List<float> { 0.60f, 0.06f }, new List<FilterType> { FilterType.LowDepth }, 1000);
+        }
+
+        [Fact]
+        public void ExpectRefAndNoCallTests()
+        {
+            ExecuteAdaptiveGenotyperTest(Genotype.RefAndNoCall, 2, 0.80f, new List<float> { 0.14f, 0.06f }, new List<FilterType> { FilterType.LowDepth }, 100);
+        }
+
+        [Fact]
+        public void ExpectRefLikeNoCallTests()
+        {
+            ExecuteAdaptiveGenotyperTest(Genotype.RefLikeNoCall, 2, 0.80f, new List<float> { 0.14f, 0.06f }, new List<FilterType> { FilterType.LowDepth }, 10);
+        }
+
+        [Fact]
+        public void ExpectAltAndNoCallTests()
+        {
+            ExecuteAdaptiveGenotyperTest(Genotype.AltAndNoCall, 1, 0.03f, new List<float> { 0.6f, 0.06f }, new List<FilterType> { FilterType.LowDepth }, 100);
+        }
+
+        [Fact]
+        public void ExpectHeterozygousAlt1Alt2Tests()
+        {
+            ExecuteAdaptiveGenotyperTest(Genotype.HeterozygousAlt1Alt2, 0, 0.06f, new List<float> { 0.44f, 0.50f }, new List<FilterType> { FilterType.LowDepth }, 1000);
+        }
+
+        [Fact]
+        public void NoCallDueToCoverge()
+        {
+            ExecuteAdaptiveGenotyperTest(Genotype.RefLikeNoCall, 2, 0.80f, new List<float> { 0.01f, 0.01f }, new List<FilterType> { FilterType.LowDepth }, 10);
+        }        
     }
-
-
 }

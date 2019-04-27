@@ -2,9 +2,15 @@
 
   <PropertyGroup>
     <TargetFramework>netcoreapp2.0</TargetFramework>
+
     <IsPackable>false</IsPackable>
-    <Version>5.2.10.49</Version>
+
+    <Version>5.2.11.163</Version>
+
+    <RepositoryUrl>https://github.com/Illumina/Pisces</RepositoryUrl>
+
     <Copyright>Copyright © Illumina 2019</Copyright>
+
     <Company>Illumina</Company>
   </PropertyGroup>
 
@@ -16,9 +22,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\lib\Pisces.Domain\Pisces.Domain.csproj" />
     <ProjectReference Include="..\..\lib\Pisces.Genotyping\Pisces.Genotyping.csproj" />
     <ProjectReference Include="..\TestUtilities\TestUtilities.csproj" />
   </ItemGroup>
 
 </Project>
+

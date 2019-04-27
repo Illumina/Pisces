@@ -10,7 +10,7 @@ namespace Pisces.Domain.Options
 
         public static string ListOfParamsToDelimiterSeparatedString<T>(T[] array)
         {
-            return String.Join(Delimiter, array.Select(p => p.ToString()).ToArray()); ;
+            return string.Join(Delimiter, array.Select(p => p.ToString()).ToArray());
         }
         public static string[] ListOfParamsToStringArray(string param)
         {

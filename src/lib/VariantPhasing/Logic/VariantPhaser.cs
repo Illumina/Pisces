@@ -34,7 +34,7 @@ namespace VariantPhasing.Logic
 
             bool needToMakeMoreNbhds = true;
             int numNbhdsSoFar = 0;    //just used to set the nbhd id ##
-            var originalAllelesTrailingNeighbhood = new List<CalledAllele>();
+            var originalAllelesTrailingNeighbhood = new List<Tuple<CalledAllele, string>>();
 
             using (var phasedVcfWriter = _factory.CreatePhasedVcfWriter())
             {
@@ -49,15 +49,14 @@ namespace VariantPhasing.Logic
                         break;
 
                     Logger.WriteToLog("Getting batch of " + _batchSize);
-                    var latestBatchOfNbhds = nbhdBuilder.GetBatchOfCallableNeighborhoods(numNbhdsSoFar);
+                    var latestBatchOfNbhds = nbhdBuilder.GetBatchOfCallableNeighborhoods(numNbhdsSoFar, out var rawNumNeighborhoods);
 
-                    if (latestBatchOfNbhds.Count() == 0)
+                    if (rawNumNeighborhoods == 0)
                         needToMakeMoreNbhds = false;
 
                     numNbhdsSoFar += latestBatchOfNbhds.Count();
 
-                    Logger.WriteToLog(string.Format("Neighborhood building complete. {0} neighborhoods created.",
-                            latestBatchOfNbhds.Count()));
+                    Logger.WriteToLog($"Neighborhood building complete. {latestBatchOfNbhds.Count()} eligible neighborhoods created ({rawNumNeighborhoods} total).");
 
 
 
@@ -91,10 +90,11 @@ namespace VariantPhasing.Logic
                     Logger.WriteToLog("Writing batch info to phased vcf.");
                     foreach (var nbhd in latestBatchOfNbhds)
                     {
-                        originalAllelesTrailingNeighbhood = variantMerger.WriteVariantsUptoChr(phasedVcfWriter, originalAllelesTrailingNeighbhood, nbhd.ReferenceName);
+                        originalAllelesTrailingNeighbhood = variantMerger.WriteVariantsUptoChr(
+                            phasedVcfWriter, originalAllelesTrailingNeighbhood, nbhd.ReferenceName);
 
-                        originalAllelesTrailingNeighbhood = variantMerger.WriteVariantsUptoIncludingNbhd(nbhd,
-                            phasedVcfWriter, originalAllelesTrailingNeighbhood);
+                        originalAllelesTrailingNeighbhood = variantMerger.WriteVariantsUptoIncludingNbhd(
+                            phasedVcfWriter, originalAllelesTrailingNeighbhood, nbhd);
                     }
 
                 }//close batch loop
@@ -130,7 +130,7 @@ namespace VariantPhasing.Logic
 
                 //(2) Turn clusters into MNV candidates
                 neighborhood.CreateMnvsFromClusters(clusters.Clusters,
-                    _factory.Options.BamFilterParams.MinimumBaseCallQuality, _factory.Options.VariantCallingParams.MaximumVariantQScore,
+                    _factory.Options.BamFilterParams.MinimumBaseCallQuality,
                     crushNbhdVariantsToSamePositon);
                 if (neighborhood.NumberClippedReads > 0 &&
                     _factory.Options.SoftClipSupportParams.UseSoftClippedReads)

@@ -44,7 +44,7 @@ namespace Pisces.Genotyping
                 return PloidyModel.Somatic;
 
 
-            //if we say its haploid, or its a sex chr, call has haploid
+            //if we say its haploid, or its a sex chr, call as haploid
             if (samplePloidy == PloidyModel.Haploid)
                 return PloidyModel.Haploid;
 

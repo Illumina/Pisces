@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using TestUtilities;
@@ -9,16 +8,15 @@ using Pisces.Logic;
 using Pisces.Logic.Alignment;
 using Pisces.Logic.VariantCalling;
 using Pisces.Tests.MockBehaviors;
-using Pisces.IO.Sequencing;
+using Pisces.IO;
 using TestUtilities.MockBehaviors;
 using Pisces.Calculators;
 using Pisces.Domain.Logic;
 using Pisces.Domain.Models;
+using Pisces.Domain.Models.Alleles;
 using Pisces.Domain.Types;
-using Pisces.IO;
 using Pisces.Processing.RegionState;
 using Xunit;
-using Xunit.Extensions;
 
 namespace Pisces.Tests.UnitTests
 {
@@ -169,7 +167,7 @@ namespace Pisces.Tests.UnitTests
             Assert.True(File.Exists(vcfOutputPath));
         }
 
-        public static ISomaticVariantCaller CreateMockVariantCaller(VcfFileWriter vcfWriter, PiscesApplicationOptions options, ChrReference chrRef, MockAlignmentExtractor mockAlignmentExtractor, IStrandBiasFileWriter biasFileWriter = null, string intervalFilePath = null)
+        public static ISmallVariantCaller CreateMockVariantCaller(VcfFileWriter vcfWriter, PiscesApplicationOptions options, ChrReference chrRef, MockAlignmentExtractor mockAlignmentExtractor, IStrandBiasFileWriter biasFileWriter = null, string intervalFilePath = null)
         {
             var config = new AlignmentSourceConfig
             {
@@ -208,7 +206,7 @@ namespace Pisces.Tests.UnitTests
             Assert.Equal(0, stateManager.GetAlleleCount(1, AlleleType.A, DirectionType.Forward));
 
 
-            return new SomaticVariantCaller(
+            return new SmallVariantCaller(
                 alignmentSource,
                 variantFinder,
                 alleleCaller,
@@ -216,30 +214,30 @@ namespace Pisces.Tests.UnitTests
                 stateManager,
                 chrRef,
                 null,
-                biasFileWriter);
+                biasFileWriter,
+                null);
         }
 
-        public static List<AmpliconTestResult> GetResults(List<VcfVariant> vcfResults)
+        public static List<AmpliconTestResult> GetResults(List<CalledAllele> vcfResults)
         {
             var results = new List<AmpliconTestResult>();
 
-            var allVariants = vcfResults.Where(x => x.VariantAlleles[0] != ".");
+            var allVariants = vcfResults.Where(x => x.AlternateAllele != ".");
             foreach (var variant in allVariants)
             {
                 var result = new AmpliconTestResult()
                 {
                     Position = variant.ReferencePosition,
                     ReferenceAllele = variant.ReferenceAllele,
-                    VariantAllele = variant.VariantAlleles[0]
+                    VariantAllele = variant.AlternateAllele
                 };
 
-                var genotype = variant.Genotypes[0];
-                result.VariantFrequency = float.Parse(genotype["VF"]);
+                var genotype = variant.Genotype;
+                result.VariantFrequency = variant.Frequency;
 
-                var ADTokens = genotype["AD"].Split(',');
-                result.ReferenceDepth = float.Parse(ADTokens[0]);
-                result.VariantDepth = float.Parse(ADTokens[1]);
-                result.TotalDepth = float.Parse(variant.InfoFields["DP"]);
+                result.ReferenceDepth = variant.ReferenceSupport;
+                result.VariantDepth = variant.AlleleSupport;
+                result.TotalDepth = variant.TotalCoverage;
                 result.Filters = variant.Filters;
 
                 results.Add(result);

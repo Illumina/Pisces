@@ -6,7 +6,6 @@ POC:
 [Tamsen Dunn](https://www.linkedin.com/in/tamsen-dunn-7340145) and
 [Gwenn Berry](https://www.linkedin.com/in/gwenn-berry-43071939)
 
-Quick start: [Example command lines](https://github.com/Illumina/Pisces/wiki/Pisces-Quick-Start-5.2.9)
 
 # License
 Pisces source code is provided under the GPLv3 license. Pisces includes third party packages provided under other open source licenses, please see COPYRIGHT.txt for additional details.
@@ -54,15 +53,6 @@ Load the solution into VS, and build in release, x64 mode. This will create a bi
 
 The component algorithms are intended for developers to re-use and improve them. This version is not commercially supported and provided as is under the GNU GENERAL PUBLIC LICENSE. For first time use, we recommend testing with the example in the "testdata" folder.
 
-# Docker files
-
-https://github.com/Illumina/Pisces/tree/master/docker
-
-# On Basespace
-
-Pisces runs on Basespace, on illumina amplicon workflows such as [DNA Amplicon](https://www.illumina.com/products/by-type/informatics-products/basespace-sequence-hub/apps/dna-amplicon.html). You can also call Pisces directly, here
-[pisces variant caller](https://www.illumina.com/products/by-type/informatics-products/basespace-sequence-hub/apps/pisces-variant-caller.html), although not all command line options are exposed.
-
 # User Guide
 https://github.com/Illumina/Pisces/wiki
 
@@ -70,16 +60,7 @@ https://github.com/Illumina/Pisces/wiki
 https://github.com/Illumina/Pisces/wiki/Frequently-Asked-Questions
 
 # Support
-
-general questions:
-
-techsupport@illumina.com
-
-
-Pisces-specific:
-
-[Tamsen Dunn](https://www.linkedin.com/in/tamsen-dunn-7340145) and
-[Gwenn Berry](https://www.linkedin.com/in/gwenn-berry-43071939)
+pisces@illumina.com
 
 If you are using Pisces, feel free to introduce yourself!
 

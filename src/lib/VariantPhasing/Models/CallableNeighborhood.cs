@@ -44,6 +44,8 @@ namespace VariantPhasing.Models
         public int SoftClipPosAfterNbhd { get { return _vcfNeighborhood.SoftClipPosAfterNbhd; } }
 
         public int NumberClippedReads = 0;
+        public int MaxQScore = 100;
+
         public List<CalledAllele> CandidateVariants
         {
             get
@@ -90,6 +92,7 @@ namespace VariantPhasing.Models
             _acceptedPhasedVariants = new List<CalledAllele>();
             _rejectedPhasedVariants = new List<CalledAllele>();
             UsedRefCountsLookup = new Dictionary<int, SuckedUpRefRecord>();
+            MaxQScore = variantCallingParams.MaximumVariantQScore;
 
             //prep vcf nbhd for use, so we know the final range of loci in play
             vcfNeighborhood.OrderVariantSitesByFirstTrueStartPosition();
@@ -143,7 +146,7 @@ namespace VariantPhasing.Models
 
         }
 
-        public void CreateMnvsFromClusters(IEnumerable<ICluster> clusters, int qNoiselevel, int maxQscore, bool crushNbhd = false)
+        public void CreateMnvsFromClusters(IEnumerable<ICluster> clusters, int qNoiselevel, bool crushNbhd = false)
         {
             if (clusters == null) return;
             if (clusters.Count() == 0) return;
@@ -177,7 +180,7 @@ namespace VariantPhasing.Models
                 var cluterRefSupport = cluster.GetClusterReferenceSupport(clusters);
 
                 var referenceRemoval = PhasedVariantExtractor.Extract(out mnv, clusterConsensus,
-                   NbhdReferenceSequenceSubstring, depthAtSites, nocallsAtSites, cluterRefSupport, cluster.CountsAtSites, ReferenceName, qNoiselevel, maxQscore, anchorPosition);
+                   NbhdReferenceSequenceSubstring, depthAtSites, nocallsAtSites, cluterRefSupport, cluster.CountsAtSites, ReferenceName, qNoiselevel, MaxQScore, anchorPosition);
 
                 if ((mnv.Type != Pisces.Domain.Types.AlleleCategory.Reference) && mnv.AlleleSupport != 0)
                 {
@@ -231,12 +234,30 @@ namespace VariantPhasing.Models
 
         public void AddAcceptedPhasedVariant(CalledAllele variant)
         {
-            _acceptedPhasedVariants.Add(variant);
+            var match = _acceptedPhasedVariants.Find(v => v.IsSameAllele(variant));
+
+            if (match == null)
+                _acceptedPhasedVariants.Add(variant);
+            else
+            {
+                var combinedVar = PhasedVariantExtractor.CombinePhasedVariants(match, variant, MaxQScore);
+                _acceptedPhasedVariants.Remove(match);
+                _acceptedPhasedVariants.Add(combinedVar);
+            }
         }
 
-        private void AddRejectedPhasedVariant(CalledAllele variant)
+        public void AddRejectedPhasedVariant(CalledAllele variant)
         {
-            _rejectedPhasedVariants.Add(variant);
+            var match = _rejectedPhasedVariants.Find(v => v.IsSameAllele(variant));
+
+            if (match == null)
+                _rejectedPhasedVariants.Add(variant);
+            else
+            {
+                var combinedVar = PhasedVariantExtractor.CombinePhasedVariants(match, variant, MaxQScore);
+                _rejectedPhasedVariants.Remove(match);
+                _rejectedPhasedVariants.Add(combinedVar);
+            }
         }
 
         public bool LastPositionIsNotMatch(VariantSite variantSite)

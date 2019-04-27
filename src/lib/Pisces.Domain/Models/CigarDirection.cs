@@ -24,13 +24,12 @@ namespace Pisces.Domain.Models
             int head = 0;
             for (int i = 0; i < directionString.Length; ++i)
             {
-                if (Char.IsDigit(directionString, i)) continue;
+                if (char.IsDigit(directionString, i)) continue;
                 // TODO check for unexpected chars
 
-                var length = uint.Parse(directionString.Substring(head, i - head));
                 var directionChar = directionString[i];
                 var direction = DirectionHelper.GetDirection(directionChar.ToString());
-                var op = new DirectionOp() {Direction = direction, Length = (int) length};
+                var op = new DirectionOp() {Direction = direction, Length = int.Parse(directionString.Substring(head, i - head)) };
 
                 Directions.Add(op);
                 head = i + 1;
@@ -67,6 +66,7 @@ namespace Pisces.Domain.Models
             }
             return length;
         }
+
 
         public List<DirectionType> Expand()
         {

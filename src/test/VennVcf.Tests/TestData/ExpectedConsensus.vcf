@@ -3,6 +3,7 @@
 ##source=CallSomaticVariants 3.5.1.0
 ##reference=D:\Illumina\New-Genomes\New Genomes\Genomes\Homo_sapiens\UCSC\hg19\Sequence\WholeGenomeFasta\Human.fa
 ##VcfPostProcessor=VennVcf 1.0.0.0
+"testcase commandline"
 ##INFO=<ID=DP,Number=1,Type=Integer,Description="Total Depth">
 ##INFO=<ID=TI,Number=.,Type=String,Description="Transcript ID">
 ##INFO=<ID=GI,Number=.,Type=String,Description="Gene ID">
@@ -10,9 +11,11 @@
 ##INFO=<ID=FC,Number=.,Type=String,Description="Functional Consequence">
 ##FILTER=<ID=LowDP,Description="Low coverage (DP tag), therefore no genotype called">
 ##FILTER=<ID=SB,Description="Variant strand bias too high">
+##FILTER=<ID=AB,Description="Amplicon bias - disparate variant frequencies detected by amplicon>
 ##FILTER=<ID=q30,Description="Quality score less than 30, by VennVcf">
 ##FILTER=<ID=PB,Description="Probe pool bias - variant not found, or found with low frequency, in one of two probe pools, by VennVcf">
 ##FILTER=<ID=LowVariantFreq,Description="Variant frequency less than 0.030, by VennVcf">
+##FILTER=<ID=NC,Description="No-call rate is above 0.6, by VennVcf">
 ##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">
 ##FORMAT=<ID=GQ,Number=1,Type=Integer,Description="Genotype Quality">
 ##FORMAT=<ID=AD,Number=.,Type=Integer,Description="Allele Depth">

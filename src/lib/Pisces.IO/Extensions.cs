@@ -10,12 +10,12 @@ namespace Pisces.IO
 {
     public static class Extensions
     {
-        public static Dictionary<string, List<CandidateAllele>> GetVariantsByChromosome(this VcfReader reader,
+        public static Dictionary<string, List<CandidateAllele>> GetVariantsByChromosome(this AlleleReader reader,
             bool variantsOnly = false, bool flagIsKnown = false, List<AlleleCategory> typeFilter = null, Func<CandidateAllele, bool> doSkipCandidate = null)
         {
             var lookup = new Dictionary<string, List<CandidateAllele>>();
 
-            var calledVariants = VcfVariantUtilities.Convert(reader.GetVariants());
+            var calledVariants = reader.GetVariants();
             foreach (var calledVariant in calledVariants)
             {
                 var candidate = BackToCandiate(calledVariant);

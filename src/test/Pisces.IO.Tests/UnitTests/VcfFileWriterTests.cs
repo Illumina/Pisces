@@ -392,7 +392,6 @@ namespace Pisces.IO.Tests
                     ShouldReportGp = true,
                     EstimatedBaseCallQuality = 23,
                     AllowMultipleVcfLinesPerLoci = false,
-                    PloidyModel= PloidyModel.DiploidByAdaptiveGT
                 },
                 context);
 
@@ -442,15 +441,11 @@ namespace Pisces.IO.Tests
             writer.Dispose();
 
             var variantLineWithGP = @"chr4	55141055	.	AA	GA,G	0	PASS	DP=5394	GT:GQ:AD:DP:VF:NL:SB:NC:GP	1/2:0:2387,2000:5394:0.8133:23:0.0000:0.0000:1.00,2.00,3.00";
-            var variantLineWithGPFormat = "##FORMAT=<ID=GP,Number=G,Type=Float,Description=\"Genotype Posterior\">";
-            var variantLineWithLowVFFilter = "##FILTER=<ID=LowVariantFreq,Description=\"Variant frequency less than 0.0070\">";
-            var variantLineWithMultiAllelicFilter = "##FILTER=<ID=MultiAllelicSite,Description=\"Variant does not conform to diploid model\">";
+            var variantLineWithFilter = "##FORMAT=<ID=GP,Number=G,Type=Float,Description=\"Genotype Posterior\">";
 
             var fileLines = File.ReadAllLines(outputFile);
             Assert.True(fileLines.Contains(variantLineWithGP));
-            Assert.True(fileLines.Contains(variantLineWithGPFormat));
-            Assert.True(fileLines.Contains(variantLineWithLowVFFilter));
-            Assert.True(fileLines.Contains(variantLineWithMultiAllelicFilter));
+            Assert.True(fileLines.Contains(variantLineWithFilter));
         }
 
 
@@ -1475,7 +1470,7 @@ namespace Pisces.IO.Tests
 
 
             };
-            using (var reader = new VcfReader(outputFile))
+            using (var reader = new AlleleReader(outputFile))
             {
                 var alleles = reader.GetVariants().ToList();
 
@@ -1486,10 +1481,24 @@ namespace Pisces.IO.Tests
                     var allele = alleles[i];
                     var expected = expectations[i];
 
-                    Assert.Equal(expected.Item1, allele.ReferenceName + ":" + allele.ReferencePosition);
-                    Assert.Equal(expected.Item2 ? "T" : ".", allele.VariantAlleles[0]);
+                    Assert.Equal(expected.Item1, allele.Chromosome + ":" + allele.ReferencePosition);
+                    Assert.Equal(expected.Item2 ? "T" : ".", allele.AlternateAllele);
+
+                    if (expected.Item2)
+                    {
+                        Assert.Equal(0, allele.Filters.Count);
+                        Assert.Equal(100, allele.TotalCoverage);
+                    }
+                    else
+                    {
+                        Assert.Equal(1, allele.Filters.Count);
+                        Assert.Equal(FilterType.LowDepth, allele.Filters[0]);
+                        Assert.Equal(0, allele.TotalCoverage);
+                    }
+                    /*
                     Assert.Equal(expected.Item2 ? "PASS" : "LowDP", allele.Filters);
                     Assert.Equal(expected.Item2 ? "100" : "0", allele.InfoFields["DP"]);
+                    */
                 }
             }
         }

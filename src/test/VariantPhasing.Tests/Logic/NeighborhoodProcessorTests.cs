@@ -21,13 +21,13 @@ namespace VariantPhasing.Tests.Logic
         public Mock<INeighborhoodBuilder> MockNeighborhoodBuilder { get; set; }
         public Mock<IVcfFileWriter<CalledAllele>> MockVcfWriter { get; set; }
         public Mock<IVeadGroupSource> MockVeadSource { get; set; }
-        public Mock<IVcfVariantSource> MockVariantSource { get; set; }
+        public Mock<IAlleleSource> MockVariantSource { get; set; }
 
         public MockFactoryWithDefaults(ScyllaApplicationOptions options) : base(options)
         {
         }
 
-        public override IVcfVariantSource CreateOriginalVariantSource()
+        public override IAlleleSource CreateOriginalVariantSource()
         {
             return MockVariantSource != null ? MockVariantSource.Object : base.CreateOriginalVariantSource();
         }
@@ -92,59 +92,32 @@ namespace VariantPhasing.Tests.Logic
             var neighborhoods = GetNeighborhoods(expectedNumberOfThreads);
 
             factory.MockNeighborhoodBuilder = new Mock<INeighborhoodBuilder>();
-            factory.MockNeighborhoodBuilder.Setup(s => s.GetBatchOfCallableNeighborhoods(0))
+            var numRaw = 0;
+            factory.MockNeighborhoodBuilder.Setup(s => s.GetBatchOfCallableNeighborhoods(0, out numRaw))
                 .Returns(neighborhoods);
 
             factory.MockVeadSource = MockVeadSource();
 
-            factory.MockVariantSource = new Mock<IVcfVariantSource>();
-            factory.MockVariantSource.Setup(s => s.GetVariants()).Returns(new List<VcfVariant>()
+            factory.MockVariantSource = new Mock<IAlleleSource>();
+            factory.MockVariantSource.Setup(s => s.GetVariants()).Returns(new List<CalledAllele>()
             {
-                new VcfVariant()
+                new CalledAllele()
                 {
-                    ReferenceName = "chr1",
+                    Chromosome = "chr1",
                     ReferencePosition = 123,
-                    VariantAlleles = new[] {"A"},
-                    GenotypeTagOrder = new[] {"GT", "GQ", "AD", "VF", "NL", "SB", "NC"},
-                    InfoTagOrder = new[] {"DP"},
-                    Genotypes = new List<Dictionary<string, string>>()
-                    {
-                        new Dictionary<string, string>()
-                        {
-                            {"GT", "0/1"},
-                            {"GQ", "100"},
-                            {"AD", "6830,156"},
-                            {"VF", "0.05"},
-                            {"NL", "20"},
-                            {"SB", "-20"},
-                            {"NC", "0.01"}
-                        }
-                    },
-                    InfoFields = new Dictionary<string, string>() {{"DP", "1000"}},
-                    ReferenceAllele = "C"
+                    AlternateAllele = "A",
+                    ReferenceAllele = "C",
+                    Genotype = Pisces.Domain.Types.Genotype.HeterozygousAltRef,
+                    TotalCoverage = 10000
                 },
-                new VcfVariant()
+                new CalledAllele()
                 {
-                    ReferenceName = "chr2",
+                    Chromosome= "chr2",
                     ReferencePosition = 123,
-                    VariantAlleles = new[] {"A"},
-                    GenotypeTagOrder = new[] {"GT", "GQ", "AD", "VF", "NL", "SB", "NC"},
-                    InfoTagOrder = new[] {"DP"},
-                    Genotypes = new List<Dictionary<string, string>>()
-                    {
-                        new Dictionary<string, string>()
-                        {
-                            {"GT", "0/1"},
-                            {"GQ", "100"},
-                            {"AD", "6830,156"},
-                            {"VF", "0.05"},
-                            {"NL", "20"},
-                            {"SB", "-20"},
-                            {"NC", "0.01"}
-                        }
-                    },
-                    InfoFields = new Dictionary<string, string>() {{"DP", "1000"}},
-                    ReferenceAllele = "T"
+                    AlternateAllele = "A",
+                    ReferenceAllele = "T",
+                    Genotype = Pisces.Domain.Types.Genotype.HeterozygousAltRef,
+                    TotalCoverage = 10000
                 }
             });
 

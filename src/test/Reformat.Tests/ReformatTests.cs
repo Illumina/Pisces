@@ -11,9 +11,13 @@ namespace Reformat.Tests
         public void ReformatTest()
         {
             var outDir = Path.Combine(TestPaths.LocalScratchDirectory, "UncrushOutDir");
+
+            //For added challenge, this is a none-pisces vcf we are parsing and reformatting.
             var inputDir = Path.Combine(TestPaths.LocalTestDataDirectory);
             var testVcf = Path.Combine(inputDir, "CrushedExample.vcf");
             var inputFile = Path.Combine(outDir, "CrushedExample.vcf");
+
+            TestHelper.RecreateDirectory(outDir);
 
             if (!Directory.Exists(outDir))
                 Directory.CreateDirectory(outDir);
@@ -25,13 +29,17 @@ namespace Reformat.Tests
 
             var crushedOutFile = Path.Combine(outDir, "crushedexample.crushed.vcf");
             var uncrushedOutFile = Path.Combine(outDir, "crushedexample.uncrushed.vcf");
-
+            var options = new ReformatOptions();
+            options.VcfPath = inputFile;
+            options.VariantCallingParams.AmpliconBiasFilterThreshold = null; //just to keep vcf header the same as before we added this filter.
 
             //ouput uncrushed
-            ReformatVcf.Reformat.DoReformating(inputFile, false);
+            options.VcfWritingParams.ForceCrush = false;
+            ReformatVcf.Reformat.DoReformating(options);
 
             //output crushed
-            ReformatVcf.Reformat.DoReformating(inputFile, true);
+            options.VcfWritingParams.ForceCrush = true;
+            ReformatVcf.Reformat.DoReformating(options);
 
             //check files
             TestHelper.CompareFiles(crushedOutFile, Path.Combine(TestPaths.LocalTestDataDirectory, "expected.crushed.vcf"));

@@ -19,7 +19,8 @@ namespace BamStitchingLogic
         private readonly bool _shouldSkipFusions;
 
         public StitcherPairFilter(bool skipDuplicates, bool filterForProperPairs, IDuplicateIdentifier dupIdentifier, ReadStatusCounter statusCounter,
-        bool shouldSkipFusions = true, uint minMapQuality = 0, int maxPairGap = 500, bool filterPairUnmapped = false, bool filterPairLowMapQ = true) : base(true, new StitchingReadPairEvaluator(true,true, false), false) 
+        bool shouldSkipFusions = true, uint minMapQuality = 0, int maxPairGap = 500, bool filterPairUnmapped = false, bool filterPairLowMapQ = true, 
+            bool treatNonOverlappingAsIncomplete = false, bool treatImproperAsIncomplete = true) : base(true, new StitchingReadPairEvaluator(treatImproperAsIncomplete, treatNonOverlappingAsIncomplete, false), false) 
 
         {
             _skipDuplicates = skipDuplicates;
@@ -40,10 +41,14 @@ namespace BamStitchingLogic
                 _statusCounter.AddDebugStatusCount("Skipped read below mapQ");
                 return true;
             }
-
             if (alignment.IsSupplementaryAlignment())
             {
                 _statusCounter.AddDebugStatusCount("Skipped supplementary");
+                return true;
+            }
+            if (alignment.IsSecondary())
+            {
+                _statusCounter.AddDebugStatusCount("Skipped secondary");
                 return true;
             }
             if (_filterForProperPairs && !alignment.IsProperPair())
@@ -91,12 +96,13 @@ namespace BamStitchingLogic
             }
             if (_filterPairUnmapped)
             {
-                if (!alignment.IsMapped())
+                // Need to check mapped flag in addition to refid because some pairs have one mate mapped and one mate mapped right next to it but with mapq 0 and with mapping(chr: pos) information. This allows us to distinguish those from truly unmapped("don't know what the heck to do with this") reads
+                if (!alignment.IsMapped() && alignment.RefID == -1)
                 {
                     _statusCounter.AddDebugStatusCount("Skipped not mapped");
                     return true;
                 }
-                if (!alignment.IsMateMapped())
+                if (!alignment.IsMateMapped() && alignment.MateRefID == -1)
                 {
                     _statusCounter.AddDebugStatusCount("Skipped mate not mapped");
                     return true;

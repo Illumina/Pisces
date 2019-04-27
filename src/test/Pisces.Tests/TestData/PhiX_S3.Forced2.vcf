@@ -6,6 +6,7 @@
 ##ALT=<ID=<M>,Description="There is an overlapping other allele that has been called in a separate VCF record">
 ##INFO=<ID=DP,Number=1,Type=Integer,Description="Total Depth">
 ##FILTER=<ID=q30,Description="Quality score less than 30">
+##FILTER=<ID=AB,Description="Amplicon bias - disparate variant frequencies detected by amplicon">
 ##FILTER=<ID=LowDP,Description="Low coverage (DP tag), therefore no genotype called">
 ##FILTER=<ID=SB,Description="Variant strand bias too high">
 ##FILTER=<ID=R5x9,Description="Repeats of part or all of the variant allele (max repeat length 5) in the reference greater than or equal to 9">

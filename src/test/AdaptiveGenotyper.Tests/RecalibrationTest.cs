@@ -12,21 +12,36 @@ namespace AdaptiveGenotyper.Tests
         [Fact]
         public void RecalibrateTest()
         {
-            var vcfPath = Path.Combine(TestPaths.LocalTestDataDirectory, "GM12877-1FT-r1_S17.stitched.sorted.genome.vcf");
-            var expectedPath = Path.Combine(TestPaths.LocalTestDataDirectory, "GM12877-1FT-r1_S17.stitched.sorted.genome.model");
-            var vcfOutTestFile = Path.Combine(TestPaths.LocalTestDataDirectory, "GM12877-1FT-r1_S17.stitched.sorted.recal.vcf");
+            var vcfPath = Path.Combine(TestPaths.LocalTestDataDirectory, "testData.PairRealigned.genome.vcf");
+            var expectedPath = Path.Combine(TestPaths.LocalTestDataDirectory, "testData.PairRealigned.genome.model");
+            var vcfOutTestFile = Path.Combine(TestPaths.LocalTestDataDirectory, "testData.PairRealigned.recal.vcf");
             var outPath = TestPaths.LocalScratchDirectory;
-            var vcfOutFile = Path.Combine(outPath, "GM12877-1FT-r1_S17.stitched.sorted.recal.vcf");
+            var vcfOutFile = Path.Combine(outPath, "testData.PairRealigned.recal.vcf");
 
-            Recalibration recal = new Recalibration();
-            recal.Recalibrate(vcfPath, outPath, null, "cmdArg");
+            var options = new AdaptiveGtOptions
+            {
+                VcfPath = vcfPath,
+                OutputDirectory = outPath
+            };
+            Recalibration recal = new Recalibration(options);
+            recal.Recalibrate();
 
             // Check model file
-            var outFile = Path.Combine(outPath, "GM12877-1FT-r1_S17.stitched.sorted.genome.model");
+            var outFile = Path.Combine(outPath, "testData.PairRealigned.genome.model");
             TestHelper.CompareFiles(outFile, expectedPath);
 
             // Check vcf file
-            TestHelper.CompareFiles(vcfOutFile, vcfOutTestFile);
+            Assert.True(File.Exists(vcfOutFile));
+            CompareVariants.AssertSameVariants_QScoreAgnostic(vcfOutFile, vcfOutTestFile);
+
+            File.Delete(vcfOutFile);
+
+            // Use model to generate vcf and check file
+            recal = new Recalibration(options);
+            recal.Recalibrate();
+
+            Assert.True(File.Exists(vcfOutFile));
+            CompareVariants.AssertSameVariants_QScoreAgnostic(vcfOutFile, vcfOutTestFile);
 
             File.Delete(outFile);
             File.Delete(vcfOutFile);

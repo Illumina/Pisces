@@ -84,9 +84,9 @@ namespace VariantQualityRecalibration.Tests
 
             var optionsExpectationsDict = new Dictionary<string, Action<VQROptions>>();
 
-            optionsExpectationsDict.Add("-b 35", (o) => Assert.Equal(35, o.BaseQNoise));
-            optionsExpectationsDict.Add("-f 22", (o) => Assert.Equal(22, o.FilterQScore));
-            optionsExpectationsDict.Add("-vcf test.vcf", (o) => Assert.Equal("test.vcf", o.InputVcf));
+            optionsExpectationsDict.Add("-b 35", (o) => Assert.Equal(35, o.BamFilterParams.MinimumBaseCallQuality));
+            optionsExpectationsDict.Add("-f 22", (o) => Assert.Equal(22, o.VariantCallingParams.MinimumVariantQScoreFilter));
+            optionsExpectationsDict.Add("-vcf test.vcf", (o) => Assert.Equal("test.vcf", o.VcfPath));
             optionsExpectationsDict.Add("-log mylog.txt", (o) => Assert.Equal("mylog.txt", o.LogFileNameBase));
             optionsExpectationsDict.Add("-q 1000", (o) => Assert.Equal(1000, o.MaxQScore));
             optionsExpectationsDict.Add("-o myoutdir", (o) => Assert.Equal("myoutdir", o.OutputDirectory));
@@ -100,9 +100,9 @@ namespace VariantQualityRecalibration.Tests
            
             var optionsExpectationsDict = new Dictionary<string, Action<VQROptions>>();
 
-            optionsExpectationsDict.Add("--b 31", (o) => Assert.Equal(31, o.BaseQNoise));
-            optionsExpectationsDict.Add("--f 29", (o) => Assert.Equal(29, o.FilterQScore));
-            optionsExpectationsDict.Add("--vcf tesT.vcf", (o) => Assert.Equal("tesT.vcf", o.InputVcf));
+            optionsExpectationsDict.Add("--b 31", (o) => Assert.Equal(31, o.BamFilterParams.MinimumBaseCallQuality));
+            optionsExpectationsDict.Add("--f 29", (o) => Assert.Equal(29, o.VariantCallingParams.MinimumVariantQScoreFilter));
+            optionsExpectationsDict.Add("--vcf tesT.vcf", (o) => Assert.Equal("tesT.vcf", o.VcfPath));
             optionsExpectationsDict.Add("--log myloG.txt", (o) => Assert.Equal("myloG.txt", o.LogFileNameBase));
             optionsExpectationsDict.Add("--q 1003", (o) => Assert.Equal(1003, o.MaxQScore));
             optionsExpectationsDict.Add("--o myoutdir", (o) => Assert.Equal("myoutdir", o.OutputDirectory));
@@ -116,9 +116,9 @@ namespace VariantQualityRecalibration.Tests
            
             var optionsExpectationsDict = new Dictionary<string, Action<VQROptions>>();
 
-            optionsExpectationsDict.Add("-B 350", (o) => Assert.Equal(350, o.BaseQNoise));
-            optionsExpectationsDict.Add("-F 220", (o) => Assert.Equal(220, o.FilterQScore));
-            optionsExpectationsDict.Add("-VCF teSt2.vcf", (o) => Assert.Equal("teSt2.vcf", o.InputVcf));
+            optionsExpectationsDict.Add("-B 350", (o) => Assert.Equal(350, o.BamFilterParams.MinimumBaseCallQuality));
+            optionsExpectationsDict.Add("-F 220", (o) => Assert.Equal(220, o.VariantCallingParams.MinimumVariantQScoreFilter));
+            optionsExpectationsDict.Add("-VCF teSt2.vcf", (o) => Assert.Equal("teSt2.vcf", o.VcfPath));
             optionsExpectationsDict.Add("-LOG myloG.txt", (o) => Assert.Equal("myloG.txt", o.LogFileNameBase));
             optionsExpectationsDict.Add("-Q 2000", (o) => Assert.Equal(2000, o.MaxQScore));
             optionsExpectationsDict.Add("-O myoutDir", (o) => Assert.Equal("myoutDir", o.OutputDirectory));

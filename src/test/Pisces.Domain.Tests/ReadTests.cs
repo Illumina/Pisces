@@ -30,7 +30,7 @@ namespace Pisces.Domain.Tests
             Assert.Equal(((Read)read1).CigarData == null ? null : ((Read)read1).CigarData.ToString(),
                             ((Read)read2).CigarData == null ? null : ((Read)read2).CigarData.ToString());
 
-            TestHelper.VerifyArray(read1.PositionMap, read2.PositionMap);
+            TestHelper.VerifyArray(read1.PositionMap.Map, read2.PositionMap.Map);
             TestHelper.VerifyArray(read1.SequencedBaseDirectionMap, read2.SequencedBaseDirectionMap);
             TestHelper.VerifyArray(read1.Qualities, read2.Qualities);
         }

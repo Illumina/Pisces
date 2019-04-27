@@ -5,7 +5,7 @@ namespace StitchingLogic
 {
     public interface IAlignmentStitcher
     {
-        bool TryStitch(AlignmentSet pairedAlignment);
+        StitchingResult TryStitch(AlignmentSet pairedAlignment);
 
         ReadStatusCounter GetStatusCounter();
 

@@ -10,20 +10,17 @@ namespace Pisces.Genotyping
 
     public class DiploidAdaptiveGenotyper : IGenotypeCalculator
     {
-
-        AdaptiveGenotypingParameters _adaptiveGenotypingParameters;
-        PloidyModel _ploidyModel = PloidyModel.DiploidByAdaptiveGT;
-
+        private readonly AdaptiveGenotypingParameters _adaptiveGenotypingParameters;
         public int MinGQScore { get; set; }
         public int MaxGQScore { get; set; }
         public int MinDepthToGenotype { get; set; }
         public float MinVarFrequency { get; set; }
         public float MinVarFrequencyFilter { get; set; }
+        public PloidyModel PloidyModel { get; } = PloidyModel.DiploidByAdaptiveGT;
         public void SetMinFreqFilter(float minFreqFilter)
         {
             //update the defaults to match cmd line inputs given
             MinVarFrequencyFilter = minFreqFilter > MinVarFrequency ? minFreqFilter : MinVarFrequency;
-            _adaptiveGenotypingParameters.MinVarFrequency = MinVarFrequencyFilter;
         }
 
 
@@ -34,34 +31,21 @@ namespace Pisces.Genotyping
             MinGQScore = defaultParams.MinimumGenotypeQScore;
             MaxGQScore = defaultParams.MaximumGenotypeQScore;
             MinDepthToGenotype = defaultParams.MinimumCoverage;
-            MinVarFrequency = _adaptiveGenotypingParameters.MinVarFrequency;
         }
 
         public DiploidAdaptiveGenotyper(int minCalledVariantDepth, int minGQscore, int maxGQscore,
             AdaptiveGenotypingParameters adaptiveGenotypingParameters)
         {
+            MinDepthToGenotype = minCalledVariantDepth;
             MinGQScore = minGQscore;
             MaxGQScore = maxGQscore;
             _adaptiveGenotypingParameters = adaptiveGenotypingParameters;
         }
 
-        public PloidyModel PloidyModel
-        {
-            get
-            {
-                return _ploidyModel;
-            }
-        }
-
-
         public List<CalledAllele> SetGenotypes(IEnumerable<CalledAllele> alleles)
         {
-            // Temporary workaround
-            _adaptiveGenotypingParameters.MinVarFrequency = 0.1f;
-            var allelesToPrune = new List<CalledAllele>();
-
             var singleGTForLoci = CalculateDiploidGenotypeFromBinomialModel(alleles, MinDepthToGenotype,
-                _adaptiveGenotypingParameters, out allelesToPrune);
+                _adaptiveGenotypingParameters, out var allelesToPrune);
 
             int phaseSetIndex = 1;  //reserve -1 for unset, and 0 for reference, and 1 and 2 for alts
             foreach (var allele in alleles)
@@ -78,9 +62,9 @@ namespace Pisces.Genotyping
                 }
                 else
                 {
-                    MixtureModelResult adaptiveGTResult = AdaptiveGenotyperQualityCalculator.GetQScores(allele,
-                            _adaptiveGenotypingParameters.GetModelsForVariantType(allele),
-                            _adaptiveGenotypingParameters.GetPriorsForVariantType(allele));
+                    var (model, prior) = _adaptiveGenotypingParameters.GetModelsAndPriors(allele);
+                    MixtureModelResult adaptiveGTResult = AdaptiveGenotyperCalculator.GetGenotypeAndQScore(allele,
+                            model, prior);
 
                     allele.GenotypeQscore = Math.Max(Math.Min(adaptiveGTResult.QScore, MaxGQScore), MinGQScore);
                     allele.GenotypePosteriors = adaptiveGTResult.GenotypePosteriors;
@@ -103,10 +87,10 @@ namespace Pisces.Genotyping
 
                 CalledAllele allele1 = alleles.First(), allele2 = alleles.ElementAt(1);
 
-                var mixtureModelResult = AdaptiveGenotyperQualityCalculator.GetMultiAllelicQScores(allele1, allele2,
-                    new List<double[]> { _adaptiveGenotypingParameters.GetModelsForVariantType(allele1),
-                        _adaptiveGenotypingParameters.GetModelsForVariantType(allele2) });
-
+                var (model1, _) = _adaptiveGenotypingParameters.GetModelsAndPriors(allele1);
+                var (model2, _) = _adaptiveGenotypingParameters.GetModelsAndPriors(allele2);
+                var mixtureModelResult = AdaptiveGenotyperCalculator.GetMultiAllelicQScores(allele1, allele2,
+                    new List<double[]> { model1, model2 });
 
                 foreach (CalledAllele allele in alleles)
                 {
@@ -118,47 +102,77 @@ namespace Pisces.Genotyping
             return allelesToPrune;
         }
 
-
-
-
-        private static Genotype CalculateDiploidGenotypeFromBinomialModel(IEnumerable<CalledAllele> alleles,
-            int minDepthToGenotype, AdaptiveGenotypingParameters adaptiveGenotypingParameters,
+        private static Genotype CalculateDiploidGenotypeFromBinomialModel(
+            IEnumerable<CalledAllele> alleles,
+            int minDepthToGenotype,
+            AdaptiveGenotypingParameters adaptiveGenotypingParameters,
             out List<CalledAllele> allelesToPrune)
         {
             allelesToPrune = new List<CalledAllele>();
-            var orderedVariants = GenotypeCalculatorUtilities.FilterAndOrderAllelesByFrequency(alleles, allelesToPrune, adaptiveGenotypingParameters.MinVarFrequency);
-            var referenceFrequency = GenotypeCalculatorUtilities.GetReferenceFrequency(orderedVariants, adaptiveGenotypingParameters.MinVarFrequency);
-            var refExists = referenceFrequency >= adaptiveGenotypingParameters.MinVarFrequency;
-            var depthIssue = GenotypeCalculatorUtilities.CheckForDepthIssue(alleles, minDepthToGenotype);
+
+            float minVariantFrequency = GetMinVarFrequency(alleles.First().TotalCoverage,
+                adaptiveGenotypingParameters.SnvModel, adaptiveGenotypingParameters.SnvPrior);
+            double referenceFrequency = GetReferenceFrequency(alleles);
+            bool depthIssue = GenotypeCalculatorUtilities.CheckForDepthIssue(alleles, minDepthToGenotype);
+            bool refExists = referenceFrequency > minVariantFrequency;
+
+            List<CalledAllele> orderedVariants = GenotypeCalculatorUtilities.FilterAndOrderAllelesByFrequency(alleles,
+                allelesToPrune, minVariantFrequency);
             bool refCall = orderedVariants.Count == 0;
 
-
             //assume its ref call
-            SimplifiedDiploidGenotype preliminaryGenotype = SimplifiedDiploidGenotype.HomozygousRef;
+            var preliminaryGenotype = SimplifiedDiploidGenotype.HomozygousRef;
 
             //this is order by descending - so most frequent is first.
             if (!refCall)
             {
                 //do we apply SNP threshholds or indel thresholds?
                 var dominantVariant = orderedVariants[0];
+                var (model, priors) = adaptiveGenotypingParameters.GetModelsAndPriors(dominantVariant);
 
-                double[] model = adaptiveGenotypingParameters.GetModelsForVariantType(dominantVariant);
-                double[] priors = adaptiveGenotypingParameters.GetPriorsForVariantType(dominantVariant);
-
-                MixtureModelResult adaptiveGTresult = AdaptiveGenotyperQualityCalculator.GetQScores(dominantVariant, model, priors);
-                preliminaryGenotype = adaptiveGTresult.GenotypeCategory;
+                preliminaryGenotype = AdaptiveGenotyperCalculator.GetSimplifiedGenotype(dominantVariant, model, priors);
+                minVariantFrequency = GetMinVarFrequency(dominantVariant.TotalCoverage, model, priors);
             }
 
-
-            var finalGTForLoci = GenotypeCalculatorUtilities.ConvertSimpleGenotypeToComplextGenotype(alleles, orderedVariants, referenceFrequency, refExists, depthIssue, refCall,
-                adaptiveGenotypingParameters.MinVarFrequency, adaptiveGenotypingParameters.SumVFforMultiAllelicSite, preliminaryGenotype);
+            var finalGTForLoci = GenotypeCalculatorUtilities.ConvertSimpleGenotypeToComplexGenotype(alleles, orderedVariants,
+                referenceFrequency, refExists, depthIssue, refCall, minVariantFrequency,
+                adaptiveGenotypingParameters.SumVFforMultiAllelicSite, preliminaryGenotype);
 
             allelesToPrune = GenotypeCalculatorUtilities.GetAllelesToPruneBasedOnGTCall(finalGTForLoci, orderedVariants, allelesToPrune);
 
             return finalGTForLoci;
-
-
         }
 
+        private static double GetReferenceFrequency(IEnumerable<CalledAllele> alleles)
+        {
+            double referenceFrequency = 1;
+
+            foreach (CalledAllele allele in alleles)
+            {
+                if (allele.Type == AlleleCategory.Reference)
+                    return allele.Frequency;
+
+                referenceFrequency = referenceFrequency - allele.Frequency;
+            }
+
+            return Math.Max(referenceFrequency, 0);
+        }
+
+        /// <summary>
+        /// This is the analytical solution what is the threshold variant frequency for given depth and model parameters.
+        /// For typical model parameters this usually is around 0.18
+        /// </summary>
+        private static float GetMinVarFrequency(int n, double[] model, double[] priors)
+        {
+            var mu1 = model[0];
+            var mu2 = model[1];
+            var prior1 = priors[0];
+            var prior2 = priors[1];
+
+            var minVq = (Math.Log(prior2) - Math.Log(prior1) - n * Math.Log(1 - mu1) + n * Math.Log(1 - mu2)) /
+                        (Math.Log(mu1) - Math.Log(1 - mu1) - Math.Log(mu2) + Math.Log(1 - mu2)) / n;
+
+            return (float)minVq;
+        }
     }
 }

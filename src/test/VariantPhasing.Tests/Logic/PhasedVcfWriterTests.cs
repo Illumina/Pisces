@@ -81,7 +81,7 @@ namespace VariantPhasing.Tests.Logic
             writer.Write(variants);
             writer.Dispose();
 
-            VcfReader reader = new VcfReader(outputFilePath);
+            AlleleReader reader = new AlleleReader(outputFilePath);
             List<string> writtenHeader = reader.HeaderLines;
             reader.Dispose();
 
@@ -165,7 +165,7 @@ namespace VariantPhasing.Tests.Logic
             writer.Write(variants);
             writer.Dispose();
 
-            reader = new VcfReader(outputFilePath);
+            reader = new AlleleReader(outputFilePath);
             writtenHeader = reader.HeaderLines;
             reader.Dispose();
 

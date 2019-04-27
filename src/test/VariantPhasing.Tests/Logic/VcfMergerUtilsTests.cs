@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using Pisces.Domain.Models.Alleles;
 using Pisces.Domain.Types;
 using VariantPhasing.Logic;
@@ -40,7 +41,14 @@ namespace VariantPhasing.Tests.Logic
                 }
             };
 
-            var allelesAfterAdjust = VcfMergerUtils.AdjustForcedAllele(calledAlleles);
+            var calledAlleleTuples = new List<Tuple<CalledAllele, string>>();
+
+            foreach (var allele in calledAlleles)
+            {
+                calledAlleleTuples.Add(new Tuple<CalledAllele, string>(allele, ""));
+            }
+
+            var allelesAfterAdjust = VcfMergerUtils.AdjustForcedAllele(calledAlleleTuples);
 
             Assert.Equal(4,allelesAfterAdjust.Count);
         }
@@ -65,7 +73,14 @@ namespace VariantPhasing.Tests.Logic
                 }
             };
 
-            var allelesAfterAdjust = VcfMergerUtils.AdjustForcedAllele(calledAlleles);
+            var calledAlleleTuples = new List<Tuple<CalledAllele, string>>();
+
+            foreach (var allele in calledAlleles)
+            {
+                calledAlleleTuples.Add(new Tuple<CalledAllele, string>(allele, ""));
+            }
+
+            var allelesAfterAdjust = VcfMergerUtils.AdjustForcedAllele(calledAlleleTuples);
 
             Assert.Equal(1, allelesAfterAdjust.Count);
         }
@@ -90,16 +105,19 @@ namespace VariantPhasing.Tests.Logic
                     Genotype = Genotype.HeterozygousAltRef
 
                 }
-
             };
 
-            var allelesAfterAdjust = VcfMergerUtils.AdjustForcedAllele(calledAlleles);
+            var calledAlleleTuples = new List<Tuple<CalledAllele, string>>();
+
+            foreach (var allele in calledAlleles)
+            {
+                calledAlleleTuples.Add(new Tuple<CalledAllele, string>(allele, ""));
+            }
+
+            var allelesAfterAdjust = VcfMergerUtils.AdjustForcedAllele(calledAlleleTuples);
 
             Assert.Equal(2, allelesAfterAdjust.Count);
-            Assert.Equal(Genotype.HeterozygousAltRef, allelesAfterAdjust[1].Genotype);
-
+            Assert.Equal(Genotype.HeterozygousAltRef, allelesAfterAdjust[1].Item1.Genotype);
         }
-
-
     }
 }

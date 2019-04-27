@@ -92,12 +92,12 @@ namespace StitchingLogic.Tests
 
         public static void TryStitchAndAssertFailed(IAlignmentStitcher stitcher, AlignmentSet alignmentSet)
         {
-            Assert.False(stitcher.TryStitch(alignmentSet));
+            Assert.False(stitcher.TryStitch(alignmentSet).Stitched);
         }
 
         public static void TryStitchAndAssertAddedSeparately(IAlignmentStitcher stitcher, AlignmentSet alignmentSet)
         {
-            Assert.True(stitcher.TryStitch(alignmentSet));
+            Assert.True(stitcher.TryStitch(alignmentSet).Stitched);
             Assert.True(alignmentSet.ReadsForProcessing.Contains(alignmentSet.PartnerRead1));
             Assert.True(alignmentSet.ReadsForProcessing.Contains(alignmentSet.PartnerRead2));
         }

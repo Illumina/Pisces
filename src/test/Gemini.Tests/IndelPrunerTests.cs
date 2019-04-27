@@ -82,7 +82,7 @@ namespace Gemini.Tests
             // 3 indels very close to each other. One has significantly better score.
             var preIndelsRaw = new List<PreIndel>()
             {
-                GetIndel(122, "A", "ATGA", 5),
+                GetIndel(122, "A", "ATG", 5),
                 GetIndel(123, "A", "ATC", 11),
                 GetIndel(124, "A", "ATT", 5),
             };
@@ -95,10 +95,21 @@ namespace Gemini.Tests
             Assert.Equal(preIndelsRaw[1], pruned[0]);
             Assert.Equal(11, pruned[0].Score);
 
-            // One is not significantly better than the rest. Keep all.
+            // Nearby weak indel is longer than the strong one. Don't remove the weak one as it may have just been harder to call than the smaller one.
             preIndelsRaw = new List<PreIndel>()
             {
                 GetIndel(122, "A", "ATGA", 5),
+                GetIndel(123, "A", "ATC", 11),
+                GetIndel(124, "A", "ATT", 5),
+            };
+
+            pruned = filterer.GetPrunedPreIndelsForChromosome(preIndelsRaw);
+            Assert.Equal(2, pruned.Count);
+
+            // One is not significantly better than the rest. Keep all.
+            preIndelsRaw = new List<PreIndel>()
+            {
+                GetIndel(122, "A", "ATG", 5),
                 GetIndel(123, "A", "ATC", 10),
                 GetIndel(124, "A", "ATT", 5),
             };
@@ -109,7 +120,7 @@ namespace Gemini.Tests
             // One is not significantly better than the rest. Keep all.
             preIndelsRaw = new List<PreIndel>()
             {
-                GetIndel(122, "A", "ATGA", 5),
+                GetIndel(122, "A", "ATG", 5),
                 GetIndel(123, "A", "ATC", 10),
                 GetIndel(124, "A", "ATT", 5),
                 GetIndel(125, "A", "ATTG", 5),
@@ -122,7 +133,7 @@ namespace Gemini.Tests
             // Get rid of the other nearby ones, but keep the one that is not within the bin
             preIndelsRaw = new List<PreIndel>()
             {
-                GetIndel(122, "A", "ATGA", 5),
+                GetIndel(122, "A", "ATG", 5),
                 GetIndel(123, "A", "ATC", 11),
                 GetIndel(124, "A", "ATT", 5),
                 GetIndel(125, "A", "ATTG", 5),

@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using Moq;
-using Pisces.Logic;
 using Pisces.Interfaces;
 using Pisces.Domain.Interfaces;
 using Pisces.Domain.Models;
@@ -25,7 +24,7 @@ namespace Pisces.Tests.MockBehaviors
         public Mock<ICandidateVariantFinder> MockVariantFinder { get; set; }
         public Mock<IAlleleCaller> MockVariantCaller { get; set; }
         public Mock<IRegionMapper> MockRegionMapper { get; set; }
-        public Mock<ISomaticVariantCaller> MockSomaticVariantCaller { get; set; }
+        public Mock<ISmallVariantCaller> MockSomaticVariantCaller { get; set; }
 
         public MockFactoryWithDefaults(PiscesApplicationOptions options) : base(options) { }
 
@@ -54,10 +53,12 @@ namespace Pisces.Tests.MockBehaviors
             return MockRegionMapper != null ? MockRegionMapper.Object : base.CreateRegionPadder(chrReference, intervalSet, includeReferences);
         }
 
-        public override ISomaticVariantCaller CreateSomaticVariantCaller(ChrReference chrReference, string bamFilePath, 
-            IVcfWriter<CalledAllele> vcfWriter, IStrandBiasFileWriter biasFileWriter = null, string intervalFilePath = null, List<string> chrToProcess=null)
+        public override ISmallVariantCaller CreateSomaticVariantCaller(ChrReference chrReference, string bamFilePath, 
+            IVcfWriter<CalledAllele> vcfWriter, IStrandBiasFileWriter strandBiasFileWriter = null, IAmpliconBiasFileWriter ampliconBiasFileWriter = null,
+            string intervalFilePath = null, List<string> chrToProcess=null)
         {
-            return MockSomaticVariantCaller != null ? MockSomaticVariantCaller.Object : base.CreateSomaticVariantCaller(chrReference, bamFilePath, vcfWriter, biasFileWriter, intervalFilePath, chrToProcess);
+            return MockSomaticVariantCaller != null ? MockSomaticVariantCaller.Object : base.CreateSomaticVariantCaller(chrReference, bamFilePath, vcfWriter,
+                strandBiasFileWriter, ampliconBiasFileWriter, intervalFilePath, chrToProcess);
         }
     }
 }

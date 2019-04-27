@@ -42,9 +42,15 @@ namespace BamStitchingLogic
             return !(read1ContainsUnanchoredRead2 || read2ContainsUnanchoredRead1);
         }
 
+        private bool CheckAndSetReadsDoNotOverlap(ReadPair readPair)
+        {
+            var dontOverlap = ReadsDoNotOverlap(readPair.Read1, readPair.Read2);
+            readPair.DontOverlap = dontOverlap;
+            return dontOverlap;
+        }
         public override bool TreatReadPairAsIncomplete(ReadPair readPair)
         {
-            return (_treatNonOverlappingAsIncomplete && ReadsDoNotOverlap(readPair.Read1, readPair.Read2)) 
+            return (_treatNonOverlappingAsIncomplete && CheckAndSetReadsDoNotOverlap(readPair)) 
                    || (_treatImproperPairAsIncomplete && readPair.IsImproper);
         }
     }

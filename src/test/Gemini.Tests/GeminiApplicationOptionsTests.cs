@@ -80,22 +80,20 @@ namespace Gemini.Tests
             optionsExpectationsDict.Add("-outFolder my/out", (o) => Assert.Equal("my/out", o.OutputDirectory));
 
             optionsExpectationsDict.Add("-minBaseCallQuality 1", (o) => Assert.Equal(1, o.StitcherOptions.MinBaseCallQuality));
-            optionsExpectationsDict.Add("-filterPairUnmapped true", (o) => Assert.True(o.StitcherOptions.FilterPairUnmapped));
+            //optionsExpectationsDict.Add("-filterPairUnmapped true", (o) => Assert.True(o.StitcherOptions.FilterPairUnmapped));
             optionsExpectationsDict.Add("-filterForProperPairs true", (o) => Assert.True(o.StitcherOptions.FilterForProperPairs));
-            //optionsExpectationsDict.Add("-nifyDisagreements true", (o) => Assert.Equal(true, o.StitcherOptions.NifyDisagreements)); // TODO why failing?
-            optionsExpectationsDict.Add("-debugSummary true", (o) => Assert.True(o.StitcherOptions.DebugSummary));
-            optionsExpectationsDict.Add("-numThreads 3", (o) => Assert.Equal(3, o.StitcherOptions.NumThreads));
+            optionsExpectationsDict.Add("-nifyDisagreement true", (o) => Assert.Equal(true, o.StitcherOptions.NifyDisagreements)); 
             optionsExpectationsDict.Add("-maxReadLength 8024", (o) => Assert.Equal(8024, o.StitcherOptions.MaxReadLength));
             optionsExpectationsDict.Add("-dontStitchRepeatOverlap false", (o) => Assert.False(o.StitcherOptions.DontStitchHomopolymerBridge));
             optionsExpectationsDict.Add("-ignoreReadsAboveMaxLength true", (o) => Assert.True(o.StitcherOptions.IgnoreReadsAboveMaxLength));
 
-            optionsExpectationsDict.Add("-maxIndelSize 200", (o) => Assert.Equal(200, o.RealignmentOptions.MaxIndelSize));
-            optionsExpectationsDict.Add("-allowRescoringOrigZero true", (o) => Assert.True(o.RealignmentOptions.AllowRescoringOrigZero));
+            //optionsExpectationsDict.Add("-maxIndelSize 200", (o) => Assert.Equal(200, o.RealignmentOptions.MaxIndelSize)); // No longer exposing on command line (TODO maybe add to Gemini)
+            //optionsExpectationsDict.Add("-allowRescoringOrigZero true", (o) => Assert.True(o.RealignmentOptions.AllowRescoringOrigZero));
             optionsExpectationsDict.Add("-maskPartialInsertion true", (o) => Assert.True(o.RealignmentOptions.MaskPartialInsertion));
             optionsExpectationsDict.Add("-minimumUnanchoredInsertionLength 20", (o) => Assert.Equal(20, o.RealignmentOptions.MinimumUnanchoredInsertionLength));
 
             optionsExpectationsDict.Add("-minPreferredSupport 20", (o) => Assert.Equal(20, o.IndelFilteringOptions.FoundThreshold));
-            optionsExpectationsDict.Add("-minPreferredAnchor 2", (o) => Assert.Equal((uint)2, o.IndelFilteringOptions.MinAnchor));
+            optionsExpectationsDict.Add("-minPreferredAnchor 2", (o) => Assert.Equal((int)2, o.IndelFilteringOptions.MinAnchor));
             optionsExpectationsDict.Add("-minRequiredIndelSupport 3", (o) => Assert.Equal(3, o.IndelFilteringOptions.StrictFoundThreshold));
             optionsExpectationsDict.Add("-minRequiredAnchor 1", (o) => Assert.Equal(1, o.IndelFilteringOptions.StrictAnchorThreshold));
             optionsExpectationsDict.Add("-maxMessThreshold 30", (o) => Assert.Equal(30, o.IndelFilteringOptions.MaxMess));
@@ -108,13 +106,26 @@ namespace Gemini.Tests
             optionsExpectationsDict.Add("-checkSoftclipsForMismatches true", (o) => Assert.True(o.RealignmentAssessmentOptions.CheckSoftclipsForMismatches));
             optionsExpectationsDict.Add("-trackMismatches true", (o) => Assert.True(o.RealignmentAssessmentOptions.TrackActualMismatches));
 
-            optionsExpectationsDict.Add("-categoriesToRealign Disagree,UnstitchIndel,ImperfectStitched", (o) => Assert.Equal(new List<PairClassification>(){PairClassification.Disagree, PairClassification.UnstitchIndel, PairClassification.ImperfectStitched}, o.RealignmentOptions.CategoriesForRealignment));
+            optionsExpectationsDict.Add("-categoriesToRealign Disagree,UnstitchIndel,ImperfectStitched", (o) => Assert.Equal(new List<PairClassification>() { PairClassification.Disagree, PairClassification.UnstitchIndel, PairClassification.ImperfectStitched }, o.RealignmentOptions.CategoriesForRealignment));
             optionsExpectationsDict.Add("-categoriesToSnowball Disagree,UnstitchIndel", (o) => Assert.Equal(new List<PairClassification>() { PairClassification.Disagree, PairClassification.UnstitchIndel }, o.RealignmentOptions.CategoriesForSnowballing));
-            optionsExpectationsDict.Add("-numShardsToSnowball 5", (o) => Assert.Equal(5, o.RealignmentOptions.NumSubSamplesForSnowballing));
             optionsExpectationsDict.Add("-pairAwareEverything true", (o) => Assert.True(o.RealignmentOptions.PairAwareEverything));
 
-            optionsExpectationsDict.Add("-deferIndelStitch true", (o) => Assert.True(o.GeminiOptions.DeferStitchIndelReads));
             optionsExpectationsDict.Add("-samtoolsOldStyle true", (o) => Assert.True(o.GeminiOptions.IsWeirdSamtools));
+
+            optionsExpectationsDict.Add("-logregionsandrealignments true", (o) => Assert.True(o.GeminiOptions.LogRegionsAndRealignments));
+            optionsExpectationsDict.Add("-silencesuspiciousmdreads true", (o) => Assert.True(o.GeminiOptions.SilenceSuspiciousMdReads));
+            optionsExpectationsDict.Add("-silencedirectionalmessreads true", (o) => Assert.True(o.GeminiOptions.SilenceDirectionalMessReads));
+            optionsExpectationsDict.Add("-silencemessymapmessreads true", (o) => Assert.True(o.GeminiOptions.SilenceMessyMapMessReads));
+            optionsExpectationsDict.Add("-recalculateusablesitesaftersnowball false", (o) => Assert.False(o.GeminiOptions.RecalculateUsableSitesAfterSnowball));
+
+            optionsExpectationsDict.Add("-messysitewidth 200", (o) => Assert.Equal(200, o.GeminiOptions.MessySiteWidth));
+            optionsExpectationsDict.Add("-messysitethreshold 2", (o) => Assert.Equal(2, o.GeminiOptions.MessySiteThreshold));
+            optionsExpectationsDict.Add("-messymapq 40", (o) => Assert.Equal(40, o.GeminiOptions.MessyMapq));
+            optionsExpectationsDict.Add("-numsoftclipstobeconsideredmessy 4", (o) => Assert.Equal(4, o.GeminiOptions.NumSoftclipsToBeConsideredMessy));
+            optionsExpectationsDict.Add("-nummismatchestobeconsideredmessy 6", (o) => Assert.Equal(6, o.GeminiOptions.NumMismatchesToBeConsideredMessy));
+            optionsExpectationsDict.Add("-imperfectfreqthreshold 0.2", (o) => Assert.Equal(0.2f, o.GeminiOptions.ImperfectFreqThreshold));
+            optionsExpectationsDict.Add("-indelregionfreqthreshold 0.1", (o) => Assert.Equal(0.1f, o.GeminiOptions.IndelRegionFreqThreshold));
+            optionsExpectationsDict.Add("-regiondepththreshold 10", (o) => Assert.Equal(10, o.GeminiOptions.RegionDepthThreshold));
 
 
             // TODO add test for defaults?

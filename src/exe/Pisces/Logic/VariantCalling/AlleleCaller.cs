@@ -223,12 +223,14 @@ namespace Pisces.Logic.VariantCalling
 
 				StrandBiasCalculator.Compute(variant, variant.SupportByDirection, _config.NoiseLevelUsedForQScoring, _config.MinFrequency,
                     _config.StrandBiasFilterThreshold, _config.StrandBiasModel);
+
+                AmpliconBiasCalculator.Compute(variant, _config.MaxVariantQscore, _config.AmpliconBiasFilterThreshold);
             }
 
             // set genotype, filter, etc
             AlleleProcessor.Process(variant, _config.MinFrequency, _config.LowDepthFilter,
                 _config.VariantQscoreFilterThreshold, _config.FilterSingleStrandVariants, _config.VariantFreqFilter, _config.LowGTqFilter, _config.IndelRepeatFilter, 
-                _config.RMxNFilterSettings, _config.NoCallFilterThreshold, _config.ChrReference, source.ExpectStitchedReads);
+                _config.RMxNFilterSettings, _config.NoCallFilterThreshold, _config.AmpliconBiasFilterThreshold, _config.ChrReference, source.ExpectStitchedReads);
         }
 
         private bool IsCallable(CalledAllele allele)
@@ -272,6 +274,7 @@ namespace Pisces.Logic.VariantCalling
         public int MinVariantQscore { get; set; }
         public int? VariantQscoreFilterThreshold { get; set; }
         public float? NoCallFilterThreshold { get; set; }
+        public float? AmpliconBiasFilterThreshold { get; set; }
         public int NoiseLevelUsedForQScoring { get; set; }
         public float StrandBiasFilterThreshold { get; set; }
         public bool FilterSingleStrandVariants { get; set; }

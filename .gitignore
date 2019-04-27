@@ -6,7 +6,9 @@
 TestResults/
 [Dd]ebug/
 [Rr]elease/
+.vs/
 x64/
+.vs/
 *_i.c
 *_p.c
 *.ilk
@@ -51,3 +53,36 @@ obj
 packages
 UpgradeLog*.htm
 Backup/
+=======
+/images
+/redist
+/src/.nuget
+*.migration_in_place_backup
+*.pubxml
+/src/Pisces/tmppub/runtimes
+/src/Pisces/tmppub
+/src/Pisces.Processing
+/src/Pisces.Calculators
+/src/Pisces
+/src/RequiredFiles
+/src/Scylla
+/src/Stitcher
+/src/Hygea
+/src/VariantPhasing
+/src/VariantQualityRecalibration
+/src/BamSummarizer
+/src/Alignment.IO
+/src/AdditionalFilesForLinux
+/src/Alignment.Logic
+/src/VcfCompare
+/src/Pisces.sln
+/Tailor
+/testdata/Out/PhasingLogs
+/CallSomaticVariants.zip
+/dotcover1.xml
+/RealignIndels.zip
+/sed.exe.stackdump
+/src - Shortcut.lnk
+/tg au
+/tts
+/uname.exe.stackdump

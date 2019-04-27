@@ -1,5 +1,4 @@
-﻿using System;
-using System.IO;
+﻿using System.IO;
 using System.Linq;
 using System.Threading;
 using Pisces.Interfaces;
@@ -8,7 +7,7 @@ using Pisces.Domain.Options;
 using CallVariants.Logic.Processing;
 using Moq;
 using Common.IO.Utility;
-using Pisces.IO.Sequencing;
+using Pisces.IO;
 using Xunit;
 
 namespace Pisces.Tests.UnitTests.Processing
@@ -58,7 +57,7 @@ namespace Pisces.Tests.UnitTests.Processing
             Logger.OpenLog(options.LogFolder, options.LogFileName);
 
             var factory = new MockFactoryWithDefaults(options);
-            factory.MockSomaticVariantCaller = new Mock<ISomaticVariantCaller>();
+            factory.MockSomaticVariantCaller = new Mock<ISmallVariantCaller>();
             factory.MockSomaticVariantCaller.Setup(s => s.Execute()).Callback(() =>
             {
                 Thread.Sleep(500);
@@ -130,14 +129,14 @@ namespace Pisces.Tests.UnitTests.Processing
             processor.Execute(2);
 
             // first vcf file should have been processed regularly
-            using (var reader = new VcfReader(factory.WorkRequests.First().OutputFilePath))
+            using (var reader = new AlleleReader(factory.WorkRequests.First().OutputFilePath))
             {
                 var variants = reader.GetVariants();
                 Assert.Equal(11, variants.Count());
             }
 
             // second vcf file should be empty
-            using (var reader = new VcfReader(factory.WorkRequests.Last().OutputFilePath))
+            using (var reader = new AlleleReader(factory.WorkRequests.Last().OutputFilePath))
             {
                 var variants = reader.GetVariants();
                 Assert.Equal(0, variants.Count());
@@ -158,7 +157,7 @@ namespace Pisces.Tests.UnitTests.Processing
             foreach (var workRequest in factory.WorkRequests)
             {
                 // both vcf file should be empty
-                using (var reader = new VcfReader(workRequest.OutputFilePath))
+                using (var reader = new AlleleReader(workRequest.OutputFilePath))
                 {
                     var variants = reader.GetVariants();
                     Assert.Equal(0, variants.Count());

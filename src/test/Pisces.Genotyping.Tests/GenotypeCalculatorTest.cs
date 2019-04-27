@@ -157,12 +157,19 @@ namespace Pisces.Genotyping.Tests
 
         [Fact]
         [Trait("ReqID", "PICS-961")]
-        private void ExecuteDiploidIndelGenotypeTest()
+        private void DiploidGenotypersOnMultiAllelicSiteTest()
+        {
+            ExecuteDiploidMultiAllelicSiteGenotypeTest(new DiploidThresholdingGenotyper());
+            ExecuteDiploidMultiAllelicSiteGenotypeTest(new DiploidAdaptiveGenotyper());
+        }
+
+        private void ExecuteDiploidMultiAllelicSiteGenotypeTest(IGenotypeCalculator GTC)
         {
             //test cases:
             // (1) SNP + indel + indel
             // (2) indel + SNP + SNP
-            // (3) 3 indels (OK)
+            // (3) 3 indels (OK, one is low VF)
+            // (4) 3 indels (OK, one is low VF)
             // (4) 3 indels - ploidy violation
 
             Genotype expectedGenotype = Genotype.HeterozygousAlt1Alt2;
@@ -190,7 +197,7 @@ namespace Pisces.Genotyping.Tests
             alleles[1].Type = AlleleCategory.Insertion;
             alleles[2].Type = AlleleCategory.Deletion;
 
-            var GTC = new DiploidThresholdingGenotyper();
+            //var GTC = new DiploidThresholdingGenotyper();
             GTC.MinDepthToGenotype = 100;
             var allelesToPrune = GTC.SetGenotypes(alleles);
 
@@ -227,7 +234,6 @@ namespace Pisces.Genotyping.Tests
             }
             alleles[0].Type = AlleleCategory.Insertion;
 
-            GTC = new DiploidThresholdingGenotyper();
             GTC.MinDepthToGenotype = 100;
             allelesToPrune = GTC.SetGenotypes(alleles);
 
@@ -265,7 +271,6 @@ namespace Pisces.Genotyping.Tests
             alleles[1].Type = AlleleCategory.Deletion;
             alleles[2].Type = AlleleCategory.Insertion;
 
-            GTC = new DiploidThresholdingGenotyper();
             GTC.MinDepthToGenotype = 100;
             allelesToPrune = GTC.SetGenotypes(alleles);
 
@@ -282,7 +287,7 @@ namespace Pisces.Genotyping.Tests
 
 
             // (4) 3 indels - excused ploidy violation,
-            // b /c its possible to thave these together in a diploid individual
+             // b /c its possible to have these together in a diploid individual
             // should be 1/2 with the lowest freq thrown out
             refFrequencies = new List<float>() { 0.60F, 0.60F, 0.60F };
             altFrequencies = new List<float>() { 0.31F, 0.30F, 0.31F };
@@ -305,7 +310,6 @@ namespace Pisces.Genotyping.Tests
             alleles[1].Type = AlleleCategory.Deletion;
             alleles[2].Type = AlleleCategory.Insertion;
 
-            GTC = new DiploidThresholdingGenotyper();
             GTC.MinDepthToGenotype = 100;
             allelesToPrune = GTC.SetGenotypes(alleles);
 
@@ -313,14 +317,15 @@ namespace Pisces.Genotyping.Tests
             foreach (var allele in alleles)
             {
                 Assert.Equal(expectedGenotype, allele.Genotype);
+                Assert.Equal(0, allele.Filters.Count);
             }
 
             Assert.Equal(allelesToPrune[0].ReferenceAllele, "ACT");
             Assert.Equal(allelesToPrune[0].AlternateAllele, "A");
             Assert.Equal(allelesToPrune[0].Frequency, 0.30F);
 
-            //
 
+            //
             // (5) 3 SNPS - NOT excused ploidy violation,
             // b /c its NOT possible to thave these together in a diploid individual
             // should be ./. with the lowest freq thrown out
@@ -328,7 +333,7 @@ namespace Pisces.Genotyping.Tests
             altFrequencies = new List<float>() { 0.31F, 0.30F, 0.31F };
             refAllele = new List<string>() { "A", "A", "A" };
             altAllele = new List<string>() { "C", "T", "G" };
-
+            
             expectedGenotype = Genotype.Alt12LikeNoCall;
             alleles = new List<CalledAllele>();
             for (int i = 0; i < 3; i++)
@@ -344,18 +349,18 @@ namespace Pisces.Genotyping.Tests
             alleles[0].Type = AlleleCategory.Snv;
             alleles[1].Type = AlleleCategory.Snv;
             alleles[2].Type = AlleleCategory.Snv;
-
-            GTC = new DiploidThresholdingGenotyper();
+            
+            //GTC = new DiploidThresholdingGenotyper();
             GTC.MinDepthToGenotype = 100;
             allelesToPrune = GTC.SetGenotypes(alleles);
-
+            
             Assert.Equal(expectedNumAllelesToPrune, allelesToPrune.Count);
-            foreach (var allele in alleles)
-            {
+                        foreach (var allele in alleles)
+                            {
                 Assert.Equal(expectedGenotype, allele.Genotype);
                 Assert.Equal(FilterType.MultiAllelicSite, allele.Filters[0]);
-            }
-
+                            }
+            
             Assert.Equal(allelesToPrune[0].ReferenceAllele, "A");
             Assert.Equal(allelesToPrune[0].AlternateAllele, "T");
             Assert.Equal(allelesToPrune[0].Frequency, 0.30F);

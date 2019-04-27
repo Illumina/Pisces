@@ -1,37 +1,36 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using Alignment.IO;
 using Alignment.IO.Sequencing;
 using Common.IO;
 using Common.IO.Sequencing;
-using Gemini.Logic;
 
 namespace Gemini.IO
 {
     public class BamWriterFactory : IBamWriterFactory
     {
         private readonly int _numThreads;
-        private readonly int _cacheSize;
-        private string _header;
+        private readonly string _header;
         private readonly List<GenomeMetadata.SequenceMetadata> _references;
 
         public BamWriterFactory(int numThreads, string inBamForHeaderInformation, int cacheSize = 64)
         {
             _numThreads = numThreads;
-            _cacheSize = cacheSize;
             _header = GetHeader(inBamForHeaderInformation);
             _references = GetReferences(inBamForHeaderInformation);
         }
 
         public IBamWriterHandle CreateSingleBamWriter(string outBam)
         {
-            return new CachedBamWriter(new BamWriter(outBam, _header, _references), _cacheSize);
-        }
-
-        public IBamWriterMultithreaded CreateBamWriter(string outBam, int? overrideNumThreads = null)
-        {
-            return new BamWriterMultithreaded(outBam, _header, _references, overrideNumThreads ?? _numThreads, 1);
+            if (File.Exists(outBam))
+            {
+                Console.WriteLine("ERROR: " + $"Bam file '{outBam}' already exists. Proceeding now would overwrite it.");
+                throw new ArgumentException($"Bam file '{outBam}' already exists. Proceeding now would overwrite it.");
+            }
+            return new BamWriterHandle(new BamWriter(outBam, _header, _references));
+            //return new CachedBamWriter(new BamWriter(outBam, _header, _references), _cacheSize);
         }
 
         private List<GenomeMetadata.SequenceMetadata> GetReferences(string inBam)
@@ -72,7 +71,7 @@ namespace Gemini.IO
                 if (headers[i].StartsWith("@PG")) lastPgHeaderIndex = i;
             }
 
-            var geminiVersion = FileUtilities.LocalAssemblyVersion<ReadEvaluator>();
+            var geminiVersion = FileUtilities.LocalAssemblyVersion<GeminiWorkflow>();
 
             headers[lastPgHeaderIndex] += ("\n@PG\tID:Gemini PN:Gemini VN:" + geminiVersion + " CL:" + string.Join("", Environment.GetCommandLineArgs()));
 

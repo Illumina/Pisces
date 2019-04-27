@@ -402,7 +402,7 @@ namespace Pisces.Processing.Tests.UnitTests
 
             for (var i = 0; i < read2.SequencedBaseDirectionMap.Length; i++)
                 read2.SequencedBaseDirectionMap[i] = DirectionType.Reverse;
-            read2.PositionMap[7] = -1;
+            read2.PositionMap.UpdatePositionAtIndex(7, -1, true);
 
             var reads2 = TestHelper.CreateTestReads(
                 ReadTestHelper.CreateRead("chr1", "ACAC", 999), ReadTestHelper.CreateRead("chr1", "ACAC", 999), minQuality).ToList();

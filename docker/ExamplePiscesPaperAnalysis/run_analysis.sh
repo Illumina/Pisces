@@ -229,7 +229,7 @@ run_germline_analysis () {
 
 run_somatic_analysis "$BS_DATA/SampleSet1_Titration/Files" "$OUT/titration" "Intervals_TSAVP_Titr.txt" "Intervals_TSAVP_Titr.bed"  
 run_somatic_analysis "$BS_DATA/SampleSet2_RASPanel/Files/" "$OUT/raspanel" "KRASandNRASinterval2.picard" "KRASandNRASinterval2.bed"
-run_germline_analysis "$BS_DATA/SampleSet3_VariantPanel2/Files/" "$OUT/variantpanel" "TSAVP_v3_intervals_sorted.txt" "TSAVP_v3_intervals_sorted.bed"
+run_germline_analysis "$BS_DATA/SampleSet3_VariantPanel2/Files/" "$OUT/varientpanel" "TSAVP_v3_intervals_sorted.txt" "TSAVP_v3_intervals_sorted.bed"
 run_germline_analysis "$BS_DATA/SampleSet4_Myeloid/Files/" "$OUT/myeloidpanel" "TruSightMyeloid_intervals.txt" "TruSightMyeloid_intervals.bed"
 
 

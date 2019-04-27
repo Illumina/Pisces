@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>netstandard1.6</TargetFramework>
@@ -9,8 +9,9 @@
     <GenerateAssemblyConfigurationAttribute>false</GenerateAssemblyConfigurationAttribute>
     <GenerateAssemblyCompanyAttribute>false</GenerateAssemblyCompanyAttribute>
     <GenerateAssemblyProductAttribute>false</GenerateAssemblyProductAttribute>
-    <Version>5.2.10.49</Version>
-    <Copyright>Copyright © Illumina 2019</Copyright>
+    <Version>5.2.11.163</Version>
+    <Copyright>Copyright � Illumina 2019</Copyright>
+    <RepositoryUrl>https://github.com/Illumina/Pisces</RepositoryUrl>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" />
@@ -22,3 +23,4 @@
   </ItemGroup>
 
 </Project>
+

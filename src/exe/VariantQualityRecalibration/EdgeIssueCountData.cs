@@ -1,11 +1,7 @@
 ﻿using System;
 using System.IO;
-using System.Linq;
 using System.Collections.Generic;
 using Pisces.Domain.Models.Alleles;
-using Pisces.IO;
-using Pisces.IO.Sequencing;
-
 
 namespace VariantQualityRecalibration
 {
@@ -31,7 +27,7 @@ namespace VariantQualityRecalibration
         }
 
 
-        public bool Add(VcfVariant nextVariant, string issueLogPath)
+        public bool Add(CalledAllele nextVariant, string issueLogPath)
         {
            
             UpdateBuffer(nextVariant);
@@ -121,21 +117,15 @@ namespace VariantQualityRecalibration
             return false;
         }
 
-        private void UpdateBuffer(VcfVariant variant)
+        private void UpdateBuffer(CalledAllele variant)
         {
             for (int i = 1; i < _bufferLength; i++)
             {
                 _trailingAlleleBuffer[i - 1] = _trailingAlleleBuffer[i];
             }
 
-            if (variant == null)
-            {
-                _trailingAlleleBuffer[_bufferLength - 1] = null;
-            }
-            else
-            {
-                _trailingAlleleBuffer[_bufferLength - 1] = VcfVariantUtilities.Convert(new List<VcfVariant> { variant }).First();
-            }
+             _trailingAlleleBuffer[_bufferLength - 1] = variant;
+ 
         }
     }
 }

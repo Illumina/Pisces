@@ -1,7 +1,9 @@
 ﻿using System;
 using System.IO;
+using System.Collections.Generic;
 using Common.IO.Utility;
-using Pisces.IO.Sequencing;
+using Pisces.IO;
+using Pisces.Domain.Models.Alleles;
 
 namespace VariantQualityRecalibration
 {
@@ -37,29 +39,34 @@ namespace VariantQualityRecalibration
         public static SignatureSorterResultFiles StrainVcf(VQROptions options)
         {
 
-            var variant = new VcfVariant();
+            var variantList = new List<CalledAllele>() { };
             var basicCountsData = new CountData();
             var edgeVariantsCountData = new EdgeIssueCountData(options.ExtentofEdgeRegion);
 
-            string basicCountsPath = CleanUpOldFiles(options.InputVcf, options.OutputDirectory, ".counts");
-            string edgeCountsPath = CleanUpOldFiles(options.InputVcf, options.OutputDirectory, ".edgecounts");
-            string edgeVariantsPath = CleanUpOldFiles(options.InputVcf, options.OutputDirectory, ".edgevariants");
+            string basicCountsPath = CleanUpOldFiles(options.VcfPath, options.OutputDirectory, ".counts");
+            string edgeCountsPath = CleanUpOldFiles(options.VcfPath, options.OutputDirectory, ".edgecounts");
+            string edgeVariantsPath = CleanUpOldFiles(options.VcfPath, options.OutputDirectory, ".edgevariants");
 
-            using (VcfReader readerA = new VcfReader(options.InputVcf))
+            using (AlleleReader readerA = new AlleleReader(options.VcfPath))
             {
-                while (readerA.GetNextVariant(variant))
+                while (readerA.GetNextVariants(out variantList))
                 {
-                    try
+                    foreach (var variant in variantList)
                     {
-                        basicCountsData.Add(variant);
-                        edgeVariantsCountData.Add(variant, edgeVariantsPath);
-                    }
+                        try
+                        {
 
-                    catch (Exception ex)
-                    {
-                        Logger.WriteToLog(string.Format("Fatal error processing vcf; Check {0}, position {1}.  Exception: {2}",
-                            variant.ReferenceName, variant.ReferencePosition, ex));
-                        throw;
+                            basicCountsData.Add(variant);
+                            edgeVariantsCountData.Add(variant, edgeVariantsPath);
+                        }
+
+
+                        catch (Exception ex)
+                        {
+                            Logger.WriteToLog(string.Format("Fatal error processing vcf; Check {0}, position {1}.  Exception: {2}",
+                                variant.Chromosome, variant.ReferencePosition, ex));
+                            throw;
+                        }
                     }
                 }
 

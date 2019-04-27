@@ -22,6 +22,7 @@ namespace Pisces.Processing.RegionState
         protected int _lastUpToBlockKey;
         private bool _includeRefAlleles;
         private ChrIntervalSet _intervalSet;
+        private bool _trackAmpliconCounts;
         private bool _trackOpenEnded;
         private bool _trackReadSummaries;
         private int? _readLength;
@@ -35,7 +36,9 @@ namespace Pisces.Processing.RegionState
         public RegionStateManager(bool includeRefAlleles = false, int minBasecallQuality = 20,
             bool expectStitchedReads = false,
             ChrIntervalSet intervalSet = null, int blockSize = 1000,
-            bool trackOpenEnded = false, bool trackReadSummaries = false, int numAnchorTypes = 5)
+            bool trackOpenEnded = false, bool trackReadSummaries = false,
+            bool trackAmpliconCounts = false,
+            int numAnchorTypes = 5)
         {
             _regionSize = blockSize;
             _minBasecallQuality = minBasecallQuality;
@@ -46,6 +49,7 @@ namespace Pisces.Processing.RegionState
             ExpectStitchedReads = expectStitchedReads;
             ExpectCollapsedReads = false;
             _numAnchorTypes = numAnchorTypes;
+            _trackAmpliconCounts = trackAmpliconCounts;
         }
 
         public void AddCandidates(IEnumerable<CandidateAllele> candidateVariants)
@@ -53,7 +57,7 @@ namespace Pisces.Processing.RegionState
             foreach (var candidateVariant in candidateVariants)
             {
                 var block = GetBlock(candidateVariant.ReferencePosition);
-                block.AddCandidate(candidateVariant, _trackOpenEnded);
+                block.AddCandidate(candidateVariant, _trackOpenEnded, _trackAmpliconCounts);
                 if (candidateVariant.Type == AlleleCategory.Deletion || candidateVariant.Type == AlleleCategory.Insertion) {
                     block.AddCandidateGroup(candidateVariants);
                 }
@@ -154,7 +158,7 @@ namespace Pisces.Processing.RegionState
                     }
                 }
 
-                var position = alignment.PositionMap[positionMapIndex];
+                var position = alignment.PositionMap.GetPositionAtIndex(positionMapIndex);
 
                 if (position == -1){
                     continue; // not mapped to reference
@@ -177,8 +181,13 @@ namespace Pisces.Processing.RegionState
                     alleleType = AlleleType.N; // record this event as a no call
 
                 AddAlleleCount(position, alleleType, directionType, anchorType);
+
                 if (alleleType != AlleleType.N)
+                {
                     AddCollapsedReadCount(position, alignment, directionType);
+                    AddAmpliconCount(_trackAmpliconCounts, position, alignment.GetAmpliconNameIfExists());               
+                }
+
                 AddAlleleBaseQuality(position, alleleType, directionType, Math.Pow(10, -1 * (int)alignment.Qualities[positionMapIndex] / 10f), anchorType);
                 lastPosition = position;
             }
@@ -214,6 +223,12 @@ namespace Pisces.Processing.RegionState
         {
             var region = GetBlock(position, false);
             return region == null ? 0 : region.GetAlleleCount(position, alleleType, directionType, minAnchor, maxAnchor, fromEnd, symmetric);
+        }
+
+        public AmpliconCounts GetCoverageByAmplicon(int position)
+        {
+            var region = GetBlock(position, false);           
+            return region.GetCountsByAmpliconForPosition(position);
         }
 
         public List<ReadCoverageSummary> GetSpanningReadSummaries(int startPosition, int endPosition)
@@ -388,6 +403,19 @@ namespace Pisces.Processing.RegionState
             var block = GetBlock(position);
             block.AddBaseQualites(position, alleleType, directionType, baseQuality, anchorType);
         }
+
+        private void AddAmpliconCount(bool trackingAmpliconCounts, int position, string ampliconName)
+        {
+            if (!trackingAmpliconCounts)
+                return;
+
+            if (ampliconName == null)
+                return;
+
+            var block = GetBlock(position);
+            block.AddAmpliconCount(position, ampliconName);
+        }
+
         /// <summary>
         /// Get block by either reusable one that is available for reuse, or creating a new one if non available for reuse.
         /// </summary>

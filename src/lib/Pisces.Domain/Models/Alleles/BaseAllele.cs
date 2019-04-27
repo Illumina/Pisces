@@ -53,7 +53,7 @@ namespace Pisces.Domain.Models.Alleles
             if (!String.IsNullOrEmpty(ReferenceAllele)
                 && !String.IsNullOrEmpty(AlternateAllele))
             {
-                if (ReferenceAllele == AlternateAllele)
+                if (ReferenceAllele.ToLower() == AlternateAllele.ToLower())
                     return (AlleleCategory.Reference);
 
                 if (AlternateAllele == ".")

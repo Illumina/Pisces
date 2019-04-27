@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using Alignment.Domain.Sequencing;
+using Pisces.Domain.Models;
+using Pisces.Domain.Types;
 
 namespace Pisces.Domain.Utility
 {
@@ -281,7 +283,7 @@ namespace Pisces.Domain.Utility
 
         public class CigarOpExpander
         {
-            private CigarAlignment _cigar;
+            private readonly CigarAlignment _cigar;
             private int _cigarIndex;
             private int _opIndex;
 
@@ -335,6 +337,62 @@ namespace Pisces.Domain.Utility
             }
 
             return expandedCigar;
+        }
+
+        public static List<char> ExpandToChars(this CigarAlignment cigar)
+        {
+            var expandedCigar = new List<char>();
+            foreach (CigarOp op in cigar)
+            {
+                for (var i = 0; i < op.Length; i++)
+                {
+                    expandedCigar.Add(op.Type);
+                }
+            }
+
+            return expandedCigar;
+        }
+
+        public static bool IsReferenceSpan(char opType)
+        {
+            switch (opType)
+            {
+                case 'M':
+                case 'D':
+                case 'N':
+                case '=':
+                case 'X':
+                    return true;
+                default:
+                    return false;
+            }
+        }
+        public static bool IsReadSpan(char opType)
+        {
+            switch (opType)
+            {
+                case 'M':
+                case 'I':
+                case 'S':
+                case '=':
+                case 'X':
+                    return true;
+                default:
+                    return false;
+            }
+        }
+        public static void ExpandToChars(this CigarAlignment cigar, List<char> expandedCigar)
+        {
+            expandedCigar.Clear();
+            int recycleIndex = 0;
+            foreach (CigarOp op in cigar)
+            {
+                for (var i = 0; i < op.Length; ++i)
+                {
+                    expandedCigar.Add(op.Type);
+                    ++recycleIndex;
+                }
+            }
         }
 
         public static void Expand(this CigarAlignment cigar, List<CigarOp> expandedCigar)

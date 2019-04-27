@@ -7,7 +7,7 @@ namespace Gemini.Interfaces
     public interface IEvidenceCollector
     {
         void CollectEvidence(BamAlignment alignment, bool isReputable, bool isStitched, string chromosome);
-        Dictionary<string, int[]> GetEvidence();
+        Dictionary<string, IndelEvidence> GetEvidence();
     }
 
     public class NonSnowballEvidenceCollector : IEvidenceCollector
@@ -17,16 +17,16 @@ namespace Gemini.Interfaces
             // Not doing anything here for now
         }
 
-        public Dictionary<string, int[]> GetEvidence()
+        public Dictionary<string, IndelEvidence> GetEvidence()
         {
-            return new Dictionary<string, int[]>();
+            return new Dictionary<string, IndelEvidence>();
         }
     }
 
     public class SnowballEvidenceCollector : IEvidenceCollector
     {
         private readonly IndelTargetFinder _targetFinder;
-        private readonly Dictionary<string, int[]> _lookup = new Dictionary<string, int[]>();
+        private readonly Dictionary<string, IndelEvidence> _lookup = new Dictionary<string, IndelEvidence>();
 
         public SnowballEvidenceCollector(IndelTargetFinder targetFinder)
         {
@@ -38,7 +38,7 @@ namespace Gemini.Interfaces
             IndelEvidenceHelper.FindIndelsAndRecordEvidence(alignment, _targetFinder, _lookup, isReputable, chromosome, 30, isStitched);
         }
 
-        public Dictionary<string, int[]> GetEvidence()
+        public Dictionary<string, IndelEvidence> GetEvidence()
         {
             return _lookup;
         }

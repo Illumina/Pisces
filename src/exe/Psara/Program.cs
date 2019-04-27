@@ -1,5 +1,4 @@
-﻿using Common.IO.Utility;
-using CommandLine.VersionProvider;
+﻿using CommandLine.VersionProvider;
 using CommandLine.Util;
 using CommandLine.Application;
 
@@ -33,8 +32,8 @@ namespace Psara
         //wrapper should now handle all throwing and catching..
         protected override void ProgramExecution()
         {
-            VcfFilter.DoFiltering(_options);
-            Logger.WriteToLog("filtering complete.");  
+            var filter = new VcfFilter(_options);
+            filter.DoFiltering();
         }
 
    

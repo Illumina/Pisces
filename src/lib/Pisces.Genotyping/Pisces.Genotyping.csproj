@@ -2,10 +2,12 @@
 
   <PropertyGroup>
     <TargetFramework>netcoreapp2.0</TargetFramework>
-    <Copyright>Copyright © Illumina 2019</Copyright>
     <Company>Illumina</Company>
-    <Version>5.2.10.49</Version>
+    <Version>5.2.11.163</Version>
+    <Copyright>Copyright © Illumina 2019</Copyright>
+    <RepositoryUrl>https://github.com/Illumina/Pisces</RepositoryUrl>
   </PropertyGroup>
+
   <ItemGroup>
     <PackageReference Include="MathNet.Numerics" Version="4.5.1" />
   </ItemGroup>
@@ -13,8 +15,8 @@
   <ItemGroup>
     <ProjectReference Include="..\Common.IO\Common.IO.csproj" />
     <ProjectReference Include="..\Pisces.Calculators\Pisces.Calculators.csproj" />
-    <ProjectReference Include="..\Pisces.Domain\Pisces.Domain.csproj" />
     <ProjectReference Include="..\Pisces.IO\Pisces.IO.csproj" />
   </ItemGroup>
 
 </Project>
+

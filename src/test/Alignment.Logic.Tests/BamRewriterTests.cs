@@ -39,8 +39,8 @@ namespace Alignment.Logic.Tests
             bamWriter.Setup(x => x.Flush());
 
             var alignmentPairFilter = new Mock<IAlignmentPairFilter>();
-            alignmentPairFilter.Setup(f => f.TryPair(It.IsAny<BamAlignment>()))
-                .Returns<BamAlignment>((b) =>
+            alignmentPairFilter.Setup(f => f.TryPair(It.IsAny<BamAlignment>(), It.IsAny<PairStatus>()))
+                .Returns<BamAlignment, PairStatus>((b, p) =>
                 {
                     if (b.Name.StartsWith("pair"))
                     {

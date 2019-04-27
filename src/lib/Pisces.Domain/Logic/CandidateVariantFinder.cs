@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.IO;
 using Pisces.Domain.Interfaces;
 using Pisces.Domain.Models;
@@ -17,14 +16,16 @@ namespace Pisces.Domain.Logic
         private readonly int _maxLengthInterveningRef;
         private readonly bool _callMnvs;
         private readonly int _welllAnchoredAnchorSize;
-
-        public CandidateVariantFinder(int qualityCutoff, int maxLengthMnv, int maxLengthInterveningRef, bool callMnvs, int welllAnchoredAnchorSize = 5)
+        private readonly bool _trackAmpliconCounts;
+        public CandidateVariantFinder(int qualityCutoff, int maxLengthMnv, int maxLengthInterveningRef, 
+            bool callMnvs, bool trackAmpliconCounts = false, int welllAnchoredAnchorSize = 5)
         {
             _minimumBaseCallQuality = qualityCutoff;
             _maxLengthMnv = maxLengthMnv;
             _maxLengthInterveningRef = maxLengthInterveningRef;
             _callMnvs = callMnvs;
             _welllAnchoredAnchorSize = welllAnchoredAnchorSize;
+            _trackAmpliconCounts = trackAmpliconCounts;
         }
 
         public IEnumerable<CandidateAllele> FindCandidates(Read read, string refChromosome, string chromosomeName)
@@ -210,7 +211,24 @@ namespace Pisces.Domain.Logic
                 Create(AlleleCategory.Mnv, chromosomeName, variantStartIndexInReference + 1, referenceBases, readBases, alignment, variantStartIndexInRead, _welllAnchoredAnchorSize)
                 : Create(AlleleCategory.Snv, chromosomeName, variantStartIndexInReference + 1, referenceBases, readBases, alignment, variantStartIndexInRead, _welllAnchoredAnchorSize);
 
+            SetAmpliconName(_trackAmpliconCounts, alignment, variant);
+
             return variant;
+        }
+
+        private static void SetAmpliconName(bool trackAmpliconCounts, Read alignment, CandidateAllele variant)
+        {
+            if (!trackAmpliconCounts)
+                return;
+
+            var ampliconName = alignment.GetAmpliconNameIfExists();
+            if (ampliconName != null)
+            {
+                var summary = AmpliconCounts.GetEmptyAmpliconCounts();
+                summary.AmpliconNames[0] = ampliconName;
+                summary.CountsForAmplicon[0] = 1;
+                variant.SupportByAmplicon = summary;
+            }
         }
 
         protected CandidateAllele ExtractInsertionFromOperation(Read alignment, string refChromosome, int opStartIndexInRead, uint operationLength, int opStartIndexInReference, string chromosomeName)
@@ -232,6 +250,11 @@ namespace Pisces.Domain.Logic
                 return null;
 
             var candidate = Create(AlleleCategory.Insertion, chromosome, coordinate, reference, alternate, alignment, opStartIndexInRead, _welllAnchoredAnchorSize);
+
+            //tjd+
+            //turn off until we are ready to run this amplicon bias on indels. right now we dont know if it would improve accuracy.
+            //SetAmpliconName(alignment, candidate);
+            //tjd-
 
             return candidate;
         }
@@ -259,6 +282,11 @@ namespace Pisces.Domain.Logic
             var alternate = readBases;
 
             var candidate = Create(AlleleCategory.Deletion, chromosome, coordinate, reference, alternate, alignment, opStartIndexInRead, _welllAnchoredAnchorSize);
+
+            //tjd+
+            //turn off until we are ready to run this amplicon bias on indels. right now we dont know if it would improve accuracy.
+            //SetAmpliconName(alignment, candidate);
+            //tjd-
 
             return candidate;
         }
@@ -479,7 +507,7 @@ namespace Pisces.Domain.Logic
             if (lastOperation.Type == 'S')
                 lastOperation = read.CigarData[read.CigarData.Count - 2];
 
-            var maxPosition = read.PositionMap.Max();
+            var maxPosition = read.PositionMap.MaxPosition();
             if (maxPosition == -1)
                 maxPosition = read.Position - 1; // if no anchor at all to reference, set to one past position
 

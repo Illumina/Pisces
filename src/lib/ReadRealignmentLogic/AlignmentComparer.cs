@@ -5,7 +5,7 @@ namespace ReadRealignmentLogic
     public abstract class AlignmentComparer
     {
         public abstract int CompareAlignments(AlignmentSummary preferred, AlignmentSummary other);
-        public abstract int CompareAlignmentsWithOriginal(AlignmentSummary preferred, AlignmentSummary other);
+        public abstract int CompareAlignmentsWithOriginal(AlignmentSummary preferred, AlignmentSummary other, bool treatKindly = false);
 
         public RealignmentResult GetBetterResult(RealignmentResult preferred, RealignmentResult other)
         {

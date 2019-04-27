@@ -4,6 +4,7 @@
     {
         StrandBias,
         PoolBias,
+        AmpliconBias,
         LowVariantQscore,  //the confidence a variant exists
         LowDepth,
         LowVariantFrequency,

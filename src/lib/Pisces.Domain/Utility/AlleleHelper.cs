@@ -68,6 +68,19 @@ namespace Pisces.Domain.Utility
                 for (var i = 0; i < candidate.ReadCollapsedCountsMut.Length; i++)
                     calledAllele.ReadCollapsedCountsMut[i] = candidate.ReadCollapsedCountsMut[i];
             }
+
+            if (candidate.SupportByAmplicon.AmpliconNames != null)
+            {
+                calledAllele.SupportByAmplicon = new Models.AmpliconCounts()
+                {
+                    AmpliconNames = new string[Constants.MaxNumOverlappingAmplicons],
+                    CountsForAmplicon = new int[Constants.MaxNumOverlappingAmplicons]
+                };
+
+                Array.Copy(candidate.SupportByAmplicon.AmpliconNames, calledAllele.SupportByAmplicon.AmpliconNames, candidate.SupportByAmplicon.AmpliconNames.Length);
+                Array.Copy(candidate.SupportByAmplicon.CountsForAmplicon, calledAllele.SupportByAmplicon.CountsForAmplicon, candidate.SupportByAmplicon.CountsForAmplicon.Length);
+            }
+
             return calledAllele;
         }
     }

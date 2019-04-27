@@ -1,10 +1,10 @@
 ﻿using System;
 using System.Linq;
-using TestUtilities;
+using System.Collections.Generic;
 using TestUtilities.MockBehaviors;
 using Alignment.Domain.Sequencing;
 using Pisces.Domain.Models;
-
+using Pisces.Domain.Types;
 
 namespace TestUtilities
 {
@@ -199,7 +199,7 @@ namespace TestUtilities
 
     public struct AmpliconTestResult
     {
-        public string Filters { get; set; }
+        public List<FilterType> Filters { get; set; }
         public int Position { get; set; }
         public string ReferenceAllele { get; set; }
         public string VariantAllele { get; set; }

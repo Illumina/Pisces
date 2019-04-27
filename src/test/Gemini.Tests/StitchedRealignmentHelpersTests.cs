@@ -223,7 +223,7 @@ namespace Gemini.Tests
             var origRead = TestHelpers.CreateBamAlignment(
                 "ATTGACATTAACTTAATTGTTTTTACTGACATTCTTAATTGCTTTTTGGAATTCATTAGCTGGTATAATACTAAAGTAATAAATACGTTGTGTTTTTCTAAAGGCATCTGAAATAGTGGAGCTAAATACTAAAACTGGGATAAAAATAATGGTAATTTTAGCTTACAAATAAACA",
                 66214327, 0, 30, false, cigar: new CigarAlignment("175M"));
-            TagUtils.ReplaceOrAddStringTag(ref origRead.TagData, "XD", "74F25S76R");
+            origRead.ReplaceOrAddStringTag("XD", "74F25S76R");
 
             var realignedRead = TestHelpers.CreateBamAlignment(
                 "ATTGACATTAACTTAATTGTTTTTACTGACATTCTTAATTGCTTTTTGGAATTCATTAGCTGGTATAATACTAAAGTAATAAATACGTTGTGTTTTTCTAAAGGCATCTGAAATAGTGGAGCTAAATACTAAAACTGGGATAAAAATAATGGTAATTTTAGCTTACAAATAAACA",
@@ -241,7 +241,7 @@ namespace Gemini.Tests
             var origRead = TestHelpers.CreateBamAlignment(
                 "ATTTACGGGC",
                 66214327, 0, 30, false, cigar: new CigarAlignment(origCigar1));
-            TagUtils.ReplaceOrAddStringTag(ref origRead.TagData, "XD", origDirections);
+            origRead.ReplaceOrAddStringTag("XD", origDirections);
 
             var realignedRead = TestHelpers.CreateBamAlignment(
                 "ATTTACGGGC",

@@ -1,18 +1,47 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.IO;
-using Pisces.IO.Sequencing;
 using Pisces.IO;
+using Pisces.Domain.Options;
 using Pisces.Domain.Models.Alleles;
 
 namespace ReformatVcf
 {
     public class Reformat
     {
-        public static void DoReformating(string inputFile, bool crush)
+        private static TypeOfUpdateNeeded UpdateAllele(VcfConsumerAppOptions appOptions, bool recalibrationData, CalledAllele inAllele, out List<CalledAllele> outAlleles)
         {
+            outAlleles = new List<CalledAllele> { inAllele };
+            return TypeOfUpdateNeeded.Modify;
+        }
+
+        public static TypeOfUpdateNeeded CanSkipNeverVcfLine(List<string> originalVarString)
+        {
+            return TypeOfUpdateNeeded.Modify;
+        }
+
+        public static VcfFileWriter GetVcfFileWriter(VcfConsumerAppOptions options, string outputFilePath)
+        {
+            var vcp = options.VariantCallingParams;
+            var vwp = options.VcfWritingParams;
+            var bfp = options.BamFilterParams;
+            var vcfConfig = new VcfWriterConfig(vcp, vwp, bfp, null, false, false);
+
+            return (new VcfFileWriter(outputFilePath, vcfConfig, new VcfWriterInputContext()));
+        }
+
+        public static void DoReformating(ReformatOptions options)
+        {
+            var inputFile = options.VcfPath;
             var outputFile = inputFile.Replace(".vcf", ".uncrushed.vcf");
+            var crush = false;
+
+
+            if (options.VcfWritingParams.ForceCrush.HasValue)
+            {
+                crush = (bool)options.VcfWritingParams.ForceCrush;
+                options.VcfWritingParams.AllowMultipleVcfLinesPerLoci = !crush;
+            }
 
             if (crush)
             {
@@ -25,52 +54,9 @@ namespace ReformatVcf
             if (File.Exists(outputFile))
                 File.Delete(outputFile);
 
-            var config = new VcfWriterConfig() { AllowMultipleVcfLinesPerLoci = !crush };
-            using (VcfFileWriter writer = new VcfFileWriter(outputFile, config, new VcfWriterInputContext()))
-            {
-                writer.WriteHeader();
-
-                using (VcfReader reader = new VcfReader(inputFile, false))
-                {
-
-                    var currentAllele = new CalledAllele();
-                    var backLogVcfVariant = new VcfVariant();
-
-                    var backLogExists = reader.GetNextVariant(backLogVcfVariant);
-
-                    while (backLogExists)
-                    {
-                        var backLogAlleles = backLogExists ? VcfVariantUtilities.Convert(new List<VcfVariant> { backLogVcfVariant }).ToList() : null;
-
-                        foreach (var allele in backLogAlleles)
-                        {
-                            try
-                            {
-                                writer.Write(new List<CalledAllele>() { allele });
-                            }
-                            catch (Exception ex)
-                            {
-                                Console.WriteLine("Problem writing " + allele.ToString());
-                                Console.WriteLine("Exception: " + ex);
-                                return;
-                            }
-                        }
-
-
-                        backLogExists = reader.GetNextVariant(backLogVcfVariant);
-
-                        if (backLogAlleles[0].Chromosome != backLogVcfVariant.ReferenceName)
-                        {
-                            //we have switched to the next chr. flush the buffer.
-                            writer.FlushBuffer();
-                        }
-                    }
-
-                    writer.FlushBuffer();
-
-                }
-
-            }
+            //Update Vcf, variant by variant, based on the table data.
+            VcfUpdater<bool>.UpdateVcfAlleleByAllele(outputFile, options, false, true, UpdateAllele, CanSkipNeverVcfLine,
+                GetVcfFileWriter);
         }
     }
 }

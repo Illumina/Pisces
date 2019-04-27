@@ -29,19 +29,24 @@ namespace ReadRealignmentLogic.Utlity
             var anchorLength = 0;
             var endAnchorLength = 0;
             var hasHitNonMatch = false;
+            var hasHitNonNSoftclip = false;
 
             for (var cigarOpIndex = 0; cigarOpIndex < cigarData.Count; cigarOpIndex++)
             {
                 var operation = cigarData[cigarOpIndex];
+                var opLength = (int)(operation.Length);
                 switch (operation.Type)
                 {
                     case 'S': // soft-clip
-                        for (var i = 0; i < operation.Length; i++)
+                        for (var i = 0; i < opLength; i++)
                         {
                             summary.NumSoftclips++;
 
-                            if (readSequence[startIndexInRead + i] != 'N')
+                            // No special treatement for Ns that are inside the softclip. Because the whole N-softclip distinction was meant to deal with padding-type softclips, I think.
+                            if (readSequence[startIndexInRead + i] != 'N' || hasHitNonNSoftclip)
                             {
+                                hasHitNonNSoftclip = true;
+
                                 summary.NumNonNSoftclips++;
 
                                 if (checkSoftclipsForMismatches)
@@ -52,7 +57,7 @@ namespace ReadRealignmentLogic.Utlity
                                         summary.NumMismatchesIncludeSoftclip++;
                                     }
                                     else if (readSequence[startIndexInRead + i] !=
-                                                refSequence[startIndexInReference + i])
+                                                refSequence[startIndexInReference + i] && readSequence[startIndexInRead + i] != 'N')
                                     {
                                         summary.NumMismatchesIncludeSoftclip++;
 
@@ -62,7 +67,8 @@ namespace ReadRealignmentLogic.Utlity
                                             {
                                                 summary.MismatchesIncludeSoftclip = new List<string> { };
                                             }
-
+                                            
+                                            // TODO WHEN KILL HYGEA, remove this if we're not using anymore, to save time
                                             var mismatch = string.Format("{0}_{1}_{2}",
                                                 startIndexInReference + i,
                                                 refSequence[startIndexInReference + i],
@@ -73,17 +79,31 @@ namespace ReadRealignmentLogic.Utlity
 
                                 }
                             }
+                            //else
+                            //{
+                            //    if (!hasHitNonNSoftclip)
+                            //    {
+                            //        nSoftclipLength++;
+                            //    }
+                            //}
 
                         }
                         break;
                     case 'M': // match or mismatch
-                        for (var i = 0; i < operation.Length; i++)
+                        for (var i = 0; i < opLength; i++)
                         {
                             if (startIndexInReference + i > refSequence.Length - 1)
                             {
                                 return null;
                                 throw new InvalidDataException(
                                     "Read goes off the end of the genome: " + startIndexInReference + ":" +
+                                    cigarData.ToString() + " vs " + startIndexInReference + " + " + refSequence.Length);
+                            }
+
+                            if (startIndexInReference + i < 0)
+                            {
+                                throw new InvalidDataException(
+                                    "Read would be before beginning of the chromosome: " + startIndexInReference + ":" +
                                     cigarData.ToString() + " vs " + startIndexInReference + " + " + refSequence.Length);
                             }
 
@@ -101,6 +121,7 @@ namespace ReadRealignmentLogic.Utlity
                                         summary.MismatchesIncludeSoftclip = new List<string> { };
                                     }
 
+                                    // TODO WHEN KILL HYGEA, remove this if we're not using anymore, to save time
                                     var mismatch = string.Format("{0}_{1}_{2}", startIndexInReference + i,
                                         refSequence[startIndexInReference + i], readSequence[startIndexInRead + i]);
                                     summary.MismatchesIncludeSoftclip.Add(mismatch);
@@ -128,27 +149,27 @@ namespace ReadRealignmentLogic.Utlity
                         hasHitNonMatch = true;
                         endAnchorLength = 0;
                         summary.NumIndels++;
-                        summary.NumIndelBases += (int)operation.Length;
-                        summary.NumInsertedBases += (int)operation.Length;
+                        summary.NumIndelBases += opLength;
+                        summary.NumInsertedBases += opLength;
                         break;
                     case 'D': // deletion
                         hasHitNonMatch = true;
                         endAnchorLength = 0;
                         summary.NumIndels++;
-                        summary.NumIndelBases += (int)operation.Length;
-                        summary.NumDeletedBases += (int)operation.Length;
+                        summary.NumIndelBases += opLength;
+                        summary.NumDeletedBases += opLength;
                         break;
                 }
 
 
                 if (operation.IsReadSpan())
-                    startIndexInRead += (int)operation.Length;
+                    startIndexInRead += opLength;
 
                 if (operation.IsReferenceSpan())
                 {
-                    startIndexInReference += (int)operation.Length;
+                    startIndexInReference += opLength;
                 }
-                if (checkSoftclipsForMismatches && operation.Type == 'S') { startIndexInReference += (int)operation.Length; }
+                if (checkSoftclipsForMismatches && operation.Type == 'S') { startIndexInReference += opLength; }
 
             }
 
@@ -161,49 +182,20 @@ namespace ReadRealignmentLogic.Utlity
         {
             var adjustedPosition = read.Position - (int)read.CigarData.GetPrefixClip();
 
-            if (read.CigarData[0].Type == 'I')
+            var firstCigarOpType = read.CigarData[0].Type;
+
+            if (firstCigarOpType == 'I')
                 adjustedPosition -= (int)read.CigarData[0].Length;
 
-            if (read.CigarData.Count >= 2 && read.CigarData[0].Type == 'S' && read.CigarData[1].Type == 'I')
+            if (read.CigarData.Count >= 2 && firstCigarOpType == 'S' && read.CigarData[1].Type == 'I')
                 adjustedPosition -= (int)read.CigarData[1].Length;
 
             if (skipNs)
             {
-                adjustedPosition += read.GetNPrefix();
+                adjustedPosition += read.GetNPrefix(); // TODO looks like we call this a lot. Optimize.
             }
 
             return adjustedPosition + probePrefix;
-        }
-
-        public static int GetNPrefix(this Read read)
-        {
-            var numPrefixNs = 0;
-            foreach (var nuc in read.Sequence)
-            {
-                if (nuc == 'N')
-                {
-                    numPrefixNs++;
-                }
-                else break;
-            }
-            return numPrefixNs;
-
-        }
-
-        public static int GetNSuffix(this Read read)
-        {
-            var numPrefixNs = 0;
-            for (int index = read.Sequence.Length - 1; index >= 0; index--)
-            {
-                var nuc = read.Sequence[index];
-                if (nuc == 'N')
-                {
-                    numPrefixNs++;
-                }
-                else break;
-            }
-            return numPrefixNs;
-
         }
 
         private static int GetAdjustedPositionFromRight(this Read read, bool skipNs, int probePrefix = 0)
@@ -213,10 +205,10 @@ namespace ReadRealignmentLogic.Utlity
             var indexOfMax = -1;
             for (var i = read.PositionMap.Length - 1; i >= 0; i--)
             {
-                if (read.PositionMap[i] == -1)
+                if (read.PositionMap.GetPositionAtIndex(i) == -1)
                     continue;
 
-                maxRefPosition = read.PositionMap[i];
+                maxRefPosition = read.PositionMap.GetPositionAtIndex(i);
                 indexOfMax = i;
                 break;
             }
@@ -252,5 +244,17 @@ namespace ReadRealignmentLogic.Utlity
             return numIndels;
         }
 
+        public static int NumIndelBases(this CigarAlignment cigar)
+        {
+            var numIndels = 0;
+            for (var i = 0; i < cigar.Count; i++)
+            {
+                var op = cigar[i];
+                if (op.Type == 'I' || op.Type == 'D')
+                    numIndels+= (int)op.Length;
+            }
+
+            return numIndels;
+        }
     }
 }

@@ -10,6 +10,7 @@ using Pisces.Domain.Models;
 using Pisces.Domain.Models.Alleles;
 using Pisces.Domain.Types;
 using Pisces.Domain.Options;
+using Pisces.IO;
 using Xunit;
 
 
@@ -104,7 +105,7 @@ namespace Pisces.Tests.FunctionalTests
             var bamFile1Path = Path.Combine(TestPaths.LocalTestDataDirectory, "Chr17Chr19.bam"); //has data from chr17,7572952 and chr19,3118883
             var interval1Path = Path.Combine(TestPaths.LocalTestDataDirectory, "chr17int.picard");  //chr 17 only
             var outDir = Path.Combine(TestPaths.LocalTestDataDirectory, "IntervalTests");
-            var vcfFile1Path = Path.Combine(outDir, "Chr17Chr19.vcf");  //only results from chr17
+            var vcfObservedFile1Path = Path.Combine(outDir, "Chr17Chr19.vcf");  //only results from chr17
             var vcfExpectedFile1 = Path.Combine(TestPaths.LocalTestDataDirectory, "Chr17Chr19.expected.vcf");  //only results from chr17
 
 
@@ -124,37 +125,46 @@ namespace Pisces.Tests.FunctionalTests
             Assert.Equal(1, genome1.ChromosomesToProcess.Count);
             Assert.Equal("chr17", genome1.ChromosomesToProcess[0]);
 
-            var reader1 = new VcfReader(vcfFile1Path);
+            var reader1 = new AlleleReader(vcfObservedFile1Path);
 
-            var filters1Results = GetFilters(reader1);
-            var contigs1Results = GetContigs(reader1);
-            var vcf1Results = reader1.GetVariants().ToList();
+            var observedFilters1Results = GetFilters(reader1);
+            var observedContigs1Results = GetContigs(reader1);
+            var observedVcf1Results = reader1.GetVariants().ToList();
 
 
             //the expected results:
-            var readerExp1 = new VcfReader(vcfExpectedFile1);
+            var readerExp1 = new AlleleReader(vcfExpectedFile1);
 
             var filters1Expected = GetFilters(readerExp1);
             var contigs1Expected = GetContigs(readerExp1);
             var vcf1Expected = readerExp1.GetVariants().ToList();
 
-            Assert.Equal(4, filters1Results.Count);
-            Assert.Equal(1, contigs1Results.Count);
-            Assert.Equal(1, vcf1Results.Count);
+            /*
+        ##FILTER=<ID=q30,Description="Quality score less than 30">
+        ##FILTER=<ID=SB,Description="Variant strand bias too high">
+        ##FILTER=<ID=R5x9,Description="Repeats of part or all of the variant allele (max repeat length 5) in the reference greater than or equal to 9">
+        ##FILTER=<ID=NC,Description="No-call rate is above 0.6">
+             * */
+
+            Assert.Equal(4, observedFilters1Results.Count);
+
+            //##contig=<ID=chr17,length=7573100>
+            Assert.Equal(1, observedContigs1Results.Count);
+            Assert.Equal(1, observedVcf1Results.Count);
 
             //check variants and contigs all come out the same
             for (int i = 0; i < contigs1Expected.Count; i++)
-                Assert.Equal(contigs1Expected[i], contigs1Results[i]);
+                Assert.Equal(contigs1Expected[i], observedContigs1Results[i]);
 
             for (int i = 0; i < filters1Expected.Count; i++)
-                Assert.Equal(filters1Expected[i].ToString(), filters1Results[i].ToString());
+                Assert.Equal(filters1Expected[i].ToString(), observedFilters1Results[i].ToString());
 
             for (int i = 0; i < vcf1Expected.Count; i++)
-                Assert.Equal(vcf1Expected[i].ToString(), vcf1Results[i].ToString());
+                Assert.Equal(vcf1Expected[i].ToString(), observedVcf1Results[i].ToString());
 
 
             reader1.Dispose();
-            File.Delete(vcfFile1Path);
+            File.Delete(vcfObservedFile1Path);
 
         }
 
@@ -217,8 +227,8 @@ namespace Pisces.Tests.FunctionalTests
             Assert.Equal("chr7", genome2.ChromosomesToProcess[0]);
             Assert.Equal("chr19", genome2.ChromosomesToProcess[3]);
 
-            var reader1 = new VcfReader(vcfFile1Path);
-            var reader2 = new VcfReader(vcfFile2Path);
+            var reader1 = new AlleleReader(vcfFile1Path);
+            var reader2 = new AlleleReader(vcfFile2Path);
 
             var contigs1Results = GetContigs(reader1);
             var contigs2Results = GetContigs(reader2);
@@ -227,8 +237,8 @@ namespace Pisces.Tests.FunctionalTests
 
 
             //the expected results:
-            var readerExp1 = new VcfReader(vcfExpectedFile1);
-            var readerExp2 = new VcfReader(vcfExpectedFile2);
+            var readerExp1 = new AlleleReader(vcfExpectedFile1);
+            var readerExp2 = new AlleleReader(vcfExpectedFile2);
 
             var contigs1Expected = GetContigs(readerExp1);
             var contigs2Expected = GetContigs(readerExp2);
@@ -254,8 +264,8 @@ namespace Pisces.Tests.FunctionalTests
             processor = new GenomeProcessor(secondSampleFactory, genome2);
             processor.InternalExecute(10);
 
-            reader1 = new VcfReader(vcfFile1Path);
-            reader2 = new VcfReader(vcfFile2Path);
+            reader1 = new AlleleReader(vcfFile1Path);
+            reader2 = new AlleleReader(vcfFile2Path);
 
             contigs1Results = GetContigs(reader1);
             contigs2Results = GetContigs(reader2);
@@ -274,8 +284,8 @@ namespace Pisces.Tests.FunctionalTests
             processor = new GenomeProcessor(twoSampleFactory, genome, false);
             processor.InternalExecute(10);
 
-            reader1 = new VcfReader(vcfFile1Path);
-            reader2 = new VcfReader(vcfFile2Path);
+            reader1 = new AlleleReader(vcfFile1Path);
+            reader2 = new AlleleReader(vcfFile2Path);
 
             contigs1Results = GetContigs(reader1);
             contigs2Results = GetContigs(reader2);
@@ -292,7 +302,7 @@ namespace Pisces.Tests.FunctionalTests
             File.Delete(vcfFile2Path);
         }
 
-        private static void CheckForOrdering(List<string> contigs1Results, List<string> contigs2Results, List<string> contigs1Expected, List<string> contigs2Expected, List<VcfVariant> vcf1Expected, List<VcfVariant> vcf2Expected)
+        private static void CheckForOrdering(List<string> contigs1Results, List<string> contigs2Results, List<string> contigs1Expected, List<string> contigs2Expected, List<CalledAllele> vcf1Expected, List<CalledAllele> vcf2Expected)
         {
 
             for (int i = 0; i < contigs1Expected.Count; i++)
@@ -308,12 +318,12 @@ namespace Pisces.Tests.FunctionalTests
                 Assert.Equal(vcf2Expected[i].ToString(), vcf2Expected[i].ToString());
         }
 
-        private static List<string> GetContigs(VcfReader reader1)
+        private static List<string> GetContigs(AlleleReader reader1)
         {
             return reader1.HeaderLines.Where(a => a.Contains("##contig=")).Select(a => a.Split('=')[2].Replace(",length", "")).ToList();
         }
 
-        private static List<string> GetFilters(VcfReader reader1)
+        private static List<string> GetFilters(AlleleReader reader1)
         {
             return reader1.HeaderLines.Where(a => a.Contains("##FILTER")).Select(a => a.Split('=')[2]).ToList();
         }
@@ -329,11 +339,11 @@ namespace Pisces.Tests.FunctionalTests
                 GenomePaths = new[] { genomeDirectory },
                 OutputBiasFiles = true,
                 DebugMode = false,
-                BamFilterParameters = new Domain.Options.BamFilterParameters(),
-                VariantCallingParameters = new Domain.Options.VariantCallingParameters(),
+                BamFilterParameters = new BamFilterParameters(),
+                VariantCallingParameters = new VariantCallingParameters(),
                 CallMNVs = false,
                 OutputDirectory = outDir,
-                VcfWritingParameters = new Domain.Options.VcfWritingParameters()
+                VcfWritingParameters = new VcfWritingParameters()
                 {
                     OutputGvcfFile = false,
                 }
@@ -646,7 +656,7 @@ namespace Pisces.Tests.FunctionalTests
 
             var bp = new GenomeProcessor(factory, genomeRef);
             bp.Execute(1);
-            List<VcfVariant> coverage1000results = VcfReader.GetAllVariantsInFile(vcfFilePath);
+            var coverage1000results = AlleleReader.GetAllVariantsInFile(vcfFilePath);
 
             options = new PiscesApplicationOptions()
             {
@@ -665,11 +675,7 @@ namespace Pisces.Tests.FunctionalTests
             factory = new Factory(options);
             bp = new GenomeProcessor(factory, genomeRef);
             bp.Execute(1);
-            List<VcfVariant> coverage10results = VcfReader.GetAllVariantsInFile(vcfFilePath);
-
-            // Assert.NotEqual(coverage1000results.Count, coverage10results.Count);
-            // Assert.Equal(coverage1000results.Count, 84);
-            // Assert.Equal(coverage10results.Count, 100);
+            var coverage10results = AlleleReader.GetAllVariantsInFile(vcfFilePath);
         }
 
         [Fact]
@@ -693,13 +699,13 @@ namespace Pisces.Tests.FunctionalTests
                 MaxSizeMNV = 100,
                 MaxGapBetweenMNV = 10,
                 NoiseModelHalfWindow = 1,
-                BamFilterParameters = new Domain.Options.BamFilterParameters()
+                BamFilterParameters = new BamFilterParameters()
                 {
                     MinimumBaseCallQuality = 20,
                     MinimumMapQuality = 1,
                     OnlyUseProperPairs = false,
                 },
-                VariantCallingParameters = new Domain.Options.VariantCallingParameters()
+                VariantCallingParameters = new VariantCallingParameters()
                 {
                     MaximumVariantQScore = 100,
                     MinimumVariantQScoreFilter = 30,
@@ -710,6 +716,7 @@ namespace Pisces.Tests.FunctionalTests
                     ForcedNoiseLevel = -1,
                     NoiseModel = NoiseModel.Flat,
                     StrandBiasModel = StrandBiasModel.Extended,
+                    AmpliconBiasFilterThreshold = 0.01F
                 },
                 VcfWritingParameters = new Domain.Options.VcfWritingParameters()
                 {
@@ -743,21 +750,18 @@ namespace Pisces.Tests.FunctionalTests
 
             functionalTestRunner.Execute(bamFilePath, Path.ChangeExtension(bamFilePath, "genome.vcf"), null, expectedAlleles, mockChrRef, applicationOptions: appOptions);
             var truthvcfFilePath = Path.Combine(Path.GetDirectoryName(appOptions.BAMPaths[0]), "test_truth.stitched.genome.vcf");
-            var stitchedCollapsedTruth = VcfReader.GetAllVariantsInFile(truthvcfFilePath);
-            var stitchedCollapsedResults =  VcfReader.GetAllVariantsInFile(Path.ChangeExtension(bamFilePath, "genome.vcf"));
+            var stitchedCollapsedTruth = AlleleReader.GetAllVariantsInFile(truthvcfFilePath);
+            var resultFilePath = Path.ChangeExtension(bamFilePath, "genome.vcf");
+            var stitchedCollapsedResults = AlleleReader.GetAllVariantsInFile(resultFilePath);
 
-            foreach (var variantTruth in stitchedCollapsedTruth)
-            {
-                var variantActual= stitchedCollapsedResults.First(x => x.ReferencePosition == variantTruth.ReferencePosition);
-                Assert.NotNull(variantActual);
-                Assert.Equal(variantTruth.Genotypes[0]["US"], variantActual.Genotypes[0]["US"]);
-            }
+            TestUtilities.TestHelper.CompareFiles(truthvcfFilePath, resultFilePath);
+
         }
 
         private void CompareVariants(string expectedResultsFilePath, string actualResultsFilePath)
         {
-            List<VcfVariant> results = VcfReader.GetAllVariantsInFile(actualResultsFilePath);
-            List<VcfVariant> expected = VcfReader.GetAllVariantsInFile(expectedResultsFilePath);
+            List<CalledAllele> results = AlleleReader.GetAllVariantsInFile(actualResultsFilePath);
+            List<CalledAllele> expected = AlleleReader.GetAllVariantsInFile(expectedResultsFilePath);
 
             Assert.Equal(results.Count, expected.Count);
 
@@ -772,11 +776,11 @@ namespace Pisces.Tests.FunctionalTests
     {
         public string GenomeDirectory { get; set; }
         public string OutputDirectory { get; set; }
-        public static void CheckVariants(List<VcfVariant> calledAlleles, List<CalledAllele> expectedVariants)
+        public static void CheckVariants(List<CalledAllele> calledAlleles, List<CalledAllele> expectedAlleles)
         {
-            Assert.Equal(expectedVariants.Count(), calledAlleles.Count());
+            Assert.Equal(expectedAlleles.Count(), calledAlleles.Count());
 
-            foreach (var calledSomaticVariant in expectedVariants)
+            foreach (var calledSomaticVariant in expectedAlleles)
             {
                 Console.WriteLine("Looking for:");
                 Console.WriteLine(calledSomaticVariant.Chromosome + " " + calledSomaticVariant.ReferencePosition + " " +
@@ -784,26 +788,26 @@ namespace Pisces.Tests.FunctionalTests
             }
 
             Console.WriteLine("Found:");
-            foreach (var expectedVariant in expectedVariants)
+            foreach (var expectedVariant in expectedAlleles)
             {
                 var foundVariants = calledAlleles.FindAll(v => v.ReferencePosition == expectedVariant.ReferencePosition && v.ReferenceAllele == expectedVariant.ReferenceAllele);
 
                 var firstFound = foundVariants[0];
                 foreach (var variant in foundVariants)
                 {
-                    Console.WriteLine(variant.ReferenceName + " " + variant.ReferencePosition + " " +
-                                      variant.ReferenceAllele + ">" + variant.VariantAlleles[0]);
+                    Console.WriteLine(variant.Chromosome + " " + variant.ReferencePosition + " " +
+                                      variant.ReferenceAllele + ">" + variant.AlternateAllele);
                 }
 
-                var matchVars = foundVariants.FindAll(v => v.VariantAlleles[0] == expectedVariant.AlternateAllele);
+                var matchVars = foundVariants.FindAll(v => v.AlternateAllele == expectedVariant.AlternateAllele);
                 Assert.Equal(matchVars.Count, 1); //shoud only ever be exactly 1 match.
 
                 var matchVar = matchVars.First();
                 if (matchVar != null)
                 {
                     Assert.Equal(matchVar.ReferenceAllele, expectedVariant.ReferenceAllele);
-                    Assert.Equal(matchVar.VariantAlleles[0], expectedVariant.AlternateAllele);
-                    Assert.Equal(matchVar.ReferenceName, expectedVariant.Chromosome);
+                    Assert.Equal(matchVar.AlternateAllele, expectedVariant.AlternateAllele);
+                    Assert.Equal(matchVar.Chromosome, expectedVariant.Chromosome);
                 }
 
             }
@@ -883,8 +887,8 @@ namespace Pisces.Tests.FunctionalTests
                 processor.Execute(1);
             }
 
-            var alleles = VcfReader.GetAllVariantsInFile(vcfFilePath);
-            var variantCalls = alleles.Where(a => a.VariantAlleles[0] != ".").ToList();
+            var alleles = AlleleReader.GetAllVariantsInFile(vcfFilePath);
+            var variantCalls = alleles.Where(a => !a.IsRefType).ToList();
 
             if (doCheckVariants)
             {
@@ -900,7 +904,7 @@ namespace Pisces.Tests.FunctionalTests
 
             if (doCheckReferences)
             {
-                var referenceAlleles = alleles.Where(a => a.VariantAlleles[0] == ".").ToList();
+                var referenceAlleles = alleles.Where(a => a.IsRefType).ToList();
 
                 // make sure no reference calls at variant positions
                 Assert.Equal(referenceAlleles.Count(),
