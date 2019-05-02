@@ -1,0 +1,28 @@
+##fileformat=VCFv4.1
+##fileDate=20180827
+##source=Pisces 5.2.6.30
+##Pisces_cmdline=""
+##reference=
+##ALT=<ID=<M>,Description="There is an overlapping other allele that has been called in a separate VCF record">
+##INFO=<ID=DP,Number=1,Type=Integer,Description="Total Depth">
+##FILTER=<ID=LowDP,Description="Low coverage (DP tag), therefore no genotype called. Note different depth thresholds for variant and reference calls.">
+##FILTER=<ID=Blacklist,Description="Variant overlaps a region in the blacklist BED file">
+##FILTER=<ID=LowSupport,Description="Variant is supported by too few fragments">
+##FILTER=<ID=LowVarSupport,Description="Variant is supported by too few reads">
+##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">
+##FORMAT=<ID=GQ,Number=1,Type=Integer,Description="Genotype Quality">
+##FORMAT=<ID=AD,Number=.,Type=Integer,Description="Allele Depth">
+##FORMAT=<ID=DP,Number=1,Type=Integer,Description="Total Depth Used For Variant Calling">
+##FORMAT=<ID=VF,Number=.,Type=Float,Description="Variant Frequency">
+##FORMAT=<ID=NL,Number=1,Type=Integer,Description="Applied BaseCall Noise Level">
+##FORMAT=<ID=SB,Number=1,Type=Float,Description="StrandBias Score">
+##FORMAT=<ID=NC,Number=1,Type=Float,Description="Fraction of bases which were uncalled or with basecall quality below the minimum threshold">
+##FORMAT=<ID=US,Number=.,Type=Integer,Description="Supporting read type counts">
+##FORMAT=<ID=AQ,Number=1,Type=Float,Description="Variant artifact adjusted quality score">
+##FORMAT=<ID=LQ,Number=1,Type=Float,Description="Likelihood ratio quality score">
+##contig=<ID=chr22,length=51304566>
+##contig=<ID=chrX,length=155270560>
+#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	s1700-pt2-33.stitched.bam
+chr1	1	.	A	G,T	66	PASS	DP=364	GT:GQ:AD:DP:VF:NL:SB:NC:US	1/2:100:185,68:364:0.258:20:-100.0000:0.0000:0,0,0,0,0,0,1,1,0,0,0,2
+chr22	1230237	.	GTC	G,GTCT	50	DP=1370	GT:GQ:AD:DP:VF:NL:SB:NC:US	1/2:100:185,68:364:0.258:20:-100.0000:0.0000:0,0,0,0,0,0,1,1,0,0,0,2
+chrX	79	.	CG	GTG,AA	50	DP=1370	GT:GQ:AD:DP:VF:NL:SB:NC:US	1/2:100:185,68:364:0.258:20:-100.0000:0.0000:0,0,0,0,0,0,1,1,0,0,0,2

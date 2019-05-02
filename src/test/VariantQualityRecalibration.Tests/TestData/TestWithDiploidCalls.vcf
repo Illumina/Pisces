@@ -1,0 +1,87 @@
+##fileformat=VCFv4.1
+##fileDate=20181031
+##source=Pisces 666.9.0.0
+##Pisces_cmdline=""-Ploidy diploid -bam ./Out/8023-17Untrimmed_S1.pairRealigned.bam -g /illumina/development/Isis/Genomes/Homo_sapiens/UCSC/hg19/Sequence/WholeGenomeFasta/""
+##reference=/illumina/development/Isis/Genomes/Homo_sapiens/UCSC/hg19/Sequence/WholeGenomeFasta/
+##ALT=<ID=<M>,Description="There is an overlapping other allele that has been called in a separate VCF record">
+##INFO=<ID=DP,Number=1,Type=Integer,Description="Total Depth">
+##FILTER=<ID=q30,Description="Quality score less than 30">
+##FILTER=<ID=LowDP,Description="Low coverage (DP tag), therefore no genotype called">
+##FILTER=<ID=SB,Description="Variant strand bias too high">
+##FILTER=<ID=MultiAllelicSite,Description="Variant does not conform to diploid model">
+##FILTER=<ID=R5x9,Description="Repeats of part or all of the variant allele (max repeat length 5) in the reference greater than or equal to 9">
+##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">
+##FORMAT=<ID=GQ,Number=1,Type=Integer,Description="Genotype Quality">
+##FORMAT=<ID=AD,Number=.,Type=Integer,Description="Allele Depth">
+##FORMAT=<ID=DP,Number=1,Type=Integer,Description="Total Depth Used For Variant Calling">
+##FORMAT=<ID=VF,Number=.,Type=Float,Description="Variant Frequency">
+##FORMAT=<ID=NL,Number=1,Type=Integer,Description="Applied BaseCall Noise Level">
+##FORMAT=<ID=SB,Number=1,Type=Float,Description="StrandBias Score">
+##contig=<ID=chrM,length=16571>
+##contig=<ID=chr1,length=249250621>
+##contig=<ID=chr2,length=243199373>
+##contig=<ID=chr3,length=198022430>
+##contig=<ID=chr4,length=191154276>
+##contig=<ID=chr5,length=180915260>
+##contig=<ID=chr6,length=171115067>
+##contig=<ID=chr7,length=159138663>
+##contig=<ID=chr8,length=146364022>
+##contig=<ID=chr9,length=141213431>
+##contig=<ID=chr10,length=135534747>
+##contig=<ID=chr11,length=135006516>
+##contig=<ID=chr12,length=133851895>
+##contig=<ID=chr13,length=115169878>
+##contig=<ID=chr14,length=107349540>
+##contig=<ID=chr15,length=102531392>
+##contig=<ID=chr16,length=90354753>
+##contig=<ID=chr17,length=81195210>
+##contig=<ID=chr18,length=78077248>
+##contig=<ID=chr19,length=59128983>
+##contig=<ID=chr20,length=63025520>
+##contig=<ID=chr21,length=48129895>
+##contig=<ID=chr22,length=51304566>
+##contig=<ID=chrX,length=155270560>
+##contig=<ID=chrY,length=59373566>
+#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	8023-17Untrimmed_S1.pairRealigned.bam
+chr1	9770498	.	G	.	100	LowDP	DP=3	GT:GQ:AD:DP:VF:NL:SB:NC:US	./.:0:3:3:0.00000:65:-100.0000:0.0000:0,0,0,0,0,0,1,1,0,0,0,2
+chr4	169663545	.	G	.	20	LowDP;q30	DP=1	GT:GQ:AD:DP:VF:NL:SB:NC:US	./.:0:1:1:0.000:20:-100.0000:0.1200:0,0,0,2,0,0,0,1,0,0,0,2
+chr4	169663546	.	A	.	20	LowDP;q30	DP=1	GT:GQ:AD:DP:VF:NL:SB:NC:US	./.:0:1:1:0.000:20:-100.0000:0.0001:0,0,0,0,0,0,0,1,0,0,0,2
+chr4	169663547	.	A	.	82	LowDP	DP=6	GT:GQ:AD:DP:VF:NL:SB:NC:US	./.:0:5:6:0.167:20:-100.0000:0.4200:0,0,0,0,0,0,0,1,0,0,0,2
+chr4	169663548	.	T	G,TCGGCAGCGTCAGATGTGTATAAGAGACAG	66	PASS	DP=13	GT:GQ:AD:DP:VF:NL:SB:NC:US	1/2:6:5,7:13:0.923:20:-100.0000:0.0000:0,0,0,0,0,0,0,1,0,0,0,2
+chr4	169663549	.	A	.	100	PASS	DP=21	GT:GQ:AD:DP:VF:NL:SB:NC:US	0/0:42:21:21:0.000:20:-100.0000:0.0000:0,0,0,0,0,0,0,1,0,0,0,2
+chr4	169663550	.	A	.	100	PASS	DP=22	GT:GQ:AD:DP:VF:NL:SB:NC:US	0/0:44:22:22:0.000:20:-100.0000:0.0000:0,0,0,0,0,0,0,1,0,0,0,2
+chr4	169663551	.	G	.	100	PASS	DP=22	GT:GQ:AD:DP:VF:NL:SB:NC:US	0/0:44:22:22:0.000:20:-100.0000:0.0000:0,0,0,0,0,0,0,1,0,0,0,2
+chr4	169663552	.	T	.	100	PASS	DP=22	GT:GQ:AD:DP:VF:NL:SB:NC:US	0/0:44:22:22:0.000:20:-100.0000:0.0000:0,0,0,0,0,0,0,1,0,0,0,2
+chr4	169663556	.	T	.	100	PASS	DP=23	GT:GQ:AD:DP:VF:NL:SB:NC:US	0/0:34:22:23:0.043:20:-100.0000:0.0000:0,0,0,0,0,0,0,1,0,0,0,2
+chr4	169663557	.	T	.	100	PASS	DP=23	GT:GQ:AD:DP:VF:NL:SB:NC:US	0/0:34:22:23:0.043:20:-100.0000:0.0000:0,0,0,0,0,0,0,1,0,0,0,2
+chr4	169663558	.	T	TGGTGAGTCGTCGGCAGCGTCAGATGTGTATAAGAGACAG	100	PASS	DP=71	GT:GQ:AD:DP:VF:NL:SB:NC:US	0/1:32:25,46:71:0.648:20:-10.1946:0.0000:0,0,0,0,0,0,0,1,0,0,0,2
+chr4	169663559	.	G	.	100	PASS	DP=238	GT:GQ:AD:DP:VF:NL:SB:NC:US	0/0:100:238:238:0.000:20:-100.0000:0.0000:0,0,0,0,0,0,0,1,0,0,0,2
+chr4	169663560	.	A	.	100	PASS	DP=236	GT:GQ:AD:DP:VF:NL:SB	0/0:100:235:236:0.004:20:-100.0000
+chr4	169663613	.	A	.	100	PASS	DP=239	GT:GQ:AD:DP:VF:NL:SB	0/0:100:239:239:0.000:20:-100.0000
+chr4	169663614	.	G	.	100	PASS	DP=240	GT:GQ:AD:DP:VF:NL:SB	0/0:100:240:240:0.000:20:-100.0000
+chr4	169663615	.	C	G	100	PASS	DP=238	GT:GQ:AD:DP:VF:NL:SB	0/1:100:120,118:238:0.496:20:-100.0000
+chr4	169663616	.	G	.	100	PASS	DP=240	GT:GQ:AD:DP:VF:NL:SB	0/0:100:240:240:0.000:20:-100.0000
+chr4	169663617	.	T	.	100	PASS	DP=239	GT:GQ:AD:DP:VF:NL:SB	0/0:100:239:239:0.000:20:-100.0000
+chr4	169663665	.	T	.	100	PASS	DP=241	GT:GQ:AD:DP:VF:NL:SB	0/0:100:241:241:0.000:20:-100.0000
+chr4	169663666	.	G	.	100	PASS	DP=240	GT:GQ:AD:DP:VF:NL:SB	0/0:100:240:240:0.000:20:-100.0000
+chr4	169663667	.	G	.	100	PASS	DP=239	GT:GQ:AD:DP:VF:NL:SB	0/0:100:239:239:0.000:20:-100.0000
+chr4	169663668	.	C	.	100	PASS	DP=238	GT:GQ:AD:DP:VF:NL:SB	0/0:100:238:238:0.000:20:-100.0000
+chr4	169663669	.	T	TCTGTCTCTTATACACATCTCCGAGCCCACG,TCTGTCTCTTATACACATCTGACGCTGCCGACGACTCACC	100	PASS	DP=128	GT:GQ:AD:DP:VF:NL:SB	1/2:100:55,73:128:1.000:20:-15.2723
+chr4	169663670	.	A	.	100	PASS	DP=131	GT:GQ:AD:DP:VF:NL:SB	0/0:100:131:131:0.000:20:-53.5655
+chr4	169663671	.	G	.	100	PASS	DP=56	GT:GQ:AD:DP:VF:NL:SB	0/0:100:56:56:0.000:20:-53.5655
+chr4	169663672	.	A	ACT	100	PASS	DP=56	GT:GQ:AD:DP:VF:NL:SB	1/1:100:6,50:56:0.893:20:-15.2723
+chr4	169663673	.	A	T	100	PASS	DP=56	GT:GQ:AD:DP:VF:NL:SB	1/1:100:6,50:56:0.893:20:-15.2723
+chr4	169663674	.	G	.	100	PASS	DP=56	GT:GQ:AD:DP:VF:NL:SB	0/0:100:56:56:0.000:20:-53.5655
+chr4	169663675	.	G	.	100	PASS	DP=55	GT:GQ:AD:DP:VF:NL:SB	0/0:100:55:55:0.000:20:-53.5655
+chr4	169663676	.	T	A	100	PASS	DP=55	GT:GQ:AD:DP:VF:NL:SB	1/1:100:6,49:55:0.891:20:-15.2723
+chr4	169663677	.	C	.	100	PASS	DP=55	GT:GQ:AD:DP:VF:NL:SB	0/0:100:55:55:0.000:20:-53.5655
+chr4	169663678	.	A	.	100	LowDP	DP=6	GT:GQ:AD:DP:VF:NL:SB	./.:0:6:6:0.000:20:-53.5655
+chr15	91290721	.	G	T	0	q20;SB;LowVariantFreq;ForcedReport	DP=122	GT:GQ:AD:DP:VF	0/0:100:122,0:122:0.000
+chr15	91306293	.	T	.	100	PASS	DP=352	GT:GQ:AD:DP:VF	0/0:100:352:352:0.000
+chr15	91306293	.	TAA	T	0	q20;SB;LowVariantFreq;ForcedReport	DP=352	GT:GQ:AD:DP:VF	0/0:100:352,0:352:0.000
+chr15	91306294	.	A	.	100	PASS	DP=352	GT:GQ:AD:DP:VF	0/0:100:348:352:0.011
+chr15	91306295	.	A	.	100	PASS	DP=352	GT:GQ:AD:DP:VF	0/0:100:346:352:0.017
+chr15	91310151	.	A	AT	34	PASS	DP=34	GT:GQ:AD:DP:VF	0/1:10:25,9:34:0.265
+chr15	91310151	.	ATATCTGA	ATTAGATTC,<M>	0	q20;SB;LowVariantFreq;ForcedReport	DP=34	GT:GQ:AD:DP:VF	2/2:10:34,0,0:34:0.000
+chr15	91310152	.	T	.	100	PASS	DP=34	GT:GQ:AD:DP:VF	0/0:68:34:34:0.000
+chr15	91310153	.	A	.	100	PASS	DP=34	GT:GQ:AD:DP:VF	0/0:68:34:34:0.000

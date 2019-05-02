@@ -1,0 +1,24 @@
+
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+	<PropertyGroup>
+		<WorkingFolder>$(MSBuildProjectDirectory)</WorkingFolder>
+	</PropertyGroup>
+	<UsingTask AssemblyFile="C:\xunit\xunit.runner.msbuild.dll" TaskName="Xunit.Runner.MSBuild.xunit"/>
+	<ItemGroup>
+	</ItemGroup>
+	<Target Name="Build">
+		<MSBuild Projects="Pisces.sln" Targets="Build" Properties="Configuration=Release;Platform=x64" />
+
+		<Exec Command="zip.exe -r Pisces src\exe\Pisces\bin\x64\Release" />
+	        <Exec Command="zip.exe -r Hygea src\exe\Hygea\bin\x64\Release" />
+	        <Exec Command="zip.exe -r Psara src\exe\Psara\bin\x64\Release" />
+		<Exec Command="zip.exe -r Scylla src\exe\Scylla\bin\x64\Release" />
+		<Exec Command="zip.exe -r VariantQualityRecalibration src\exe\VariantQualityRecalibration\bin\x64\Release" />
+		<Exec Command="zip.exe -r Stitcher src\exe\Stitcher\bin\x64\Release" />
+		<Exec Command="zip.exe -r VennVcf src\exe\VennVcf\bin\x64\Release" />
+		<exec command="$(agent_home_dir)\tools\dotCover\dotCover.exe cover dotcover.xml /TargetWorkingDir=$(WorkingFolder) /Output=$(WorkingFolder)\coverage.xml" />
+		 
+		<Message Text="##teamcity[importData type='dotNetCoverage' tool='dotcover' path='$(WorkingFolder)\coverage.xml']" />
+
+	</Target>
+</Project>
