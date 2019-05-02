@@ -113,7 +113,7 @@ namespace Pisces.Genotyping
             }
         }
 
-        public MixtureModel(IList<int> k, IList<int> n, double[] means, double[] priors)
+        private MixtureModel(IList<int> k, IList<int> n, double[] means, double[] priors)
         {
             Means = means;
             Array.Sort(Means);
@@ -214,7 +214,7 @@ namespace Pisces.Genotyping
                 MixtureWeights[k] = nUnscaled[k] / AlleleDepths.Count;
         }
 
-        public void UpdateClusteringAndQScore()
+        private void UpdateClusteringAndQScore()
         {
             // Update clustering
             Array.Clear(ClusterCounts, 0, ClusterCounts.Length);
