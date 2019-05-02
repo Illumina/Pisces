@@ -42,7 +42,7 @@ namespace Pisces.Genotyping
 
         private static MixtureModelResult FitModelAndUpdate(int ad, int dp, double[] model, double[] priors)
         {
-            MixtureModel mm = new MixtureModel(new List<int> { ad },
+            MixtureModel mm = new Pisces.Genotyping.MixtureModel(new List<int> { ad },
                                    new List<int> { dp },
                                    model, priors);
 
