@@ -677,7 +677,13 @@ namespace Pisces.IO.Tests.UnitTests
             //*.vcf text
             //.fa text eol = crlf
 
-            Assert.Equal(vr.Position(), 1452);
+            if (vr.Position() == 1428)
+            {
+                Console.WriteLine("This isn't critical, but you might want to change your line endings convention. ");
+                Console.WriteLine("This project was developed with \\CR\\LF , not \\LF convention.");
+            }
+            else
+                Assert.Equal(1452, vr.Position());
 
             var resultStringArray = new string[] { };
             resultVariant = new CalledAllele();
