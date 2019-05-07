@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
 using Alignment.IO.Sequencing;
 using CommandLine.Application;
 using CommandLine.Util;
@@ -38,7 +39,7 @@ namespace GeminiMulti
         {
             var optionsUsed = _appOptionParser.ParsingResult.OptionsUsed;
 
-            var doNotPassToSubprocess = new List<string>() { "outFolder", "numProcesses", "exePath" };
+            var doNotPassToSubprocess = new List<string>() { "outFolder", "numProcesses", "exePath", "intermediateDir", "multiprocess", "chromosomes" };
 
             var cmdLineList = MultiProcessHelpers.GetCommandLineWithoutIgnoredArguments(optionsUsed, doNotPassToSubprocess);
 
@@ -49,6 +50,10 @@ namespace GeminiMulti
                 var chroms = bamReader.GetReferenceNames();
                 foreach (var referenceName in chroms)
                 {
+                    if (_options.Chromosomes != null && !_options.Chromosomes.ToList().Contains(referenceName))
+                    {
+                        continue;
+                    }
                     refNameMapping.Add(referenceName, bamReader.GetReferenceIndex(referenceName));
                 }
             }

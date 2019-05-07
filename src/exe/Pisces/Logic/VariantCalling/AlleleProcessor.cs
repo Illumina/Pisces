@@ -14,15 +14,16 @@ namespace Pisces.Logic.VariantCalling
         private const int FlankingBaseCount = 50;
 
         public static void Process(CalledAllele allele, 
-            float minFrequency, int? lowDepthFilter, int? filterVariantQscore, bool filterSingleStrandVariants, float? variantFreqFilter, float? lowGqFilter, int? indelRepeatFilter, RMxNFilterSettings rMxNFilterSettings, float? noCallFilter, ChrReference chrReference, bool isStitchedSource = false)
+            float minFrequency, int? lowDepthFilter, int? filterVariantQscore, bool filterSingleStrandVariants, float? variantFreqFilter, float? lowGqFilter, int? indelRepeatFilter, 
+            RMxNFilterSettings rMxNFilterSettings, float? noCallFilter, float? ampliconBiasFilter, ChrReference chrReference, bool isStitchedSource = false)
         {
             allele.SetFractionNoCalls();
-            ApplyFilters(allele, lowDepthFilter, filterVariantQscore, filterSingleStrandVariants, variantFreqFilter, lowGqFilter, indelRepeatFilter, rMxNFilterSettings, noCallFilter, isStitchedSource, chrReference);
+            ApplyFilters(allele, lowDepthFilter, filterVariantQscore, filterSingleStrandVariants, variantFreqFilter, lowGqFilter, indelRepeatFilter, rMxNFilterSettings, noCallFilter, ampliconBiasFilter, isStitchedSource, chrReference);
         }
 
        
         private static void ApplyFilters(CalledAllele allele, int? minCoverageFilter, int? variantQscoreThreshold, bool filterSingleStrandVariants, float? variantFreqFilter, float? lowGenotypeqFilter, int? indelRepeatFilter,
-            RMxNFilterSettings rMxNFilterSettings, float? noCallFilter, bool hasStitchedSource, ChrReference chrReference)
+            RMxNFilterSettings rMxNFilterSettings, float? noCallFilter, float? ampliconBiasFilter, bool hasStitchedSource, ChrReference chrReference)
         {
             //Reset filters
             allele.Filters.Clear();
@@ -44,6 +45,9 @@ namespace Pisces.Logic.VariantCalling
                 if (!allele.StrandBiasResults.BiasAcceptable ||
                 (filterSingleStrandVariants && !allele.StrandBiasResults.VarPresentOnBothStrands))
                     allele.AddFilter(FilterType.StrandBias);
+
+                if (allele.AmpliconBiasResults != null && allele.AmpliconBiasResults.BiasDetected && ampliconBiasFilter.HasValue)
+                    allele.AddFilter(FilterType.AmpliconBias);
 
                 if (indelRepeatFilter.HasValue && indelRepeatFilter > 0)
                 {

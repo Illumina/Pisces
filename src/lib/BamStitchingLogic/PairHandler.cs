@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using Alignment.Domain;
 using Alignment.Domain.Sequencing;
 using Alignment.IO;
@@ -13,7 +14,7 @@ namespace BamStitchingLogic
     {
         public static BamAlignment StitchifyBamAlignment(ReadPair pair, Read read, char read1dir, char read2dir)
         {
-            var alignment = new BamAlignment(read.BamAlignment);
+            var alignment = read.BamAlignment;
 
             alignment.SetIsFirstMate(false);
             alignment.SetIsProperPair(false);
@@ -44,7 +45,7 @@ namespace BamStitchingLogic
                     tagUtils.AddIntTag("XW", xw.Value);
             }
 
-            var xr = string.Format("{0}{1}", read1dir, read2dir);
+            var xr = string.Concat(read1dir, read2dir);
             tagUtils.AddStringTag("XR", xr);
             var tagData = tagUtils.ToBytes();
 
@@ -62,18 +63,13 @@ namespace BamStitchingLogic
         private readonly Dictionary<int, string> _refIdMapping;
         private readonly IAlignmentStitcher _stitcher;
         private readonly bool _filterUnstitchablePairs;
-        private readonly ReadStatusCounter _masterStatusCounter;
-        private readonly ReadStatusCounter _statusCounter;
         private readonly bool _tryStitch;
 
-        public PairHandler(Dictionary<int, string> refIdMapping, IAlignmentStitcher stitcher, ReadStatusCounter statusCounter, bool filterUnstitchablePairs = false, bool tryStitch = true)
+        public PairHandler(Dictionary<int, string> refIdMapping, IAlignmentStitcher stitcher, bool filterUnstitchablePairs = false, bool tryStitch = true)
         {
             _refIdMapping = refIdMapping;
             _stitcher = stitcher;
             _filterUnstitchablePairs = filterUnstitchablePairs;
-            _masterStatusCounter = statusCounter;
-            _statusCounter = new ReadStatusCounter();
-            _stitcher.SetStatusCounter(_statusCounter);
             _tryStitch = tryStitch;
         }
 
@@ -100,14 +96,15 @@ namespace BamStitchingLogic
                 read2dir = pair.Read1.IsReverseStrand() ? Reverse : Forward;
             }
 
-            bool stitched = false;
+            //bool stitched = false;
+            var stitched = new StitchingResult(false, 0, 0, 0);
 
             if (_tryStitch)
             {
                 stitched = _stitcher.TryStitch(alignmentSet);
             }
 
-            if (stitched)
+            if (stitched.Stitched)
             {
                 //_statusCounter.AddStatusCount("Stitched");
                 if (alignmentSet.ReadsForProcessing.Count > 1)
@@ -125,13 +122,12 @@ namespace BamStitchingLogic
             {
                 if (!_filterUnstitchablePairs)
                 {
-                    //_statusCounter.AddStatusCount("Unstitchable Pairs Kept");
-                    reads.Add(new BamAlignment(alignmentSet.PartnerRead1.BamAlignment));
-                    reads.Add(new BamAlignment(alignmentSet.PartnerRead2.BamAlignment));
+                    reads.Add(alignmentSet.PartnerRead1.BamAlignment);
+                    reads.Add(alignmentSet.PartnerRead2.BamAlignment);
                 }
                 else
                 {
-                    _statusCounter.AddStatusCount("Unstitchable Pairs Filtered");
+                    // Return nothing   
                 }
             }
 
@@ -140,7 +136,7 @@ namespace BamStitchingLogic
 
         public void Finish()
         {
-            _masterStatusCounter.Merge(_statusCounter);
+            // Nothing to do here
         }
     }
 }

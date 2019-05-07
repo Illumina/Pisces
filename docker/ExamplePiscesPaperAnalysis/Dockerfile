@@ -1,3 +1,11 @@
+ #jFROM microsoft/dotnet:2.1-sdk AS pisces_build
+#
+#COPY --from=happy_build /opt /opt
+#
+#jWORKDIR /app
+#
+##get source
+#
 
 FROM ubuntu:16.04 AS happy_build
 
@@ -47,7 +55,7 @@ RUN wget http://archive.apache.org/dist/ant/binaries/apache-ant-1.9.7-bin.tar.gz
     rm apache-ant-1.9.7-bin.tar.gz
 ENV PATH $PATH:/opt/apache-ant-1.9.7/bin
 
-# run hap.py installer in the image, don't run tests 
+# run hap.py installer in the image, don't run tests since we don't have a reference file
 WORKDIR /opt/hap.py-source
 RUN python install.py /opt/hap.py --with-rtgtools --no-tests
 

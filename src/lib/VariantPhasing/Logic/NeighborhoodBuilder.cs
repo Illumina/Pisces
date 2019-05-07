@@ -15,7 +15,7 @@ namespace VariantPhasing.Logic
 {
     public class NeighborhoodBuilder : INeighborhoodBuilder
     {
-        private readonly IVcfVariantSource _vcfVariantSource;
+        private readonly IAlleleSource _vcfVariantSource;
         private readonly Genome _genome;
         private readonly int _maxNumNbhdsInBatch;
         private readonly List<VcfNeighborhood> _nextBatchOfVcfNeighborhoods;
@@ -31,7 +31,7 @@ namespace VariantPhasing.Logic
         public bool GenomeIsSet => ( _genome != null) ;
 
         public NeighborhoodBuilder(PhasableVariantCriteria phasableVariantCriteria, VariantCallingParameters variantCallingParams, 
-            IVcfVariantSource vcfVariantSource, Genome genome, int batchSize)
+            IAlleleSource vcfVariantSource, Genome genome, int batchSize)
         {
 
             _variantCallingParams = variantCallingParams;
@@ -52,25 +52,21 @@ namespace VariantPhasing.Logic
             };
         }
 
-        public IEnumerable<CallableNeighborhood> GetBatchOfCallableNeighborhoods(int numNbhdsSoFar)
+        public IEnumerable<CallableNeighborhood> GetBatchOfCallableNeighborhoods(int numNbhdsSoFar, out int rawNumNeighborhoods)
         {
-
             _nextBatchOfVcfNeighborhoods.Clear();
             _nextBatchOfVcfNeighborhoods.AddRange(_unfinshedNeighborhoods);
             _unfinshedNeighborhoods.Clear();
 
             bool keepAddingNbhdsToTheBatch = true;
-
             while (keepAddingNbhdsToTheBatch)
             {
-                keepAddingNbhdsToTheBatch = _vcfVariantSource.GetNextVariant(_tempRawVcfVariant);
+                var allelesUnpackedFromVcfVariant = new List<CalledAllele>();
+                keepAddingNbhdsToTheBatch = _vcfVariantSource.GetNextVariants(out allelesUnpackedFromVcfVariant);
 
-                //only loose _tempRawVcfVariant if it was null. We are done with the file.
+                //only loose allelesUnpackedFromVcfVariant if it was null/empty. We are done with the file.
                 if (!keepAddingNbhdsToTheBatch)
                     break;
-
-                var allelesUnpackedFromVcfVariant = VcfVariantUtilities.Convert(new List<VcfVariant> { _tempRawVcfVariant });
-               
 
                 foreach (var currentAllele in allelesUnpackedFromVcfVariant)
                 {
@@ -81,6 +77,7 @@ namespace VariantPhasing.Logic
                     var refBase = currentVariantSite.VcfReferenceAllele.Substring(0, 1);
 
                     //append the next base, unless we have a repeated variant.
+                    // GB question - doesn't this assume gvcf?
                     if (currentVariantSite.VcfReferencePosition != _lastVariantSite.VcfReferencePosition)
                         _referenceStringBetweenVariants += refBase;
 
@@ -98,10 +95,10 @@ namespace VariantPhasing.Logic
                         _referenceStringBetweenVariants = "";
 
                     _lastVariantSite = currentVariantSite;
-
                 }
             }
 
+            rawNumNeighborhoods = _nextBatchOfVcfNeighborhoods.Count();
             var callableNeighborhoods = ConvertToCallableNeighborhoods(_nextBatchOfVcfNeighborhoods);
 
             return callableNeighborhoods;
@@ -117,10 +114,7 @@ namespace VariantPhasing.Logic
 
             ChrReference chrReference = null;
             var currentChr = neighborhoods[0].ReferenceName;
-            var haveRefForChr = false;
-
-            //TODO: add more tests around this
-
+            
             //note, GetChrReference will return null if the sequence doesnt exist
             if (GenomeIsSet)
             {
@@ -130,6 +124,13 @@ namespace VariantPhasing.Logic
             //defensively fix any ordering issues that might have come in from the vcf
             foreach (var nbhd in neighborhoods)
             {
+                // TODO consider a more nuanced cutoff for this. Should it be based on a proportion? Max number of non-passing allowed? 
+                // If the neighborhood doesn't have enough passing variants, skip it (unless the neighborhood consists only of passing variants)
+                if (nbhd.PassingVariants < _phasableVariantCriteria.MinPassingVariantsInNbhd && nbhd.NonPassingVariants > 0)
+                {
+                    continue;
+                }
+
                 //Make sure our reference it the right one. If not, update. If it doenst exist, thats fine too.
                 if ((nbhd.ReferenceName != currentChr) && (GenomeIsSet))
                 {
@@ -178,6 +179,7 @@ namespace VariantPhasing.Logic
 
             return (filters.Count() == 0);
         }
+       
 
         public static bool IsProximal(VariantSite variantSite1, VariantSite otherSite, int phasingDistance)
         {

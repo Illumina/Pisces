@@ -45,6 +45,8 @@ namespace ReadRealignmentLogic.Utlity
             return false;           
         }
 
+
+
         public static CigarAlignment SoftclipCigar(CigarAlignment rawCigar, MatchType[] mismatchMap, uint originalSoftclipPrefix,
             uint originalSoftclipSuffix, bool rescueEdgeMatches = true, bool maskNsOnly = false, int prefixNs = 0, int suffixNs = 0)
         {

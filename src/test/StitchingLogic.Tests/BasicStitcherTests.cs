@@ -32,7 +32,7 @@ namespace StitchingLogic.Tests
             var read2 = ReadTestHelper.CreateRead("chr1", "CGGCTCCCACCGAGTTCTACACCCTCGGACAGACTCTTTCCCTTGACGACGCTCTTCCTTTTTGGCTGTGCTGGTCTGTGCTGGGCTGAGCTGCATCTCTT", 2843796,
                 new CigarAlignment("63S38M"));
             var alignmentSet = new AlignmentSet(read1, read2);
-            var stitched = stitcher.TryStitch(alignmentSet);
+            var stitched = stitcher.TryStitch(alignmentSet).Stitched;
             Assert.Equal(false, stitched);
         }
 
@@ -46,7 +46,7 @@ namespace StitchingLogic.Tests
             var read2 = ReadTestHelper.CreateRead("chr1", "GCGATCTATCAGTATTAGCTCCAGCATCAGCAGCCCGAGCATCTGCAGTTCTAGCAGCAGCAGTCCCAGCAGCAGCAGTCCCAGCAGCAGCTGCCCCAGT", 14106328,
                 new CigarAlignment("52S48M"));
             var alignmentSet = new AlignmentSet(read2, read1);
-            var stitched = stitcher.TryStitch(alignmentSet);
+            var stitched = stitcher.TryStitch(alignmentSet).Stitched;
             Assert.True(stitched);
             Assert.Equal("22S78M22S", alignmentSet.ReadsForProcessing.First().CigarData.ToString());
 
@@ -64,7 +64,7 @@ namespace StitchingLogic.Tests
             var read2AsAlignerHadIt = ReadTestHelper.CreateRead("chr1", "TTTTTCTTTTTTTTTTTTTTTTTTAAAATGGGGGTAAGTTTCCCTTACCCAATGCACGGTGGGGGTGGGGCTTTTTGGGGCTGGGGGGGGAGTGGGGAAGG", 16083520,
                 new CigarAlignment("21M80S"));
             var alignmentSet = new AlignmentSet(read1, read2AsAlignerHadIt);
-            var stitched = stitcher.TryStitch(alignmentSet);
+            var stitched = stitcher.TryStitch(alignmentSet).Stitched;
             Assert.Equal(true, stitched);
             Assert.Equal(1, alignmentSet.ReadsForProcessing.Count);
             Assert.Equal("TTATTTTTTTTTTTTTTNTTTTTTTTTTTTTTTNNNANNNNGGNNNNNNNNNNNNCNNNCNNNNTNNNNGGNNGGNGNGNNNNTTNNTNNNNNTGNGNGGGGAGTGGGGAAGG", alignmentSet.ReadsForProcessing.First().BamAlignment.Bases);
@@ -77,14 +77,14 @@ namespace StitchingLogic.Tests
             // Don't stitch if num disagreements is above threshold
             stitcher = new BasicStitcher(10, useSoftclippedBases: false, nifyDisagreements: true, ignoreProbeSoftclips: true, dontStitchHomopolymerBridge: false, thresholdNumDisagreeingBases: 47);
             alignmentSet = new AlignmentSet(read1, read2AsMatches);
-            stitched = stitcher.TryStitch(alignmentSet);
+            stitched = stitcher.TryStitch(alignmentSet).Stitched;
             Assert.Equal(false, stitched);
             Assert.Equal(2, alignmentSet.ReadsForProcessing.Count);
 
             // Upper boundary - allow stitch if num disagreements is below threshold
             stitcher = new BasicStitcher(10, useSoftclippedBases: false, nifyDisagreements: true, ignoreProbeSoftclips: true, dontStitchHomopolymerBridge: false, thresholdNumDisagreeingBases: 48);
             alignmentSet = new AlignmentSet(read1, read2AsMatches);
-            stitched = stitcher.TryStitch(alignmentSet);
+            stitched = stitcher.TryStitch(alignmentSet).Stitched;
             Assert.Equal(true, stitched);
             Assert.Equal("TTATTTTTTTTTTTTTTNTTTTTTTTTTTTTTTNNNANNNNGGNNNNNNNNNNNNCNNNCNNNNTNNNNGGNNGGNGNGNNNNTTNNTNNNNNTGNGNGGGGAGTGGGGAAGG", alignmentSet.ReadsForProcessing.First().BamAlignment.Bases);
 
@@ -93,7 +93,7 @@ namespace StitchingLogic.Tests
                 new CigarAlignment("21M80S"));
             alignmentSet = new AlignmentSet(read1, read2AsItShouldHaveBeenAligned);
             stitcher = new BasicStitcher(10, useSoftclippedBases: true, nifyDisagreements: true, ignoreProbeSoftclips: true, dontStitchHomopolymerBridge: false, thresholdNumDisagreeingBases: 49);
-            stitched = stitcher.TryStitch(alignmentSet);
+            stitched = stitcher.TryStitch(alignmentSet).Stitched;
             Assert.Equal(true, stitched);
             Assert.Equal(1, alignmentSet.ReadsForProcessing.Count);
             Assert.Equal("TTATTTTTTTTTTTNTTTTTTTTTTTTTTTTTTNAAATGNNGGTANNTTTCCCTTNCCCNATNCNCGGTGGGNGNNGGGCTNTTTGNNNCTNGNGNGNGAGTGGGGAAGG", alignmentSet.ReadsForProcessing.First().BamAlignment.Bases);
@@ -567,7 +567,7 @@ namespace StitchingLogic.Tests
 
             stitcher = new BasicStitcher(10, useSoftclippedBases: true, dontStitchHomopolymerBridge: false);
             alignmentSet = new AlignmentSet(read1, read2);
-            Assert.False(stitcher.TryStitch(alignmentSet));
+            Assert.False(stitcher.TryStitch(alignmentSet).Stitched);
 
             // PICS-721 
             read1Bases =
@@ -581,12 +581,12 @@ namespace StitchingLogic.Tests
             // Not using softclips -- these don't even overlap. Big gap in between. Shouldn't stitch.
             stitcher = new BasicStitcher(10, useSoftclippedBases: false, dontStitchHomopolymerBridge: false);
             alignmentSet = new AlignmentSet(read1, read2);
-            Assert.False(stitcher.TryStitch(alignmentSet));
+            Assert.False(stitcher.TryStitch(alignmentSet).Stitched);
 
             // Using softclips -- these would overlap if we extended the softclip all the way and used that to stitch, but it shouldn't.
             stitcher = new BasicStitcher(10, useSoftclippedBases: true, dontStitchHomopolymerBridge: false);
             alignmentSet = new AlignmentSet(read1, read2);
-            Assert.False(stitcher.TryStitch(alignmentSet));
+            Assert.False(stitcher.TryStitch(alignmentSet).Stitched);
 
         }
 
@@ -894,7 +894,7 @@ namespace StitchingLogic.Tests
                     }
                     else
                     {
-                        Assert.False(stitcher.TryStitch(alignmentSet));
+                        Assert.False(stitcher.TryStitch(alignmentSet).Stitched);
                     }
 
                 //StitcherTestHelpers.TestUnstitchableReads(read1, read2, 0, null);
@@ -902,7 +902,7 @@ namespace StitchingLogic.Tests
             else
             {
                 var alignmentSet = new AlignmentSet(read1, read2);
-                var didStitch = stitcher.TryStitch(alignmentSet);
+                var didStitch = stitcher.TryStitch(alignmentSet).Stitched;
                 Assert.True(didStitch);
 
                 var mergedRead = StitcherTestHelpers.GetMergedRead(alignmentSet);
@@ -1158,11 +1158,13 @@ namespace StitchingLogic.Tests
         [Fact]
         public void TryStitch_ConsensusSequence()
         {
-            ExecuteConsensusTests(true);
-            ExecuteConsensusTests(false);
+            ExecuteConsensusTests(true, false);
+            ExecuteConsensusTests(false, false);
+            ExecuteConsensusTests(true, true);
+            ExecuteConsensusTests(false, true);
         }
 
-        private void ExecuteConsensusTests(bool nifyDisagreements)
+        private void ExecuteConsensusTests(bool nifyDisagreements, bool superSimple = false)
         {
             // 1234...   1 - - 2 3 4 5 6 - - 7 8 9 0 //Reference Positions
             // Read1     X X X X X X X X - - - - -
@@ -1175,11 +1177,16 @@ namespace StitchingLogic.Tests
             var r1qualities = 30;
             var r2qualities = 20;
 
-            var read1 = ReadTestHelper.CreateRead("chr1", "TTTTTTTT", 12341,
-                new CigarAlignment("1M2I5M"), qualityForAll: (byte)r1qualities);
+            var r1Pos = 12341;
+            var r2Pos = superSimple ? 12344 : 12342; // Match-only, so adjust so overlap is same amt
+            var r1Cigar = superSimple ? "8M" : "1M2I5M";
+            var r2Cigar = superSimple ? "8M" : "5M1I2M";
 
-            var read2 = ReadTestHelper.CreateRead("chr1", "AAAAAAAA", 12342,
-                new CigarAlignment("5M1I2M"), qualityForAll: (byte)r2qualities);
+            var read1 = ReadTestHelper.CreateRead("chr1", "TTTTTTTT", r1Pos,
+                new CigarAlignment(r1Cigar), qualityForAll: (byte)r1qualities);
+
+            var read2 = ReadTestHelper.CreateRead("chr1", "AAAAAAAA", r2Pos,
+                new CigarAlignment(r2Cigar), qualityForAll: (byte)r2qualities);
 
             var stitcher = StitcherTestHelpers.GetStitcher(10, false, nifyDisagreements: nifyDisagreements);
             var alignmentSet = new AlignmentSet(read1, read2);
@@ -1240,8 +1247,8 @@ namespace StitchingLogic.Tests
             StitcherTestHelpers.CompareQuality(nifyDisagreements ? new byte[] { 30, 30, 30, 0, 0, 0, 0, 0, 20, 19, 18 } : new byte[] { 30, 30, 30, 40, 45, 40, 45, 40, 20, 19, 18 }, mergedRead.Qualities);
 
             //Consensus sequence should take base and assign the higher quality if both bases agree
-            var read2_agreeingBases = ReadTestHelper.CreateRead("chr1", "TTTTTTTT", 12342,
-                new CigarAlignment("5M1I2M"), new byte[] { 40, 5, 40, 5, 40, 20, 19, 18 });
+            var read2_agreeingBases = ReadTestHelper.CreateRead("chr1", "TTTTTTTT", r2Pos,
+                new CigarAlignment(r2Cigar), new byte[] { 40, 5, 40, 5, 40, 20, 19, 18 });
             read1.BamAlignment.Qualities = new byte[] { 30, 30, 30, 5, 45, 5, 45, 5 };
             alignmentSet = new AlignmentSet(read1, read2_agreeingBases);
             stitcher.TryStitch(alignmentSet);
@@ -1249,7 +1256,7 @@ namespace StitchingLogic.Tests
             Assert.Equal("TTTTTTTTTTT", mergedRead.Sequence);
             StitcherTestHelpers.CompareQuality(new byte[] { 30, 30, 30, 45, 50, 45, 50, 45, 20, 19, 18 }, mergedRead.Qualities);
 
-            //Bases disagree and both are below minimum quality, read1>read2 : take base/q from read1
+            //Bases disagree and both are below minimum quality, read1>read2 : take base/q from read1, unless nifying
             read1.BamAlignment.Qualities = new byte[] { 30, 30, 30, 8, 8, 8, 8, 8 };
             read2.BamAlignment.Qualities = new byte[] { 5, 5, 5, 5, 5, 20, 19, 18 };
             alignmentSet = new AlignmentSet(read1, read2);
@@ -1259,7 +1266,7 @@ namespace StitchingLogic.Tests
             Assert.Equal(nifyDisagreements ? "TTTNNNNNAAA" : "TTTTTTTTAAA", mergedRead.Sequence);
             StitcherTestHelpers.CompareQuality(nifyDisagreements ? new byte[] { 30, 30, 30, 0, 0, 0, 0, 0, 20, 19, 18 } : new byte[] { 30, 30, 30, 8, 8, 8, 8, 8, 20, 19, 18 }, mergedRead.Qualities);
 
-            //Bases disagree and both are below minimum quality, read2>read1 : take base/q from read2
+            //Bases disagree and both are below minimum quality, read2>read1 : take base/q from read2, unless nifying
             read1.BamAlignment.Qualities = new byte[] { 30, 30, 30, 5, 5, 5, 5, 5 };
             read2.BamAlignment.Qualities = new byte[] { 8, 8, 8, 8, 8, 20, 19, 18 };
             alignmentSet = new AlignmentSet(read1, read2);
@@ -1270,7 +1277,7 @@ namespace StitchingLogic.Tests
             StitcherTestHelpers.CompareQuality(nifyDisagreements ? new byte[] { 30, 30, 30, 0, 0, 0, 0, 0, 20, 19, 18 } : new byte[] { 30, 30, 30, 8, 8, 8, 8, 8, 20, 19, 18 }, mergedRead.Qualities);
 
             //Bases disagree and both are below minimum quality, read1==read2 : take base/q from read1
-            //If "read1" (orientation-based) is not the true read1 off the sequencer, should take base/q from true read1
+            //If "read1" (orientation-based) is not the true read1 off the sequencer, should take base/q from true read1, unless nifying
             read1.BamAlignment.Qualities = new byte[] { 30, 30, 30, 5, 5, 5, 5, 5 };
             read1.BamAlignment.SetIsFirstMate(false);
             read2.BamAlignment.Qualities = new byte[] { 5, 5, 5, 5, 5, 20, 19, 18 };

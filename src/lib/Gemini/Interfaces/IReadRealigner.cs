@@ -9,7 +9,7 @@ namespace Gemini.Interfaces
     {
         RealignmentResult Realign(Read read, List<HashableIndel> allTargets,
             Dictionary<HashableIndel, GenomeSnippet> indelContexts,
-            IIndelRanker ranker, bool pairSpecific, int maxIndelSize = 50);
+            bool pairSpecific, int maxIndelSize = 50);
 
     }
 }

@@ -10,7 +10,7 @@ namespace Common.IO.Utility
     {
         private static string _logfileName;// keep this empty by default => if its not set, we skip writing to the log. 
         private static int _shortWaitTime = 6;
-        private static int _waitTimeMultiplier = 1000;
+        private static int _waitTimeMultiplier = 10000; //only applicable to tests using the log
         private static AutoResetEvent _unitTestToken = new AutoResetEvent(true);
 
         #region opening

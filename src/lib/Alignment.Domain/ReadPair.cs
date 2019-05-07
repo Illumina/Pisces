@@ -21,11 +21,16 @@ namespace Alignment.Domain
         MateUnmapped,
         Paired,
         MateNotFound,
-        Duplicate
+        Duplicate,
+        LongFragment,
+        LeaveUntouched,
+        OffTarget,
+        Stitched
     }
 
     public class ReadPair
     {
+        public int NumPrimaryReads = 0;
         public string Name { get; set; }
         public BamAlignment Read1;
         public BamAlignment Read2;
@@ -34,7 +39,19 @@ namespace Alignment.Domain
         public List<BamAlignment> Read1SecondaryAlignments;
         public List<BamAlignment> Read2SecondaryAlignments;
         public bool IsImproper;
+        public bool? DontOverlap;
         public PairStatus PairStatus;
+        public int MinPosition = int.MaxValue;
+        public int MaxPosition = -1;
+        public bool RealignedR1;
+        public bool RealignedR2;
+        public bool Realigned;
+        public bool Stitched;
+        public bool Disagree;
+        public bool FailForOtherReason;
+        public bool BadRestitch;
+        public int FragmentSize;
+        public bool NormalPairOrientation;
 
         public List<BamAlignment> Read1Alignments
         {
@@ -69,6 +86,10 @@ namespace Alignment.Domain
             }
         }
 
+        public int StitchedNm { get; set; }
+        public int Nm1 { get; set; }
+        public int Nm2 { get; set; }
+
         public ReadPair(BamAlignment alignment, string name = null, ReadNumber readNumber = ReadNumber.NA)
         {
             Name = name ?? alignment.Name;
@@ -79,12 +100,61 @@ namespace Alignment.Domain
         public void AddAlignment(BamAlignment alignment, ReadNumber readNumber = ReadNumber.NA)
         {
             var alignmentCopy = new BamAlignment(alignment);
-            if (alignment.IsPrimaryAlignment() && !alignment.IsSupplementaryAlignment())
+            if (alignmentCopy.IsPrimaryAlignment() && !alignmentCopy.IsSupplementaryAlignment())
             {
+                if (FragmentSize == 0)
+                {
+                    FragmentSize = Math.Abs(alignmentCopy.FragmentLength);
+
+                    // Can be either F1R2 or F2R1
+                    NormalPairOrientation = (!alignmentCopy.IsReverseStrand() && alignmentCopy.IsMateReverseStrand()) ||
+                                            (alignmentCopy.IsReverseStrand() && !alignmentCopy.IsMateReverseStrand());
+
+                    if (NormalPairOrientation) {
+                        if (alignmentCopy.RefID == alignmentCopy.MateRefID)
+                        {
+                            if (!alignmentCopy.IsReverseStrand())
+                            {
+                                if (alignmentCopy.Position > alignmentCopy.MatePosition)
+                                {
+                                    // RF
+                                    NormalPairOrientation = false;
+                                }
+                            }
+                            else
+                            {
+                                if (alignmentCopy.MatePosition > alignmentCopy.Position)
+                                {
+                                    // RF
+                                    NormalPairOrientation = false;
+                                }
+                            }
+                        }
+                    }
+                }
+
+                NumPrimaryReads++;
+                bool useForPos = true;
+                if (useForPos)
+                {
+                    if (alignmentCopy.Position > MaxPosition)
+                    {
+                        MaxPosition = alignment.Position;
+                    }
+
+                    if (alignmentCopy.Position < MinPosition)
+                    {
+                        MinPosition = alignment.Position;
+                    }
+                }
+
                 if (readNumber == ReadNumber.NA)
                 {
                     if (Read1 != null && Read2 != null) throw new InvalidDataException($"Already have both primary alignments for {alignment.Name}.");
-                    if (Read1 == null) Read1 = alignmentCopy;
+                    if (Read1 == null)
+                    {
+                        Read1 = alignmentCopy;
+                    }
                     else Read2 = alignmentCopy;
                 }
                 else if (readNumber == ReadNumber.Read1)
@@ -98,7 +168,7 @@ namespace Alignment.Domain
                     Read2 = alignmentCopy;
                 }
             }
-            else if (alignment.IsSupplementaryAlignment())
+            else if (alignmentCopy.IsSupplementaryAlignment())
             {
                 switch (readNumber)
                 {
@@ -158,7 +228,7 @@ namespace Alignment.Domain
             }
 
             // Set as improper once we add any alignment that is flagged as improper
-            if (!alignment.IsProperPair()) IsImproper = true;
+            if (!alignmentCopy.IsProperPair()) IsImproper = true;
         }
 
         public bool IsComplete(bool requireSupplementaryForCompletion = true)

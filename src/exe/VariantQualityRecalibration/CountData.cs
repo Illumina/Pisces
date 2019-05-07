@@ -1,7 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using Pisces.IO.Sequencing;
+﻿using System.Collections.Generic;
+using Pisces.Domain.Models.Alleles;
 
 namespace VariantQualityRecalibration
 {
@@ -58,7 +56,7 @@ namespace VariantQualityRecalibration
             else
                 return 0;
         }
-        public bool Add(VcfVariant variant)
+        public bool Add(CalledAllele variant)
         {
             if (variant == null)
                 return false;

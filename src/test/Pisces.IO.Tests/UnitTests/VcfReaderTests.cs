@@ -1,5 +1,4 @@
-﻿using System;
-using System.IO;
+﻿using System.IO;
 using System.Linq;
 using Pisces.IO.Sequencing;
 using Xunit;
@@ -25,8 +24,8 @@ namespace Pisces.IO.Tests.UnitTests
             //Note, we have seen this assert below fail for specific user configurations
             //When it fails the error mesg is as below:
             //Assert.Equal() Failure
-            //Expected: 1452
-            //Actual: 1428
+            //Expected: 1428
+            //Actual: 1452
             //If this happens to you, check your git attributes config file.
             //You might be handling vcf text file line endings differently so the white space counts differently in this test. 
             // In that case, the fail is purely cosmetic.

@@ -1,4 +1,6 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using System.IO;
 using Pisces.Domain.Models.Alleles;
 using Pisces.Domain.Types;
 using TestUtilities;
@@ -15,10 +17,10 @@ namespace Pisces.IO.Tests.UnitTests
         CalledAllele _v3;
         int _estimatedBaseCallQuality = 23;
 
-        public void Initialize()
+        public void Initialize(VcfWriterConfig config = null)
         {
 
-            VcfWriterConfig config = new VcfWriterConfig
+            config = config ?? new VcfWriterConfig
                     {
                         DepthFilterThreshold = 500,
                         VariantQualityFilterThreshold = 20,
@@ -272,6 +274,70 @@ namespace Pisces.IO.Tests.UnitTests
 
             Assert.Equal(expectedFormat, sampleField[0]);
             Assert.Equal(expectedSample, sampleField[1]);
+        }
+
+        [Fact]
+        public void MapFilter()
+        {
+            // Return the expected string for the various filters : Single filters
+            TestFilter(FilterType.LowDepth, "LowDP");
+            TestFilter(FilterType.LowGenotypeQuality, "LowGQ");
+            TestFilter(FilterType.NoCall, "NC");
+            TestFilter(FilterType.ForcedReport, "ForcedReport");
+            TestFilter(FilterType.LowVariantFrequency, "LowVariantFreq");
+            TestFilter(FilterType.MultiAllelicSite, "MultiAllelicSite");
+            TestFilter(FilterType.PoolBias, "PB");
+            TestFilter(FilterType.AmpliconBias, "AB");
+            TestFilter(FilterType.StrandBias, "SB");
+            TestFilter(FilterType.Unknown, "Other");
+            //TestFilter(FilterType.OffTarget, "OffTarget"); // TODO currently this is PASS, which I'm not sure is intentional - I don't actually see it used anywhere in the code though... sent question to TD
+
+            // Return the expected string for the various filters : Multiple filters
+            TestFilters(new List<FilterType>(){FilterType.LowDepth, FilterType.LowVariantFrequency}, "LowDP;LowVariantFreq");
+            TestFilters(new List<FilterType>() { FilterType.LowVariantFrequency, FilterType.LowDepth }, "LowVariantFreq;LowDP");
+
+            // Return the expected string for the various filters : Don't duplicate filters
+            TestFilters(new List<FilterType>() { FilterType.LowDepth, FilterType.LowDepth }, "LowDP");
+
+            // If no filters, return PASS
+            TestFilters(new List<FilterType>(), "PASS");
+
+            // Negative cases
+            Assert.Throws<InvalidDataException>(()=>TestFilter(FilterType.RMxN, "R5x8"));
+            Assert.Throws<InvalidDataException>(() => TestFilter(FilterType.IndelRepeatLength, "R8"));
+
+            // Add in the special thresholds
+            var overrideConfig = new VcfWriterConfig
+            {
+                DepthFilterThreshold = 500,
+                VariantQualityFilterThreshold = 20,
+                StrandBiasFilterThreshold = 0.5f,
+                FrequencyFilterThreshold = 0.007f,
+                MinFrequencyThreshold = 0.007f,
+                ShouldOutputNoCallFraction = true,
+                ShouldOutputStrandBiasAndNoiseLevel = true,
+                ShouldFilterOnlyOneStrandCoverage = true,
+                EstimatedBaseCallQuality = _estimatedBaseCallQuality,
+                IndelRepeatFilterThreshold = 8,
+                RMxNFilterMaxLengthRepeat = 5,
+                RMxNFilterMinRepetitions = 8
+            };
+            TestFilter(FilterType.RMxN, "R5x8", overrideConfig);
+            TestFilter(FilterType.IndelRepeatLength, "R8", overrideConfig);
+        }
+
+        private void TestFilter(FilterType filter, string expected, VcfWriterConfig config = null)
+        {
+            TestFilters(new List<FilterType>(){filter}, expected, config);
+        }
+
+        private void TestFilters(List<FilterType> filters, string expected, VcfWriterConfig config = null)
+        {
+            Initialize(config);
+
+            _v1.Filters = filters;
+            
+            Assert.Equal(expected, _formatter.MapFilters(new List<CalledAllele>() { _v1 }));
         }
     }
 }

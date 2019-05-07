@@ -2,11 +2,12 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.IO;
+using Pisces.Domain.Models.Alleles;
 using Pisces.IO.Sequencing;
 
 namespace VariantQualityRecalibration
 {
-    public class MutationCounter 
+    public class MutationCounter
     {
         // idea is to keep track of the disparity between two pools as a measure of FFPE degradation,
         // or overall oxidation affecting tissue sample.
@@ -31,7 +32,7 @@ namespace VariantQualityRecalibration
         {
             get
             {
-                return _mutationCount.Values.Sum();             
+                return _mutationCount.Values.Sum();
             }
 
         }
@@ -44,7 +45,7 @@ namespace VariantQualityRecalibration
                 if (_totalPossibleMutations == 0)
                     return 0;
 
-               return (TotalMutations / _totalPossibleMutations);
+                return (TotalMutations / _totalPossibleMutations);
             }
         }
 
@@ -54,7 +55,7 @@ namespace VariantQualityRecalibration
 
             foreach (MutationCategory mutation in values)
             {
-                _mutationCount.Add(mutation,0);
+                _mutationCount.Add(mutation, 0);
             }
 
         }
@@ -73,7 +74,7 @@ namespace VariantQualityRecalibration
         {
             var Categories =
                 Enum.GetValues(typeof(MutationCategory)).OfType<MutationCategory>().ToList();
-            
+
             return Categories;
         }
 
@@ -102,7 +103,7 @@ namespace VariantQualityRecalibration
             }
         }
 
-        public bool Add(VcfVariant variant)
+        public bool Add(CalledAllele variant)
         {
             if (variant == null)
                 return false;
@@ -122,7 +123,7 @@ namespace VariantQualityRecalibration
             return false;
         }
 
-     
+
 
         public static MutationCategory GetMutationCategory(string EnumString)
         {
@@ -130,19 +131,60 @@ namespace VariantQualityRecalibration
         }
 
         public static MutationCategory GetMutationCategory(
-            VcfVariant consensusVariant)
+           CalledAllele calledAllele)
         {
 
-            if (consensusVariant.VariantAlleles.Length == 0)
+            //never do anything to forced report variants. they are not really called.
+            //They are more like placeholders in the vcf.
+            if (calledAllele.Filters.Contains(Pisces.Domain.Types.FilterType.ForcedReport))
+                return MutationCategory.Other;
+
+            var alleleCategory = calledAllele.Type;
+
+            switch (alleleCategory)
+            {
+                case Pisces.Domain.Types.AlleleCategory.Reference:
+                    return MutationCategory.Reference;
+
+                case Pisces.Domain.Types.AlleleCategory.Deletion:
+                    return MutationCategory.Deletion;
+
+                case Pisces.Domain.Types.AlleleCategory.Insertion:
+                    return MutationCategory.Insertion;
+
+                case Pisces.Domain.Types.AlleleCategory.Snv:
+                    {
+                        var EnumString = calledAllele.ReferenceAllele + "to" + calledAllele.AlternateAllele;
+
+                        foreach (MutationCategory mutation in GetAllMutationCategories())
+                        {
+                            if (EnumString.ToLower() == mutation.ToString().ToLower())
+                                return mutation;
+                        }
+
+                        //wouldnt really hit this. the mutation category list is comprehensive
+                        return MutationCategory.Other;
+                    }
+
+                default: //(MNVs and complex variants)
+                    return MutationCategory.Other;
+            }
+        }
+
+        public static MutationCategory GetMutationCategory(
+        VcfVariant vcfVariant)
+        {
+
+            if (vcfVariant.VariantAlleles.Length == 0)
                 return MutationCategory.Reference;
 
-            if (consensusVariant.VariantAlleles.Length > 1)
+            if (vcfVariant.VariantAlleles.Length > 1)
             {
                 throw new ArgumentException("This method is expecting only one variant allele per variant entry");
             }
 
-            int refLength = consensusVariant.ReferenceAllele.Length;
-            int altLength = consensusVariant.VariantAlleles[0].Length;
+            int refLength = vcfVariant.ReferenceAllele.Length;
+            int altLength = vcfVariant.VariantAlleles[0].Length;
 
             if (refLength > altLength)
                 return MutationCategory.Deletion;
@@ -153,18 +195,18 @@ namespace VariantQualityRecalibration
             if ((refLength != 1) || (altLength != 1))
                 return MutationCategory.Other;
 
-            if ((consensusVariant.VariantAlleles[0] == ".")
-                || (consensusVariant.VariantAlleles[0].ToLower() == consensusVariant.ReferenceAllele.ToLower()))
+            if ((vcfVariant.VariantAlleles[0] == ".")
+                || (vcfVariant.VariantAlleles[0].ToLower() == vcfVariant.ReferenceAllele.ToLower()))
                 return MutationCategory.Reference;
 
-            var EnumString = consensusVariant.ReferenceAllele + "to" + consensusVariant.VariantAlleles[0];
-       
+            var EnumString = vcfVariant.ReferenceAllele + "to" + vcfVariant.VariantAlleles[0];
+
             foreach (MutationCategory mutation in GetAllMutationCategories())
             {
                 if (EnumString.ToLower() == mutation.ToString().ToLower())
                     return mutation;
             }
-            
+
             return MutationCategory.Other;
         }
 

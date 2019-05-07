@@ -4,13 +4,14 @@ namespace Gemini.Models
 {
     public class PreIndel : CandidateAllele
     {
-        public uint LeftAnchor;
-        public uint RightAnchor;
+        public int LeftAnchor;
+        public int RightAnchor;
         public int Mess;
         public int Score;
         public int AverageQualityRounded;
         public bool InMulti;
         public string OtherIndel;
+        public int Observations;
 
         public PreIndel(CandidateAllele baseCandidateAllele)
             : base(baseCandidateAllele.Chromosome, baseCandidateAllele.ReferencePosition, baseCandidateAllele.ReferenceAllele, baseCandidateAllele.AlternateAllele, baseCandidateAllele.Type)

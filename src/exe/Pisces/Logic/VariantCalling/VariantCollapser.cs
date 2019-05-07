@@ -62,6 +62,7 @@ namespace Pisces.Logic.VariantCalling
                 }
             }
 
+
             // remove candidates outside of cleared region that we couldnt collapse and add back to source
             if (maxClearedPosition.HasValue)
             {
@@ -72,6 +73,41 @@ namespace Pisces.Logic.VariantCalling
                 }
                 source.AddCandidates(notClearedVariants);
             }
+
+            // TODO Consider building out functionality for Pisces to combine support for insertions that are the same except for Ns
+            //var insertions = candidates.Where(x => x.Type == AlleleCategory.Insertion);
+            //var groupedInsertions = insertions.GroupBy(x => x.ReferencePosition + "_" + x.Length);
+
+            //var dominantAlleleMultiplier = 2;
+            //foreach (var groupedInsertion in groupedInsertions.Where(g=>g.Count() > 1))
+            //{
+            //    var orderedInsertions = groupedInsertion.OrderByDescending(x => x.Support).ToList();
+            //    if (orderedInsertions[0].Support >= (orderedInsertions[1].Support * dominantAlleleMultiplier))
+            //    {
+            //        var insertionsToAdd = new List<CandidateAllele>();
+
+            //        for (int i = 0; i < orderedInsertions.Count(); i++)
+            //        {
+            //            if (orderedInsertions[i].AlternateAllele.Contains("N"))
+            //            {
+
+            //            }
+            //            else
+            //            {
+
+            //            }
+            //        }
+            //    }
+            //    else
+            //    {
+            //        continue;
+            //    }
+
+
+            //    // Only one should be non-N containing
+
+
+            //}
 
             return candidates;
         }

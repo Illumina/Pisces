@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<CoverageParams>
+    <TargetExecutable>src\packages\xunit.runner.console.2.0.0\tools\xunit.console.exe</TargetExecutable>
+    <TargetArguments>
+      src\Alignment.Domain.Tests\bin\x64\Release\Alignment.Domain.Tests.dll src\Alignment.IO.Tests\bin\x64\Release\Alignment.IO.Tests.dll src\Alignment.Logic.Tests\bin\x64\Release\Alignment.Logic.Tests.dll src\VariantQualityRecalibration.Tests\bin\x64\Release\VariantQualityRecalibrationTests.dll src\Hygea.Tests\bin\x64\Release\Hygea.Tests.dll src\Pisces.Processing.Tests\bin\x64\Release\Pisces.Processing.Tests.dll src\Pisces.Calculators.Tests\bin\x64\Release\Pisces.Calculators.Tests.dll src\Pisces.IO.Tests\bin\x64\Release\Pisces.IO.Tests.dll src\Pisces.Domain.Tests\bin\x64\Release\Pisces.Domain.Tests.dll src\Pisces.Tests\bin\x64\Release\Pisces.Tests.dll src\VariantPhasing.Tests\bin\x64\Release\VariantPhasing.Tests.dll src\Scylla.Tests\bin\x64\Release\Scylla.Tests.dll src\Stitcher.Tests\bin\x64\Release\Stitcher.Tests.dll src\StitchingLogic.Tests\bin\x64\Release\StitchingLogic.Tests.dll src\VennVcf.Tests\bin\x64\Release\VennVcf.Tests.dll src\Pisces.DataDrivenTest\bin\x64\Release\Pisces.DataDrivenTest.dll -xml XunitResults.xml</TargetArguments>
+    <Filters>
+      <ExcludeFilters>
+        <FilterEntry>
+			<ModuleMask>*Test*</ModuleMask>
+		</FilterEntry>
+	  </ExcludeFilters>
+	</Filters>
+</CoverageParams>

@@ -1,5 +1,7 @@
 ﻿using VariantPhasing.Logic;
 using VariantPhasing.Models;
+using Pisces.Domain.Models.Alleles;
+using Pisces.Domain.Types;
 using Xunit;
 
 namespace VariantPhasing.Tests.Helpers
@@ -19,7 +21,7 @@ namespace VariantPhasing.Tests.Helpers
             var neighborhoodDepthAtSites = new int[] { 100, 200 };
             var neighborhoodNoCallsAtSites = new int[] { 0, 0 };
             var clusterCountsAtSites = new int[] { 90, 190 };
-            var clusterRefSp = 90; 
+            var clusterRefSp = 90;
             clusterVariantSites[0].VcfReferenceAllele = "A";
             clusterVariantSites[0].VcfAlternateAllele = "AGAAGTACTCATTATCTGA";
 
@@ -300,7 +302,7 @@ neighborhoodDepthAtSites, neighborhoodNoCallsAtSites, clusterRefSp, clusterCount
             Assert.Equal(28608288, allele.ReferencePosition);
 
             //(2) A similar, contrived case (N's instead of ref) that would cause the problem.
- 
+
             clusterVariantSites[0].VcfReferenceAllele = "N";
             clusterVariantSites[0].VcfAlternateAllele = "N";
 
@@ -310,9 +312,9 @@ neighborhoodDepthAtSites, neighborhoodNoCallsAtSites, clusterRefSp, clusterCount
             clusterVariantSites[2].VcfReferenceAllele = "T";
             clusterVariantSites[2].VcfAlternateAllele = "TTTTTTT";
 
-             refsToRemove = PhasedVariantExtractor.Extract(
-                out allele, clusterVariantSites, referenceSequenceWithRepeats,
-                neighborhoodDepthAtSites, neighborhoodNoCallsAtSites, clusterRefSp, clusterCountsAtSites, chromosome, 20, 100);
+            refsToRemove = PhasedVariantExtractor.Extract(
+               out allele, clusterVariantSites, referenceSequenceWithRepeats,
+               neighborhoodDepthAtSites, neighborhoodNoCallsAtSites, clusterRefSp, clusterCountsAtSites, chromosome, 20, 100);
 
             Assert.Equal("T", allele.ReferenceAllele);
             Assert.Equal("TTTTTTTTTT", allele.AlternateAllele);
@@ -356,7 +358,7 @@ neighborhoodDepthAtSites, neighborhoodNoCallsAtSites, clusterRefSp, clusterCount
             Assert.Equal("T", allele.ReferenceAllele);
             Assert.Equal("TATTTTTTTTT", allele.AlternateAllele);
             Assert.Equal(28608285, allele.ReferencePosition);
-                    
+
             //(5) Another case that might cause the problem
 
             clusterVariantSites[0].VcfReferenceAllele = "TTT";
@@ -547,7 +549,7 @@ neighborhoodDepthAtSites, neighborhoodNoCallsAtSites, clusterRefSp, clusterCount
 
         }
 
-         //We had a bug with homopolymer regions and insertions (PICS-929). This is a test to make sure nothing 
+        //We had a bug with homopolymer regions and insertions (PICS-929). This is a test to make sure nothing 
         // similar can happen with deletions
         [Fact]
         public void CheckDeletionsInHomopolymerStretches()
@@ -1031,7 +1033,7 @@ neighborhoodDepthAtSites, neighborhoodNoCallsAtSites, clusterRefSp, clusterCount
 
             Assert.Equal("TC", allele.ReferenceAllele);
             Assert.Equal("GT", allele.AlternateAllele);
-            Assert.Equal(28608285+2, allele.ReferencePosition);
+            Assert.Equal(28608285 + 2, allele.ReferencePosition);
         }
 
 
@@ -1060,10 +1062,96 @@ neighborhoodDepthAtSites, neighborhoodNoCallsAtSites, clusterRefSp, clusterCount
 
             Assert.Equal("TCAAAAA", allele.ReferenceAllele);
             Assert.Equal("GT", allele.AlternateAllele);
-            Assert.Equal(28608285+2, allele.ReferencePosition);
+            Assert.Equal(28608285 + 2, allele.ReferencePosition);
 
-           
+
         }
 
+        [Fact]
+        public void CombinePhasedVariantsTest()
+        {
+
+            //check with 2 snps
+
+            var v1 = new CalledAllele(AlleleCategory.Snv)
+            {
+                Chromosome = "chr1",
+                ReferencePosition = 123,
+                ReferenceAllele = "A",
+                AlternateAllele = "T",
+                VariantQscore = 100,
+                TotalCoverage = 1000,
+                AlleleSupport = 200,
+                ReferenceSupport = 350,
+                NoiseLevelApplied = 20
+            };
+
+
+            var v2 = new CalledAllele(AlleleCategory.Snv)
+             {
+                 Chromosome = "chr1",
+                 ReferencePosition = 123,
+                 ReferenceAllele = "A",
+                 AlternateAllele = "T",
+                 VariantQscore = 20,
+                 TotalCoverage = 500,
+                 AlleleSupport = 300,
+                 ReferenceSupport = 50,
+                 NoiseLevelApplied = 20
+            };
+
+            var v3 = PhasedVariantExtractor.CombinePhasedVariants(v1,v2, 100);
+
+            Assert.Equal(v3.ReferencePosition, v1.ReferencePosition);
+            Assert.Equal(v3.Chromosome, v1.Chromosome);
+            Assert.Equal(v3.AlleleSupport, v1.AlleleSupport + v2.AlleleSupport);
+            Assert.Equal(v3.NumNoCalls, v1.NumNoCalls + v2.NumNoCalls);
+            Assert.Equal(v3.VariantQscore, 100);
+            Assert.Equal(v3.TotalCoverage, (v1.TotalCoverage + v2.TotalCoverage)/2);
+            Assert.Equal(v3.ReferenceSupport, (v1.ReferenceSupport + v2.ReferenceSupport)/2);
+            Assert.Equal(v3.Type, v1.Type);
+            Assert.Equal(v3.NoiseLevelApplied, v1.NoiseLevelApplied);
+
+            //check with two refs
+
+            var v4 = new CalledAllele(AlleleCategory.Reference)
+            {
+                Chromosome = "chr1",
+                ReferencePosition = 123,
+                ReferenceAllele = "A",
+                AlternateAllele = ".",
+                VariantQscore = 100,
+                TotalCoverage = 1000,
+                AlleleSupport = 200,
+                ReferenceSupport = 200,
+                NoiseLevelApplied = 20
+            };
+
+
+            var v5 = new CalledAllele(AlleleCategory.Reference)
+            {
+                Chromosome = "chr1",
+                ReferencePosition = 123,
+                ReferenceAllele = "A",
+                AlternateAllele = ".",
+                VariantQscore = 20,
+                TotalCoverage = 500,
+                AlleleSupport = 300,
+                ReferenceSupport = 300,
+                NoiseLevelApplied = 20
+            };
+
+            var v6 = PhasedVariantExtractor.CombinePhasedVariants(v4, v5, 100);
+
+            Assert.Equal(v6.AlleleSupport, v4.AlleleSupport + v5.AlleleSupport);
+            Assert.Equal(v6.NumNoCalls, v4.NumNoCalls + v5.NumNoCalls);
+            Assert.Equal(v6.VariantQscore, 100);
+            Assert.Equal(v6.TotalCoverage, (v4.TotalCoverage + v5.TotalCoverage)/2);
+            Assert.Equal(v6.ReferenceSupport,v6.AlleleSupport);
+            Assert.Equal(v6.Type, v4.Type);
+            Assert.Equal(v6.NoiseLevelApplied, v4.NoiseLevelApplied);
+
+
+        }
     }
 }

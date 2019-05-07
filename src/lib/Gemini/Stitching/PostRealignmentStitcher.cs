@@ -1,10 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using Alignment.Domain;
 using Alignment.Domain.Sequencing;
 using Alignment.IO;
 using Gemini.CandidateIndelSelection;
 using Gemini.Interfaces;
+using Gemini.Logic;
 
 namespace Gemini.Stitching
 {
@@ -12,11 +12,13 @@ namespace Gemini.Stitching
     {
         private readonly IReadPairHandler _stitchedPairHandler;
         private readonly IStatusHandler _statusHandler;
+        private readonly List<string> _tagsToKeepFromR1;
 
-        public PostRealignmentStitcher(IReadPairHandler stitchedPairHandler, IStatusHandler statusHandler)
+        public PostRealignmentStitcher(IReadPairHandler stitchedPairHandler, IStatusHandler statusHandler, List<string> tagsToKeepFromR1 = null)
         {
             _stitchedPairHandler = stitchedPairHandler;
             _statusHandler = statusHandler;
+            _tagsToKeepFromR1 = tagsToKeepFromR1 ?? new List<string>();
         }
 
         private List<BamAlignment> ShouldRestitch(ReadPair pair)
@@ -31,7 +33,7 @@ namespace Gemini.Stitching
             return null;
         }
 
-        public List<BamAlignment> GetRestitchedReads(ReadPair pair, BamAlignment origRead1, BamAlignment origRead2, int? r1Nm, int? r2Nm, bool realignedAroundPairSpecific)
+        public List<BamAlignment> GetRestitchedReads(ReadPair pair, BamAlignment origRead1, BamAlignment origRead2, int? r1Nm, int? r2Nm, bool realignedAroundPairSpecific, INmCalculator nmCalculator, bool recalculateNm, bool realignmentIsSketchy = false)
         {
             var reads = new List<BamAlignment>();
             var badRestitchAfterPairSpecificRealign = false;
@@ -44,18 +46,19 @@ namespace Gemini.Stitching
                 // ... If nothing realigned, we don't need to try stitching again as we know it already failed. 
                 // ... However, in some cases, we haven't tried stitching yet as we were deferring until realignment. 
                 // ... For now, it's ok to leave this here, but know that we are wasting time in some cases trying to stitch the same pair again.
+                int nmStitched = 0;
                 var stitchedReads = _stitchedPairHandler.ExtractReads(pair);
                 if (stitchedReads.Count == 1)
                 {
+                    if (recalculateNm)
+                    {
+                        nmStitched = nmCalculator.GetNm(stitchedReads[0]);
+                        pair.StitchedNm = nmStitched;
+                    }
+
                     if (realignedAroundPairSpecific)
                     {
                         // Check that the stitched read represents an overall improvement over the original reads
-
-                        // TODO
-                        // Split the stitched read into StitchF=F+S and StitchR=S+R, and compare StitchF to OrigF and StitchR to OrigR
-                        // But I need the sequence info for this - for now, just check the NMs + num softclips
-
-                        var nmStitched = stitchedReads[0].GetIntTag("NM"); // TODO wait a minute, stitched reads at this point still don't have true NM...
                         var scStitched = stitchedReads[0].CigarData.GetPrefixClip() +
                                          stitchedReads[0].CigarData.GetSuffixClip();
                         var r1Sc = origRead1.CigarData.GetPrefixClip() +
@@ -67,8 +70,7 @@ namespace Gemini.Stitching
                         var origMess2 = r2Nm + r2Sc;
                         var stitchedMess = nmStitched + scStitched;
 
-                        // TODO arbitrary number, but this is just a dummy-ish method for now
-                        if (((stitchedMess - origMess1) + (stitchedMess - origMess2)) > 2)
+                        if (stitchedMess > (origMess1 + origMess2))
                         {
                             badRestitchAfterPairSpecificRealign = true;
                         }
@@ -76,8 +78,6 @@ namespace Gemini.Stitching
 
                     if (!badRestitchAfterPairSpecificRealign)
                     {
-                        //_statusCounter.AddStatusCount(
-                        //    $"Successfully stitched after attempted {(realignedAroundPairSpecific ? "PairSpecific ":"")}realign (r1:{realignedR1}, r2:{realignedR2})");
                         _statusHandler.AddStatusCount($"Successfully stitched after realign (ps: {realignedAroundPairSpecific})");
                         _statusHandler.AddCombinedStatusStringTags("OC", pair.Read1, pair.Read2, stitchedReads[0]);
                         _statusHandler.AddCombinedStatusStringTags("OS", pair.Read1, pair.Read2, stitchedReads[0]);
@@ -85,21 +85,28 @@ namespace Gemini.Stitching
                         _statusHandler.AddCombinedStatusStringTags("RC", pair.Read1, pair.Read2, stitchedReads[0]);
                         _statusHandler.AddCombinedStatusStringTags("RX", pair.Read1, pair.Read2, stitchedReads[0]);
 
-                        TagUtils.ReplaceOrAddStringTag(ref stitchedReads[0].TagData, "SC",
+                        stitchedReads[0].ReplaceOrAddStringTag("SC",
                             pair.Read1.GetStringTag("SC") + pair.Read1.CigarData + "," + pair.Read2.CigarData);
+                        stitchedReads[0].ReplaceOrAddIntTag("NM", nmStitched, true);
 
-                        if (r1Nm > 0 || r2Nm > 0)
+                        foreach (var tag in _tagsToKeepFromR1)
                         {
-                            // TODO add real NM calculation here?
-                            TagUtils.ReplaceOrAddIntTag(ref stitchedReads[0].TagData, "NM", Math.Max(r1Nm.Value, r2Nm.Value));
-                        }
-                        // TODO reenable?
-                        //_statusHandler.AppendStringTag("RC", $"{origRead1.GetStringTag("RC")},GoodRestitchAfter{(realignedAroundPairSpecific ? "PairSpecific" : "")}Realign", stitchedReads[0]);
+                            var r1Tag = pair.Read1.GetStringTag(tag);
 
+                            if (r1Tag != null)
+                            {
+                                stitchedReads[0].ReplaceOrAddStringTag(tag, r1Tag);
+                            }
+                        }
                     }
                 }
                 else
                 {
+                    pair.FailForOtherReason = true;
+                    if (realignmentIsSketchy)
+                    {
+                        badRestitchAfterPairSpecificRealign = true;
+                    }
                     _statusHandler.AddStatusCount($"Failed stitching after realign (ps: {realignedAroundPairSpecific})");
                     _statusHandler.AppendStatusStringTag("RC",$"Bad after attempted pair-specific realign (ps: {realignedAroundPairSpecific})", origRead1);
                     _statusHandler.AppendStatusStringTag("RC", $"Bad after attempted pair-specific realign (ps: {realignedAroundPairSpecific})", origRead2);
@@ -111,6 +118,7 @@ namespace Gemini.Stitching
                     _statusHandler.AppendStatusStringTag("RC", "BadRestitchAfterPairSpecificRealign", origRead1);
                     _statusHandler.AppendStatusStringTag("RC", "BadRestitchAfterPairSpecificRealign", origRead2);
 
+                    pair.BadRestitch = true;
                     // Go back to the originals
                     reads.Add(origRead1);
                     reads.Add(origRead2);
@@ -122,17 +130,9 @@ namespace Gemini.Stitching
             }
             else
             {
+                pair.Disagree = true;
                 return disagreeingReads;
             }
-
-            //if (!badRestitchAfterPairSpecificRealign && _isSnowball)
-            //{
-            //    foreach (var bamAlignment in reads)
-            //    {
-            //        //IndelEvidenceHelper.FindIndelsAndRecordEvidence(bamAlignment, _targetFinder, _lookup,
-            //        //    true, _chromosome, 30, true);
-            //    }
-            //}
 
             return reads;
         }

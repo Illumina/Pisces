@@ -34,7 +34,7 @@ namespace VariantQualityRecalibration.Tests
 
             VQROptions options = new VQROptions()
             {
-                InputVcf = Path.Combine(TestPaths.LocalTestDataDirectory, "TestEdgeExample.vcf"),
+                VcfPath = Path.Combine(TestPaths.LocalTestDataDirectory, "FindEdges.vcf"),
                 OutputDirectory = Path.Combine(TestPaths.LocalScratchDirectory, "WriteEdgeCountsFile"),
                 LociCount = -1,
                 DoBasicChecks = false,
@@ -62,7 +62,7 @@ namespace VariantQualityRecalibration.Tests
 
             VQROptions options = new VQROptions()
             {
-                InputVcf = Path.Combine(TestPaths.LocalTestDataDirectory, "TestEdgeExample.vcf"),
+                VcfPath = Path.Combine(TestPaths.LocalTestDataDirectory, "FindEdges.vcf"),
                 OutputDirectory = Path.Combine(TestPaths.LocalScratchDirectory, "WriteEdgeCountsFileGivenLociCounts"),
                 LociCount = 1000,
                 DoBasicChecks = false,

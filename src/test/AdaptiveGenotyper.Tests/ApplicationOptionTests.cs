@@ -31,7 +31,7 @@ namespace AdaptiveGenotyper.Tests
         {
             //test with lower case arguments
             var optionExpectations = GetLowerCaseOptionsExpectations();
-            Action<GenotyperOptions> expectations = null;
+            Action<AdaptiveGtOptions> expectations = null;
             foreach (var option in optionExpectations.Values)
             {
                 expectations += option;
@@ -69,37 +69,37 @@ namespace AdaptiveGenotyper.Tests
             ExecuteParsingTest("help me", false);
         }
 
-        private Dictionary<string, Action<GenotyperOptions>> GetLowerCaseOptionsExpectations()
+        private Dictionary<string, Action<AdaptiveGtOptions>> GetLowerCaseOptionsExpectations()
         {
             
-            var optionsExpectationsDict = new Dictionary<string, Action<GenotyperOptions>>();
+            var optionsExpectationsDict = new Dictionary<string, Action<AdaptiveGtOptions>>();
 
             optionsExpectationsDict.Add("-models my.model", (o) => Assert.Equal("my.model", o.ModelFile));
-            optionsExpectationsDict.Add("-vcf test.vcf", (o) => Assert.Equal("test.vcf", o.InputVcf));
+            optionsExpectationsDict.Add("-vcf test.vcf", (o) => Assert.Equal("test.vcf", o.VcfPath));
             optionsExpectationsDict.Add("-log mylog.txt", (o) => Assert.Equal("mylog.txt", o.LogFileName));
             optionsExpectationsDict.Add("-o myoutdir", (o) => Assert.Equal("myoutdir", o.OutputDirectory));
             return optionsExpectationsDict;
         }
 
-        private Dictionary<string, Action<GenotyperOptions>> GetExtraHyphenExpectations()
+        private Dictionary<string, Action<AdaptiveGtOptions>> GetExtraHyphenExpectations()
         {
 
-            var optionsExpectationsDict = new Dictionary<string, Action<GenotyperOptions>>();
+            var optionsExpectationsDict = new Dictionary<string, Action<AdaptiveGtOptions>>();
 
             optionsExpectationsDict.Add("--models my.model", (o) => Assert.Equal("my.model", o.ModelFile));
-            optionsExpectationsDict.Add("--vcf tesT.vcf", (o) => Assert.Equal("tesT.vcf", o.InputVcf));
+            optionsExpectationsDict.Add("--vcf tesT.vcf", (o) => Assert.Equal("tesT.vcf", o.VcfPath));
             optionsExpectationsDict.Add("--log myloG.txt", (o) => Assert.Equal("myloG.txt", o.LogFileName));
             optionsExpectationsDict.Add("--o myoutdir", (o) => Assert.Equal("myoutdir", o.OutputDirectory));
             return optionsExpectationsDict;
         }
 
-        private Dictionary<string, Action<GenotyperOptions>> GetUpperCaseOptionsExpectations()
+        private Dictionary<string, Action<AdaptiveGtOptions>> GetUpperCaseOptionsExpectations()
         {
 
-            var optionsExpectationsDict = new Dictionary<string, Action<GenotyperOptions>>();
+            var optionsExpectationsDict = new Dictionary<string, Action<AdaptiveGtOptions>>();
 
             optionsExpectationsDict.Add("-MODEL my.model", (o) => Assert.Equal("my.model", o.ModelFile));
-            optionsExpectationsDict.Add("-VCF teSt2.vcf", (o) => Assert.Equal("teSt2.vcf", o.InputVcf));
+            optionsExpectationsDict.Add("-VCF teSt2.vcf", (o) => Assert.Equal("teSt2.vcf", o.VcfPath));
             optionsExpectationsDict.Add("-LOG myloG.txt", (o) => Assert.Equal("myloG.txt", o.LogFileName));
             optionsExpectationsDict.Add("-O myoutDir", (o) => Assert.Equal("myoutDir", o.OutputDirectory));
             return optionsExpectationsDict;
@@ -108,14 +108,14 @@ namespace AdaptiveGenotyper.Tests
 
 
 
-        private void ExecuteParsingTest(string arguments, bool shouldPass, Action<GenotyperOptions> assertions = null)
+        private void ExecuteParsingTest(string arguments, bool shouldPass, Action<AdaptiveGtOptions> assertions = null)
         {
-            var parser = new GenotyperOptionsParser();
+            var parser = new AdaptiveGtOptionsParser();
             parser.ParseArgs(arguments.Split());
 
             if (shouldPass)
             {
-                assertions(parser.GQROptions);
+                assertions(parser.AdaptiveGtOptions);
             }
             else //TODO - it would be nice to specify the actual error codes from the parsing result
             {

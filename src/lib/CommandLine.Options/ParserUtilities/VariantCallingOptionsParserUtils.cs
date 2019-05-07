@@ -93,7 +93,7 @@ namespace CommandLine.Options
                 },
                  {
                     "adaptivegenotypeparameters_snvmodel=",
-                    OptionTypes.STRING + " A,B,C,D. default " + OptionHelpers.ListOfParamsToDelimiterSeparatedString( options.AdaptiveGenotypingParameters.SnvModel),
+                    OptionTypes.STRING + " A,B,C. default " + OptionHelpers.ListOfParamsToDelimiterSeparatedString( options.AdaptiveGenotypingParameters.SnvModel),
                     value=> options.AdaptiveGenotypingParameters.SnvModel = ConvertToAdaptiveGenotypingParameters(value)
                 },
                 {
@@ -103,7 +103,7 @@ namespace CommandLine.Options
                 },
                  {
                     "adaptivegenotypeparameters_snvprior=",
-                    OptionTypes.STRING + " A,B,C,D. default " + OptionHelpers.ListOfParamsToDelimiterSeparatedString( options.AdaptiveGenotypingParameters.SnvPrior),
+                    OptionTypes.STRING + " A,B,C. default " + OptionHelpers.ListOfParamsToDelimiterSeparatedString( options.AdaptiveGenotypingParameters.SnvPrior),
                     value=> options.AdaptiveGenotypingParameters.SnvPrior = ConvertToAdaptiveGenotypingParameters(value)
                 },
                 {
@@ -161,6 +161,20 @@ namespace CommandLine.Options
                     "ncfilter=",
                     OptionTypes.FLOAT + " No-call rate filter",
                     value=>options.NoCallFilterThreshold = float.Parse(value)
+                },
+                {
+                    "abfilter=",
+                    OptionTypes.FLOAT +
+                       " Amplicon bias filter threshold. By default, this filter is off. If on, the threshold has the following meaning: " +
+                       " If a variant shows up at Y percent on amplicon A and X percent on amplicon B, the X observation must be at least as probable as the Amplicon bias filter threshold, using the observations of Y as frequency estimate. " +
+                       " To turn on, set to a positive float. '0.01' seems to work well. ",
+                    value => options.AmpliconBiasFilterThreshold=  ParseAmpliconBiasFilter(value, options.AmpliconBiasFilterThreshold)
+
+                    //tjd+ - remember to change the help text when we update the deafult to 'on, 0.01'
+                    // "Default value of the threshold is " + options.AmpliconBiasFilterThreshold + ". Set to FALSE to turn off entirely. Set to TRUE is equivalent to omitting this 'abfilter' argument entirely, and invokes the default vaules. If any reads are found without an amplicon name (no XN tag) this feature automatically shutts off." ,
+                    //" Amplicon bias filter threshold. By default, if a variant shows up at Y percent on amplicon A and X percent on amplicon B, the X observation must be at least as probable as the Amplicon bias filter threshold, using the observations of Y as frequency estimate. " +
+                   //tjd-
+
                 }
 
             };
@@ -177,12 +191,12 @@ namespace CommandLine.Options
 
         public static void AddVariantCallingArgumentParsing(Dictionary<string, OptionSet> parsingMethods, VariantCallingParameters options)
         {
-            var variantCalliingOptionDict = GetVariantCallingParsingMethods(options);
+            var variantCallingOptionDict = GetVariantCallingParsingMethods(options);
 
 
-            foreach (var key in variantCalliingOptionDict.Keys)
+            foreach (var key in variantCallingOptionDict.Keys)
             {
-                foreach (var optSet in variantCalliingOptionDict[key])
+                foreach (var optSet in variantCallingOptionDict[key])
                 {
                     if (!parsingMethods.ContainsKey(key))
                     {
@@ -222,7 +236,7 @@ namespace CommandLine.Options
             return (OptionHelpers.ParseStringToDouble(value.Split(OptionHelpers.Delimiter)));
         }
 
-        private static List<MixtureModelInput> ReadAdaptiveGenotypingParametersFromFile(string value)
+        private static List<MixtureModelParameters> ReadAdaptiveGenotypingParametersFromFile(string value)
         {
             var ListOfMixtureModels = MixtureModel.ReadModelsFile(value); 
 
@@ -237,10 +251,10 @@ namespace CommandLine.Options
                 var newModels = MixtureModel.ReadModelsFile(inputModelFilePath);
 
                 parameters.SnvModel = newModels[0].Means;
-                parameters.SnvPrior = newModels[0].Weights;
+                parameters.SnvPrior = newModels[0].Priors;
 
                 parameters.IndelModel = newModels[1].Means;
-                parameters.IndelPrior = newModels[1].Weights;
+                parameters.IndelPrior = newModels[1].Priors;
             }
             else
             {
@@ -264,6 +278,39 @@ namespace CommandLine.Options
                 throw new ArgumentException(string.Format("Unknown ploidy model '{0}'", value));
         }
 
+        public static float? ParseAmpliconBiasFilter(string value, float? defaultValue)
+        {
+            float filterValue = 0F;
+            bool worked1 = (float.TryParse(value, out filterValue));
+            if (worked1)
+            {
+                if (filterValue <= 0)
+                {
+                    throw new ArgumentException(string.Format("AmpliconBiasFilterThreshold should be > 0. The parsed value was '{0}'.", filterValue));
+                }
+                else
+                {
+                    return filterValue;
+                }
+            }
+
+            //else
+
+
+            bool turnOn = true;
+            bool worked2 = (bool.TryParse(value, out turnOn));
+
+            if (worked2)
+            {
+                if (turnOn) //set to TRUE
+                    return 0.01F;
+                else        //set to FALSE
+                    return null;
+            }
+            else  //set to something unparsable.
+                throw new ArgumentException(string.Format("Unable to parse AmpliconBiasFilterThreshold '{0}'", value));
+
+        }
         private static void ParseRMxNFilter(string value, ref int? RMxNFilterMaxLengthRepeat, ref int? RMxNFilterMinRepetitions, ref float RMxNFilterFrequencyLimit)
         {
             bool turnOn = true;

@@ -1,0 +1,11 @@
+# navigate to the folder with your docker file
+
+# to build
+docker build -t pisces_happy . > ../docker_build.log
+
+# To run (simple)
+docker run pisces
+
+# To run (with mounted data, linux or win), mount your data, and inspect with bash
+# docker run -it --mount type=bind,source="$(pwd)"/data,target=/data pisces /bin/bash
+# docker run -it --mount type=bind,source=/c/Users/tamse/Documents/Data/,target=/data pisces_happy /bin/bash

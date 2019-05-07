@@ -11,7 +11,8 @@ namespace Scylla.Tests
         [Fact]
         public void OpenLogTest()
         {
-            var outDir = Path.Combine(TestPaths.LocalScratchDirectory, "ScyllaTestsOutDir");
+            var outDir = Path.Combine(TestPaths.LocalScratchDirectory, "ScyllaProgramTestsOutDir");
+            TestUtilities.TestHelper.RecreateDirectory(outDir);
             var options = new ScyllaApplicationOptions();
             options.OutputDirectory = outDir;
 
@@ -21,10 +22,9 @@ namespace Scylla.Tests
             Assert.True(File.Exists(Path.Combine(options.OutputDirectory, "testLog.txt")));
 
             //cleanup and redirect logging
-            var SafeLogDir = TestPaths.LocalScratchDirectory;
+            var SafeLogDir = Path.Combine(outDir , "logs");
             Logger.OpenLog(SafeLogDir, "DefaultLog.txt", true);
             Logger.CloseLog();
-            Directory.Delete(outDir, true);
         }
 
 

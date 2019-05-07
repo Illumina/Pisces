@@ -1,20 +1,18 @@
 ﻿using System.IO;
-using Common.IO.Utility;
 using Pisces.Domain.Options;
 
 namespace Psara
 {
-    public class PsaraOptions : BaseApplicationOptions
+    public class PsaraOptions : VcfConsumerAppOptions
     {
         public GeometricFilterParameters GeometricFilterParameters = new GeometricFilterParameters();
-        public string InputVcf = "";
 
-      
+
         public string InputDirectory
         {
             get
             {
-                return Path.GetDirectoryName(InputVcf);
+                return Path.GetDirectoryName(VcfPath);
             }
 
             set
@@ -24,3 +22,4 @@ namespace Psara
         }
     }
 }
+

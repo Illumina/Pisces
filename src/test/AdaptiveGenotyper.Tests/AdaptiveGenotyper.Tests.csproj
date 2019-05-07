@@ -1,10 +1,14 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>netcoreapp2.0</TargetFramework>
+
     <IsPackable>false</IsPackable>
-    <Version>5.2.10.49</Version>
-    <Copyright>Copyright © Illumina 2019</Copyright>
+
+    <RepositoryUrl>https://github.com/Illumina/Pisces</RepositoryUrl>
+
+    <Copyright>Copyright � Illumina 2019</Copyright>
+
     <Company>Illumina</Company>
   </PropertyGroup>
 
@@ -69,15 +73,6 @@
     <None Update="TestData\example_S1.genome.vcf">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="TestData\GM12877-1FT-r1_S17.stitched.sorted.genome.model">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Update="TestData\GM12877-1FT-r1_S17.stitched.sorted.genome.vcf">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Update="TestData\GM12877-1FT-r1_S17.stitched.sorted.recal.vcf">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
     <None Update="TestData\MultiAllelicVariantTest.recal.vcf">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
@@ -85,6 +80,15 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Update="TestData\ParseDepthTest.vcf">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestData\testData.PairRealigned.genome.model">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestData\testData.PairRealigned.genome.vcf">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestData\testData.PairRealigned.recal.vcf">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Update="TestData\ThreeCoins.csv">
@@ -111,3 +115,4 @@
   </ItemGroup>
 
 </Project>
+

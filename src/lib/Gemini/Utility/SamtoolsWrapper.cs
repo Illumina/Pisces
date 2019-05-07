@@ -41,20 +41,71 @@ namespace Gemini.Utility
                 File.Move(mergedBam, mergedBam + "_old_" + DateTime.Now.Ticks);
             }
 
+            //else
+            {
+                BatchCatBams(mergedBam + ".tmp", inputBams.ToList(), mergedBam);
+            }
+        }
+
+        private string BatchCatBams(string mergedBam, IReadOnlyCollection<string> inputBams, string finalMergedBAm)
+        {
             if (inputBams.Count() == 1)
             {
                 var inputBam = inputBams.First();
                 Logger.WriteToLog(
-                    $"Skipping samtools cat due to single input bam, instead moving {inputBam} directly to output at {mergedBam}");
+                    $"Skipping samtools cat due to single input bam, instead moving {inputBam} directly to output at {finalMergedBAm}");
                 // Note: choosing to move instead of copy here because ultimately we end up deleting intermediate files anyway, unless the user is running in debug
                 // If user is running in debug, they therefore won't see the original bam in their chrom subdir... but since there's only one original bam anyway, it was not providing any additional value
-                File.Move(inputBam, mergedBam);
+                File.Move(inputBam, finalMergedBAm);
+                return finalMergedBAm;
+            }
+
+            var maxCmdLength = 1500;
+            var currentCmdLength = inputBams.Sum(x => x.Length);
+
+            if (currentCmdLength > maxCmdLength)
+            {
+                var bamsQueue = new Queue<string>(inputBams.ToList());
+                var finalBams = new List<string>();
+                var loopCmdLength = 0;
+                var tmpBamCount = 0;
+                var currentBams = new List<string>();
+
+                while (bamsQueue.Count > 0)
+                {
+                    var nextBam = bamsQueue.Dequeue();
+                    if (loopCmdLength + nextBam.Length > maxCmdLength)
+                    {
+                        tmpBamCount++;
+                        var tmpMergedBam = mergedBam + ".tmp" + tmpBamCount;
+                        finalBams.Add(tmpMergedBam);
+                        Logger.WriteToLog($"Calling intermediate samtools cat on {currentBams.Count()} bams with output at {tmpMergedBam}");
+                        ExecuteSamtoolsProcess(
+                            $"cat -o \"{tmpMergedBam}\" {string.Join(" ", currentBams.Select(b => $"\"{b}\""))}");
+
+                        loopCmdLength = 0;
+
+                        foreach (var currentBam in currentBams)
+                        {
+                            File.Delete(currentBam);
+                        }
+                        currentBams.Clear();
+                    }
+
+                    currentBams.Add(nextBam);
+                    loopCmdLength += nextBam.Length;
+                }
+
+                BatchCatBams(mergedBam + ".tmp", finalBams.Concat(currentBams).ToList(), finalMergedBAm);
             }
             else
             {
-                Logger.WriteToLog($"Calling samtools cat on {inputBams.Count()} bams with output at {mergedBam}");
-                ExecuteSamtoolsProcess($"cat -o \"{mergedBam}\" {string.Join(" ", inputBams.Select(b=>$"\"{b}\""))}");
+                Logger.WriteToLog($"Calling final samtools cat on {inputBams.Count()} bams with output at {finalMergedBAm}");
+                ExecuteSamtoolsProcess(
+                    $"cat -o \"{finalMergedBAm}\" {string.Join(" ", inputBams.Select(b => $"\"{b}\""))}");
             }
+            return mergedBam;
+
         }
 
         public void SamtoolsIndex(string bamToIndex)

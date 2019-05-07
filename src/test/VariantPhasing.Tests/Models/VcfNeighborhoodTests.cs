@@ -121,6 +121,179 @@ namespace VariantPhasing.Tests.Models
             Assert.Equal("NbhdNum0_chr1_120", nbhd.Id);
         }
 
+
+
+        [Fact]
+        //this unit test was made after we found bug ScyllaShouldMergeClusters_PICS-1122.
+        //We had an output vcf with the following lines 
+        //chr11	64577365	.	C	.	100	PASS	DP=1429	GT:GQ:AD:DP:VF:NL:SB:NC:US	0/0:1:1429:1429:0.00000:65:-100.0000:0.0592:0,0,0,0,0,0,0,0,0,0,0,0
+        //chr11	64577366	.	A T	78	PASS DP = 559  GT:GQ:AD:DP:VF:NL:SB:NC:US	0/1:78:538,2:559:0.00358:65:-100.0000:0.7509:0,0,0,0,0,0,0,0,0,0,0,0
+        //chr11	64577366	.	A T	78	PASS DP = 559  GT:GQ:AD:DP:VF:NL:SB:NC:US	0/1:78:538,2:559:0.00358:65:-100.0000:0.7509:0,0,0,0,0,0,0,0,0,0,0,0
+        //chr11	64577367	.	G.   100	PASS DP = 1411 GT:GQ:AD:DP:VF:NL:SB:NC:US	0/0:1:1411:1411:0.00000:65:-100.0000:0.0741:0,0,0,0,0,0,0,0,0,0,0,0
+
+        //The affected methods are "AddAcceptedPhasedVariant" and "AddRejectedPhasedVariant"
+        //the new fix will merge the added variant, if its the same as a varaint that already exists
+        public void AddAcceptedAndRejectedPhasedVariantTests()
+        {
+            //for this test we take three SNPs, two of which can be combined and 1 that cannot, and 
+            //we take three ref calls, two of which can be combined and 1 that cannot.
+            //So 6 diff alleles go in, but only 4 should come out in the lists.
+
+            var originalVcfVariant1 = TestHelper.CreateDummyAllele("chr1", 123, "A", "T", 500, 156);
+            var originalVcfVariant2 = TestHelper.CreateDummyAllele("chr1", 123, "A", "T", 1000, 200);
+
+            var vs1 = new VariantSite(originalVcfVariant1);
+            var vs2 = new VariantSite(originalVcfVariant2);
+
+            var caller = new VariantCaller(new VariantCallingParameters(), new BamFilterParameters());
+            var nbhd = new VcfNeighborhood(0, "chr1", vs1, vs2);
+            var callableNeighborhood = new CallableNeighborhood(nbhd, new VariantCallingParameters());
+
+            //variants:
+
+            callableNeighborhood.AddAcceptedPhasedVariant(
+                new CalledAllele(AlleleCategory.Snv)
+                {
+                    Chromosome = "chr1",
+                    ReferencePosition = 123,
+                    ReferenceAllele = "A",
+                    AlternateAllele = "T",
+                    VariantQscore = 100,
+                    TotalCoverage = 1000,
+                    AlleleSupport = 200,
+                    ReferenceSupport = 350,
+                    NoiseLevelApplied = 20
+                });
+
+
+            callableNeighborhood.AddAcceptedPhasedVariant(
+             new CalledAllele(AlleleCategory.Snv)
+             {
+                 Chromosome = "chr1",
+                 ReferencePosition = 123,
+                 ReferenceAllele = "A",
+                 AlternateAllele = "T",
+                 VariantQscore = 20,
+                 TotalCoverage = 500,
+                 AlleleSupport = 300,
+                 ReferenceSupport = 50,
+                 NoiseLevelApplied = 20
+             });
+
+            callableNeighborhood.AddAcceptedPhasedVariant(
+            new CalledAllele(AlleleCategory.Snv)
+            {
+                Chromosome = "chr1",
+                ReferencePosition = 123,
+                ReferenceAllele = "A",
+                AlternateAllele = "G",
+                VariantQscore = 20,
+                TotalCoverage = 500,
+                AlleleSupport = 300,
+                ReferenceSupport = 50,
+                NoiseLevelApplied = 20
+            });
+
+            callableNeighborhood.AddAcceptedPhasedVariant(
+           new CalledAllele(AlleleCategory.Snv)
+           {
+               Chromosome = "chr1",
+               ReferencePosition = 123,
+               ReferenceAllele = "A",
+               AlternateAllele = "AG",
+               VariantQscore = 20,
+               TotalCoverage = 500,
+               AlleleSupport = 300,
+               ReferenceSupport = 50,
+               NoiseLevelApplied = 20
+           });
+
+            //refs:
+
+            callableNeighborhood.AddRejectedPhasedVariant(
+            new CalledAllele(AlleleCategory.Reference)
+            {
+                Chromosome = "chr1",
+                ReferencePosition = 123,
+                ReferenceAllele = "A",
+                AlternateAllele = ".",
+                VariantQscore = 100,
+                TotalCoverage = 1000,
+                AlleleSupport = 200,
+                ReferenceSupport = 350,
+                NoiseLevelApplied = 20
+            });
+
+
+            callableNeighborhood.AddRejectedPhasedVariant(
+             new CalledAllele(AlleleCategory.Reference)
+             {
+                 Chromosome = "chr1",
+                 ReferencePosition = 123,
+                 ReferenceAllele = "A",
+                 AlternateAllele = ".",
+                 VariantQscore = 20,
+                 TotalCoverage = 500,
+                 AlleleSupport = 300,
+                 ReferenceSupport = 50,
+                 NoiseLevelApplied = 20
+             });
+
+            callableNeighborhood.AddRejectedPhasedVariant(
+            new CalledAllele(AlleleCategory.Reference)
+            {
+                Chromosome = "chr1",
+                ReferencePosition = 124,
+                ReferenceAllele = "A",
+                AlternateAllele = ".",
+                VariantQscore = 20,
+                TotalCoverage = 500,
+                AlleleSupport = 300,
+                ReferenceSupport = 50,
+                NoiseLevelApplied = 20
+            });
+
+
+            //check results.
+
+            //check we got the right number of results
+            Assert.Equal(3, callableNeighborhood.CandidateVariants.Count);
+            Assert.Equal(2, callableNeighborhood.Refs.Count);
+
+            //check the snps did what we expected
+
+            var combinedSnp = callableNeighborhood.CandidateVariants[0];
+
+            Assert.Equal(123, combinedSnp.ReferencePosition);
+            Assert.Equal("chr1", combinedSnp.Chromosome);
+            Assert.Equal("A", combinedSnp.ReferenceAllele);
+            Assert.Equal("T", combinedSnp.AlternateAllele);
+            Assert.Equal(200+300, combinedSnp.AlleleSupport);
+            Assert.Equal(0, combinedSnp.NumNoCalls);
+            Assert.Equal(100, combinedSnp.VariantQscore);
+            Assert.Equal((1000 + 500)/2, combinedSnp.TotalCoverage);
+            Assert.Equal((350 + 50)/2, combinedSnp.ReferenceSupport);
+            Assert.Equal(AlleleCategory.Snv, combinedSnp.Type);
+            Assert.Equal(20, combinedSnp.NoiseLevelApplied);
+
+            //these values should not have changed
+            var justAddedSnp = callableNeighborhood.CandidateVariants[1];
+
+            Assert.Equal(123, justAddedSnp.ReferencePosition);
+            Assert.Equal("chr1", justAddedSnp.Chromosome);
+            Assert.Equal("A", justAddedSnp.ReferenceAllele);
+            Assert.Equal("G", justAddedSnp.AlternateAllele);
+            Assert.Equal(300, justAddedSnp.AlleleSupport);
+            Assert.Equal(0, justAddedSnp.NumNoCalls);
+            Assert.Equal(20, justAddedSnp.VariantQscore);
+            Assert.Equal(500, justAddedSnp.TotalCoverage);
+            Assert.Equal(50, justAddedSnp.ReferenceSupport);
+            Assert.Equal(AlleleCategory.Snv, justAddedSnp.Type);
+            Assert.Equal(20, justAddedSnp.NoiseLevelApplied);
+
+        }
+
+
         [Fact]
         //this unit test was made after we found bug ScyllaLoosingRefCalls_PICS-723.
         //We had a 1/. GT reported when it should be 1/0.
@@ -192,7 +365,7 @@ namespace VariantPhasing.Tests.Models
             var fakeCluster = new Cluster("test", new List<VeadGroup>() { vg });
             fakeCluster.ResetConsensus();
             callableNeighborhood.CreateMnvsFromClusters(new List<Cluster> { fakeCluster },
-                20, 100);
+                20);
             caller.CallMNVs(callableNeighborhood);
             caller.CallRefs(callableNeighborhood);
 
@@ -212,7 +385,7 @@ namespace VariantPhasing.Tests.Models
             var suckedUpRefRecord100 = new SuckedUpRefRecord() { Counts = 100, AlleleThatClaimedIt = callableNeighborhood.CandidateVariants[0] };
             callableNeighborhood.UsedRefCountsLookup = new Dictionary<int, SuckedUpRefRecord>() { { 123, suckedUpRefRecord100 } };
             callableNeighborhood.CreateMnvsFromClusters(new List<Cluster> { fakeCluster },
-            20, 100);
+            20);
 
             caller.CallMNVs(callableNeighborhood);
             caller.CallRefs(callableNeighborhood);
@@ -266,7 +439,7 @@ namespace VariantPhasing.Tests.Models
 
             var callableNeighborhood = new CallableNeighborhood(nbhd, new VariantCallingParameters());
             callableNeighborhood.NbhdReferenceSequenceSubstring = "CGT";
-            callableNeighborhood.CreateMnvsFromClusters(new List<ICluster>() { mockCluster.Object }, 20, 100);
+            callableNeighborhood.CreateMnvsFromClusters(new List<ICluster>() { mockCluster.Object }, 20);
 
             var allele = callableNeighborhood.CandidateVariants.First();
             Assert.Equal(6, allele.TotalCoverage);

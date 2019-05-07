@@ -5,11 +5,9 @@ using System.Linq;
 using System.Text;
 using TestUtilities;
 using Alignment.Domain.Sequencing;
-using Pisces.Logic;
-using Pisces.IO.Sequencing;
+using Pisces.IO;
 using Pisces.Domain.Models;
 using Pisces.Domain.Options;
-using Xunit.Extensions;
 using Xunit;
 
 namespace Pisces.Tests.UnitTests
@@ -235,7 +233,7 @@ namespace Pisces.Tests.UnitTests
                     File.Delete(biasOutputPath);
 
                     StitchedReadBiasHelper.CallStrandedVariantsWithMockData(vcfOutputPath, Options, factory);
-                    var varResults = StitchedReadBiasHelper.GetResults(VcfReader.GetAllVariantsInFile(vcfOutputPath));
+                    var varResults = StitchedReadBiasHelper.GetResults(AlleleReader.GetAllVariantsInFile(vcfOutputPath));
                     var biasResults = StitchedReadBiasHelper.GetStrandResultsFromFile(biasOutputPath);
 
                     var observedFrequency = (varResults.Count == 0) ? "0" : "";

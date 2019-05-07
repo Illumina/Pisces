@@ -1,6 +1,6 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
-using Pisces.IO.Sequencing;
 using Pisces.Domain.Models.Alleles;
 using Pisces.IO;
 using VariantPhasing.Interfaces;
@@ -9,104 +9,138 @@ namespace VariantPhasing.Logic
 {
     public class VcfMerger
     {
-        private readonly IVcfVariantSource _variantSource;
+        private readonly IAlleleSource _variantSource;
       
-        public VcfMerger(IVcfVariantSource originalVariantSource)
+        public VcfMerger(IAlleleSource originalVariantSource)
         {
             _variantSource = originalVariantSource;
         }
 
-
-        public void WriteRemainingVariants(IVcfFileWriter<CalledAllele> writer, List<CalledAllele> allelesPastNbhd)
+        private List<Tuple<CalledAllele, string>> GetNextBlockOfOriginalAlleleTuplesFromVcfVar()
         {
-            writer.Write(allelesPastNbhd);
+            var allelesUnpackedFromVcfVariant = new List<CalledAllele>();
+            var originalVCFLine = "";
+            var alleleTuplesFromVcfVariantList = new List<Tuple<CalledAllele, string>>();
+
+            bool worked = _variantSource.GetNextVariants(out allelesUnpackedFromVcfVariant, out originalVCFLine);
+            
+            if (!worked)
+                return new List<Tuple<CalledAllele, string>>();
+
+            //if the input ploidy is diploid, and the output ploidy is somatic
+            //we will have a 1 -> 2 mapping issue... in that case, we have to forbidUsingoriginalVCFLine
+            bool forbidUsingOriginalVCFLine = false;
+            foreach (var allele in allelesUnpackedFromVcfVariant)
+            {
+                if (allele.Genotype == Pisces.Domain.Types.Genotype.HeterozygousAlt1Alt2)
+                    forbidUsingOriginalVCFLine = true;
+
+                if (forbidUsingOriginalVCFLine)
+                    alleleTuplesFromVcfVariantList.Add(new Tuple<CalledAllele, string>(allele, ""));
+                else
+                {
+                    alleleTuplesFromVcfVariantList.Add(new Tuple<CalledAllele, string>(allele,  originalVCFLine));
+                }
+            }
+
+            return alleleTuplesFromVcfVariantList;
+        }
+
+        public void WriteRemainingVariants(IVcfFileWriter<CalledAllele> writer, List<Tuple<CalledAllele, string>> alleleTuplesPastNbhd)
+        {
+            WriteDistinctVcfLines(writer, alleleTuplesPastNbhd);
 
             while (true)
             {
-                var alleles = GetNextBlockOfOriginalAllelesFromVcfVar();
+                var alleleTuplesOriginalFromVcfVarList = GetNextBlockOfOriginalAlleleTuplesFromVcfVar();
 
-                if (alleles.Count() == 0)
+                if (!alleleTuplesOriginalFromVcfVarList.Any())
                     return;
-
-                writer.Write(alleles);
-
+                
+                WriteDistinctVcfLines(writer, alleleTuplesOriginalFromVcfVarList);
             }
         }
 
-        private IEnumerable<CalledAllele> GetNextBlockOfOriginalAllelesFromVcfVar()
+        public List<Tuple<CalledAllele, string>> WriteVariantsUptoChr(
+            IVcfFileWriter<CalledAllele> writer, List<Tuple<CalledAllele, string>> alleleTuplesLeftoverList, string stopChr)
         {
-            var vcfVar = new VcfVariant();
-            bool worked = _variantSource.GetNextVariant(vcfVar);
-
-            if (!worked)
-                return new List<CalledAllele>();
-          
-            return (VcfVariantUtilities.Convert(new List<VcfVariant> { vcfVar }));
-        }
-
-
-        public List<CalledAllele> WriteVariantsUptoIncludingNbhd(
-            ICallableNeighborhood nbhdWithMNVs,
-            IVcfFileWriter<CalledAllele> writer, List<CalledAllele> leftoverAlleles)
-        {
-            var calledMNVs = nbhdWithMNVs.CalledVariants;
-            var allelesReadyToWrite = new List<CalledAllele>();
-            var allelesInCurrentVcfNbhd = new List<CalledAllele>();
-            var allelesToGoupWithNextNbhd = new List<CalledAllele>();
-
-            var allelesInProcess = new List<CalledAllele>();
-
-            int orderWithRespectToNbhd = -1;
-            bool quittingNbhd = false;
-            bool takenCareOfLeftOvers = (leftoverAlleles.Count() == 0);
+            WriteDistinctVcfLines(writer, alleleTuplesLeftoverList);
 
             while (true)
             {
+                var alleleTuplesInProcessList = GetNextBlockOfOriginalAlleleTuplesFromVcfVar();
 
+                if (alleleTuplesInProcessList.Count == 0)
+                    return new List<Tuple<CalledAllele, string>>();
+
+                if (alleleTuplesInProcessList[0].Item1.Chromosome != stopChr)
+                {
+                    //still not in the right nbhd
+                    WriteDistinctVcfLines(writer, alleleTuplesInProcessList);
+                }
+                else
+                {
+                    return alleleTuplesInProcessList;
+                }
+            }
+        }
+        
+        public List<Tuple<CalledAllele, string>> WriteVariantsUptoIncludingNbhd(
+            IVcfFileWriter<CalledAllele> writer, List<Tuple<CalledAllele, string>> alleleTuplesLeftoverList, ICallableNeighborhood nbhdWithMNVs)
+        {
+            var alleleTuplesInProcessList = new List<Tuple<CalledAllele, string>>();
+            var alleleTuplesReadyToWriteList = new List<Tuple<CalledAllele, string>>();
+            var alleleTuplesInCurrentVcfNbhdList = new List<Tuple<CalledAllele, string>>();
+            var alleleTuplesToGroupWithNextNbhdList = new List<Tuple<CalledAllele, string>>();
+            
+            int orderWithRespectToNbhd = -1;
+            bool quittingNbhd = false;
+            bool takenCareOfLeftOvers = !alleleTuplesLeftoverList.Any();
+
+            while (true)
+            {
                 if (quittingNbhd)
                     break;
 
                 if (takenCareOfLeftOvers)
-                    allelesInProcess = GetNextBlockOfOriginalAllelesFromVcfVar().ToList();
+                    alleleTuplesInProcessList = GetNextBlockOfOriginalAlleleTuplesFromVcfVar();
                 else
                 {
-                    allelesInProcess = GetNextSetOfAllelesToProcess(leftoverAlleles, nbhdWithMNVs.ReferenceName, writer);
+                    alleleTuplesInProcessList = GetNextSetOfAlleleTuplesToProcess(
+                        writer, alleleTuplesLeftoverList, nbhdWithMNVs.ReferenceName);
                     takenCareOfLeftOvers = true;
                 }
-
             
-                if (allelesInProcess.Count() == 0)
+                if (!alleleTuplesInProcessList.Any())
                     break;
 
-                foreach (var originalAllele in allelesInProcess)
+                foreach (var originalAlleleTuple in alleleTuplesInProcessList)
                 {
-
                     if (quittingNbhd)
                     {
-                        allelesReadyToWrite.Add(originalAllele);
+                        alleleTuplesToGroupWithNextNbhdList.Add(originalAlleleTuple);
                         continue;
                     }
 
-                    orderWithRespectToNbhd = OrderWithNeighborhood(nbhdWithMNVs, originalAllele);
+                    orderWithRespectToNbhd = OrderWithNeighborhood(nbhdWithMNVs, originalAlleleTuple.Item1);
                     switch (orderWithRespectToNbhd)
                     {
                         case (-1)://if we are before the nbhd, write straight to vcf
-                            allelesReadyToWrite.Add(originalAllele);
+                            alleleTuplesReadyToWriteList.Add(originalAlleleTuple);
                             break;
 
                         case (0): //in the nbhd
-                            allelesInCurrentVcfNbhd.Add(originalAllele);
+                            alleleTuplesInCurrentVcfNbhdList.Add(originalAlleleTuple);
                             break;
 
                         default:
                             //if we are either ahead of our nbhd, or gone into the wrong chr)
-                            //Close out the nbhd and finish up.                           
-                            var mergedVariants = GetMergedListOfVariants(nbhdWithMNVs, allelesInCurrentVcfNbhd);
-                            allelesReadyToWrite.AddRange(mergedVariants);
-                            allelesToGoupWithNextNbhd.Add(originalAllele);
+                            //Close out the nbhd and finish up.
+                            var mergedVariants = GetMergedListOfVariants(nbhdWithMNVs, alleleTuplesInCurrentVcfNbhdList);
+                            alleleTuplesReadyToWriteList.AddRange(mergedVariants);
+                            alleleTuplesToGroupWithNextNbhdList.Add(originalAlleleTuple);
                             quittingNbhd = true;
                             break;
-
                     }
                 }
             }
@@ -114,50 +148,46 @@ namespace VariantPhasing.Logic
             //close out any remaining nbhd
             if (orderWithRespectToNbhd == 0)
             {
-                var mergedVariants = GetMergedListOfVariants(nbhdWithMNVs, allelesInCurrentVcfNbhd);
-                allelesReadyToWrite.AddRange(mergedVariants);
-
+                var mergedVariants = GetMergedListOfVariants(nbhdWithMNVs, alleleTuplesInCurrentVcfNbhdList);
+                alleleTuplesReadyToWriteList.AddRange(mergedVariants);
             }
 
-            var alleleAfterAdjustment = VcfMergerUtils.AdjustForcedAllele(allelesReadyToWrite);
-            writer.Write(alleleAfterAdjustment);
-            return allelesToGoupWithNextNbhd;
+            var alleleTuplesAfterAdjustmentList = VcfMergerUtils.AdjustForcedAllele(alleleTuplesReadyToWriteList);
+
+            WriteDistinctVcfLines(writer, alleleTuplesAfterAdjustmentList);
+
+            return alleleTuplesToGroupWithNextNbhdList;
         }
 
-
-
-        private List<CalledAllele> GetNextSetOfAllelesToProcess( List<CalledAllele> leftoverAlleles,
-            string thisChr, IVcfFileWriter<CalledAllele> writer)
+        private List<Tuple<CalledAllele, string>> GetNextSetOfAlleleTuplesToProcess(
+            IVcfFileWriter<CalledAllele> writer, List<Tuple<CalledAllele, string>> alleleTuplesLeftoverList, string thisChr)
         {
-            var originalAlleles = new List<CalledAllele>();
+            var alleleTuplesOriginalList = new List<Tuple<CalledAllele, string>>();
 
             //if alleles are left over from the last nbhd, do them first.
-            if (leftoverAlleles.Count > 0)
+            if (alleleTuplesLeftoverList.Count > 0)
             {
-
-                if (leftoverAlleles[0].Chromosome != thisChr)
+                if (alleleTuplesLeftoverList[0].Item1.Chromosome != thisChr)
                 {
                     //we have already gone into the wrong chr. This cant possibly be in our nbhd.
-                    //write straight to vcf.       
-                    writer.Write(leftoverAlleles);
+                    //write straight to vcf.
+                    WriteDistinctVcfLines(writer, alleleTuplesLeftoverList);
 
-                    return GetNextSetOfAllelesToProcess(new List<CalledAllele>(), thisChr, writer);
+                    return GetNextSetOfAlleleTuplesToProcess(writer, new List<Tuple<CalledAllele, string>>(), thisChr);
                 }
                 else //they might be in our nbhd, so send them through the process
                 {
-                    originalAlleles.AddRange(leftoverAlleles);
+                    alleleTuplesOriginalList.AddRange(alleleTuplesLeftoverList);
                 }
-                leftoverAlleles = new List<CalledAllele>();
-                return originalAlleles;
+                return alleleTuplesOriginalList;
             }
             else
             {
-                originalAlleles = GetNextBlockOfOriginalAllelesFromVcfVar().ToList();
-                return originalAlleles;
+                alleleTuplesOriginalList = GetNextBlockOfOriginalAlleleTuplesFromVcfVar();
+                return alleleTuplesOriginalList;
             }
         }
         
-
         private static int OrderWithNeighborhood(ICallableNeighborhood nbhdWithMNVs, CalledAllele originalVariant)
         {
             if (originalVariant.Chromosome != nbhdWithMNVs.ReferenceName)
@@ -172,9 +202,10 @@ namespace VariantPhasing.Logic
             return -1;
         }
 
-        public static List<CalledAllele> GetMergedListOfVariants(ICallableNeighborhood completedNbhd, List<CalledAllele> originalVariantsInsideRange)
+        public static List<Tuple<CalledAllele, string>> GetMergedListOfVariants(
+            ICallableNeighborhood completedNbhd, List<Tuple<CalledAllele, string>> originalVariantsInsideRange)
         {
-            var mergedVariantList = new List<CalledAllele>();
+            var mergedVariantList = new List<Tuple<CalledAllele, string>>();
             Dictionary<int, List<CalledAllele>> foundMNVS = completedNbhd.CalledVariants;
 
             //track which variants got used for MNV phasing.
@@ -184,21 +215,33 @@ namespace VariantPhasing.Logic
             for (int i = 0; i < originalVariantsInsideRange.Count; i++)
             {
                 var originalCall = originalVariantsInsideRange[i];
-                var currentPosition = originalCall.ReferencePosition;
-                bool variantWasAlreadyUsed = CheckIfUsed(indexesOfVariantsRecalledByMnvCaller, originalCall);
-
-
+                var currentPosition = originalCall.Item1.ReferencePosition;
+                bool variantWasAlreadyUsed = CheckIfUsed(indexesOfVariantsRecalledByMnvCaller, originalCall.Item1);
+                
                 if (foundMNVS.ContainsKey(currentPosition))
                 {
                     //add all the MNVs
-                    mergedVariantList.AddRange(foundMNVS[currentPosition]);
+                    foreach (var mnv in foundMNVS[currentPosition])
+                    {
+                        if (mnv.IsSameAllele(originalCall.Item1) && 
+                            mnv.AlleleSupport == originalCall.Item1.AlleleSupport && 
+                            mnv.TotalCoverage == originalCall.Item1.TotalCoverage &&
+                            mnv.ReferenceSupport == originalCall.Item1.ReferenceSupport)
+                        {
+                            mergedVariantList.Add(originalCall);
+                        }
+                        else
+                        {
+                            mergedVariantList.Add(new Tuple<CalledAllele, string>(mnv, ""));
+                        }
+                    }
                     foundMNVS[currentPosition] = new List<CalledAllele>();//empty out the list, but leave the fact that there were MNVs here.
 
                     //add back any original variants, 
                     //so long as they were not used by the caller, and not reference
                     if (!(variantWasAlreadyUsed) &&
-                        (originalCall.Type != Pisces.Domain.Types.AlleleCategory.Reference))
-                        mergedVariantList.Add(originalCall);
+                        (originalCall.Item1.Type != Pisces.Domain.Types.AlleleCategory.Reference))
+                         mergedVariantList.Add(originalCall);
 
                     continue;
                 }
@@ -208,52 +251,36 @@ namespace VariantPhasing.Logic
                 //or a new reference call converted from a variant that got used by the MNV caller.                
                 if (variantWasAlreadyUsed)
                 {
-                    var newRef = completedNbhd.CalledRefs[originalCall.ReferencePosition];
+                    var newRef = completedNbhd.CalledRefs[originalCall.Item1.ReferencePosition];
 
                     //sometimes several variants were used, all at the same position. we dont need to add new references for all of them.
-                    if ((mergedVariantList.Count == 0) || (mergedVariantList.Last().ReferencePosition != currentPosition))
-                        mergedVariantList.Add(newRef);
-
+                    if ((mergedVariantList.Count == 0) ||
+                        (mergedVariantList.Last().Item1.ReferencePosition != currentPosition))
+                    {
+                        mergedVariantList.Add(new Tuple<CalledAllele, string>(newRef, ""));
+                    }
                 }
                 else //wasnt used for MNV calling
                 {
-                    mergedVariantList.Add(originalVariantsInsideRange[i]);
+                    mergedVariantList.Add(originalCall);
                 }
             }
 
-            //incase we called any MNVs past the edge of the input VCF.
+            //in case we called any MNVs past the edge of the input VCF.
             foreach (var mnvsLeft in foundMNVS)
-                mergedVariantList.AddRange(mnvsLeft.Value);
+            {
+                foreach (var mnv in mnvsLeft.Value)
+                {
+                    mergedVariantList.Add(new Tuple<CalledAllele, string>(mnv, ""));
+                }
+            }
 
-            var comparer = new AlleleCompareByLoci();
-            mergedVariantList.Sort(comparer);
-
+            mergedVariantList.Sort(new AlleleTupleCompareByLociAndAllele());
 
             return mergedVariantList;
 
         }
-
-        public List<CalledAllele> WriteVariantsUptoChr(IVcfFileWriter<CalledAllele> writer, List<CalledAllele> leftoverAlleles, string stopChr)
-        {
-            writer.Write(leftoverAlleles);
-
-            while (true)
-            {
-
-                var allelesInProcess = GetNextBlockOfOriginalAllelesFromVcfVar().ToList();
-
-                if (allelesInProcess == null || allelesInProcess.Count == 0)
-                    return new List<CalledAllele>();
-
-                if (allelesInProcess[0].Chromosome != stopChr)
-                {
-                    //still not in the right nbhd
-                    writer.Write(allelesInProcess);
-                }
-                else return allelesInProcess;
-            }
-        }
-
+        
         private static bool CheckIfUsed(List<CalledAllele> usedAlleles, CalledAllele originalCall)
         {
             foreach (var allele in usedAlleles)
@@ -264,6 +291,29 @@ namespace VariantPhasing.Logic
 
             return false;
         }
+
+        private void WriteDistinctVcfLines(IVcfFileWriter<CalledAllele> writer, List<Tuple<CalledAllele, string>> alleleTuples)
+        {
+            var distinctVcfLines = new HashSet<string>();
+
+            foreach (var alleleTuple in alleleTuples)
+            {
+                if (alleleTuple.Item2 == "")
+                {
+                    writer.Write(new List<CalledAllele>{alleleTuple.Item1});
+                }
+                else
+                {
+                    if (!distinctVcfLines.Contains(alleleTuple.Item2))
+                    {
+                        distinctVcfLines.Add(alleleTuple.Item2);
+                        writer.Write(alleleTuple.Item2);
+                    }
+                }
+            }
+
+        }
+
     }
 
 }

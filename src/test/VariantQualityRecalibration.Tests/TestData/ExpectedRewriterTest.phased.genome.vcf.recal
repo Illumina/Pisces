@@ -1,0 +1,52 @@
+##fileformat=VCFv4.1
+##fileDate=20181218
+##source=Pisces 1.0.0.0
+##Pisces_cmdline="-Bamm blah" 
+##VariantQualityRecalibrator=VQR 1.0.0.0
+##VQR_cmdline="-vcf C:\Projects_t\git\Pisces5_Internal\Pisces5\src\test\VariantQualityRecalibration.Tests\bin\Debug\netcoreapp2.0\Scratch\HappyPathExecution\RewriterTest.phased.genome.vcf"
+##VariantPhaser=Scylla 1.0.0.0
+##Scylla_cmdline="-Bam D:\Jenkins\workspace\Pisces\develop\Smoke\Bamlet_Windows\103\Var_1_S1.PairRealigned.bam -Vcf D:\Jenkins\workspace\Pisces\develop\Smoke\Bamlet_Windows\103\Var_1_S1.PairRealigned.genome.vcf -OutFolder D:\Jenkins\workspace\Pisces\develop\Smoke\Bamlet_Windows\103"
+##reference=D:\Jenkins\workspace\Pisces\develop\Smoke\Bamlet_Windows\103\genomes\Homo_sapiens\UCSC\hg19\Sequence\WholeGenomeFasta
+##ALT=<ID=<M>,Description="There is an overlapping other allele that has been called in a separate VCF record">
+##INFO=<ID=DP,Number=1,Type=Integer,Description="Total Depth">
+##FILTER=<ID=q20,Description="Quality score less than 20">
+##FILTER=<ID=LowDP,Description="Low coverage (DP tag), therefore no genotype called">
+##FILTER=<ID=SB,Description="Variant strand bias too high or coverage on only one strand">
+##FILTER=<ID=R5x9,Description="Repeats of part or all of the variant allele (max repeat length 5) in the reference greater than or equal to 9">
+##FILTER=<ID=NC,Description="No-call rate is above 0.6">
+##FILTER=<ID=q30,Description="Quality score less than 30, by VQR">
+##FILTER=<ID=SB,Description="Variant strand bias too high, by VQR">
+##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">
+##FORMAT=<ID=GQ,Number=1,Type=Integer,Description="Genotype Quality">
+##FORMAT=<ID=AD,Number=.,Type=Integer,Description="Allele Depth">
+##FORMAT=<ID=DP,Number=1,Type=Integer,Description="Total Depth Used For Variant Calling">
+##FORMAT=<ID=VF,Number=.,Type=Float,Description="Variant Frequency">
+##FORMAT=<ID=NL,Number=1,Type=Integer,Description="Applied BaseCall Noise Level">
+##FORMAT=<ID=SB,Number=1,Type=Float,Description="StrandBias Score">
+##contig=<ID=chrM,length=16571>
+##contig=<ID=chr1,length=249250621>
+##contig=<ID=chr2,length=243199373>
+##contig=<ID=chr3,length=198022430>
+##contig=<ID=chrX,length=155270560>
+##contig=<ID=chrY,length=59373566>
+#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	Var_1_S1.PairRealigned.bam
+chr1	115252149	.	T	.	100	PASS	DP=1000	GT:GQ:AD:DP:VF:NL:SB	0/0:43:1000:1000:0.000:21:-100.0000
+chr1	115252150	.	G	.	100	PASS	DP=1000	GT:GQ:AD:DP:VF:NL:SB	0/0:43:1000:1000:0.000:21:-100.0000
+chr1	115252151	.	A	.	100	PASS	DP=1000	GT:GQ:AD:DP:VF:NL:SB	0/0:43:1000:1000:0.000:21:-100.0000
+chr1	115252152	.	T	.	100	PASS	DP=1000	GT:GQ:AD:DP:VF:NL:SB	0/0:43:1000:1000:0.000:21:-100.0000
+chr1	115252153	.	G	.	100	PASS	DP=1000	GT:GQ:AD:DP:VF:NL:SB	0/0:43:1000:1000:0.000:21:-100.0000
+chr1	115252154	.	C	.	100	PASS	DP=1000	GT:GQ:AD:DP:VF:NL:SB	0/0:43:1000:1000:0.000:21:-100.0000
+chr1	115252155	.	A	.	100	PASS	DP=1000	GT:GQ:AD:DP:VF:NL:SB	0/0:43:1000:1000:0.000:21:-100.0000
+chr1	115252156	.	A	.	100	PASS	DP=1000	GT:GQ:AD:DP:VF:NL:SB	0/0:43:1000:1000:0.000:21:-100.0000
+chr1	115252157	.	A	.	100	PASS	DP=1000	GT:GQ:AD:DP:VF:NL:SB	0/0:43:1000:1000:0.000:21:-100.0000
+chr1	115252158	.	C	.	100	PASS	DP=1000	GT:GQ:AD:DP:VF:NL:SB	0/0:43:1000:1000:0.000:21:-100.0000
+chr1	115252159	.	T	.	100	PASS	DP=1000	GT:GQ:AD:DP:VF:NL:SB	0/0:43:1000:1000:0.000:21:-100.0000
+chr1	115252174	.	G	.	100	PASS	DP=1000	GT:GQ:AD:DP:VF:NL:SB	0/0:43:1000:1000:0.000:21:-100.0000
+chr1	115252201	.	T	.	100	PASS	DP=1000	GT:GQ:AD:DP:VF:NL:SB	0/0:43:1000:1000:0.000:21:-100.0000
+chr1	115252202	.	G	.	100	PASS	DP=1000	GT:GQ:AD:DP:VF:NL:SB	0/0:43:1000:1000:0.000:21:-100.0000
+chr1	115252203	.	G	A	100	PASS	DP=1000	GT:GQ:AD:DP:VF:NL:SB	0/1:100:504,496:1000:0.496:12:-100.0000
+chr1	115252204	.	C	.	100	PASS	DP=1000	GT:GQ:AD:DP:VF:NL:SB	0/0:43:1000:1000:0.000:21:-100.0000
+chr1	115252205	.	T	.	100	PASS	DP=1000	GT:GQ:AD:DP:VF:NL:SB	0/0:43:1000:1000:0.000:21:-100.0000
+chr1	115252206	.	G	.	100	PASS	DP=1000	GT:GQ:AD:DP:VF:NL:SB	0/0:43:1000:1000:0.000:21:-100.0000
+chr1	115252207	.	A	.	100	PASS	DP=1000	GT:GQ:AD:DP:VF:NL:SB	0/0:43:1000:1000:0.000:21:-100.0000
+chr1	115252208	.	G	.	100	PASS	DP=1000	GT:GQ:AD:DP:VF:NL:SB	0/0:43:1000:1000:0.000:21:-100.0000

@@ -2,7 +2,7 @@
 using System.Linq;
 using Pisces.Domain.Options;
 using Common.IO.Utility;
-using Pisces.IO.Sequencing;
+using Pisces.IO;
 using CallVariants.Logic.Processing;
 using Xunit;
 
@@ -93,14 +93,14 @@ namespace Pisces.Tests.UnitTests.Processing
 
             foreach (var workRequest in factory.WorkRequests)
             {
-                using (var reader = new VcfReader(workRequest.OutputFilePath))
+                using (var reader = new AlleleReader(workRequest.OutputFilePath))
                 {
                     Assert.True(reader.HeaderLines.Any());
                     var variants = reader.GetVariants().ToList();
 
                     Assert.Equal(251, variants.Count());
-                    Assert.Equal("chr17", variants.First().ReferenceName);
-                    Assert.Equal("chr19", variants.Last().ReferenceName);
+                    Assert.Equal("chr17", variants.First().Chromosome);
+                    Assert.Equal("chr19", variants.Last().Chromosome);
                 }
             }
 

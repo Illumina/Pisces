@@ -52,7 +52,7 @@ namespace ReadRealignmentLogic
             return 0;
         }
 
-        public override int CompareAlignmentsWithOriginal(AlignmentSummary other, AlignmentSummary original)
+        public override int CompareAlignmentsWithOriginal(AlignmentSummary other, AlignmentSummary original, bool treatKindly = false)
         {
 
             if (original == null) return 1;
@@ -81,7 +81,7 @@ namespace ReadRealignmentLogic
             }
             
             // all other cases
-            if (other.NumMismatchesIncludeSoftclip - numSharedMismatch <= MaxMismatchCreatedByIndel & other.NumMismatchesIncludeSoftclip <= MaxTotalMismatch)
+            if (other.NumMismatchesIncludeSoftclip - numSharedMismatch <= MaxMismatchCreatedByIndel && other.NumMismatchesIncludeSoftclip <= MaxTotalMismatch)
             {
                 if (original.NumMismatchesIncludeSoftclip - other.NumMismatchesIncludeSoftclip >= MinReductionInMismatch) return 1;
 

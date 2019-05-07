@@ -1,6 +1,6 @@
 ﻿namespace Pisces.Interfaces
 {
-    public interface ISomaticVariantCaller
+    public interface ISmallVariantCaller
     {
         void Execute();
     }

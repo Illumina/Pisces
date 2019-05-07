@@ -209,7 +209,6 @@ namespace Common.IO.Sequencing
         protected void Open(Stream outStream)
         {
             if (IsOpen) Close();
-
             BgzfFileStream = outStream;
             _writer = new BinaryWriter(BgzfFileStream);
             IsOpen = true;

@@ -19,6 +19,7 @@ namespace Pisces.IO
         public string VariantFrequencyFormat = "VF";
         public string NoiseLevelFormat = "NL";
         public string StrandBiasFormat = "SB";
+        public string AmpliconBiasFormat = "AB";
         public string ProbeBiasFormat = "PB";
         public string FractionNoCallFormat = "NC";
         public string GenotypePosterior = "GP";
@@ -80,6 +81,10 @@ namespace Pisces.IO
                 filterStringsForHeader.Add(FilterType.PoolBias, string.Format(
 "##FILTER=<ID=PB,Description=\"Probe pool bias - variant not found, or found with low frequency, in one of two probe pools\">"));
 
+            if (_config.AmpliconBiasFilterThreshold.HasValue)
+                filterStringsForHeader.Add(FilterType.AmpliconBias, string.Format(
+"##FILTER=<ID=AB,Description=\"Amplicon bias - disparate variant frequencies detected by amplicon\">"));
+
 
             if (_config.DepthFilterThreshold.HasValue)
                 filterStringsForHeader.Add(FilterType.LowDepth, string.Format("##FILTER=<ID=LowDP,Description=\"Low coverage (DP tag), therefore no genotype called\">"));
@@ -97,7 +102,7 @@ namespace Pisces.IO
                 filterStringsForHeader.Add(FilterType.StrandBias, string.Format("##FILTER=<ID={0},Description=\"Variant support on only one strand\">", StrandBiasFormat));
             }
 
-            if ((_config.FrequencyFilterThreshold.HasValue) || (_config.PloidyModel == PloidyModel.DiploidByAdaptiveGT))
+            if (_config.FrequencyFilterThreshold.HasValue)
                 filterStringsForHeader.Add(FilterType.LowVariantFrequency, string.Format("##FILTER=<ID=LowVariantFreq,Description=\"Variant frequency less than {0}\">", FrequencyFilterThresholdString));
 
             if (_config.GenotypeQualityFilterThreshold.HasValue)
@@ -147,6 +152,8 @@ namespace Pisces.IO
                     return StrandBiasFormat;
                 case FilterType.PoolBias:
                     return ProbeBiasFormat;
+                case FilterType.AmpliconBias:
+                    return AmpliconBiasFormat;
                 case FilterType.LowDepth:
                     return "LowDP";
                 case FilterType.LowVariantFrequency:
@@ -167,6 +174,8 @@ namespace Pisces.IO
                     return "ForcedReport";
                 case FilterType.NoCall:
                     return FractionNoCallFormat;
+                case FilterType.Unknown:
+                    return "Other";
                 default:
                     return "";
             }

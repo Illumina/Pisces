@@ -8,14 +8,10 @@ namespace Gemini.FromHygea
     public class RealignmentJudger : IRealignmentJudger
     {
         private readonly AlignmentComparer _alignmentComparer;
-        private readonly int _maxRealignShift;
-        private readonly bool _tryRealignCleanSoftclippedReads;
 
-        public RealignmentJudger(AlignmentComparer alignmentComparer, int maxRealignShift = 200, bool tryRealignSoftclippedReads = true)
+        public RealignmentJudger(AlignmentComparer alignmentComparer)
         {
             _alignmentComparer = alignmentComparer;
-            _maxRealignShift = maxRealignShift;
-            _tryRealignCleanSoftclippedReads = tryRealignSoftclippedReads;
         }
 
         public bool RealignmentIsUnchanged(RealignmentResult realignResult,
@@ -40,33 +36,15 @@ namespace Gemini.FromHygea
             return true;
         }
 
-        public bool RealignmentBetterOrEqual(RealignmentResult realignResult, AlignmentSummary originalAlignmentSummary, bool isPairAware)
+        public bool RealignmentBetterOrEqual(RealignmentResult realignResult,
+            AlignmentSummary originalAlignmentSummary, bool isPairAware)
         {
-            if (isPairAware)
-            {
-                return realignResult.NumMismatches - originalAlignmentSummary.NumMismatches <= 2 && 
-                    realignResult.NumMatches - originalAlignmentSummary.NumMatches >= 0;
-            }
-            return _alignmentComparer.CompareAlignmentsWithOriginal(realignResult, originalAlignmentSummary) >= 0;
+            return _alignmentComparer.CompareAlignmentsWithOriginal(realignResult, originalAlignmentSummary, isPairAware) >= 0;
         }
 
-        public bool PassesSuspicion(AlignmentSummary originalResult)
+        public bool IsVeryConfident(AlignmentSummary realignResult)
         {
-            var isRealignableSoftclip = _tryRealignCleanSoftclippedReads && originalResult.NumNonNSoftclips > 0;
-
-            if (isRealignableSoftclip) return false;
-
-            if (originalResult.NumMismatches == 0 && originalResult.NumIndels == 0) return true;
-
-            // need to try against one of the priors
-            // if (originalResult.NumIndels > 0) return false; 
-
-            // if there are only just mismatches and some are at the tail end of the read, flag it!
-            // jg todo make this threshold configurable
-            //return originalResult.MinNumAnchorMatches.HasValue 
-            //    && originalResult.MinNumAnchorMatches > _anchorSizeThreshold; 
-
-            return false;
+            return realignResult.AnchorLength > 10 && realignResult.NumMismatches <= 1;
         }
     }
 }

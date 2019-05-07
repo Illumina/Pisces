@@ -7,6 +7,7 @@ using Gemini.Realignment;
 using Gemini.Types;
 using Moq;
 using Pisces.Domain.Types;
+using ReadRealignmentLogic.Models;
 using Xunit;
 
 namespace Gemini.Tests

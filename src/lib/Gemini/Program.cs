@@ -3,6 +3,7 @@ using CommandLine.Application;
 using CommandLine.Util;
 using CommandLine.VersionProvider;
 using Gemini.IO;
+using Gemini.Utility;
 
 namespace Gemini
 {
@@ -33,7 +34,7 @@ namespace Gemini
         }
 
 
-        //wrapper should now handle all throwing and catching..
+        //wrapper should now handle all throwing and catching.. 
         protected override void ProgramExecution()
         {
             _options.GeminiSampleOptions.InputBam = _options.InputBam;
@@ -44,15 +45,17 @@ namespace Gemini
             // Gemini defaults different than stitcher defaults
             _options.StitcherOptions.NifyUnstitchablePairs = false;
 
+            // Set stitcher pair-filter-level duplicate filtering if skip and remove dups, to save time
+            _options.StitcherOptions.FilterDuplicates = _options.GeminiOptions.SkipAndRemoveDups;
+
             var dataSourceFactory = new GeminiDataSourceFactory(_options.StitcherOptions, _options.GeminiOptions.GenomePath,
-                _options.GeminiOptions.SkipAndRemoveDups, _options.GeminiSampleOptions.RefId);
-            var bamRealignmentFactory = new BamRealignmentFactory(_options.GeminiOptions, _options.RealignmentAssessmentOptions, _options.StitcherOptions);
+                _options.GeminiOptions.SkipAndRemoveDups, _options.GeminiSampleOptions.RefId, Path.Combine(_options.OutputDirectory, "Regions.txt"), debug: _options.GeminiOptions.Debug);
             var dataOutputFactory = new GeminiDataOutputFactory(_options.StitcherOptions.NumThreads);
 
-            var factory = new GeminiFactory(_options.StitcherOptions, _options.GeminiOptions,
-                _options.GeminiSampleOptions, _options.IndelFilteringOptions, _options.RealignmentOptions, dataSourceFactory, bamRealignmentFactory, dataOutputFactory);
+            var samtoolsWrapper = new SamtoolsWrapper(_options.GeminiOptions.SamtoolsPath, _options.GeminiOptions.IsWeirdSamtools);
 
-            var geminiWorkflow = new GeminiWorkflow(dataSourceFactory, factory, dataOutputFactory, _options.GeminiOptions, _options.GeminiSampleOptions, _options.RealignmentOptions);
+            var geminiWorkflow = new GeminiWorkflow(dataSourceFactory, dataOutputFactory, _options.GeminiOptions, 
+                _options.GeminiSampleOptions, _options.RealignmentOptions, _options.StitcherOptions, _options.OutputDirectory, _options.RealignmentAssessmentOptions, _options.IndelFilteringOptions, samtoolsWrapper);
             geminiWorkflow.Execute();
 
         }

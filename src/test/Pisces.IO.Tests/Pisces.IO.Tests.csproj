@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>netcoreapp2.0</TargetFramework>
@@ -8,7 +8,7 @@
     <GenerateAssemblyConfigurationAttribute>false</GenerateAssemblyConfigurationAttribute>
     <GenerateAssemblyCompanyAttribute>false</GenerateAssemblyCompanyAttribute>
     <GenerateAssemblyProductAttribute>false</GenerateAssemblyProductAttribute>
-    <Version>5.2.10.49</Version>
+    <Version>5.2.11.163</Version>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" />
@@ -60,7 +60,6 @@
     <ProjectReference Include="..\..\lib\Alignment.IO\Alignment.IO.csproj" />
     <ProjectReference Include="..\..\lib\Common.IO\Common.IO.csproj" />
     <ProjectReference Include="..\..\lib\Pisces.Calculators\Pisces.Calculators.csproj" />
-    <ProjectReference Include="..\..\lib\Pisces.Domain\Pisces.Domain.csproj" />
     <ProjectReference Include="..\..\lib\Pisces.IO\Pisces.IO.csproj" />
     <ProjectReference Include="..\..\lib\Pisces.Processing\Pisces.Processing.csproj" />
     <ProjectReference Include="..\TestUtilities\TestUtilities.csproj" />
@@ -88,8 +87,10 @@
     <PostBuildEvent>
       
 </PostBuildEvent>
-    <Version>1.0.0.0</Version>
-    <Copyright>Copyright © Illumina 2019</Copyright>
+    <Version>5.2.11.163</Version>
+    <Copyright>Copyright � Illumina 2019</Copyright>
+    <RepositoryUrl>https://github.com/Illumina/Pisces</RepositoryUrl>
   </PropertyGroup>
 
 </Project>
+

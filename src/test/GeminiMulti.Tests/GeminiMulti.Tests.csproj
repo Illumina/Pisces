@@ -2,10 +2,16 @@
 
   <PropertyGroup>
     <TargetFramework>netcoreapp2.0</TargetFramework>
+
     <IsPackable>false</IsPackable>
+
     <Copyright>Copyright © Illumina 2019</Copyright>
-    <Version>5.2.10.49</Version>
+
     <Company>Illumina</Company>
+
+    <Version>5.2.11.163</Version>
+
+    <RepositoryUrl>https://github.com/Illumina/Pisces</RepositoryUrl>
   </PropertyGroup>
 
   <ItemGroup>
@@ -29,3 +35,4 @@
   </ItemGroup>
 
 </Project>
+

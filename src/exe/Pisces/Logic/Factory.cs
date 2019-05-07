@@ -33,7 +33,9 @@ namespace Pisces
         private Dictionary<string, Dictionary<string, List<Region>>> _bamIntervalLookup = new Dictionary<string, Dictionary<string, List<Region>>>();
         public Dictionary<string, List<CandidateAllele>> _knownVariants = new Dictionary<string, List<CandidateAllele>>();
 	    private Dictionary<string, HashSet<Tuple<string, int, string, string>>> _forcedAllelesByChrom = new Dictionary<string, HashSet<Tuple<string, int, string, string>>>();
- 
+
+        public PiscesApplicationOptions Options => _options;
+
         public Factory(PiscesApplicationOptions options) : base(options)
         {
             _options = options;
@@ -46,35 +48,38 @@ namespace Pisces
 	        GetForcedAlleles();
         }
 
-	    private void GetForcedAlleles()
+        private bool ShouldTrackAmpliconCounts()
+        {
+            return( _options.VariantCallingParameters.AmpliconBiasFilterThreshold != null); 
+        }
+
+        private void GetForcedAlleles()
 	    {
 		    if(_options.ForcedAllelesFileNames == null || _options.ForcedAllelesFileNames.Count==0) return;
 	        foreach (var fileName in _options.ForcedAllelesFileNames)
 	        {
-	            using (var reader = new VcfReader(fileName,false,false))
-	            {
-	                foreach (var variant in reader.GetVariants())
-	                {
-	                    var chr = variant.ReferenceName;
-	                    var pos = variant.ReferencePosition;
-	                    var refAllele = variant.ReferenceAllele.ToUpper();
-	                    var altAlleles = variant.VariantAlleles.Select(x=>x.ToUpper());
+                using (var reader = new AlleleReader(fileName, false, false))
+                {
+                    foreach (var variant in reader.GetVariants())
+                    {
+                        var chr = variant.Chromosome;
+                        var pos = variant.ReferencePosition;
+                        var refAllele = variant.ReferenceAllele.ToUpper();
+                        var altAllele = variant.AlternateAllele.ToUpper();
 
-	                    if(!_forcedAllelesByChrom.ContainsKey(chr))
-	                        _forcedAllelesByChrom[chr] = new HashSet<Tuple<string, int, string, string>>();
+                        if (!_forcedAllelesByChrom.ContainsKey(chr))
+                            _forcedAllelesByChrom[chr] = new HashSet<Tuple<string, int, string, string>>();
 
-	                    foreach (var altAllele in altAlleles)
-	                    {
-	                        if (!IsValidAlt(altAllele, refAllele))
-	                        {
-	                            Logger.WriteToLog($"Invalid forced genotyping variant: {variant}");
-                                continue;
-	                        }
-	                        _forcedAllelesByChrom[chr].Add(new Tuple<string, int, string, string>(chr, pos, refAllele, altAllele));
+
+                        if (!IsValidAlt(altAllele, refAllele))
+                        {
+                            Logger.WriteToLog($"Invalid forced genotyping variant: {variant}");
+                            continue;
                         }
-	                    
-                    }   
-	            }
+                        _forcedAllelesByChrom[chr].Add(new Tuple<string, int, string, string>(chr, pos, refAllele, altAllele));
+
+                    }
+                }
 	        }
 	    }
 
@@ -117,7 +122,7 @@ namespace Pisces
    
         protected virtual ICandidateVariantFinder CreateVariantFinder()
         {
-            return new CandidateVariantFinder(_options.BamFilterParameters.MinimumBaseCallQuality, _options.MaxSizeMNV, _options.MaxGapBetweenMNV, _options.CallMNVs);
+            return new CandidateVariantFinder(_options.BamFilterParameters.MinimumBaseCallQuality, _options.MaxSizeMNV, _options.MaxGapBetweenMNV, _options.CallMNVs, ShouldTrackAmpliconCounts());
         }
 
         protected virtual IAlleleCaller CreateVariantCaller(ChrReference chrReference, ChrIntervalSet intervalSet, IAlignmentSource alignmentSource, HashSet<Tuple<string, int, string, string>> forceGtAlleles = null)
@@ -150,6 +155,7 @@ namespace Pisces
                 MaxGenotypeQscore = _options.VariantCallingParameters.MaximumGenotypeQScore,
                 VariantQscoreFilterThreshold = _options.VariantCallingParameters.MinimumVariantQScoreFilter,
                 NoCallFilterThreshold = _options.VariantCallingParameters.NoCallFilterThreshold,
+                AmpliconBiasFilterThreshold = _options.VariantCallingParameters.AmpliconBiasFilterThreshold,
                 MinCoverage = _options.VariantCallingParameters.MinimumCoverage,
                 MinFrequency = genotypeCalculator.MinVarFrequency,
                 NoiseLevelUsedForQScoring = _options.VariantCallingParameters.NoiseLevelUsedForQScoring,
@@ -215,7 +221,9 @@ namespace Pisces
                 _options.BamFilterParameters.MinimumBaseCallQuality, expectStitchedReads, 
                 intervalSet,
                 trackOpenEnded: _options.Collapse, blockSize: GlobalConstants.RegionSize,
-                trackReadSummaries: _options.CoverageMethod == CoverageMethod.Exact, numAnchorTypes: (int)_options.TrackedAnchorSize);
+                trackReadSummaries: _options.CoverageMethod == CoverageMethod.Exact,
+                trackAmpliconCounts: ShouldTrackAmpliconCounts(),
+                numAnchorTypes: (int)_options.TrackedAnchorSize);
         }
 
         private ChrIntervalSet GetIntervalSet(string chrName, string bamFilePath)
@@ -242,9 +250,9 @@ namespace Pisces
             return intervalSet == null || !_options.VcfWritingParameters.OutputGvcfFile ? null : new RegionMapper(chrReference, intervalSet, _options.BamFilterParameters.MinimumBaseCallQuality);
         }
 
-        public virtual ISomaticVariantCaller CreateSomaticVariantCaller(
+        public virtual ISmallVariantCaller CreateSomaticVariantCaller(
             ChrReference chrReference, string bamFilePath, IVcfWriter<CalledAllele> vcfWriter, 
-            IStrandBiasFileWriter biasFileWriter = null, string intervalFilePath = null, List<string> chrToProcess = null)
+            IStrandBiasFileWriter strandBiasFileWriter = null, IAmpliconBiasFileWriter ampliconBiasFileWriter = null, string intervalFilePath = null, List<string> chrToProcess = null)
         {
 			var alignmentSource = CreateAlignmentSource(chrReference, bamFilePath, _options.UseStitchedXDInfo, chrToProcess);
             var variantFinder = CreateVariantFinder();
@@ -256,8 +264,8 @@ namespace Pisces
             var intervalPadder = CreateRegionPadder(chrReference, intervalSet, _options.VcfWritingParameters.OutputGvcfFile);
 
 
-            return new SomaticVariantCaller(alignmentSource, variantFinder, alleleCaller,
-                vcfWriter, stateManager, chrReference, intervalPadder, biasFileWriter, intervalSet,forceGtAlleles);
+            return new SmallVariantCaller(alignmentSource, variantFinder, alleleCaller,
+                vcfWriter, stateManager, chrReference, intervalPadder, strandBiasFileWriter, ampliconBiasFileWriter, intervalSet,forceGtAlleles);
         }
         private HashSet<Tuple<string, int, string, string>> SelectForcedAllele(Dictionary<string, HashSet<Tuple<string, int, string, string>>> forcedAllelesByChrom, string referenceName, ChrIntervalSet intervalSet)
         {
@@ -281,13 +289,17 @@ namespace Pisces
                 _options.BamFilterParameters, null, _options.DebugMode, _options.OutputBiasFiles,_options.ForcedAllelesFileNames.Count>0), context);
         }
 
-        public StrandBiasFileWriter CreateBiasFileWriter(string outputVcfPath)
+        public StrandBiasFileWriter CreateStrandBiasFileWriter(string outputVcfPath)
         {
-            var writer = _options.OutputBiasFiles ? new StrandBiasFileWriter(outputVcfPath) : null;
-            if (writer!=null)
-            {
-                writer.WriteHeader();
-            }
+            var writer = new StrandBiasFileWriter(outputVcfPath);
+            writer.WriteHeader();
+            return writer;
+        }
+
+        public AmpliconBiasFileWriter CreateAmpliconBiasFileWriter(string outputVcfPath)
+        {
+            var writer = new AmpliconBiasFileWriter(outputVcfPath);
+            writer.WriteHeader();
             return writer;
         }
 
@@ -363,7 +375,7 @@ namespace Pisces
         {
             if (!string.IsNullOrEmpty(_options.PriorsPath))
             {
-                using (var reader = new VcfReader(_options.PriorsPath))
+                using (var reader = new AlleleReader(_options.PriorsPath))
                 {
                     _knownVariants = reader.GetVariantsByChromosome(true, true, new List<AlleleCategory> { AlleleCategory.Insertion, AlleleCategory.Mnv }, doSkipCandidate: SkipPrior);
                     if (_options.TrimMnvPriors)

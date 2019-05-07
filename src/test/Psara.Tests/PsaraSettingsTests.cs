@@ -80,7 +80,7 @@ namespace Psara.Tests
 
             var optionsExpectationsDict = new Dictionary<string, Action<PsaraOptions>>();
 
-            optionsExpectationsDict.Add("-vcf My.vcf", (o) => Assert.Equal("My.vcf", o.InputVcf));
+            optionsExpectationsDict.Add("-vcf My.vcf", (o) => Assert.Equal("My.vcf", o.VcfPath));
             optionsExpectationsDict.Add("-out outDir", (o) => Assert.Equal("outDir", o.OutputDirectory));
             optionsExpectationsDict.Add("-log My.log", (o) => Assert.Equal("My.log", o.LogFileNameBase));
             optionsExpectationsDict.Add("-roi myROI.txt", (o) => Assert.Equal("myROI.txt", o.GeometricFilterParameters.RegionOfInterestPath));
@@ -93,7 +93,7 @@ namespace Psara.Tests
 
             var optionsExpectationsDict = new Dictionary<string, Action<PsaraOptions>>();
 
-            optionsExpectationsDict.Add("--VCF My.vcf", (o) => Assert.Equal("My.vcf", o.InputVcf));
+            optionsExpectationsDict.Add("--VCF My.vcf", (o) => Assert.Equal("My.vcf", o.VcfPath));
             optionsExpectationsDict.Add("--OutFolder outDir", (o) => Assert.Equal("outDir", o.OutputDirectory));
             optionsExpectationsDict.Add("--Log My.log", (o) => Assert.Equal("My.log", o.LogFileNameBase));
             optionsExpectationsDict.Add("--ROI myROI.txt", (o) => Assert.Equal("myROI.txt", o.GeometricFilterParameters.RegionOfInterestPath));
@@ -106,7 +106,7 @@ namespace Psara.Tests
 
             var optionsExpectationsDict = new Dictionary<string, Action<PsaraOptions>>();
 
-            optionsExpectationsDict.Add("-VCF My.vcf", (o) => Assert.Equal("My.vcf", o.InputVcf));
+            optionsExpectationsDict.Add("-VCF My.vcf", (o) => Assert.Equal("My.vcf", o.VcfPath));
             optionsExpectationsDict.Add("-OutFolder outDir", (o) => Assert.Equal("outDir", o.OutputDirectory));
             optionsExpectationsDict.Add("-Log My.log", (o) => Assert.Equal("My.log", o.LogFileNameBase));
             optionsExpectationsDict.Add("-ROI myROI.txt", (o) => Assert.Equal("myROI.txt", o.GeometricFilterParameters.RegionOfInterestPath));

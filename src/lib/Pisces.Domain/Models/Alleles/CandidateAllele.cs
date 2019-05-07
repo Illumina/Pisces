@@ -20,6 +20,7 @@ namespace Pisces.Domain.Models.Alleles
         public float Frequency { get; set; }
 		public bool IsForcedAllele { get; set; }
 
+        public AmpliconCounts SupportByAmplicon { get; set; }
 
         public CandidateAllele(string chromosome, int coordinate, string reference, string alternate, AlleleCategory type)
         {
@@ -78,6 +79,30 @@ namespace Pisces.Domain.Models.Alleles
             for (var i = 0; i < WellAnchoredSupportByDirection.Length; i++)
                 WellAnchoredSupportByDirection[i] += fromAllele.WellAnchoredSupportByDirection[i];
 
+            if (fromAllele.SupportByAmplicon.AmpliconNames != null && fromAllele.SupportByAmplicon.AmpliconNames.Length > 0)
+            {
+                if (SupportByAmplicon.AmpliconNames == null || SupportByAmplicon.AmpliconNames.Length == 0)
+                {
+                    SupportByAmplicon = AmpliconCounts.GetEmptyAmpliconCounts();
+                }
+
+                for (var i = 0; i < fromAllele.SupportByAmplicon.AmpliconNames.Length; i++)
+                {
+                    var fromAlleleCount = fromAllele.SupportByAmplicon.CountsForAmplicon[i];
+                    var fromAlleleName = fromAllele.SupportByAmplicon.AmpliconNames[i];
+                    var indexData = SupportByAmplicon.GetAmpliconNameIndex(fromAlleleName);
+
+                    if (indexData.IndexForAmplicon > -1)
+                        SupportByAmplicon.CountsForAmplicon[indexData.IndexForAmplicon] += fromAlleleCount;
+                    else
+                    {
+                        SupportByAmplicon.AmpliconNames[indexData.NextOpenSlot] = fromAlleleName;
+                        SupportByAmplicon.CountsForAmplicon[indexData.NextOpenSlot] += fromAlleleCount;
+                    }
+
+                }
+            }
+          
         }
 
         public CandidateAllele DeepCopy()
@@ -88,9 +113,12 @@ namespace Pisces.Domain.Models.Alleles
                 OpenOnRight = OpenOnRight,
                 IsKnown = IsKnown
             };
+
             Array.Copy(SupportByDirection, copy.SupportByDirection, SupportByDirection.Length);
             Array.Copy(WellAnchoredSupportByDirection, copy.WellAnchoredSupportByDirection, WellAnchoredSupportByDirection.Length);
             Array.Copy(ReadCollapsedCountsMut, copy.ReadCollapsedCountsMut, ReadCollapsedCountsMut.Length);
+            copy.SupportByAmplicon = SupportByAmplicon.Copy();
+
             return copy;
         }
 

@@ -18,15 +18,9 @@ namespace Pisces.Domain.Models.Alleles
 
         public int Compare(CalledAllele x, CalledAllele y)
         {
-            return OrderVariants(x, y);
+            return OrderAlleles(x, y);
         }
-
-        public int OrderVariants(CalledAllele a, CalledAllele b)
-        {
-            return OrderAlleles(a, b);
-        }
-
-
+      
 
         public int OrderAlleles(CalledAllele a, CalledAllele b)
         {

@@ -1,0 +1,39 @@
+##fileformat=VCFv4.1
+##fileDate=20160119
+##source=Pisces 1.0.0.0
+##Pisces_cmdline="-B \\ussd-prd-isi04\pisces\Bugs\PICS-120_add_unit_tests_around_scylla_double_counting\chr21_11085587_S1.bam -g \\sdwrk-0001\Genomes\Homo_sapiens\UCSC\hg19\Sequence\WholeGenomeFASTA -f 0.01 -fo False -b 20 -q 100 -c 10 -s 0.5 -a 20 -F 20 -gVCF True -PhaseSNPs true -i \\ussd-prd-isi04\pisces\Bugs\PICS-120_add_unit_tests_around_scylla_double_counting\Intervals_1.picard"
+##VariantPhaser=Scylla 1.0.0.0
+##Scylla_cmdline="-bam C:\Projects_t\git\Pisces5_VQR_Expansion\Pisces5\src\test\Scylla.Tests\bin\Debug\netcoreapp2.0\TestData\chr21_11085587_S1.bam -vcf C:\Projects_t\git\Pisces5_VQR_Expansion\Pisces5\src\test\Scylla.Tests\bin\Debug\netcoreapp2.0\TestData\TestWithNCandUSData.vcf -out C:\Projects_t\git\Pisces5_VQR_Expansion\Pisces5\src\test\Scylla.Tests\bin\Debug\netcoreapp2.0\Scratch\TestWithNCandUSData -reportnocalls true -reportrccounts true -reporttscounts true"
+##reference=\\sdwrk-0001\Genomes\Homo_sapiens\UCSC\hg19\Sequence\WholeGenomeFASTA
+##INFO=<ID=DP,Number=1,Type=Integer,Description="Total Depth">
+##FILTER=<ID=LowDP,Description="Low coverage (DP tag), therefore no genotype called">
+##FILTER=<ID=SB,Description="Variant strand bias too high">
+##FILTER=<ID=q30,Description="Quality score less than 30, by Scylla">
+##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">
+##FORMAT=<ID=GQ,Number=1,Type=Integer,Description="Genotype Quality">
+##FORMAT=<ID=AD,Number=.,Type=Integer,Description="Allele Depth">
+##FORMAT=<ID=VF,Number=1,Type=Float,Description="Variant Frequency">
+##FORMAT=<ID=NL,Number=1,Type=Integer,Description="Applied BaseCall Noise Level">
+##FORMAT=<ID=SB,Number=1,Type=Float,Description="StrandBias Score">
+##contig=<ID=chr21,length=48129895>
+#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	chr21_11085587_S1.bam
+chr21	11085586	.	C	T	56	PASS	DP=290	GT:GQ:AD:DP:VF:NL:SB:NC:US	0/1:56:268,14:290:0.048:20:-100.0000:0.2840:0,0,0,0,0,0,0,0,0,0,0,0
+chr21	11085587	.	C	T	26	q30	DP=285	GT:GQ:AD:DP:VF:NL:SB:NC:US	0/1:26:263,9:285:0.032:20:-100.0000:0.2963:0,0,0,0,0,0,0,0,0,0,0,0
+chr21	11085588	.	A	.	100	PASS	DP=280	GT:GQ:AD:DP:VF:NL:SB:NC:US	0/0:100:273:280:0.025:20:-100.0000:0.0000:0,0,0,0,0,0,1,1,0,0,0,2
+chr21	11085589	.	C	.	100	PASS	DP=299	GT:GQ:AD:DP:VF:NL:SB:NC:US	0/0:100:287:299:0.040:20:-100.0000:0.3000:0,0,0,1,0,0,1,1,0,0,0,2
+chr21	11085590	.	C	.	100	PASS	DP=287	GT:GQ:AD:DP:VF:NL:SB:NC:US	0/0:100:275:287:0.042:20:-100.0000:0.0000:0,0,0,0,0,0,1,1,0,0,0,2
+chr21	11085591	.	A	.	100	PASS	DP=289	GT:GQ:AD:DP:VF:NL:SB:NC:US	0/0:100:283:289:0.021:20:-100.0000:0.0000:0,0,0,0,0,0,1,1,0,0,0,2
+chr21	11085592	.	C	.	100	PASS	DP=305	GT:GQ:AD:DP:VF:NL:SB:NC:US	0/0:100:298:305:0.023:20:-100.0000:0.0000:0,0,0,0,0,0,1,1,0,0,0,2
+chr21	11085593	.	T	C	100	PASS	DP=228	GT:GQ:AD:DP:VF:NL:SB:NC:US	0/1:100:157,27:228:0.118:20:-100.0000:0.4370:0,0,0,0,0,0,0,0,0,0,0,0
+chr21	11085593	.	TACCRRRRC	CACCRRRRT	64	PASS	DP=287	GT:GQ:AD:DP:VF:NL:SB:NC:US	0/1:64:144,15:287:0.052:20:-100.0000:0.2896:0,0,0,0,0,0,0,0,0,0,0,0
+chr21	11085594	.	A	.	100	PASS	DP=296	GT:GQ:AD:DP:VF:NL:SB:NC:US	0/0:100:288:296:0.027:20:-100.0000:0.0000:0,0,0,0,0,0,1,1,0,0,0,2
+chr21	11085595	.	C	.	100	PASS	DP=315	GT:GQ:AD:DP:VF:NL:SB:NC:US	0/0:100:294:315:0.067:20:-100.0000:0.0000:0,0,0,0,0,0,1,1,0,0,0,2
+chr21	11085596	.	C	.	100	PASS	DP=318	GT:GQ:AD:DP:VF:NL:SB:NC:US	0/.:100:291:318:0.085:20:-100.0000:0.0000:0,0,0,0,0,0,0,0,0,0,0,0
+chr21	11085597	.	A	.	100	PASS	DP=315	GT:GQ:AD:DP:VF:NL:SB:NC:US	0/0:100:315:315:0.000:20:-100.0000:0.0000:0,0,0,0,0,0,1,1,0,0,0,2
+chr21	11085598	.	C	.	100	PASS	DP=341	GT:GQ:AD:DP:VF:NL:SB:NC:US	0/0:100:340:341:0.003:20:-100.0000:0.0000:0,0,0,0,0,0,1,1,0,0,0,2
+chr21	11085599	.	C	.	100	PASS	DP=343	GT:GQ:AD:DP:VF:NL:SB:NC:US	0/0:100:341:343:0.006:20:-100.0000:0.0000:0,0,0,0,0,0,1,1,0,0,0,2
+chr21	11085600	.	A	.	100	PASS	DP=321	GT:GQ:AD:DP:VF:NL:SB:NC:US	0/0:100:320:321:0.003:20:-100.0000:0.0000:0,0,0,0,0,0,1,1,0,0,0,2
+chr21	11085601	.	C	.	100	PASS	DP=347	GT:GQ:AD:DP:VF:NL:SB:NC:US	0/.:100:302:347:0.130:20:-100.0000:0.0000:0,0,0,0,0,0,0,0,0,0,0,0
+chr21	11085602	.	C	.	100	PASS	DP=346	GT:GQ:AD:DP:VF:NL:SB:NC:US	0/.:100:318:346:0.081:20:-100.0000:0.0000:0,0,0,0,0,0,0,0,0,0,0,0
+chr21	11085603	.	A	.	100	PASS	DP=345	GT:GQ:AD:DP:VF:NL:SB:NC:US	0/0:100:345:345:0.000:20:-100.0000:0.0000:0,0,0,0,0,0,1,1,0,0,0,2
+chr21	11085604	.	C	.	100	PASS	DP=374	GT:GQ:AD:DP:VF:NL:SB:NC:US	0/0:100:372:374:0.005:20:-100.0000:0.0000:0,0,0,0,0,0,1,1,0,0,0,2

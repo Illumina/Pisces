@@ -62,9 +62,9 @@ namespace VariantPhasing
             return (new Genome(options.GenomePath, bamChromosomes));
         }
 
-        public virtual IVcfVariantSource CreateOriginalVariantSource()
+        public virtual IAlleleSource CreateOriginalVariantSource()
         {
-            return new VcfReader(_options.VcfPath);
+            return new AlleleReader(_options.VcfPath);
         }
 
         public virtual INeighborhoodBuilder CreateNeighborhoodBuilder(int batchSize)
@@ -76,7 +76,7 @@ namespace VariantPhasing
         public virtual IVcfFileWriter<CalledAllele> CreatePhasedVcfWriter()
         {
             //Write header. We can do this at the beginning, it's just copying from old vcf.
-            List<string> header = VcfReader.GetAllHeaderLines(_options.VcfPath);
+            List<string> header = AlleleReader.GetAllHeaderLines(_options.VcfPath);
 
             var originalFileName = Path.GetFileName(_options.VcfPath);
             string outputFileName;

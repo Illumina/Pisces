@@ -18,6 +18,9 @@ namespace Pisces.Calculators
 
         public virtual void Compute(CalledAllele allele, IAlleleSource alleleCountSource)
         {
+
+            
+
             if (allele.Type == AlleleCategory.Reference)
                 CalculateSinglePoint(allele, alleleCountSource);
             else
@@ -45,10 +48,11 @@ namespace Pisces.Calculators
 
         protected virtual void CalculateSinglePoint(CalledAllele allele, IAlleleSource alleleCountSource)
         {
+
+            CalculateAmpliconCoverageAtLoci(allele, alleleCountSource);
+
             //TODO: Is there a reason why we don't reallocate the stitched coverage here for point mutations? (as we do with spanning ones)
             // sum up all observations at that point
-
-            var variant = allele as CalledAllele;
 
             for (var direction = 0; direction < Constants.NumDirectionTypes; direction++)
             {
@@ -58,9 +62,9 @@ namespace Pisces.Calculators
 					allele.SumOfBaseQuality += alleleCountSource.GetSumOfAlleleBaseQualities(allele.ReferencePosition, alleleType, (DirectionType)direction);
 
 					if (alleleType != AlleleHelper.GetAlleleType(allele.ReferenceAllele)) continue;
-                    if (variant != null)
+                    if (allele != null)
                     {
-                        variant.ReferenceSupport += alleleCountSource.GetAlleleCount(variant.ReferencePosition, alleleType,
+                        allele.ReferenceSupport += alleleCountSource.GetAlleleCount(allele.ReferencePosition, alleleType,
                             (DirectionType) direction);
                     }
 
@@ -83,9 +87,9 @@ namespace Pisces.Calculators
             // collapsing is the correct thing to do, so this is ok.  we should just make sure to cap at 0.
             var gappedRefCounts = alleleCountSource.GetGappedMnvRefCount(allele.ReferencePosition);
 
-            if (allele.Type == AlleleCategory.Snv && variant != null)
+            if (allele.Type == AlleleCategory.Snv && allele != null)
             {
-                variant.ReferenceSupport = Math.Max(0, variant.ReferenceSupport - gappedRefCounts);
+                allele.ReferenceSupport = Math.Max(0, allele.ReferenceSupport - gappedRefCounts);
             }
             else if (allele.Type == AlleleCategory.Reference)
             {
@@ -155,18 +159,23 @@ namespace Pisces.Calculators
         /// For deletions and mnvs, take average of first and last datapoint for variant.
         /// jg todo - figure out this old comment - (Or if we're at the edge of the world, give up and just take the coverage of the left base)
         /// </summary>
-        protected virtual void CalculateSpanning(CalledAllele variant, IAlleleSource alleleCountSource, int startPointPosition, int endPointPosition, bool presumeAnchoredForExactCov = true)
+        protected virtual void CalculateSpanning(CalledAllele allele, IAlleleSource alleleCountSource, int startPointPosition, int endPointPosition, bool presumeAnchoredForExactCov = true)
         {
-            // TODO come back to this - now that we are tracking coverage more tightly we may be able to improve deletion spanning read count estimates as well
-            //if (variant.Type == AlleleCategory.Deletion)
-            //{
-            //    CalculateDeletionCoverage(variant, alleleCountSource, startPointPosition, endPointPosition,
-            //        presumeAnchoredForExactCov);
-            //    return;
-            //}
+            //tjd+
+            //turn off until we are ready to run this amplicon bias on indels. right now we dont know if it would improve accuracy.
+           //CalculateAmpliconCoverageAtLoci(allele, alleleCountSource); <- turn off untill we are ready to run this amplcion on indels. right now we dont know if it would improve accuracy.
+           //tjd -
 
-            //empty arrays to do our coverage calculations.  the three spaces are for each read direction.
-            var startPointCoverage = new[] { 0, 0, 0 };
+           // TODO come back to this - now that we are tracking coverage more tightly we may be able to improve deletion spanning read count estimates as well
+           //if (variant.Type == AlleleCategory.Deletion)
+           //{
+           //    CalculateDeletionCoverage(variant, alleleCountSource, startPointPosition, endPointPosition,
+           //        presumeAnchoredForExactCov);
+           //    return;
+           //}
+
+           //empty arrays to do our coverage calculations.  the three spaces are for each read direction.
+           var startPointCoverage = new[] { 0, 0, 0 };
             var endPointCoverage = new[] { 0, 0, 0 };
             var exactTotalCoverage = 0f;
 
@@ -177,13 +186,13 @@ namespace Pisces.Calculators
 
             var firstBase = AlleleType.N;
             var lastBase = AlleleType.N;
-            var bePickyAboutAnchors = _considerAnchorInformation && variant.Type == AlleleCategory.Insertion;
+            var bePickyAboutAnchors = _considerAnchorInformation && allele.Type == AlleleCategory.Insertion;
             if (bePickyAboutAnchors)
             {
-                var firstBaseChar = variant.AlternateAllele[1];
+                var firstBaseChar = allele.AlternateAllele[1];
                 firstBase = AlleleHelper.GetAlleleType(firstBaseChar);
 
-                var lastBaseChar = variant.AlternateAllele[variant.AlternateAllele.Length - 1];
+                var lastBaseChar = allele.AlternateAllele[allele.AlternateAllele.Length - 1];
                 lastBase = AlleleHelper.GetAlleleType(lastBaseChar);
             }
 
@@ -192,7 +201,7 @@ namespace Pisces.Calculators
             var unanchoredCoverageStartQuality = 0D;
             var unanchoredCoverageEndQuality = 0D;
 
-            var unanchoredSupport = variant.AlleleSupport - variant.WellAnchoredSupport;
+            var unanchoredSupport = allele.AlleleSupport - allele.WellAnchoredSupport;
 
             // Track the relative coverages of each and then go back and use this to determine the weighting factor
 
@@ -203,8 +212,8 @@ namespace Pisces.Calculators
                     var anchoredCoverageOnlyEnd = bePickyAboutAnchors && alleleType == firstBase;
                     var anchoredCoverageOnlyStart = bePickyAboutAnchors && alleleType == lastBase;
 
-                    var minAnchorEnd = anchoredCoverageOnlyEnd ? variant.Length : 0;
-                    var minAnchorStart = anchoredCoverageOnlyStart ? variant.Length : 0;
+                    var minAnchorEnd = anchoredCoverageOnlyEnd ? allele.Length : 0;
+                    var minAnchorStart = anchoredCoverageOnlyStart ? allele.Length : 0;
 
                     var startPointCoverageForDirection = alleleCountSource.GetAlleleCount(startPointPosition, alleleType, (DirectionType)directionIndex, minAnchorStart);
                     startPointCoverage[directionIndex] += startPointCoverageForDirection;
@@ -214,8 +223,8 @@ namespace Pisces.Calculators
                     confidentCoverageLeft += startPointCoverageForDirection;
                     confidentCoverageRight += endPointCoverageForDirection;
 
-                    variant.SumOfBaseQuality += alleleCountSource.GetSumOfAlleleBaseQualities(startPointPosition, alleleType, (DirectionType)directionIndex, minAnchorStart);
-                    variant.SumOfBaseQuality += alleleCountSource.GetSumOfAlleleBaseQualities(endPointPosition, alleleType, (DirectionType)directionIndex, minAnchorEnd, fromEnd: true);
+                    allele.SumOfBaseQuality += alleleCountSource.GetSumOfAlleleBaseQualities(startPointPosition, alleleType, (DirectionType)directionIndex, minAnchorStart);
+                    allele.SumOfBaseQuality += alleleCountSource.GetSumOfAlleleBaseQualities(endPointPosition, alleleType, (DirectionType)directionIndex, minAnchorEnd, fromEnd: true);
 
                     if (bePickyAboutAnchors && unanchoredSupport > 0) // Shortcut - if the unanchored support is 0 anyway, we're going to use 0 as our weight here and there's no point collecting this info
                     {
@@ -255,7 +264,7 @@ namespace Pisces.Calculators
                                               (confidentCoverageRight - suspiciousCoverageLeft)) / 2f);
 
                 var anchoredVariantFreq =
-                    trulyAnchoredCoverage <= 0 ? 0 : variant.WellAnchoredSupport / trulyAnchoredCoverage;
+                    trulyAnchoredCoverage <= 0 ? 0 : allele.WellAnchoredSupport / trulyAnchoredCoverage;
 
                 var totalSuspiciousCoverage =
                     suspiciousCoverageLeft +
@@ -266,7 +275,7 @@ namespace Pisces.Calculators
                 var variantSpecificUnanchoredWeight = Math.Max(0, anchoredVariantFreq == 0
                     ? 1
                     : Math.Min(1, unanchoredVariantFreq / anchoredVariantFreq));
-                variant.UnanchoredCoverageWeight = variantSpecificUnanchoredWeight;
+                allele.UnanchoredCoverageWeight = variantSpecificUnanchoredWeight;
 
                 for (var directionIndex = 0; directionIndex < Constants.NumDirectionTypes; directionIndex++)
                 {
@@ -278,8 +287,8 @@ namespace Pisces.Calculators
                     // GB: this will keep us consisent with how we were doing it before, but I find it rather odd that we're ADDING base quality from both sides and ultimately in ProcessVariant dividing that sum by the total coverage which is an average, not a sum, of each side's coverage.
                     // Since we are dividing the total q score by the tot cov i didn't want it to get inflated by reducing the tot cov, so adjusted by the same facto
                     // TJD response: Base quality is a log of a p value, so averaging them is not the same as summing them then dividing. If you have a bunch of Qscores, say 10 and 10 and 100, you DO NOT do (10+ 10+100)/3. You have to do Q10-> p 0.1 and 100 -> p 0.01 so avg(0.1,0.1,0.01) is ~ .2/3 = 0.0666 -> a Q of (what ever that ends up being)... just a computational trick, to do it in log space instead of normal space
-                    variant.SumOfBaseQuality += unanchoredCoverageStartQuality * variantSpecificUnanchoredWeight;
-                    variant.SumOfBaseQuality += unanchoredCoverageEndQuality * variantSpecificUnanchoredWeight;
+                    allele.SumOfBaseQuality += unanchoredCoverageStartQuality * variantSpecificUnanchoredWeight;
+                    allele.SumOfBaseQuality += unanchoredCoverageEndQuality * variantSpecificUnanchoredWeight;
                 }
             }
 
@@ -292,7 +301,7 @@ namespace Pisces.Calculators
             {
                 var exactCoverageForDir = presumeAnchoredForExactCov ? (  (startPointCoverage[directionIndex] + endPointCoverage[directionIndex])) / 2f : //will always round to lower.
                     Math.Min(startPointCoverage[directionIndex], endPointCoverage[directionIndex]);
-                variant.EstimatedCoverageByDirection[directionIndex] = (int) exactCoverageForDir;
+                allele.EstimatedCoverageByDirection[directionIndex] = (int) exactCoverageForDir;
 
                 exactTotalCoverage += exactCoverageForDir;
             }
@@ -303,12 +312,12 @@ namespace Pisces.Calculators
 
             //ie, variant.TotalCoverage != variant.EstimatedCoverageByDirection[directionIndex].Sum
 
-            variant.TotalCoverage = (int) exactTotalCoverage;
-            variant.ReferenceSupport = Math.Max(0, variant.TotalCoverage - variant.AlleleSupport);
-            variant.SuspiciousCoverageStart = suspiciousCoverageLeft;
-            variant.ConfidentCoverageStart = confidentCoverageLeft;
-            variant.SuspiciousCoverageEnd = suspiciousCoverageRight;
-            variant.ConfidentCoverageEnd = confidentCoverageRight;
+            allele.TotalCoverage = (int) exactTotalCoverage;
+            allele.ReferenceSupport = Math.Max(0, allele.TotalCoverage - allele.AlleleSupport);
+            allele.SuspiciousCoverageStart = suspiciousCoverageLeft;
+            allele.ConfidentCoverageStart = confidentCoverageLeft;
+            allele.SuspiciousCoverageEnd = suspiciousCoverageRight;
+            allele.ConfidentCoverageEnd = confidentCoverageRight;
         }
 
         // given a coverage by direction array - redistributes stitched coverage half to forward and half to reverse
@@ -319,6 +328,12 @@ namespace Pisces.Calculators
             dataPoint[(int) DirectionType.Forward] += (int)Math.Ceiling((float)stitchedCoverage/ 2);
             dataPoint[(int) DirectionType.Reverse] += (int)Math.Floor((float)stitchedCoverage / 2);
             dataPoint[(int) DirectionType.Stitched] = 0;
+        }
+
+
+        protected virtual void CalculateAmpliconCoverageAtLoci(CalledAllele allele, IAlleleSource alleleCountSource)
+        {
+           allele.CoverageByAmplicon =  alleleCountSource.GetCoverageByAmplicon(allele.ReferencePosition);
         }
     }
 }

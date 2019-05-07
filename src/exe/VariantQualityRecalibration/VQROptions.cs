@@ -3,11 +3,11 @@ using Pisces.Domain.Options;
 
 namespace VariantQualityRecalibration
 {
-    public class VQROptions : BaseApplicationOptions
+    public class VQROptions : VcfConsumerAppOptions
     {
-    
+
         #region Members
-        public string InputVcf;
+        //public string VcfPath;   <- now in the base options class
         public int LociCount = -1;
         public bool DoBasicChecks = true; //look for over represented mutations across all positions, 
         public bool DoAmpliconPositionChecks = false; //look for over represented mutations with {N} bases of edges
@@ -15,8 +15,8 @@ namespace VariantQualityRecalibration
 
         //+
         //calibration parameters
-        public int BaseQNoise = 20;
-        public int FilterQScore = 30;
+        //public int BaseQNoise = 20;  <- now in the base options class
+        //public int FilterQScore = 30;  <- now in the base options class
         public int MaxQScore = 100;
         public float ZFactor = 2F;
         public float AlignmentWarningThreshold = 10;
@@ -27,7 +27,7 @@ namespace VariantQualityRecalibration
 
         public override string GetMainInputDirectory()
         {      
-            return Path.GetDirectoryName(InputVcf);
+            return Path.GetDirectoryName(VcfPath);
         }
     }
 }

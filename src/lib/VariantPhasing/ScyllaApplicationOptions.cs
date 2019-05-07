@@ -7,8 +7,6 @@ namespace VariantPhasing
 
     public class ScyllaApplicationOptions : VcfConsumerAppOptions
     {
-       
-        public string VcfPath;
         public string BamPath;
         public string GenomePath;
 
@@ -50,7 +48,10 @@ namespace VariantPhasing
 
             if (VariantCallingParams.MinimumVariantQScoreFilter < VariantCallingParams.MinimumVariantQScore)
                 VariantCallingParams.MinimumVariantQScoreFilter = VariantCallingParams.MinimumVariantQScore;
-            //-
+
+            //Scylla has no algortihms to do this yet. By default it goes on,
+            //but for Scylla we should have it off for now.
+            VariantCallingParams.AmpliconBiasFilterThreshold = null;
 
             base.SetDerivedValues();
         }

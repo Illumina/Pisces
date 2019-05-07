@@ -5,10 +5,10 @@ namespace Pisces.Domain.Options
 {
     public class VcfConsumerAppOptions : BaseApplicationOptions
     {
-
-        public VcfWritingParameters VcfWritingParams = new VcfWritingParameters();
-        public VariantCallingParameters VariantCallingParams = new VariantCallingParameters();
-        public BamFilterParameters BamFilterParams = new BamFilterParameters();
+        public string VcfPath { get; set; }
+        public VcfWritingParameters VcfWritingParams { get; set; } = new VcfWritingParameters();
+        public VariantCallingParameters VariantCallingParams { get; set; } = new VariantCallingParameters();
+        public BamFilterParameters BamFilterParams { get; set; } = new BamFilterParameters();
 
         public void SetDerivedValues()
         {        

@@ -1,11 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Reflection;
 using Pisces.IO;
-using Pisces.IO.Interfaces;
-using Pisces.Domain.Models.Alleles;
 using Pisces.Domain.Types;
 using Common.IO;
 
@@ -59,8 +55,6 @@ namespace Psara
         /// We need to check that any new filter tags get added, if the config requires it.
         public void AdjustHeaderLines()
         {
-            
-            //currently empty. Refer to Scylla for example code.
 
         }
 

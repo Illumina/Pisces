@@ -43,17 +43,19 @@ namespace StitchingLogic
         // For performance reasons, avoid allocating memory repeatedly
         private readonly StitchedPosition[] _stitchPositions;
         private readonly StitchedPosition[] _stitchPositionsList;
-        private readonly List<CigarOp> _expandedCigar1;
-        private readonly List<CigarOp> _expandedCigar2;
+        private readonly List<char> _expandedCigar1;
+        private readonly List<char> _expandedCigar2;
 
         private int _positionsUsed;
-        private List<char?> _r2Bases;
-        private List<char?> _r1Bases;
+        private List<char> _r2Bases;
+        private List<char> _r1Bases;
         private List<byte?> _r1Quals;
         private List<byte?> _r2Quals;
-        private bool _nifyDisagreements;
+        private readonly bool _nifyDisagreements;
         private int _stitchedPositionsListLength;
         private int _totalProcessed;
+        private byte[] _quals;
+        private char[] _bases;
 
         public CigarReconciler(ReadStatusCounter statusCounter, bool useSoftclippedBases, bool debug, bool ignoreProbeSoftclips, int maxReadLength, int minBaseCallQuality, bool allowTerminalClipsToSupportOverlappingDels = true, bool ignoreReadsAboveMaxStitchedLength = false, bool nifyDisagreements = false)
         {
@@ -67,11 +69,13 @@ namespace StitchingLogic
             var maxStitchedReadLength = maxReadLength * 2 - 1;
             _stitchPositions = new StitchedPosition[maxStitchedReadLength];
             _stitchPositionsList = new StitchedPosition[maxStitchedReadLength];
-            _expandedCigar1 = new List<CigarOp>(maxReadLength);
-            _expandedCigar2 = new List<CigarOp>(maxReadLength);
+            _expandedCigar1 = new List<char>(maxReadLength);
+            _expandedCigar2 = new List<char>(maxReadLength);
             _nifyDisagreements = nifyDisagreements;
             _minBasecallQuality = minBaseCallQuality;
 
+            _quals = new byte[maxStitchedReadLength];
+            _bases = new char[maxStitchedReadLength];
             // For performance reasons, we keep one collection of StitchedPositions and recycle them for each pair we try to stitch
             for (var i = 0; i < _stitchPositions.Length; i++)
             {
@@ -79,131 +83,10 @@ namespace StitchingLogic
             }
         }
 
-        private StitchingInfo GetSuperDuperSimpleStitchedCigarFriendlier(CigarAlignment cigar1, int pos1, CigarAlignment cigar2,
-          int pos2, bool reverseFirst, string r1OrigBases, string r2OrigBases, byte[] r1OrigQuals, byte[] r2OrigQuals)
-        {
-            var superClean = (cigar1.Count == 1 && cigar2.Count == 1 & cigar1[0].Type == 'M' && cigar2[0].Type == 'M');
-
-            var softClipPrefix1 = cigar1.GetPrefixClip();
-            var softClipPrefix2 = cigar2.GetPrefixClip();
-            var softClipSuffix1 = cigar1.GetSuffixClip();
-            var softClipSuffix2 = cigar2.GetSuffixClip();
-
-            if (softClipSuffix1 > 0 || softClipPrefix2 > 0)
-            {
-                return null;
-            }
-
-
-            var r1End = pos1 + cigar1.GetReadSpan();
-            var r2End = pos2 + cigar2.GetReadSpan();
-
-            if (pos2 < r1End)
-            {
-                var overlapLength = (int)(r1End - pos2);
-                var r1Length = r1OrigBases.Length;
-                var r2Length = r2OrigBases.Length;
-                var r1FirstBaseOverlap = r1OrigBases.Length - overlapLength;
-
-                if (softClipPrefix1 >= r1FirstBaseOverlap || (softClipSuffix2 > 0 && r2Length - softClipSuffix2  < overlapLength))
-                {
-                    // No softclip in overlap for the simple case
-                    return null;
-                }
-                var r1OverlapBases = r1OrigBases.Substring(r1FirstBaseOverlap, overlapLength);
-                var r2OverlapBases = r2OrigBases.Substring(0, overlapLength);
-
-                if (r1OverlapBases != r2OverlapBases)
-                {
-                    return null;
-                }
-
-                if (!superClean)
-                {
-                    var r1Ops = cigar1.Expand();
-                    var r2Ops = cigar2.Expand();
-
-                    var r1OverlapOps = string.Join("", r1Ops.Select(x => x.Type)).Substring(r1FirstBaseOverlap, overlapLength);
-                    var r2OverlapOps = string.Join("", r2Ops.Select(x => x.Type)).Substring(0, overlapLength);
-
-                    if (r1OverlapOps != r2OverlapOps)
-                    {
-                        return null;
-                    }
-
-                    if ((r1OverlapOps + r2OverlapOps).Contains("S"))
-                    {
-                        return null;
-                    }
-
-                }
-
-                var r1BeforeOverlapLength = r1Length - overlapLength;
-                var r2AdditionalBases = r2OrigBases.Substring(overlapLength);
-                var r2AfterOverlapLength = r2AdditionalBases.Length;
-                var bases = r1OrigBases + r2AdditionalBases;
-
-                var quals = new byte[bases.Length];
-                for (int i = 0; i < r1BeforeOverlapLength; i++)
-                {
-                    quals[i] = r1OrigQuals[i];
-                }
-
-                for (int i = 0; i < overlapLength; i++)
-                {
-                    var adjustedI = i + r1BeforeOverlapLength;
-
-                    var r1Qual = r1OrigQuals[adjustedI];
-                    var r2Qual = r2OrigQuals[i];
-
-                    var sumQuality = Convert.ToInt32((byte)r1Qual) +
-                                     Convert.ToInt32((byte)r2Qual);
-                    var stitchedQuality = sumQuality > MaxBaseQuality ? MaxBaseQuality : sumQuality;
-                    var qualToAdd = (byte)stitchedQuality;
-
-                    quals[adjustedI] = qualToAdd;
-                }
-
-                for (int i = 0; i < r2AfterOverlapLength; i++)
-                {
-                    var adjustedI = i + r1Length;
-                    quals[adjustedI] = r2OrigQuals[i + overlapLength];
-                }
-
-                var beforeDirString = r1BeforeOverlapLength > 0 ? $"{r1BeforeOverlapLength}{(reverseFirst ? "R" : "F")}" : "";
-                var afterDirString = r2AfterOverlapLength > 0
-                    ? $"{r2AfterOverlapLength}{(reverseFirst ? "F" : "R")}"
-                    : "";
-
-                var matchLength = bases.Length - softClipPrefix1 - softClipSuffix2;
-                var prefixCigar = softClipPrefix1 > 0 ? $"{softClipPrefix1}S" : "";
-                var suffixCigar = softClipSuffix2 > 0 ? $"{softClipSuffix2}S" : "";
-
-                var stitchingInfo = new StitchingInfo()
-                {
-                    StitchedBases = bases.ToCharArray().Select(x => x as char?).ToList(),
-                    StitchedQualities = quals.ToList(),
-                    StitchedCigar = new CigarAlignment($"{prefixCigar}{matchLength}M{suffixCigar}"),
-                    StitchedDirections = new CigarDirection($"{beforeDirString}{overlapLength}S{afterDirString}")
-                };
-
-                return stitchingInfo;
-            }
-            else
-            {
-                return null;
-            }
-        }
-
-
         private StitchingInfo GetSuperDuperSimpleStitchedCigar(CigarAlignment cigar1, int pos1, CigarAlignment cigar2,
             int pos2, bool reverseFirst, string r1OrigBases, string r2OrigBases, byte[] r1OrigQuals, byte[] r2OrigQuals, bool r1IsFirstMate)
         {
-            var superClean = (cigar1.Count == 1 && cigar2.Count == 1 & cigar1[0].Type == 'M' && cigar2[0].Type == 'M');
-            //if (!superClean)
-            //{
-            //    return null;
-            //}
+            var superClean = (cigar1.Count == 1 && cigar2.Count == 1 && cigar1[0].Type == 'M' && cigar2[0].Type == 'M'); 
 
             uint softClipPrefix1 = 0;
             uint match1 = 0;
@@ -229,7 +112,7 @@ namespace StitchingLogic
 
             if (softClipSuffix1 + softClipPrefix2 > 0)
             {
-                _statusCounter.AddStatusCount("R2 hs prefix clip");
+                _statusCounter.AddStatusCount("R2 has prefix clip");
                 return null;
             }
 
@@ -252,9 +135,11 @@ namespace StitchingLogic
                 var r1Length = r1OrigBases.Length;
                 var r1FirstBaseOverlap = r1OrigBases.Length - overlapLength;
 
-                if (softClipPrefix1 >= r1FirstBaseOverlap  || (softClipSuffix2 > 0 && match2 < overlapLength))
+                if ((softClipPrefix1 > 0 && softClipPrefix1 >= r1FirstBaseOverlap ) || (softClipSuffix2 > 0 && match2 < overlapLength))
                 {
                     _statusCounter.AddStatusCount("Softclip in overlap");
+                    //_statusCounter.AddStatusCount($"Softclip in overlap ({softClipPrefix1} >= {r1FirstBaseOverlap} || {softClipSuffix2} > 0 && {match2} < {overlapLength})");
+                    //Console.WriteLine($"{pos1}-{r1End} vs {pos2}-{r2End}, Cigars: {cigar1} vs {cigar2}, overlap={overlapLength}");
 
                     // No softclip in overlap for the simple case
                     return null;
@@ -267,49 +152,26 @@ namespace StitchingLogic
                     return null;
                 }
 
-                var r1OverlapBases = r1OrigBases.Substring(r1FirstBaseOverlap, overlapLength);
-                var r2OverlapBases = r2OrigBases.Substring(0, overlapLength);
-
-                var numDisagreements = 0;
 
                 if (!superClean)
                 {
-                    var r1Ops = cigar1.Expand();
-                    var r2Ops = cigar2.Expand();
-
-                    for (int i = 0; i < overlapLength; i++)
-                    {
-                        var indexInR1 = r1FirstBaseOverlap + i;
-                        var indexInR2 = i;
-
-                        if (r1Ops[indexInR1].Type != r2Ops[indexInR2].Type)
-                        {
-                            _statusCounter.AddStatusCount("Overlap ops mismatch");
-                            return null;
-                        }
-                    }
-
-                    //var r1OverlapOps = string.Join("", r1Ops.Select(x => x.Type)).Substring(r1FirstBaseOverlap, overlapLength);
-                    //var r2OverlapOps = string.Join("", r2Ops.Select(x => x.Type)).Substring(0, overlapLength);
-
-                    //if (r1OverlapOps != r2OverlapOps)
-                    //{
-                    //    _statusCounter.AddStatussCount("Overlap ops mismatch");
-
-                    //    return null;
-                    //}
-
+                    if (NotSimpleEnough(cigar1, cigar2, overlapLength, r1FirstBaseOverlap)) return null;
                 }
 
+
+                var numAgreements = 0;
+                var numNDisagreements = 0;
+                var numDisagreements = 0;
                 var r1BeforeOverlapLength = r1Length - overlapLength;
-                var r1BeforeOverlapBases = r1OrigBases.Substring(0, r1BeforeOverlapLength);
-                var r2AdditionalBases = r2OrigBases.Substring(overlapLength);
-                var r2AfterOverlapLength = r2AdditionalBases.Length;
+                var r2AfterOverlapLength = r2OrigBases.Length - overlapLength;
                 var stitchedReadLength = r1OrigBases.Length + r2AfterOverlapLength;
 
+                var quals = GetFreshQualArray(stitchedReadLength);
+
+                var r1OverlapBases = r1OrigBases.Substring(r1FirstBaseOverlap, overlapLength);
+                var r2OverlapBases = r2OrigBases.Substring(0, overlapLength);
                 var stitchedBases = r1OverlapBases.ToCharArray();
 
-                var quals = new byte[stitchedReadLength];
                 for (int i = 0; i < r1BeforeOverlapLength; i++)
                 {
                     quals[i] = r1OrigQuals[i];
@@ -322,61 +184,79 @@ namespace StitchingLogic
                     var r1Qual = r1OrigQuals[adjustedI];
                     var r2Qual = r2OrigQuals[i];
 
-                    var sumQuality = Convert.ToInt32((byte)r1Qual) +
-                                     Convert.ToInt32((byte)r2Qual);
 
-                    var stitchedQuality = sumQuality > MaxBaseQuality ? MaxBaseQuality : sumQuality;
-                    var qualToAdd = (byte)stitchedQuality;
+
+                    byte qualToAdd;
 
                     var mismatchingBases = r1OverlapBases[i] != r2OverlapBases[i];
                     if (mismatchingBases)
                     {
-                        numDisagreements++;
-
-                        char baseToAdd;
-                        if (r1IsFirstMate)
+                        if (r1OverlapBases[i] == 'N' || r2OverlapBases[i] == 'N')
                         {
-                            if (r1Qual >= r2Qual)
-                            {
-                                baseToAdd = r1OverlapBases[i];
-                                qualToAdd = r1Qual;
-                            }
-                            else
-                            {
-                                baseToAdd = r2OverlapBases[i];
-                                qualToAdd = r2Qual;
-                            }
+                            numNDisagreements++;
                         }
                         else
                         {
-                            if (r2Qual >= r1Qual)
+                            numDisagreements++;
+                        }
+
+                        char baseToAdd;
+                        if (_nifyDisagreements)
+                        {
+                            qualToAdd = 0;
+                            baseToAdd = 'N';
+                        }
+                        else
+                        {
+                            if (r1IsFirstMate)
                             {
-                                baseToAdd = r2OverlapBases[i];
-                                qualToAdd = r2Qual;
+                                if (r1Qual >= r2Qual)
+                                {
+                                    baseToAdd = r1OverlapBases[i];
+                                    qualToAdd = r1Qual;
+                                }
+                                else
+                                {
+                                    baseToAdd = r2OverlapBases[i];
+                                    qualToAdd = r2Qual;
+                                }
                             }
                             else
                             {
-                                baseToAdd = r1OverlapBases[i];
-                                qualToAdd = r1Qual;
+                                if (r2Qual >= r1Qual)
+                                {
+                                    baseToAdd = r2OverlapBases[i];
+                                    qualToAdd = r2Qual;
+                                }
+                                else
+                                {
+                                    baseToAdd = r1OverlapBases[i];
+                                    qualToAdd = r1Qual;
+                                }
+
                             }
 
-                        }
-                        if (r1Qual > _minBasecallQuality && r2Qual > _minBasecallQuality)
-                        {
-                            qualToAdd = 0;
-                            if (_nifyDisagreements)
+                            if (r1Qual > _minBasecallQuality && r2Qual > _minBasecallQuality)
                             {
-                                baseToAdd = 'N';
+                                qualToAdd = 0;
                             }
                         }
 
                         stitchedBases[i] = baseToAdd;
                     }
+                    else
+                    {
+                        var sumQuality = Convert.ToInt32(r1Qual) +
+                                         Convert.ToInt32(r2Qual);
+
+                        var stitchedQuality = sumQuality > MaxBaseQuality ? MaxBaseQuality : sumQuality;
+                        qualToAdd = (byte)stitchedQuality;
+                        numAgreements++;
+                    }
 
                     quals[adjustedI] = qualToAdd;
                 }
 
-                var bases = r1BeforeOverlapBases + new string(stitchedBases) + r2AdditionalBases;
 
                 for (int i = 0; i < r2AfterOverlapLength; i++)
                 {
@@ -384,28 +264,22 @@ namespace StitchingLogic
                     quals[adjustedI] = r2OrigQuals[i + overlapLength];
                 }
 
-                var beforeDirString = r1BeforeOverlapLength > 0 ? $"{r1BeforeOverlapLength}{(reverseFirst ? "R" : "F")}" : "";
-                var afterDirString = r2AfterOverlapLength > 0
-                    ? $"{r2AfterOverlapLength}{(reverseFirst ? "F" : "R")}"
-                    : "";
+                var stitchedBasesString = new string(stitchedBases);
+                var finalBases = FinalBases(r1OrigBases, r2OrigBases, r1BeforeOverlapLength, overlapLength, stitchedBasesString);
+                var cigar = CigarAlignment(finalBases.Count, softClipPrefix1, softClipSuffix2);
+                var directions = CigarDirection(reverseFirst, r1BeforeOverlapLength, r2AfterOverlapLength, overlapLength);
 
-                var matchLength = bases.Length - softClipPrefix1 - softClipSuffix2;
-                var prefixCigar = softClipPrefix1 > 0 ? $"{softClipPrefix1}S" : "";
-                var suffixCigar = softClipSuffix2 > 0 ? $"{softClipSuffix2}S" : "";
-
-                if (bases.Length > _stitchPositions.Length)
-                {
-                    // Added this here to be consistent with non-super-simple
-                    throw new StitchedCigarLengthException("Combined length of reads is greater than the expected maximum stitched read length of " + _stitchPositions.Length);
-
-                }
                 var stitchingInfo = new StitchingInfo()
                 {
-                    StitchedBases = bases.ToCharArray().Select(x=> x as char?).ToList(),
+                    StitchedBases = finalBases,
                     StitchedQualities = quals.ToList(),
-                    StitchedCigar = new CigarAlignment($"{prefixCigar}{matchLength}M{suffixCigar}"),
-                    StitchedDirections = new CigarDirection($"{beforeDirString}{overlapLength}S{afterDirString}"),
-                    NumDisagreeingBases = numDisagreements
+                    StitchedCigar = cigar,
+                    StitchedDirections = directions,
+                    NumDisagreeingBases = numDisagreements,
+                    OverlapBases = stitchedBasesString,
+                    IsSimple = true,
+                    NumNDisagreements = numNDisagreements,
+                    NumAgreements = numAgreements
                 };
 
                 
@@ -419,6 +293,74 @@ namespace StitchingLogic
             {
                 return null;
             }
+        }
+
+        private byte[] GetFreshQualArray(int stitchedReadLength)
+        {
+            var quals = new byte[stitchedReadLength];
+            return quals;
+            //Array.Clear(_quals, 0, _quals.Length);
+            //return _quals;
+        }
+
+        private List<char> FinalBases(string r1OrigBases, string r2OrigBases, int r1BeforeOverlapLength, int overlapLength,
+            string stitchedBases)
+        {
+            var r1BeforeOverlapBases = r1OrigBases.Substring(0, r1BeforeOverlapLength);
+            var r2AdditionalBases = r2OrigBases.Substring(overlapLength);
+
+            var bases = r1BeforeOverlapBases + stitchedBases + r2AdditionalBases;
+
+            if (bases.Length > _stitchPositions.Length)
+            {
+                // Added this here to be consistent with non-super-simple
+                throw new StitchedCigarLengthException(
+                    "Combined length of reads is greater than the expected maximum stitched read length of " +
+                    _stitchPositions.Length);
+            }
+
+            var finalBases = bases.ToCharArray().ToList();
+            return finalBases;
+        }
+
+        private bool NotSimpleEnough(CigarAlignment cigar1, CigarAlignment cigar2, int overlapLength,
+            int r1FirstBaseOverlap)
+        {
+            var r1Ops = cigar1.Expand();
+            var r2Ops = cigar2.Expand();
+
+            for (int i = 0; i < overlapLength; i++)
+            {
+                var indexInR1 = r1FirstBaseOverlap + i;
+                var indexInR2 = i;
+
+                if (r1Ops[indexInR1].Type != r2Ops[indexInR2].Type)
+                {
+                    _statusCounter.AddStatusCount("Overlap ops mismatch");
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private static CigarAlignment CigarAlignment(int basesLength, uint softClipPrefix1, uint softClipSuffix2)
+        {
+            var cigar = new CigarAlignment((softClipPrefix1 > 0 ? $"{softClipPrefix1}S" : "") +
+                                           (basesLength - softClipPrefix1 - softClipSuffix2) + "M" + 
+                                           (softClipSuffix2 > 0 ? $"{softClipSuffix2}S" : ""));
+            return cigar;
+        }
+
+        private static CigarDirection CigarDirection(bool reverseFirst, int r1BeforeOverlapLength, int r2AfterOverlapLength,
+            int overlapLength)
+        {               
+            var directions = new CigarDirection((r1BeforeOverlapLength > 0 ? 
+                                                    (r1BeforeOverlapLength + (reverseFirst ? "R" : "F")) : "") +
+                                                (overlapLength + "S") + (r2AfterOverlapLength > 0
+                                                    ? (r2AfterOverlapLength + (reverseFirst ? "F" : "R")) 
+                                                    : ""));
+            return directions;
         }
 
         //public static DirectionType[] CreateSequencedBaseDirectionMap(DirectionType[] cigarBaseDirectionMap, CigarAlignment cigarData)
@@ -440,318 +382,6 @@ namespace StitchingLogic
         //    }
         //    return sequencedBaseDirectionMap;
         //}
-
-        private StitchingInfo GetSuperSimpleStitchedCigar(CigarAlignment cigar1, int pos1, CigarAlignment cigar2,
-            int pos2, bool reverseFirst, string r1OrigBases, string r2OrigBases, byte[] r1OrigQuals, byte[] r2OrigQuals)
-        {
-            string bases = "";
-            uint softClipPrefix1 = 0;
-            uint match1 = 0;
-            uint softClipSuffix1 = 0;
-
-            uint softClipPrefix2 = 0;
-            uint match2 = 0;
-            uint softClipSuffix2 = 0;
-
-            if (!GetSimpleCigarComponents(cigar1, ref softClipPrefix1, ref match1, ref softClipSuffix1))
-            {
-                // The cigar is not simple.
-                return null;
-            }
-
-            if (!GetSimpleCigarComponents(cigar2, ref softClipPrefix2, ref match2, ref softClipSuffix2))
-            {
-                // The cigar is not simple.
-                return null;
-            }
-
-            if (softClipPrefix1 + softClipPrefix2 + softClipSuffix1 + softClipSuffix2 > 0)
-            {
-                return null;
-            }
-
-            var posGap = pos2 - pos1;
-            if ((posGap > 0 && posGap > match1) || (posGap < 0 && posGap * -1 > match2))
-            {
-                // The cigars don't overlap. We can't stitch them.
-                return null;
-            }
-
-            var r1End = pos1 + cigar1.GetReferenceSpan();
-            var r2End = pos2 + cigar2.GetReferenceSpan();
-
-            if (pos2 < r1End)
-            {
-                var overlapLength = (int)(r1End - pos2);
-                var r1Length = r1OrigBases.Length;
-                var r1OverlapBases = r1OrigBases.Substring(r1OrigBases.Length - overlapLength, overlapLength);
-                var r2OverlapBases = r2OrigBases.Substring(0, overlapLength);
-
-                if (r1OverlapBases != r2OverlapBases)
-                {
-                    return null;
-                }
-
-                var r1BeforeOverlapLength = r1Length - overlapLength;
-                var r2AdditionalBases = r2OrigBases.Substring(overlapLength);
-                var r2AfterOverlapLength = r2AdditionalBases.Length;
-                bases = r1OrigBases + r2AdditionalBases;
-
-                var quals = new byte[bases.Length];
-                for (int i = 0; i < r1BeforeOverlapLength; i++)
-                {
-                    quals[i] = r1OrigQuals[i];
-                }
-
-                for (int i = 0; i < overlapLength; i++)
-                {
-                    var adjustedI = i + r1BeforeOverlapLength;
-
-                    var r1Qual = r1OrigQuals[adjustedI];
-                    var r2Qual = r2OrigQuals[i];
-
-                    var sumQuality = Convert.ToInt32((byte)r1Qual) +
-                                     Convert.ToInt32((byte)r2Qual);
-                    var stitchedQuality = sumQuality > MaxBaseQuality ? MaxBaseQuality : sumQuality;
-                    var qualToAdd = (byte)stitchedQuality;
-
-                    quals[adjustedI] = qualToAdd;
-                }
-
-                for (int i = 0; i < r2AfterOverlapLength; i++)
-                {
-                    var adjustedI = i + r1Length;
-                    quals[adjustedI] = r2OrigQuals[i + overlapLength];
-                }
-
-                var beforeDirString = r1BeforeOverlapLength > 0 ? $"{r1BeforeOverlapLength}{(reverseFirst ? "R" : "F")}" : "";
-                var afterDirString = r2AfterOverlapLength > 0
-                    ? $"{r2AfterOverlapLength}{(reverseFirst ? "F" : "R")}"
-                    : "";
-                var stitchingInfo = new StitchingInfo()
-                {
-                    StitchedBases = bases.ToCharArray().Select(x => x as char?).ToList(),
-                    StitchedQualities = quals.ToList(),
-                    StitchedCigar = new CigarAlignment(bases.Length + "M"),
-                    StitchedDirections = new CigarDirection($"{beforeDirString}{overlapLength}S{afterDirString}")
-                };
-
-                return stitchingInfo;
-            }
-            else
-            {
-                return null;
-            }
-
-            //var cigar1DirectionType = reverseFirst ? DirectionType.Reverse : DirectionType.Forward;
-            //var cigar2DirectionType = reverseFirst ? DirectionType.Forward : DirectionType.Reverse;
-
-            //StitchingInfo stitchingInfo = new StitchingInfo();
-
-            //int totalMatchBases = Math.Max((int)match1, (int)match2 + posGap) - Math.Min(0, posGap);
-
-            //stitchingInfo.StitchedCigar = new CigarAlignment(totalMatchBases + "M");
-            //stitchingInfo.StitchedDirections = new CigarDirection();
-
-            //var numStitchedBases = (int) (match1 + match2 - totalMatchBases);
-            //var numTrailingBases = (int) (match2 - numStitchedBases);
-
-            //if (posGap > 0)
-            //{
-            //    stitchingInfo.StitchedDirections.Directions.Add(new DirectionOp(cigar1DirectionType, posGap));
-            //    stitchingInfo.StitchedBases.AddRange(r1OrigBases.Substring(0, posGap).ToCharArray()
-            //        .Select(x => x as char?));
-            //    stitchingInfo.StitchedQualities.AddRange(r1OrigQuals.Skip(0).Take(posGap));
-            //}
-
-            //if (numStitchedBases > 0)
-            //{
-            //    stitchingInfo.StitchedDirections.Directions.Add(new DirectionOp(DirectionType.Stitched,
-            //        numStitchedBases));
-
-            //    stitchingInfo.StitchedBases.AddRange(r1OrigBases.Substring(posGap, numStitchedBases).ToCharArray()
-            //        .Select(x => x as char?));
-            //    stitchingInfo.StitchedQualities.AddRange(r1OrigQuals.Skip(posGap - 1).Take(numStitchedBases));
-            //}
-
-            //if (numTrailingBases > 0)
-            //{
-            //    stitchingInfo.StitchedDirections.Directions.Add(new DirectionOp(cigar2DirectionType, numTrailingBases));
-            //    stitchingInfo.StitchedBases.AddRange(r2OrigBases.Substring(numStitchedBases, numTrailingBases)
-            //        .ToCharArray().Select(x => x as char?));
-            //    stitchingInfo.StitchedQualities.AddRange(r2OrigQuals.Skip(numStitchedBases - 1).Take(numTrailingBases));
-            //}
-
-
-            //return stitchingInfo;
-        }
-
-        private StitchingInfo GetSimpleStitchedCigar(CigarAlignment cigar1, int pos1, CigarAlignment cigar2, int pos2, bool reverseFirst, string r1OrigBases, string r2OrigBases, byte[] r1OrigQuals, byte[] r2OrigQuals)
-        {
-            //if (!_useSoftclippedBases)
-            //{
-            //    throw new NotImplementedException("Cannot call GetSimpleStitchedCigar with UseSoftclippedBases false");
-            //}
-
-            string bases = "";
-            uint softClipPrefix1 = 0;
-            uint match1 = 0;
-            uint softClipSuffix1 = 0;
-
-            uint softClipPrefix2 = 0;
-            uint match2 = 0;
-            uint softClipSuffix2 = 0;
-
-            if (!GetSimpleCigarComponents(cigar1, ref softClipPrefix1, ref match1, ref softClipSuffix1))
-            {
-                // The cigar is not simple.
-                return null;
-            }
-
-            if (!GetSimpleCigarComponents(cigar2, ref softClipPrefix2, ref match2, ref softClipSuffix2))
-            {
-                // The cigar is not simple.
-                return null;
-            }
-
-            // We have 2 simple cigars.
-
-            var posGap = pos2 - pos1;
-            if ((posGap > 0 && posGap > match1) || (posGap < 0 && posGap * -1 > match2))
-            {
-                // The cigars don't overlap. We can't stitch them.
-                return null;
-            }
-
-            // If we got here, the cigars look simple and they overlap in a sensible way.
-
-            var cigar1DirectionType = reverseFirst ? DirectionType.Reverse : DirectionType.Forward;
-            var cigar2DirectionType = reverseFirst ? DirectionType.Forward : DirectionType.Reverse;
-
-            StitchingInfo stitchingInfo = new StitchingInfo();
-
-            int totalSoftClipPrefixBases = 0;
-
-            var indexInR1 = 0;
-            var indexInR2 = 0;
-
-            // Prefer soft clip prefix bases from read 2
-            int stitchedSoftClipPrefixDirection2 = (int)softClipPrefix2 - posGap;
-
-            if (_ignoreProbeSoftclips)
-            {
-                // Only use read1 prefix soft clip bases if there are more of them than in read 2
-                stitchingInfo.IgnoredProbePrefixBases = Math.Max(0, stitchedSoftClipPrefixDirection2);
-            }
-
-            int stitchedSoftClipPrefixDirection1 = (int)softClipPrefix1 - stitchingInfo.IgnoredProbePrefixBases;
-
-            if (stitchedSoftClipPrefixDirection1 > 0)
-            {
-                totalSoftClipPrefixBases += stitchedSoftClipPrefixDirection1;
-
-                if (stitchedSoftClipPrefixDirection2 <= 0)
-                {
-                    stitchedSoftClipPrefixDirection1 -= stitchedSoftClipPrefixDirection2;
-                }
-
-                stitchingInfo.StitchedDirections.Directions.Add(new DirectionOp(cigar1DirectionType, stitchedSoftClipPrefixDirection1));
-                bases += r1OrigBases.Substring(indexInR1, stitchedSoftClipPrefixDirection1);
-                indexInR1 += stitchedSoftClipPrefixDirection1;
-            }
-            if (stitchedSoftClipPrefixDirection2 > 0)
-            {
-                totalSoftClipPrefixBases += Math.Min((int)softClipPrefix2, stitchedSoftClipPrefixDirection2);
-                stitchingInfo.StitchedDirections.Directions.Add(new DirectionOp(cigar2DirectionType, stitchedSoftClipPrefixDirection2));
-                bases += r2OrigBases.Substring(indexInR2, stitchedSoftClipPrefixDirection2);
-                indexInR2 += stitchedSoftClipPrefixDirection2;
-            }
-
-            int totalMatchBases = Math.Max((int)match1, (int)match2 + posGap) - Math.Min(0, posGap);
-
-            int numExtraStitchBasesFromRead1 = Math.Max(Math.Min(posGap, posGap), 0);
-            //int numExtraStitchBasesFromRead1 = Math.Max(Math.Min(posGap, (int)softClipPrefix2), 0);
-
-            int stitchedBases = numExtraStitchBasesFromRead1 + Math.Min((int)match1, (int)match2 + posGap) - Math.Max(0, posGap);
-
-            int numTrailingMatchedBases2 = (int)match2 - ((int)match1 - posGap);
-            int numExtraStitchBasesFromRead2 = 0;
-            if (numTrailingMatchedBases2 > 0)
-            {
-                //numExtraStitchBasesFromRead2 = Math.Min((int)softClipSuffix1, numTrailingMatchedBases2);
-
-                // Soft clipped bases in read1 count as stitched if they overlap match bases in read 2.
-                stitchedBases += numExtraStitchBasesFromRead2;
-            }
-
-            stitchingInfo.StitchedDirections.Directions.Add(new DirectionOp(DirectionType.Stitched, stitchedBases));
-            bases += r1OrigBases.Substring(indexInR1, numExtraStitchBasesFromRead1);
-            indexInR1 += numExtraStitchBasesFromRead1;
-            bases += r1OrigBases.Substring(indexInR1, stitchedBases);
-            indexInR1 += stitchedBases;
-            indexInR2 += stitchedBases;
-            bases += r2OrigBases.Substring(indexInR2, numExtraStitchBasesFromRead2);
-            indexInR2 += numExtraStitchBasesFromRead2;
-
-            if (totalSoftClipPrefixBases > 0)
-            {
-                stitchingInfo.StitchedCigar.Add(new CigarOp('S', (uint)totalSoftClipPrefixBases));
-                //bases += firstBases.Substring(0, totalSoftClipPrefixBases);
-            }
-
-            stitchingInfo.StitchedCigar.Add(new CigarOp('M', (uint)totalMatchBases));
-            //bases += firstBases.Substring(totalSoftClipPrefixBases, totalMatchBases);
-
-
-            // Prefer soft clip suffix bases from read 1
-            int stitchedSoftClipSuffixDirection1 = (int)softClipSuffix1 + Math.Min(0, ((int)match1 - ((int)match2 + posGap)));
-
-            int numTrailingMatchedButNotStitchedBases1 = (int)match1 - ((int)match2 + posGap);
-
-            int totalSoftClipSuffixBases = Math.Max(0, stitchedSoftClipSuffixDirection1);
-            int stitchedSuffixDirection1 = stitchedSoftClipSuffixDirection1 + Math.Max(0, numTrailingMatchedButNotStitchedBases1);
-
-            if (stitchedSuffixDirection1 > 0)
-            {
-                stitchingInfo.StitchedDirections.Directions.Add(new DirectionOp(cigar1DirectionType, stitchedSuffixDirection1));
-                bases += r1OrigBases.Substring(indexInR1, stitchedSuffixDirection1);
-                indexInR1 += stitchedSuffixDirection1;
-            }
-
-            if (_ignoreProbeSoftclips)
-            {
-                // Only use read2 suffix soft clip bases if there are more of them than in read 1
-                stitchingInfo.IgnoredProbeSuffixBases = Math.Max(0, numTrailingMatchedButNotStitchedBases1 + (int)softClipSuffix1);
-            }
-
-            int stitchedSoftClipSuffixDirection2 = (int)softClipSuffix2 - stitchingInfo.IgnoredProbeSuffixBases;
-
-            if (stitchedSoftClipSuffixDirection2 > 0)
-            {
-                totalSoftClipSuffixBases += stitchedSoftClipSuffixDirection2;
-            }
-
-            int numTrailingMatchedButNotStitchedBases2 = Math.Max(0, (int)match2 - ((int)match1 - posGap));
-            int stitchedSuffixDirection2 = stitchedSoftClipSuffixDirection2 + numTrailingMatchedButNotStitchedBases2 - numExtraStitchBasesFromRead2;
-            if (stitchedSuffixDirection2 > 0)
-            {
-                stitchingInfo.StitchedDirections.Directions.Add(new DirectionOp(cigar2DirectionType, stitchedSuffixDirection2));
-                bases += r2OrigBases.Substring(indexInR2, stitchedSuffixDirection2);
-                indexInR2 += stitchedSuffixDirection2;
-            }
-
-            if (totalSoftClipSuffixBases > 0)
-            {
-                stitchingInfo.StitchedCigar.Add(new CigarOp('S', (uint)totalSoftClipSuffixBases));
-            }
-
-            Console.WriteLine(bases);
-            stitchingInfo.StitchedBases = bases.ToCharArray().Select(x=> (char?)x).ToList();
-            //List<char?> basesArray = (firstBases + secondBases.Substring(stitchedBases)).ToCharArray().Select(x=>(char?)x).ToList();
-            //stitchingInfo.StitchedBases = basesArray;
-
-            return stitchingInfo;
-        }
 
         bool GetSimpleCigarComponents(CigarAlignment cigar, ref uint softClipPrefix, ref uint match, ref uint softClipSuffix)
         {
@@ -824,11 +454,11 @@ namespace StitchingLogic
 
                     if (stitchingInfo != null)
                     {
-                        //Console.WriteLine("hooray! new method!!");
                         _statusCounter.AddStatusCount("Super simple stitching method");
                         return stitchingInfo;
                     }
                 }
+                _statusCounter.AddStatusCount("More complex stitching method");
 
                 // TODO maybe come back to this. But I think SuperDuperSimple is enough.
                 //if (_useSoftclippedBases && false)
@@ -875,10 +505,10 @@ namespace StitchingLogic
 
 
                 stitchingInfo = ReconcileSites(reverseFirst, out success,
-                    pairIsOutie ? (int)r2PrefixClip : (int)r1PrefixClip,
+                    pairIsOutie ? r2PrefixClip : r1PrefixClip,
                     pairIsOutie
-                        ? (int) (cigar1.GetReadSpan() - (int)r1SuffixClip)
-                        : (int) (cigar2.GetReadSpan() - (int)r2SuffixClip), pairIsOutie, r1IsFirstMate, r1PrefixClip > 0, r1SuffixClip > 0, 
+                        ? (cigar1.GetReadSpan() - r1SuffixClip)
+                        :  (cigar2.GetReadSpan() - r2SuffixClip), pairIsOutie, r1IsFirstMate, r1PrefixClip > 0, r1SuffixClip > 0, 
                     r2PrefixClip > 0, r2SuffixClip > 0);
 
 
@@ -895,7 +525,7 @@ namespace StitchingLogic
             }
         }
 
-        private StitchingInfo ReconcileSites(bool r1IsReverse, out bool success, int prefixProbeClipEnd, int suffixProbeClipStart, bool pairIsOutie, 
+        private StitchingInfo ReconcileSites(bool r1IsReverse, out bool success, uint prefixProbeClipEnd, uint suffixProbeClipStart, bool pairIsOutie, 
             bool r1IsFirstMate, bool r1HasPrefixClip, bool r1HasSuffixClip, bool r2HasPrefixClip, bool r2HasSuffixClip)
         {
             var stitchingInfo = new StitchingInfo();
@@ -927,23 +557,10 @@ namespace StitchingLogic
                 }
                 var stitchPosition = _stitchPositionsList[i];
 
-                if (stitchPosition.UnmappedPrefix.R1HasInsertion() && (stitchPosition.UnmappedPrefix.GetNumOpsForRead(ReadNumber.Read2) == 0))
+                if (HasIncompatibleInsertion(stitchPosition, positionBefore))
                 {
-                    if (stitchPosition.MappedSite != null && stitchPosition.MappedSite.GetOpsForRead(ReadNumber.Read2).Any(x => x.CigarOp.IsReferenceSpan()) &&
-                        positionBefore != null && positionBefore.MappedSite != null && positionBefore.MappedSite.GetOpsForRead(ReadNumber.Read2).Any(x => x.CigarOp.IsReferenceSpan()))
-                    {
-                        success = false;
-                        return null;
-                    }
-                }
-                if (stitchPosition.UnmappedPrefix.R2HasInsertion() && (stitchPosition.UnmappedPrefix.GetNumOpsForRead(ReadNumber.Read1) == 0))
-                {
-                    if (stitchPosition.MappedSite != null && stitchPosition.MappedSite.GetOpsForRead(ReadNumber.Read1).Any(x => x.CigarOp.IsReferenceSpan()) &&
-                        positionBefore != null && positionBefore.MappedSite != null && positionBefore.MappedSite.GetOpsForRead(ReadNumber.Read1).Any(x => x.CigarOp.IsReferenceSpan()))
-                    {
-                        success = false;
-                        return null;
-                    }
+                    success = false;
+                    return null;
                 }
 
                 if (emptySites >= 1 && stitchPosition.MappedSite != null && stitchPosition.MappedSite.HasValue())
@@ -953,20 +570,48 @@ namespace StitchingLogic
                     return null;
                 }
 
-                if (!stitchPosition.UnmappedPrefix.HasValue() && stitchPosition.MappedSite != null && !stitchPosition.MappedSite.HasValue())
+                if (!stitchPosition.UnmappedPrefix.HasValue() && stitchPosition.MappedSite != null 
+                                                              && !stitchPosition.MappedSite.HasValue())
                 {
                     // If there's nothing here, there's no point reconciling. But we shouldn't bail out just yet, because there may be a redistributed softclip still to come (in future, change redistribution logic so that we never have gaps)
                     emptySites++;
                     continue;
                 }
 
-                success = ReconcileSite(stitchPosition.UnmappedPrefix, stitchingInfo, prefixProbeClipEnd, suffixProbeClipStart, pairIsOutie, r1DirectionType, r2DirectionType, ref indexInR1, ref indexInR2, r1IsFirstMate);
+
+                success = ReconcileSite(stitchPosition.UnmappedPrefix, stitchingInfo, prefixProbeClipEnd, suffixProbeClipStart, pairIsOutie, r1DirectionType, r2DirectionType, ref indexInR1, ref indexInR2, r1IsFirstMate, 
+                    stitchPosition.UnmappedPrefix.IsPrefix);
                 if (!success)
                 {
                     return null;
                 }
 
-                success = ReconcileSite(stitchPosition.MappedSite, stitchingInfo, prefixProbeClipEnd, suffixProbeClipStart, pairIsOutie, r1DirectionType, r2DirectionType, ref indexInR1, ref indexInR2, r1IsFirstMate);
+                var r2OpsCount = stitchPosition.MappedSite.GetNumOpsForRead(ReadNumber.Read2);
+                var r1OpsCount = stitchPosition.MappedSite.GetNumOpsForRead(ReadNumber.Read1);
+                if (r2OpsCount > 0 && 
+                    r1OpsCount == 0)
+                {
+                    FillInFromRead(stitchPosition.MappedSite.GetOpsForRead(ReadNumber.Read2), stitchingInfo, r2DirectionType, ref indexInR2);
+                    success = true;
+                    continue;
+                }
+
+                if (r1OpsCount > 0 &&
+                    r2OpsCount == 0)
+                {
+                    FillInFromRead(stitchPosition.MappedSite.GetOpsForRead(ReadNumber.Read1), stitchingInfo, r1DirectionType, ref indexInR1);
+                    success = true;
+                    continue;
+                }
+
+                if (r1OpsCount == 0 && r2OpsCount == 0)
+                {
+                    continue;
+                }
+
+                success = ReconcileSite(stitchPosition.MappedSite, stitchingInfo, prefixProbeClipEnd,
+                    suffixProbeClipStart, pairIsOutie, r1DirectionType, r2DirectionType, ref indexInR1,
+                    ref indexInR2, r1IsFirstMate, false);
                 if (!success)
                 {
                     return null;
@@ -988,13 +633,42 @@ namespace StitchingLogic
             return stitchingInfo;
         }
 
-        private bool ReconcileSite(StitchedSite stitchSite, StitchingInfo stitchingInfo, int prefixProbeClipEnd, int suffixProbeClipStart, bool pairIsOutie, DirectionType r1DirectionType, DirectionType r2DirectionType, ref int indexInR1, ref int indexInR2, bool r1IsFirstMate)
+        private static bool HasIncompatibleInsertion(StitchedPosition stitchPosition,
+            StitchedPosition positionBefore)
+        {
+            if ((stitchPosition.UnmappedPrefix.GetNumOpsForRead(ReadNumber.Read2) == 0) &&
+                stitchPosition.UnmappedPrefix.R1HasInsertion())
+            {
+                if (stitchPosition.MappedSite != null && stitchPosition.MappedSite.ReadHasAnyReferenceSpan(ReadNumber.Read2) &&
+                    positionBefore != null && positionBefore.MappedSite != null &&
+                    positionBefore.MappedSite.ReadHasAnyReferenceSpan(ReadNumber.Read2))
+                {
+                    return true;
+                }
+            }
+
+            if (stitchPosition.UnmappedPrefix.GetNumOpsForRead(ReadNumber.Read1) == 0 &&
+                stitchPosition.UnmappedPrefix.R2HasInsertion())
+            {
+                if (stitchPosition.MappedSite != null && stitchPosition.MappedSite.ReadHasAnyReferenceSpan(ReadNumber.Read1) &&
+                    positionBefore != null && positionBefore.MappedSite != null &&
+                    positionBefore.MappedSite.ReadHasAnyReferenceSpan(ReadNumber.Read1))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private bool ReconcileSite(StitchedSite stitchSite, StitchingInfo stitchingInfo, 
+            uint prefixProbeClipEnd, uint suffixProbeClipStart, bool pairIsOutie, DirectionType r1DirectionType, DirectionType r2DirectionType, ref int indexInR1, ref int indexInR2, bool r1IsFirstMate, bool rightAlign)
         {
             bool success = true;
             var numDisagreements = 0;
 
-            var unmappedSite = stitchSite as UnmappedStretch;
-            var rightAlign = unmappedSite != null && unmappedSite.IsPrefix; //&& !unmappedSite.IsSuffix;
+            //var unmappedSite = stitchSite as UnmappedStretch;
+            //var rightAlign = unmappedSite != null && unmappedSite.IsPrefix; //&& !unmappedSite.IsSuffix;
 
             // TODO only get these numops once each
             var read1NumOps = stitchSite.GetNumOpsForRead(ReadNumber.Read1);
@@ -1018,17 +692,17 @@ namespace StitchingLogic
                     r2StretchIndex = j;
                 }
 
-                StitchableItem r1Item = new StitchableItem();
-                StitchableItem r2Item = new StitchableItem();
+                var r1Item = new StitchableItem();
+                var r2Item = new StitchableItem();
 
-                CigarOp? r1Op = null;
+                char? r1Op = null;
                 if (r1StretchIndex >= 0 && read1NumOps > r1StretchIndex)
                 {
                     r1Item = stitchSite.GetOpsForRead(ReadNumber.Read1)[r1StretchIndex];
                     r1Op = r1Item.CigarOp;
                 }
 
-                CigarOp? r2Op = null;
+                char? r2Op = null;
                 
                 if (r2StretchIndex >= 0 && read2NumOps > r2StretchIndex)
                 {
@@ -1043,26 +717,26 @@ namespace StitchingLogic
                     success = false;
                     if (_debug)
                     {
-                        Logger.WriteToLog(string.Format("Could not stitch operations {0} and {1}.", r1Op?.Type,
-                            r2Op?.Type));
+                        Logger.WriteToLog(string.Format("Could not stitch operations {0} and {1}.", r1Op,
+                            r2Op));
                     }
                     _statusCounter.AddDebugStatusCount("Could not stitch operations");
                     return success;
                 }
 
-                stitchingInfo.StitchedCigar.Add(combinedOp.Value);
+                stitchingInfo.StitchedCigar.Add(new CigarOp(combinedOp.Value,1));
 
                 var r1opUsed = r1Op != null;
                 var r2opUsed = r2Op != null;
-                var r1OpType = r1Op?.Type;
-                var r2OpType = r2Op?.Type;
-                var combinedOpType = combinedOp.Value.Type;
+                var r1OpType = r1Op;
+                var r2OpType = r2Op;
+                var combinedOpType = combinedOp.Value;
 
-                if (r1opUsed && r1Op.Value.IsReadSpan())
+                if (r1opUsed && CigarExtensions.IsReadSpan(r1Op.Value))
                 {
                     indexInR1++;
                 }
-                if (r2opUsed && r2Op.Value.IsReadSpan())
+                if (r2opUsed && CigarExtensions.IsReadSpan(r2Op.Value))
                 {
                     indexInR2++;
                 }
@@ -1142,78 +816,7 @@ namespace StitchingLogic
                 
                 if (stitched)
                 {
-                    char? baseToAdd = null;
-                    byte? qualToAdd = 0;
-
-                    if (r1Item.Base == r2Item.Base) { 
-                        baseToAdd = r1Item.Base;
-
-                        var sumQuality = Convert.ToInt32((byte)r1Item.Quality) +
-                                                       Convert.ToInt32((byte)r2Item.Quality);
-                        var stitchedQuality = sumQuality > MaxBaseQuality ? MaxBaseQuality : sumQuality;
-                        qualToAdd = (byte)stitchedQuality;
-                    }
-                    else
-                    {
-                        numDisagreements++;
-                        if (_nifyDisagreements)
-                        {
-                            baseToAdd = 'N';
-                            qualToAdd = 0;
-
-                        }
-                        else
-                        {
-                            var forwardItem = r1DirectionType == DirectionType.Forward ? r1Item : r2Item;
-                            var reverseItem = r1DirectionType == DirectionType.Forward ? r2Item : r1Item;
-
-                            if (forwardItem.Quality > reverseItem.Quality)
-                            {
-                                baseToAdd = forwardItem.Base;
-                                
-                                if (reverseItem.Quality < _minBasecallQuality)
-                                {
-                                    qualToAdd = forwardItem.Quality;
-                                }
-                                else
-                                {
-                                    // this was a high Q disagreement, and dangerous! we will filter this base.
-                                    qualToAdd = 0;
-                                }
-                            }
-                            else if (forwardItem.Quality == reverseItem.Quality)
-                            {
-                                var firstMateItem = r1IsFirstMate ? r1Item : r2Item;
-                                var secondMateItem = r1IsFirstMate ? r2Item : r1Item;
-
-                                baseToAdd = firstMateItem.Base;
-                                if (secondMateItem.Quality < _minBasecallQuality)
-                                {
-                                    qualToAdd = firstMateItem.Quality;
-                                }
-                                else
-                                {
-                                    // this was a high Q disagreement, and dangerous! we will filter this base.
-                                    qualToAdd = 0;
-                                }
-                            }
-                            else
-                            {
-                                baseToAdd = reverseItem.Base;
-                                if (forwardItem.Quality < _minBasecallQuality)
-                                {
-                                    qualToAdd = reverseItem.Quality;
-                                }
-                                else {
-                                    // this was a high Q disagreement, and dangerous! we will filter this base.
-                                    qualToAdd = 0;
-                                }
-                            }
-
-                        }
-                    }
-                    stitchingInfo.StitchedBases.Add(baseToAdd);
-                    stitchingInfo.StitchedQualities.Add((byte)qualToAdd);
+                    numDisagreements = AddStitchedBaseAndUpdateNumDisagreements(stitchingInfo, r1DirectionType, r1IsFirstMate, r1Item, r2Item, numDisagreements);
                 }
                 else
                 {
@@ -1225,6 +828,117 @@ namespace StitchingLogic
             stitchingInfo.NumDisagreeingBases = numDisagreements;
 
             return success;
+        }
+
+        private static void FillInFromRead(List<StitchableItem> opsForRead, StitchingInfo stitchingInfo, DirectionType r2DirectionType, ref int indexInRead)
+        {
+            for (int i = 0; i < opsForRead.Count; i++)
+            {
+                stitchingInfo.StitchedDirections.Directions.Add(new DirectionOp()
+                {
+                    Direction =
+                        r2DirectionType,
+                    Length = 1
+                });
+                var op = opsForRead[i].CigarOp;
+
+                stitchingInfo.StitchedCigar.Add(new CigarOp(op,1));
+
+
+                if (op == 'D')
+                {
+                    continue;
+                }
+
+                if (CigarExtensions.IsReadSpan(op))
+                {
+                    indexInRead++;
+                }
+
+
+                stitchingInfo.StitchedBases.Add(opsForRead[i].Base);
+                stitchingInfo.StitchedQualities.Add(opsForRead[i].Quality.Value);
+                
+            }
+        }
+
+        private int AddStitchedBaseAndUpdateNumDisagreements(StitchingInfo stitchingInfo, DirectionType r1DirectionType,
+            bool r1IsFirstMate, StitchableItem r1Item, StitchableItem r2Item, int numDisagreements)
+        {
+            char? baseToAdd = null;
+            byte? qualToAdd = 0;
+
+            if (r1Item.Base == r2Item.Base)
+            {
+                baseToAdd = r1Item.Base;
+
+                var sumQuality = Convert.ToInt32((byte) r1Item.Quality) +
+                                 Convert.ToInt32((byte) r2Item.Quality);
+                var stitchedQuality = sumQuality > MaxBaseQuality ? MaxBaseQuality : sumQuality;
+                qualToAdd = (byte) stitchedQuality;
+            }
+            else
+            {
+                numDisagreements++;
+                if (_nifyDisagreements)
+                {
+                    baseToAdd = 'N';
+                    qualToAdd = 0;
+                }
+                else
+                {
+                    var forwardItem = r1DirectionType == DirectionType.Forward ? r1Item : r2Item;
+                    var reverseItem = r1DirectionType == DirectionType.Forward ? r2Item : r1Item;
+
+                    if (forwardItem.Quality > reverseItem.Quality)
+                    {
+                        baseToAdd = forwardItem.Base;
+
+                        if (reverseItem.Quality < _minBasecallQuality)
+                        {
+                            qualToAdd = forwardItem.Quality;
+                        }
+                        else
+                        {
+                            // this was a high Q disagreement, and dangerous! we will filter this base.
+                            qualToAdd = 0;
+                        }
+                    }
+                    else if (forwardItem.Quality == reverseItem.Quality)
+                    {
+                        var firstMateItem = r1IsFirstMate ? r1Item : r2Item;
+                        var secondMateItem = r1IsFirstMate ? r2Item : r1Item;
+
+                        baseToAdd = firstMateItem.Base;
+                        if (secondMateItem.Quality < _minBasecallQuality)
+                        {
+                            qualToAdd = firstMateItem.Quality;
+                        }
+                        else
+                        {
+                            // this was a high Q disagreement, and dangerous! we will filter this base.
+                            qualToAdd = 0;
+                        }
+                    }
+                    else
+                    {
+                        baseToAdd = reverseItem.Base;
+                        if (forwardItem.Quality < _minBasecallQuality)
+                        {
+                            qualToAdd = reverseItem.Quality;
+                        }
+                        else
+                        {
+                            // this was a high Q disagreement, and dangerous! we will filter this base.
+                            qualToAdd = 0;
+                        }
+                    }
+                }
+            }
+
+            stitchingInfo.StitchedBases.Add(baseToAdd.Value);
+            stitchingInfo.StitchedQualities.Add((byte) qualToAdd);
+            return numDisagreements;
         }
 
         private void RedistributeSoftclips(bool operateOnR1, bool readHasPrefixClip, bool readHasSuffixClip)
@@ -1294,7 +1008,7 @@ namespace StitchingLogic
                         {
                             var item = originalOps[index];
 
-                            if (item.CigarOp.Type == 'S')
+                            if (item.CigarOp == 'S')
                             {
                                 opsToGiveAway.Add(item);
                                 numOpsToGiveAway++;
@@ -1341,12 +1055,12 @@ namespace StitchingLogic
                             var otherSideOpsAtSite = currentRatchetedStitchPos.MappedSite.GetOpsForRead(otherReadNum);
                             var siteHasOtherSideMapped = ((otherSideOpsAtSite?.Count ?? 0) != 0);
 
-                            if (_allowTerminalClipsToSupportOverlappingDels && siteHasOtherSideMapped && otherSideOpsAtSite.All(s => s.CigarOp.Type == 'D'))
+                            if (_allowTerminalClipsToSupportOverlappingDels && siteHasOtherSideMapped && otherSideOpsAtSite.All(s => s.CigarOp == 'D'))
                             {
                                 // By virtue of us having a terminal S here, we can say we support this deletion, and kick the S over to support the ops at the other side of the deletion
                                 // Assumption is that there's only one op at that site.
                                 currentRatchetedStitchPos.MappedSite.AddOpsForRead(thisReadNum, new List<StitchableItem> { new StitchableItem(
-                                    new CigarOp(otherSideOpsAtSite.First().CigarOp.Type, otherSideOpsAtSite.First().CigarOp.Length) ,
+                                   otherSideOpsAtSite.First().CigarOp,
                                     otherSideOpsAtSite.First().Base,
                                     otherSideOpsAtSite.First().Quality)
                                     });
@@ -1382,7 +1096,7 @@ namespace StitchingLogic
                         var originalOps = new List<StitchableItem>(stitchPosition.UnmappedPrefix.GetOpsForRead(thisReadNum));
                         foreach (var item in originalOps)
                         {
-                            if (item.CigarOp.Type == 'S')
+                            if (item.CigarOp == 'S')
                             {
                                 opsToGiveAway.Add(item);
                                 numOpsToGiveAway++;
@@ -1413,12 +1127,12 @@ namespace StitchingLogic
                             var otherSideOpsAtPreviousSite = currentRatchetedStitchPos.MappedSite.GetOpsForRead(operateOnR1 ? ReadNumber.Read2 : ReadNumber.Read1);
                             var previousHasSomethingInR2Mapped = (otherSideOpsAtPreviousSite.Count != 0);
 
-                            if (_allowTerminalClipsToSupportOverlappingDels && previousHasSomethingInR2Mapped && otherSideOpsAtPreviousSite.All(s => s.CigarOp.Type == 'D'))
+                            if (_allowTerminalClipsToSupportOverlappingDels && previousHasSomethingInR2Mapped && otherSideOpsAtPreviousSite.All(s => s.CigarOp == 'D'))
                             {
                                 // By virtue of us having a terminal S here, we can say we support this deletion, and kick the S over to support the ops at the other side of the deletion
                                 // Assumption is that there's only one op at that site.
                                 currentRatchetedStitchPos.MappedSite.AddOpsForRead(thisReadNum, new List<StitchableItem> { new StitchableItem(
-                                   new CigarOp(otherSideOpsAtPreviousSite.First().CigarOp.Type, otherSideOpsAtPreviousSite.First().CigarOp.Length),
+                                    otherSideOpsAtPreviousSite.First().CigarOp,
                                    otherSideOpsAtPreviousSite.First().Base,
                                    otherSideOpsAtPreviousSite.First().Quality)
                                  });
@@ -1448,7 +1162,6 @@ namespace StitchingLogic
             if (suffixToAdd != null)
             {
                 AddToStitchPositionsList(suffixToAdd);
-                //_stitchPositionsList.Add(suffixToAdd);
             }
         }
 
@@ -1458,7 +1171,7 @@ namespace StitchingLogic
             _stitchedPositionsListLength++;
         }
 
-        private CigarOp? GetCombinedOp(CigarOp? r1Op, CigarOp? r2Op)
+        private char? GetCombinedOp(char? r1Op, char? r2Op)
         {
             if (r1Op == null && r2Op == null)
             {
@@ -1472,17 +1185,17 @@ namespace StitchingLogic
             {
                 return r1Op;
             }
-            if (r1Op.Value.Type == r2Op.Value.Type)
+            if (r1Op.Value == r2Op.Value)
             {
                 return r1Op;
             }
 
             // TODO - more nuanced resolution
-            if (r1Op.Value.Type == 'S')
+            if (r1Op.Value == 'S')
             {
                 return r2Op;
             }
-            if (r2Op.Value.Type == 'S')
+            if (r2Op.Value == 'S')
             {
                 return r1Op;
             }
@@ -1502,21 +1215,23 @@ namespace StitchingLogic
             return stitchPosition;
         }
 
+        public const char InvalidChar = '!';
+
         private void GetStitchedSites(CigarAlignment cigar1, CigarAlignment cigar2, long firstPos2, long firstPos1, string r1OrigBases, string r2OrigBases, byte[] r1OrigQuals, byte[] r2OrigQuals)
         {
-            cigar1.Expand(_expandedCigar1);
-            cigar2.Expand(_expandedCigar2);
+            cigar1.ExpandToChars(_expandedCigar1);
+            cigar2.ExpandToChars(_expandedCigar2);
 
-            _r2Bases = new List<char?>();
-            _r1Bases = new List<char?>();
+            _r2Bases = new List<char>();
+            _r1Bases = new List<char>();
             _r1Quals = new List<byte?>();
             _r2Quals = new List<byte?>();
             var indexInR1 = 0;
-            foreach (CigarOp item in _expandedCigar1)
+            foreach (var item in _expandedCigar1)
             {
-                if (item.Type == 'D')
+                if (item == 'D')
                 {
-                    _r1Bases.Add(null);
+                    _r1Bases.Add(InvalidChar);
                     _r1Quals.Add(null);
                 }
                 else
@@ -1528,11 +1243,11 @@ namespace StitchingLogic
             }
 
             var indexInR2 = 0;
-            foreach (CigarOp item in _expandedCigar2)
+            foreach (var item in _expandedCigar2)
             {
-                if (item.Type == 'D')
+                if (item == 'D')
                 {
-                    _r2Bases.Add(null);
+                    _r2Bases.Add(InvalidChar);
                     _r2Quals.Add(null);
                 }
                 else
@@ -1548,16 +1263,17 @@ namespace StitchingLogic
             if (firstPos1 < firstPos2)
             {
                 AddR1ToList(0);
-                AddR2ToList((int)(firstPos2 - firstPos1));
+                AddR2ToList((firstPos2 - firstPos1));
             }
             else
             {
                 AddR2ToList(0);
-                AddR1ToList((int)(firstPos1 - firstPos2));
+                AddR1ToList((firstPos1 - firstPos2));
             }
         }
 
-        private void AddR1ToList(int refPos)
+        
+        private void AddR1ToList(long refPos)
         {
             var index = 0;
             foreach (var op in _expandedCigar1)
@@ -1565,10 +1281,8 @@ namespace StitchingLogic
                 while (refPos >= _stitchedPositionsListLength)
                 {
                     AddToStitchPositionsList(GetFreshStitchedPosition());
-
-                    //_stitchPositionsList.Add(GetFreshStitchedPosition());
                 }
-                if (op.IsReferenceSpan())
+                if (CigarExtensions.IsReferenceSpan(op))
                 {
                     var stitchableItem = new StitchableItem(op, _r1Bases[index], _r1Quals[index]);
                     _stitchPositionsList[refPos].MappedSite.AddOpsForRead(ReadNumber.Read1, stitchableItem);
@@ -1584,7 +1298,7 @@ namespace StitchingLogic
             }
         }
 
-        private void AddR2ToList(int refPos)
+        private void AddR2ToList(long refPos)
         {
             var index = 0;
 
@@ -1593,9 +1307,8 @@ namespace StitchingLogic
                 while (refPos >= _stitchedPositionsListLength)
                 {
                     AddToStitchPositionsList(GetFreshStitchedPosition());
-                    //_stitchPositionsList.Add(GetFreshStitchedPosition());
                 }
-                if (op.IsReferenceSpan())
+                if (CigarExtensions.IsReferenceSpan(op))
                 {
                     var stitchableItem = new StitchableItem(op, _r2Bases[index], _r2Quals[index]);
 

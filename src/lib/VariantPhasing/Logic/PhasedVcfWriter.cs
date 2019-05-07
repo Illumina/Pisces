@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Reflection;
 using Pisces.IO;
 using Pisces.IO.Interfaces;
 using Pisces.Domain.Models.Alleles;
@@ -104,7 +103,7 @@ namespace VariantPhasing.Logic
         {
             var comparer = new AlleleCompareByLoci();
             var sortedVariants = calledAlleles.OrderBy(a => a, comparer).ThenBy(a => a.ReferenceAllele).ThenBy(a => a.AlternateAllele);
-            base.Write(sortedVariants);
+            base.Write(sortedVariants, mapper);
         }
        
 

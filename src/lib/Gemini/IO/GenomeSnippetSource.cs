@@ -11,12 +11,22 @@ namespace Gemini.IO
         private readonly int _genomeContextSize;
         private readonly int _buffer;
         private ChrReference _chrReference;
+        private readonly bool _loadedOwnChrReference;
 
-        public GenomeSnippetSource(string chrom, IGenome genome, int genomeContextSize, int buffer = 300)
+        public GenomeSnippetSource(string chrom, IGenome genome, int genomeContextSize, int buffer = 300, ChrReference chrReference = null)
         {
             _genomeContextSize = genomeContextSize;
             _buffer = buffer;
-            _chrReference = genome.GetChrReference(chrom); // TODO keep this in memory or access each time?
+            if (chrReference != null)
+            {
+                _chrReference = chrReference;
+                _loadedOwnChrReference = false;
+            }
+            else
+            {
+                _chrReference = genome.GetChrReference(chrom);
+                _loadedOwnChrReference = true;
+            }
         }
 
         public GenomeSnippet GetGenomeSnippet(int position)
@@ -59,7 +69,10 @@ namespace Gemini.IO
 
         public void Dispose()
         {
-            _chrReference = null;
+            if (_loadedOwnChrReference)
+            {
+                _chrReference = null;
+            }
         }
     }
 }

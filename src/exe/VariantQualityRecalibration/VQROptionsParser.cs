@@ -22,7 +22,7 @@ namespace VariantQualityRecalibration
                 {
                     "vcf=",
                     OptionTypes.PATH + $" input file name",
-                    value => VQROptions.InputVcf = value
+                    value => VQROptions.VcfPath = value
                 },
             };
             var commonOps = new OptionSet
@@ -40,13 +40,13 @@ namespace VariantQualityRecalibration
                 },
                 {
                     "b=",
-                    OptionTypes.INT + $" baseline noise level, default { VQROptions.BaseQNoise}. (The new noise level is never recalibrated to lower than this.)",
-                    value=> VQROptions.BaseQNoise = int.Parse(value)
+                    OptionTypes.INT + $" baseline noise level, default { VQROptions.BamFilterParams.MinimumBaseCallQuality}. (The new noise level is never recalibrated to lower than this.)",
+                    value=> VQROptions.BamFilterParams.MinimumBaseCallQuality = int.Parse(value)
                 },
                 {
                     "f=",
-                    OptionTypes.INT + $" filter Q score, default { VQROptions.FilterQScore} (if a variant gets recalibrated, when we apply the \"LowQ\" filter)",
-                    value=>VQROptions.FilterQScore = int.Parse(value)
+                    OptionTypes.INT + $" filter Q score, default { VQROptions.VariantCallingParams.MinimumVariantQScoreFilter} (if a variant gets recalibrated, when we apply the \"LowQ\" filter)",
+                    value=>VQROptions.VariantCallingParams.MinimumVariantQScoreFilter = int.Parse(value)
                 },
                 {
                     "z=",
@@ -98,14 +98,14 @@ namespace VariantQualityRecalibration
         {
             //this would set an error code. Once we have one, we should quit.
 
-            CheckInputFilenameExists(VQROptions.InputVcf, "vcf input", "--vcf");
+            CheckInputFilenameExists(VQROptions.VcfPath, "vcf input", "--vcf");
 
             if (ParsingFailed)
                 return;
 
             if (string.IsNullOrEmpty(Options.OutputDirectory))
             {
-                Options.OutputDirectory = Path.GetDirectoryName(VQROptions.InputVcf);
+                Options.OutputDirectory = Path.GetDirectoryName(VQROptions.VcfPath);
             }
 
             CheckAndCreateDirectory(Options.OutputDirectory, " output directory", "-o", false);
@@ -113,11 +113,13 @@ namespace VariantQualityRecalibration
             if (ParsingFailed)
                 return;
 
-            if (VQROptions.InputVcf.ToLower().EndsWith(".vcf") && !VQROptions.InputVcf.ToLower().EndsWith(".genome.vcf"))
+            if (VQROptions.VcfPath.ToLower().EndsWith(".vcf") && !VQROptions.VcfPath.ToLower().EndsWith(".genome.vcf"))
             {
                 HasRequiredParameter(VQROptions.LociCount, "the estimated num loci for vcf input", "--locicount");
             }
 
+            //Vqr never will apply the AB filter
+            VQROptions.VariantCallingParams.AmpliconBiasFilterThreshold = null;
         }
 
 

@@ -6,25 +6,30 @@
     <GenerateAssemblyConfigurationAttribute>false</GenerateAssemblyConfigurationAttribute>
     <GenerateAssemblyCompanyAttribute>false</GenerateAssemblyCompanyAttribute>
     <GenerateAssemblyProductAttribute>false</GenerateAssemblyProductAttribute>
-    <Version>5.2.10.49</Version>
+    <Version>5.2.11.163</Version>
     <Copyright>Copyright © Illumina 2019</Copyright>
     <RepositoryUrl>https://github.com/Illumina/Pisces</RepositoryUrl>
 
     <Platforms>AnyCPU;x64</Platforms>
   </PropertyGroup>
 
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <Optimize>false</Optimize>
+  </PropertyGroup>
+
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.CommandLineUtils" Version="1.1.1" />
+    <PackageReference Include="RangeTree" Version="1.0.6" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\exe\Stitcher\Stitcher.csproj" />
     <ProjectReference Include="..\Alignment.Domain\Alignment.Domain.csproj" />
     <ProjectReference Include="..\Alignment.IO\Alignment.IO.csproj" />
     <ProjectReference Include="..\Alignment.Logic\Alignment.Logic.csproj" />
     <ProjectReference Include="..\BamStitchingLogic\BamStitchingLogic.csproj" />
+    <ProjectReference Include="..\CommandLine.IO\CommandLine.Util.csproj" />
+    <ProjectReference Include="..\CommandLine.Options\CommandLine.Options.csproj" />
     <ProjectReference Include="..\Common.IO\Common.IO.csproj" />
-    <ProjectReference Include="..\Pisces.Domain\Pisces.Domain.csproj" />
     <ProjectReference Include="..\Pisces.IO\Pisces.IO.csproj" />
     <ProjectReference Include="..\Pisces.Processing\Pisces.Processing.csproj" />
     <ProjectReference Include="..\ReadRealignmentLogic\ReadRealignmentLogic.csproj" />
@@ -41,3 +46,4 @@
   </ItemGroup>
 
 </Project>
+

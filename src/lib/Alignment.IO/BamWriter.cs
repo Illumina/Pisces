@@ -302,6 +302,7 @@ namespace Alignment.IO.Sequencing
             }
             // test if we should flush the block
             if ((BlockOffset + buffer.Length) > MaxBlockSize) FlushBlock();
+
             Write(buffer, (uint)buffer.Length);
         }
 

@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using Pisces.IO.Interfaces;
 
 namespace Pisces.IO
@@ -83,7 +82,31 @@ namespace Pisces.IO
             // do nothing by default
         }
 
- 
+        public virtual void Write(string msg, IRegionMapper mapper = null)
+        {
+            if (Writer == null)
+                throw new IOException("Stream already closed");
+
+            FlushBuffer(mapper);
+
+            Writer.WriteLine(msg);
+
+            FlushBuffer(mapper);
+        }
+
+        public virtual void Write(List<string> msgs, IRegionMapper mapper = null)
+        {
+            if (Writer == null)
+                throw new IOException("Stream already closed");
+
+            FlushBuffer(mapper);
+
+            foreach (var msg in msgs)
+                Writer.WriteLine(msg);
+
+            FlushBuffer(mapper);
+        }
+
 
         public virtual void Write(IEnumerable<T> BaseCalledAlleles, IRegionMapper mapper = null)
         {

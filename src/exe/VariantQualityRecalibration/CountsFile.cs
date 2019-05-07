@@ -1,7 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using Pisces.IO.Sequencing;
+using Pisces.Domain.Models.Alleles;
+using Pisces.IO;
 using Common.IO.Utility;
 
 namespace VariantQualityRecalibration
@@ -94,8 +95,8 @@ namespace VariantQualityRecalibration
 
         public static string WriteCountsFile(string vcfIn, string outDir, int lociCount)
         {
-            
-            var variant = new VcfVariant();
+
+            var variants = new List<CalledAllele>();
             var countsPath = Path.Combine(outDir, Path.GetFileName(vcfIn).Replace(".vcf", ".counts"));
             var countsPathOld = Path.Combine(outDir, Path.GetFileName(vcfIn).Replace(".vcf", ".counts.original"));
 
@@ -111,22 +112,25 @@ namespace VariantQualityRecalibration
 
             var counter = new MutationCounter();
 
-            using (VcfReader readerA = new VcfReader(vcfIn))
+            using (AlleleReader readerA = new AlleleReader(vcfIn))
             {
                 counter.StartWriter(countsPath);
 
-                while (readerA.GetNextVariant(variant))
+                while (readerA.GetNextVariants(out variants))
                 {
-                    try
+                    foreach (var variant in variants)
                     {
-                        counter.Add(variant);
-                    }
+                        try
+                        {
+                            counter.Add(variant);
+                        }
 
-                    catch (Exception ex)
-                    {
-                        Logger.WriteToLog(string.Format("Fatal error processing vcf; Check {0}, position {1}.  Exception: {2}",
-                            variant.ReferenceName, variant.ReferencePosition, ex));
-                        throw;
+                        catch (Exception ex)
+                        {
+                            Logger.WriteToLog(string.Format("Fatal error processing vcf; Check {0}, position {1}.  Exception: {2}",
+                                variant.Chromosome, variant.ReferencePosition, ex));
+                            throw;
+                        }
                     }
                 }
 

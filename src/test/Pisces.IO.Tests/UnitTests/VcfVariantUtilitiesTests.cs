@@ -2,8 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using Alignment.Domain.Sequencing;
-using Pisces.IO.Sequencing;
+using Pisces.Domain.Models.Alleles;
 using Pisces.Domain.Types;
 using TestUtilities;
 using Xunit;
@@ -12,6 +11,114 @@ namespace Pisces.IO.Tests.UnitTests
 {
     public class VcfVariantUtilitiesTests
     {
+
+        [Fact]
+        public void MapFilterStringTests()
+        {
+            //happy path tests.
+
+            Assert.Equal(0, VcfVariantUtilities.MapFilterString("PASS").Count);
+            Assert.Equal(0, VcfVariantUtilities.MapFilterString("pass").Count);
+            Assert.Equal(0, VcfVariantUtilities.MapFilterString(".").Count);
+            Assert.Equal(0, VcfVariantUtilities.MapFilterString("").Count);
+            Assert.Equal(0, VcfVariantUtilities.MapFilterString(" ").Count);
+
+            Assert.Equal(FilterType.LowVariantQscore, VcfVariantUtilities.MapFilterString("lowq")[0]);
+            Assert.Equal(FilterType.LowVariantQscore, VcfVariantUtilities.MapFilterString("q20")[0]);
+            Assert.Equal(FilterType.LowVariantQscore, VcfVariantUtilities.MapFilterString("q30")[0]);
+            Assert.Equal(FilterType.LowVariantQscore, VcfVariantUtilities.MapFilterString("LowQ")[0]);
+            Assert.Equal(FilterType.LowVariantQscore, VcfVariantUtilities.MapFilterString("LowQ500")[0]);
+            Assert.Equal(FilterType.LowVariantQscore, VcfVariantUtilities.MapFilterString("LowQual")[0]);
+
+            Assert.Equal(FilterType.PoolBias, VcfVariantUtilities.MapFilterString("pb")[0]);
+
+            Assert.Equal(FilterType.StrandBias, VcfVariantUtilities.MapFilterString("sb")[0]);
+
+            Assert.Equal(FilterType.AmpliconBias, VcfVariantUtilities.MapFilterString("ab")[0]);
+
+            Assert.Equal(FilterType.LowDepth, VcfVariantUtilities.MapFilterString("LOWDP")[0]);
+            Assert.Equal(FilterType.LowDepth, VcfVariantUtilities.MapFilterString("lowdp")[0]);
+            Assert.Equal(FilterType.LowDepth, VcfVariantUtilities.MapFilterString("lowdepth")[0]);
+
+            Assert.Equal(FilterType.LowVariantFrequency, VcfVariantUtilities.MapFilterString("lowfreq")[0]);
+            Assert.Equal(FilterType.LowVariantFrequency, VcfVariantUtilities.MapFilterString("lowvariantfreq")[0]);
+
+            Assert.Equal(FilterType.LowGenotypeQuality, VcfVariantUtilities.MapFilterString("lowgq")[0]);
+            Assert.Equal(FilterType.LowGenotypeQuality, VcfVariantUtilities.MapFilterString("gq")[0]);
+
+            Assert.Equal(FilterType.IndelRepeatLength, VcfVariantUtilities.MapFilterString("r8")[0]);
+            Assert.Equal(FilterType.IndelRepeatLength, VcfVariantUtilities.MapFilterString("R42")[0]);
+
+            Assert.Equal(FilterType.RMxN, VcfVariantUtilities.MapFilterString("R5x9")[0]);
+            Assert.Equal(FilterType.RMxN, VcfVariantUtilities.MapFilterString("R3x2")[0]);
+
+            Assert.Equal(FilterType.MultiAllelicSite, VcfVariantUtilities.MapFilterString("multiallelicsite")[0]);
+
+            Assert.Equal(FilterType.ForcedReport, VcfVariantUtilities.MapFilterString("forcedreport")[0]);
+
+            Assert.Equal(FilterType.NoCall, VcfVariantUtilities.MapFilterString("nc")[0]);
+
+
+            Assert.Equal(FilterType.Unknown, VcfVariantUtilities.MapFilterString("MyCatIsCool")[0]);
+
+
+            //pathological tests
+
+            Assert.Equal(FilterType.Unknown, VcfVariantUtilities.MapFilterString("PAS")[0]);
+            Assert.Equal(FilterType.Unknown, VcfVariantUtilities.MapFilterString("passFoo")[0]);
+            Assert.Equal(FilterType.Unknown, VcfVariantUtilities.MapFilterString("!")[0]);
+            Assert.Equal(FilterType.Unknown, VcfVariantUtilities.MapFilterString("42")[0]);
+
+            Assert.Equal(FilterType.Unknown, VcfVariantUtilities.MapFilterString("q")[0]);
+            Assert.Equal(FilterType.Unknown, VcfVariantUtilities.MapFilterString("bq20")[0]);
+            Assert.Equal(FilterType.Unknown, VcfVariantUtilities.MapFilterString("sq30")[0]);
+
+            Assert.Equal(FilterType.Unknown, VcfVariantUtilities.MapFilterString("pb3")[0]);
+            Assert.Equal(FilterType.Unknown, VcfVariantUtilities.MapFilterString("4sb")[0]);
+            Assert.Equal(FilterType.Unknown, VcfVariantUtilities.MapFilterString("ab2")[0]);
+            Assert.Equal(FilterType.Unknown, VcfVariantUtilities.MapFilterString("LOWDP500")[0]);
+
+            Assert.Equal(FilterType.Unknown, VcfVariantUtilities.MapFilterString("7r8")[0]);
+            Assert.Equal(FilterType.Unknown, VcfVariantUtilities.MapFilterString("r")[0]);
+
+            Assert.Equal(FilterType.Unknown, VcfVariantUtilities.MapFilterString("R5Y9")[0]);
+            Assert.Equal(FilterType.Unknown, VcfVariantUtilities.MapFilterString("R3Z2")[0]);
+
+            Assert.Equal(FilterType.Unknown, VcfVariantUtilities.MapFilterString("multiallelicsite43")[0]);
+
+            Assert.Equal(FilterType.Unknown, VcfVariantUtilities.MapFilterString("4forcedreport")[0]);
+
+            Assert.Equal(FilterType.Unknown, VcfVariantUtilities.MapFilterString("ncc")[0]);
+
+            //combinations
+
+            var filterString1 = "lowdepth;lowvariantfreq;gq;r5x9  \t ; blah ; multiallelicsite;foo ";
+
+            var filterString1List = VcfVariantUtilities.MapFilterString(filterString1);
+
+            Assert.Equal(FilterType.LowDepth, filterString1List[0]);
+            Assert.Equal(FilterType.LowVariantFrequency, filterString1List[1]);
+            Assert.Equal(FilterType.LowGenotypeQuality, filterString1List[2]);
+            Assert.Equal(FilterType.RMxN, filterString1List[3]);
+            Assert.Equal(FilterType.Unknown, filterString1List[4]);
+            Assert.Equal(FilterType.MultiAllelicSite, filterString1List[5]);
+            Assert.Equal(FilterType.Unknown, filterString1List[6]);
+
+            //really strange stuff...
+ 
+            Assert.Equal(0, VcfVariantUtilities.MapFilterString("; ; ;").Count);
+            Assert.Equal(0, VcfVariantUtilities.MapFilterString("; ; PASS;").Count);   
+            Assert.Equal(FilterType.Unknown, VcfVariantUtilities.MapFilterString(", ,... , ")[0]);//note, only splits on ";", not "'"
+            Assert.Equal(FilterType.Unknown, VcfVariantUtilities.MapFilterString(", , , ")[0]);
+            Assert.Equal(FilterType.Unknown, VcfVariantUtilities.MapFilterString("lowdepth, multiallelicsite, lowvariantfreq , gq, r5x9")[0]);
+            Assert.Equal(FilterType.Unknown, VcfVariantUtilities.MapFilterString("(*%.,PASS,q30")[0]);
+            Assert.Equal(1, VcfVariantUtilities.MapFilterString("(*%.,PASS,q30").Count);
+            Assert.Equal(2, VcfVariantUtilities.MapFilterString("(*%.,;PASS;q30").Count);
+            Assert.Equal(FilterType.Unknown, VcfVariantUtilities.MapFilterString("(*%.,;PASS;q30")[0]);
+            Assert.Equal(FilterType.LowVariantQscore, VcfVariantUtilities.MapFilterString("(*%.,;PASS;q30")[1]);
+  
+
+        }
 
         [Fact]
         public void IsRMxNTests()
@@ -84,46 +191,16 @@ namespace Pisces.IO.Tests.UnitTests
             var crushedVcf1 = Path.Combine(TestPaths.LocalTestDataDirectory, "VcfFileWriterTests_Crushed_Padded_expected.vcf");
             var crushedVcf2 = Path.Combine(TestPaths.LocalTestDataDirectory, "crushed.genome.vcf");
 
-            var vcfVariants1 = VcfReader.GetAllVariantsInFile(crushedVcf1);
-            var vcfVariants2 = VcfReader.GetAllVariantsInFile(crushedVcf2);
+            var unpackedVariants1 = AlleleReader.GetAllVariantsInFile(crushedVcf1);
+            var unpackedVariants2 = AlleleReader.GetAllVariantsInFile(crushedVcf2);
 
-            Assert.Equal(7, vcfVariants1.Count);
-            Assert.Equal(90, vcfVariants2.Count);
+            Assert.Equal(8, unpackedVariants1.Count);//7 lines, but 8 alleles
+            Assert.Equal(91, unpackedVariants2.Count);//90 lines, but 91 alleles
 
-            // 1/2 variants
-            var hetAlt1 = vcfVariants1[5];
-            var hetAlt2 = vcfVariants2[3];
-            var hetAlt1next = vcfVariants1[6];
-            var hetAlt2next = vcfVariants2[4];
-
-            Assert.Equal(1, hetAlt1.Genotypes.Count);
-            Assert.Equal(1, hetAlt2.Genotypes.Count);
-            Assert.Equal(2, hetAlt1.VariantAlleles.Count());
-            Assert.Equal(2, hetAlt2.VariantAlleles.Count());
-            Assert.Equal("2387,2000", hetAlt1.Genotypes[0]["AD"]);
-            Assert.Equal("0.8133", hetAlt1.Genotypes[0]["VF"]);
-            Assert.Equal("254,254", hetAlt2.Genotypes[0]["AD"]);
-            Assert.Equal("AA", hetAlt1.ReferenceAllele);
-            Assert.Equal("GA", hetAlt1.VariantAlleles[0]);
-            Assert.Equal("G", hetAlt1.VariantAlleles[1]);
-            Assert.Equal(".", hetAlt1next.VariantAlleles[0]);
-            Assert.Equal("0", hetAlt1next.Genotypes[0]["AD"]);
-            Assert.Equal("532", hetAlt2next.Genotypes[0]["AD"]);
-            Assert.Equal(10, hetAlt1.ReferencePosition);
-            Assert.Equal(223906731, hetAlt2.ReferencePosition);
-            Assert.Equal(10 + 1, hetAlt1next.ReferencePosition);
-            Assert.Equal(223906731 + 1, hetAlt2next.ReferencePosition);
-
-            var unpackedVariants1 = VcfVariantUtilities.UnpackVariants(vcfVariants1);
-            var unpackedVariants2 = VcfVariantUtilities.UnpackVariants(vcfVariants2);
-
-            Assert.Equal(8, unpackedVariants1.Count);
-            Assert.Equal(91, unpackedVariants2.Count);
-
-            hetAlt1 = unpackedVariants1[5];
-            hetAlt2 = unpackedVariants2[3];
-            hetAlt1next = unpackedVariants1[6];
-            hetAlt2next = unpackedVariants2[4];
+            var hetAlt1 = unpackedVariants1[5];
+            var hetAlt2 = unpackedVariants2[3];
+            var hetAlt1next = unpackedVariants1[6];
+            var hetAlt2next = unpackedVariants2[4];
 
             //example one:
             //total depth = 5394, total variant count = 2387 + 2000 = 4387
@@ -133,29 +210,38 @@ namespace Pisces.IO.Tests.UnitTests
             //total depth = 532, total variant count = 254 + 254 = 508
             //so, ref counts ~24.
 
-            Assert.Equal(1, hetAlt1.Genotypes.Count);
-            Assert.Equal(1, hetAlt2.Genotypes.Count);
-            Assert.Equal("1007,2387", hetAlt1.Genotypes[0]["AD"]);
-            Assert.Equal("24,254", hetAlt2.Genotypes[0]["AD"]);
-            Assert.Equal("0.4425", hetAlt1.Genotypes[0]["VF"]);
-            Assert.Equal(1, hetAlt1.VariantAlleles.Count());
-            Assert.Equal(1, hetAlt2.VariantAlleles.Count());
-            Assert.Equal(1, hetAlt1next.VariantAlleles.Count());
-            Assert.Equal(1, hetAlt2next.VariantAlleles.Count());
-            Assert.Equal("1007,2000", hetAlt1next.Genotypes[0]["AD"]);
-            Assert.Equal("24,254", hetAlt2next.Genotypes[0]["AD"]);
-            Assert.Equal("AA", hetAlt1.ReferenceAllele);
-            Assert.Equal("GA", hetAlt1.VariantAlleles[0]);
-            Assert.Equal("G", hetAlt1next.VariantAlleles[0]);
-            Assert.Equal("0.3708", hetAlt1next.Genotypes[0]["VF"]);
+            Assert.Equal(Genotype.HeterozygousAlt1Alt2, hetAlt1.Genotype);
+            Assert.Equal(Genotype.HeterozygousAlt1Alt2, hetAlt2.Genotype);
+
+            Assert.Equal(1007, hetAlt1.ReferenceSupport);
+            Assert.Equal(2387, hetAlt1.AlleleSupport);
+            Assert.Equal(0.4425, hetAlt1.Frequency, 4);
+
+            Assert.Equal(24, hetAlt2.ReferenceSupport);
+            Assert.Equal(254, hetAlt2.AlleleSupport);
             Assert.Equal(10, hetAlt1.ReferencePosition);
+            Assert.Equal("AA", hetAlt1.ReferenceAllele);
+            Assert.Equal("GA", hetAlt1.AlternateAllele);
+
+            Assert.Equal(223906731, hetAlt2.ReferencePosition);
+
+            Assert.Equal(1007, hetAlt1next.ReferenceSupport);
+            Assert.Equal(2000, hetAlt1next.AlleleSupport);
+            Assert.Equal("G", hetAlt1next.AlternateAllele);
+            Assert.Equal(0.3708, hetAlt1next.Frequency, 4);
+
+            Assert.Equal(24, hetAlt2next.ReferenceSupport);
+            Assert.Equal(254, hetAlt2next.AlleleSupport);
+      
             Assert.Equal(223906731, hetAlt2.ReferencePosition);
             Assert.Equal(10, hetAlt1next.ReferencePosition);
             Assert.Equal(223906731, hetAlt2next.ReferencePosition);
 
         }
 
-
+        /// <summary>
+        /// this whole test can be removed once vcf variant is gone
+        /// </summary>
         [Fact]
         public void Convert()
         {
@@ -275,15 +361,15 @@ namespace Pisces.IO.Tests.UnitTests
             Assert.Equal(Genotype.HomozygousAlt, allele.Genotype);
             Assert.Equal(AlleleCategory.Snv, allele.Type);
 
-            //vcfVar.Genotypes[0]["GT"] = "1/1";
-            vcfVar.Filters = "lowvariantfreq;MultiAllelicSite";
+            vcfVar.Genotypes[0]["GT"] = "1/1";
+            vcfVar.Filters = "lowvariantfreq;multiallelicsite";
             allele = VcfVariantUtilities.ConvertUnpackedVariant(vcfVar);
 
             Assert.Equal(vcfVar.ReferenceName, allele.Chromosome);
             Assert.Equal(new List<FilterType>() { FilterType.LowVariantFrequency, FilterType.MultiAllelicSite }, allele.Filters);
             Assert.Equal(Genotype.HomozygousAlt, allele.Genotype);
             Assert.Equal(AlleleCategory.Snv, allele.Type);
-            
+
             vcfVar.Filters = "lowsupport";
             allele = VcfVariantUtilities.ConvertUnpackedVariant(vcfVar);
 

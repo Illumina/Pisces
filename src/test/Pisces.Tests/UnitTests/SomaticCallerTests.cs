@@ -40,7 +40,8 @@ namespace Pisces.Tests.UnitTests
                 .Returns(_calledList);
 
             var mockWriter = new Mock<IVcfFileWriter<CalledAllele>>();
-            var caller = factory.CreateSomaticVariantCaller(_chrReference, "bamFilePath", mockWriter.Object, new Mock<IStrandBiasFileWriter>().Object);
+            var caller = factory.CreateSomaticVariantCaller(_chrReference, "bamFilePath", mockWriter.Object, 
+                new Mock<IStrandBiasFileWriter>().Object, new Mock<IAmpliconBiasFileWriter>().Object);
             caller.Execute();
 
             // alignment operations 

@@ -9,6 +9,7 @@
 ##INFO=<ID=FC,Number=.,Type=String,Description="Functional Consequence">
 ##FILTER=<ID=LowDP,Description="Low coverage (DP tag), therefore no genotype called">
 ##FILTER=<ID=SB,Description="Variant strand bias too high">
+##FILTER=<ID=AB,Description="Amplicon bias - disparate variant frequencies detected by amplicon>
 ##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">
 ##FORMAT=<ID=GQ,Number=1,Type=Integer,Description="Genotype Quality">
 ##FORMAT=<ID=AD,Number=.,Type=Integer,Description="Allele Depth">

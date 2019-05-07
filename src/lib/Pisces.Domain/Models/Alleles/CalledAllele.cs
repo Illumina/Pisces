@@ -17,7 +17,7 @@ namespace Pisces.Domain.Models.Alleles
 
         public List<FilterType> Filters { get; set; }
         public BiasResults StrandBiasResults { get; set; }
-        //public BiasResults PoolBiasResults { get; set; }
+        public BiasResultsAcrossAmplicons AmpliconBiasResults { get; set; }
 
         public int NoiseLevelApplied { get; set; }
 
@@ -32,6 +32,8 @@ namespace Pisces.Domain.Models.Alleles
         public int[] ReadCollapsedCountTotal { get; set; }
         public int[] SupportByDirection { get; set; }
         public int[] WellAnchoredSupportByDirection { get; set; }
+        public AmpliconCounts SupportByAmplicon { get; set; }
+        public AmpliconCounts CoverageByAmplicon { get; set; }
         public int AlleleSupport { get; set; }
         public int SoftClipAlleleSupport { get; set; }
         public int NumNoCalls { get; set; }
@@ -65,7 +67,15 @@ namespace Pisces.Domain.Models.Alleles
             {
                 return (Type == AlleleCategory.Reference);
             }
-        }  
+        }
+
+        public bool IsIndel
+        {
+            get
+            {
+                return ( (Type == AlleleCategory.Insertion) || (Type == AlleleCategory.Deletion));
+            }
+        }
 
         public bool HasARefAllele
         {
@@ -197,6 +207,12 @@ namespace Pisces.Domain.Models.Alleles
                 && (otherAllele.ReferencePosition == ReferencePosition)
                 && (otherAllele.AlternateAllele == AlternateAllele)
                 && (otherAllele.ReferenceAllele == ReferenceAllele));
+        }
+
+        public bool IsCoLocatedAllele(CalledAllele otherAllele)
+        {
+            return ((otherAllele.Chromosome == Chromosome)
+                && (otherAllele.ReferencePosition == ReferencePosition));
         }
 
         public static CalledAllele DeepCopy(CalledAllele originalAllele)

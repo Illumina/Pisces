@@ -6,9 +6,10 @@
     <GenerateAssemblyConfigurationAttribute>false</GenerateAssemblyConfigurationAttribute>
     <GenerateAssemblyCompanyAttribute>false</GenerateAssemblyCompanyAttribute>
     <GenerateAssemblyProductAttribute>false</GenerateAssemblyProductAttribute>
-    <Version>5.2.10.49</Version>
+    <Version>5.2.11.163</Version>
     <Copyright>Copyright © Illumina 2019</Copyright>
     <IsPackable>false</IsPackable>
+    <RepositoryUrl>https://github.com/Illumina/Pisces</RepositoryUrl>
   </PropertyGroup>
 
   <ItemGroup>
@@ -24,6 +25,7 @@
     <ProjectReference Include="..\..\lib\BamStitchingLogic\BamStitchingLogic.csproj" />
     <ProjectReference Include="..\..\lib\Gemini\Gemini.csproj" />
     <ProjectReference Include="..\Alignment.Logic.Tests\Alignment.Logic.Tests.csproj" />
+    <ProjectReference Include="..\TestUtilities\TestUtilities.csproj" />
   </ItemGroup>
 
   <ItemGroup>
@@ -32,4 +34,14 @@
     </Reference>
   </ItemGroup>
 
+  <ItemGroup>
+    <None Update="Chr17Chr19.bam">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Gemini.Tests.xunit.runner.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
 </Project>
+

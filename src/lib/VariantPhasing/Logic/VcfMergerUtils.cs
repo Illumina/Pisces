@@ -9,71 +9,70 @@ namespace VariantPhasing.Logic
 {
     public static class VcfMergerUtils
     {
-        public static List<CalledAllele> AdjustForcedAllele(List<CalledAllele> allelesReadyToWrite)
+        public static List<Tuple<CalledAllele, string>> AdjustForcedAllele(List<Tuple<CalledAllele, string>> alleleTuplesReadyToWriteList)
         {
-            var forcedPositions = allelesReadyToWrite.Where(x => x.Filters.Contains(FilterType.ForcedReport)).Select(x=>x.ReferencePosition).ToImmutableHashSet();
+            var forcedPositions = alleleTuplesReadyToWriteList.Where(x => x.Item1.Filters.Contains(FilterType.ForcedReport)).Select(x => x.Item1.ReferencePosition).ToImmutableHashSet();
+            
+            if (!forcedPositions.Any()) return alleleTuplesReadyToWriteList;
 
-            if (!forcedPositions.Any()) return allelesReadyToWrite;
+            var allelesTuplesInForcedPositionDictionary = new Dictionary<int, List<Tuple<CalledAllele, string>>>();
 
-            var allelesInForcedPosition = new Dictionary<int,IEnumerable<CalledAllele>>();
             foreach (var forcedPosition in forcedPositions)
             {
-                var nonForcedAllele = allelesReadyToWrite.Where(x => x.ReferencePosition == forcedPosition && !x.Filters.Contains(FilterType.ForcedReport)).ToList();
-                var forcedAllele = allelesReadyToWrite.Where(x => x.ReferencePosition == forcedPosition && x.Filters.Contains(FilterType.ForcedReport)).ToList();
-                var allelesToAdd = AdjustForcedAlleleInPosition(nonForcedAllele, forcedAllele);
-                allelesInForcedPosition[forcedPosition] = allelesToAdd;
+                var alleleTuplesNonForcedList = alleleTuplesReadyToWriteList.Where(x => x.Item1.ReferencePosition == forcedPosition && !x.Item1.Filters.Contains(FilterType.ForcedReport)).ToList();
+                var alleleTuplesForcedList = alleleTuplesReadyToWriteList.Where(x => x.Item1.ReferencePosition == forcedPosition && x.Item1.Filters.Contains(FilterType.ForcedReport)).ToList();
+                var alleleTuplesToAddList = AdjustForcedAlleleInPosition(alleleTuplesNonForcedList, alleleTuplesForcedList);
+                allelesTuplesInForcedPositionDictionary[forcedPosition] = alleleTuplesToAddList;
             }
 
-            var allelesAfterProcess = new List<CalledAllele>();
+            var alleleTuplesAfterProcessList = new List<Tuple<CalledAllele, string>>();
 
-            foreach (var calledAllele in allelesReadyToWrite)
+            foreach (var alleleTupleReadyToWrite in alleleTuplesReadyToWriteList)
             {
-                var currentPos = calledAllele.ReferencePosition;
+                var currentPos = alleleTupleReadyToWrite.Item1.ReferencePosition;
+
                 if (!forcedPositions.Contains(currentPos))
                 {
-                    allelesAfterProcess.Add(calledAllele);
+                    alleleTuplesAfterProcessList.Add(alleleTupleReadyToWrite);
                     continue;
                 }
-                if (allelesInForcedPosition.ContainsKey(currentPos))
+
+                if (allelesTuplesInForcedPositionDictionary.ContainsKey(currentPos))
                 {
-                    allelesAfterProcess.AddRange(allelesInForcedPosition[currentPos]);
-                    allelesInForcedPosition.Remove(currentPos);
+                    alleleTuplesAfterProcessList.AddRange(allelesTuplesInForcedPositionDictionary[currentPos]);
+                    allelesTuplesInForcedPositionDictionary.Remove(currentPos);
                 }
             }
             
-
-            return allelesAfterProcess;
+            return alleleTuplesAfterProcessList;
         }
 
-        private static IEnumerable<CalledAllele> AdjustForcedAlleleInPosition(List<CalledAllele> nonForcedAlleles,
-            List<CalledAllele> forcedAlleles)
+        private static List<Tuple<CalledAllele, string>> AdjustForcedAlleleInPosition(
+            List<Tuple<CalledAllele, string>> alleleTuplesNonForcedList, List<Tuple<CalledAllele, string>> alleleTuplesForcedList)
         {
-            var allelesToAdd = new List<CalledAllele>();
+            var alleleTuplesToAddList = new List<Tuple<CalledAllele, string>>();
 
-            allelesToAdd.AddRange(nonForcedAlleles);
+            alleleTuplesToAddList.AddRange(alleleTuplesNonForcedList);
 
-            if (!nonForcedAlleles.Any() || nonForcedAlleles.All(x => x.IsRefType))
+            if (!alleleTuplesNonForcedList.Any() || alleleTuplesNonForcedList.All(x => x.Item1.IsRefType))
             {
-                allelesToAdd.AddRange(forcedAlleles);
+                alleleTuplesToAddList.AddRange(alleleTuplesForcedList);
 
-                return allelesToAdd;
+                return alleleTuplesToAddList;
             }
-                
-
-
+            
             var nonForcedAlleleSet =
-                nonForcedAlleles.Select(x => Tuple.Create(x.ReferenceAllele, x.AlternateAllele)).ToImmutableHashSet();
+                alleleTuplesNonForcedList.Select(x => Tuple.Create(x.Item1.ReferenceAllele, x.Item1.AlternateAllele)).ToImmutableHashSet();
 
-            foreach (var calledAllele in forcedAlleles)
+            foreach (var alleleTupleForced in alleleTuplesForcedList)
             {
-                if(nonForcedAlleleSet.Contains(Tuple.Create(calledAllele.ReferenceAllele,calledAllele.AlternateAllele)))
+                if(nonForcedAlleleSet.Contains(Tuple.Create(alleleTupleForced.Item1.ReferenceAllele,alleleTupleForced.Item1.AlternateAllele)))
                     continue;
 
-                allelesToAdd.Add(calledAllele);
-
+                alleleTuplesToAddList.Add(alleleTupleForced);
             }
 
-            return allelesToAdd;
+            return alleleTuplesToAddList;
         }
         
     }

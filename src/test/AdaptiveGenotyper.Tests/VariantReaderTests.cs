@@ -11,34 +11,10 @@ namespace AdaptiveGenotyper.Tests
     public class VariantReaderTests
     {
         [Fact]
-        public void ParseDepthTests()
-        {
-            string vcf1Path = Path.Combine(TestPaths.LocalTestDataDirectory, "ParseDepthTest.vcf");
-            string vcf2Path = Path.Combine(TestPaths.LocalTestDataDirectory, "VariantDepthReaderTest.vcf");
-
-            VcfVariant variant = new VcfVariant();
-            int dp;
-            using (VcfReader reader1 = new VcfReader(vcf1Path)) 
-            {
-                reader1.GetNextVariant(variant);
-                dp = VariantReader.ParseDepth(variant);
-                Assert.Equal(500, dp);
-            }
-
-            using (VcfReader reader2 = new VcfReader(vcf2Path))
-            {
-                reader2.GetNextVariant(variant);
-                dp = VariantReader.ParseDepth(variant);
-                Assert.Equal(78, dp);
-            }
-        }
-
-        [Fact]
         public void GetVFMultiAllelicTest()
         {
             string vcf = Path.Combine(TestPaths.LocalTestDataDirectory, "MultiAllelicVariantTest.vcf");
-            VariantReader reader = new VariantReader();
-            List<RecalibratedVariantsCollection> results = reader.GetVariantFrequencies(vcf);
+            List<RecalibratedVariantsCollection> results = VariantReader.GetVariantFrequencies(vcf);
 
             // First entry is reference; check if added for both SNV and indel
             Assert.True(results[0].ContainsKey("chr1:115252175"));
@@ -70,8 +46,7 @@ namespace AdaptiveGenotyper.Tests
         public void GetVFDeletionTest()
         {
             string vcf = Path.Combine(TestPaths.LocalTestDataDirectory, "DeletionVariantTest.vcf");
-            VariantReader reader = new VariantReader();
-            List<RecalibratedVariantsCollection> results = reader.GetVariantFrequencies(vcf);
+            List<RecalibratedVariantsCollection> results = VariantReader.GetVariantFrequencies(vcf);
 
             // First entry should be skipped
             Assert.DoesNotContain(115252175, results[0].ReferencePosition);
@@ -106,11 +81,10 @@ namespace AdaptiveGenotyper.Tests
             string vcf1 = Path.Combine(TestPaths.LocalTestDataDirectory, "diploid1.vcf"); // tests "diploid"
             string vcf2 = Path.Combine(TestPaths.LocalTestDataDirectory, "diploid2.vcf"); // tests "Diploid"
             string vcf3 = Path.Combine(TestPaths.LocalTestDataDirectory, "diploid3.vcf"); // tests "DIPLOID"
-            VariantReader reader = new VariantReader();
 
-            Assert.Throws<Exception>(() => reader.GetVariantFrequencies(vcf1));
-            Assert.Throws<Exception>(() => reader.GetVariantFrequencies(vcf2));
-            Assert.Throws<Exception>(() => reader.GetVariantFrequencies(vcf3));
+            Assert.Throws<VariantReaderException>(() => VariantReader.GetVariantFrequencies(vcf1));
+            Assert.Throws<VariantReaderException>(() => VariantReader.GetVariantFrequencies(vcf2));
+            Assert.Throws<VariantReaderException>(() => VariantReader.GetVariantFrequencies(vcf3));
         }
 
         [Fact]
@@ -119,20 +93,18 @@ namespace AdaptiveGenotyper.Tests
             string vcf1 = Path.Combine(TestPaths.LocalTestDataDirectory, "minvq1.vcf"); 
             string vcf2 = Path.Combine(TestPaths.LocalTestDataDirectory, "minvq2.vcf");
             string vcf3 = Path.Combine(TestPaths.LocalTestDataDirectory, "minvq3.vcf");
-            VariantReader reader = new VariantReader();
 
-            Assert.Throws<Exception>(() => reader.GetVariantFrequencies(vcf1));
-            Assert.Throws<Exception>(() => reader.GetVariantFrequencies(vcf2));
+            Assert.Throws<VariantReaderException>(() => VariantReader.GetVariantFrequencies(vcf1));
+            Assert.Throws<VariantReaderException>(() => VariantReader.GetVariantFrequencies(vcf2));
 
-            reader = new VariantReader();
-            var variants = reader.GetVariantFrequencies(vcf3);
+            var variants = VariantReader.GetVariantFrequencies(vcf3);
             Assert.True(variants[1].Count > 0);
         }
 
         [Fact]
         public void ReadCrushedVcfTest()
         {
-            Assert.Throws<Exception>(() => new VariantReader().GetVariantFrequencies(
+            Assert.Throws<VariantReaderException>(() => VariantReader.GetVariantFrequencies(
                 Path.Combine(TestPaths.LocalTestDataDirectory, "crushed.vcf")));
         }
     }

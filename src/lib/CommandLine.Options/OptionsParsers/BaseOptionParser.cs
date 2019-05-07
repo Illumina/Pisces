@@ -52,6 +52,17 @@ namespace CommandLine.Options
             return new List<T>();
         }
 
+        public static List<string> ParseCommaSeparatedFieldToList(string field) 
+        {
+
+            if (field != null)
+            {
+                var strings = field.Split(",", StringSplitOptions.RemoveEmptyEntries);
+                return strings.ToList();
+            }
+            return new List<string>();
+        }
+
         private CommandLineParseResult _ParsingResult = new CommandLineParseResult();
         private Dictionary<string, OptionSet> _OptionSetDics;
         private IApplicationOptions _Options;

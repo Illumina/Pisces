@@ -287,7 +287,7 @@ namespace StitchingLogic.Tests
                 var inputRead2 = scenario.InputRead2.ToRead();
 
                 var alignmentSet = new AlignmentSet(inputRead1, inputRead2);
-                var didStitch = stitcher.TryStitch(alignmentSet);
+                var didStitch = stitcher.TryStitch(alignmentSet).Stitched;
 
                 LogResult(resultFile, scenario, didStitch, alignmentSet);
                 resultLogged = true;

@@ -33,7 +33,7 @@ namespace ReadRealignmentLogic
             if (realignedScore > originalScore) return -1;
             return 0;
         }
-        public override int CompareAlignmentsWithOriginal(AlignmentSummary realignResult, AlignmentSummary originalAlignmentSummary)
+        public override int CompareAlignmentsWithOriginal(AlignmentSummary realignResult, AlignmentSummary originalAlignmentSummary, bool treatKindly = false)
         {
             var originalScore = _alignmentScorer.GetAlignmentScore(originalAlignmentSummary);
             var realignedScore = _alignmentScorer.GetAlignmentScore(realignResult);

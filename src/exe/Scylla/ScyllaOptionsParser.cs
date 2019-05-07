@@ -111,6 +111,11 @@ namespace Scylla
                     value=>ScyllaOptions.PhasableVariantCriteria.FilteredNbhdToProcess = value
                 },
                 {
+                    "minPassingVariantsInNbhd=",
+                    OptionTypes.INT + $" Minimum number of passing variants required for a neighborhood to be callable. Default: 0.",
+                    value=>ScyllaOptions.PhasableVariantCriteria.MinPassingVariantsInNbhd = int.Parse(value)
+                },
+                {
                     "dist=",
                     OptionTypes.INT + $" How close variants need to be to chain together. Should be less than read length.",
                     value=>ScyllaOptions.PhasableVariantCriteria.PhasingDistance = int.Parse(value)

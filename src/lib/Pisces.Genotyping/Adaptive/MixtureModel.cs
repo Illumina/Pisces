@@ -6,41 +6,50 @@ using Pisces.Domain.Types;
 using Common.IO.Utility;
 using System.Linq;
 using MathNet.Numerics.Distributions;
+using MathNet.Numerics.Statistics;
 
 namespace Pisces.Genotyping
 {
-    public class MixtureModelInput
+    public class MixtureModelParameters
     {
-        public double[] Means;
-        public double[] Weights;
+        public double[] Means { get; set; }
+        public double[] Priors { get; set; }
     }
-        public class MixtureModelResult
+    public class MixtureModelResult
     {
-        public SimplifiedDiploidGenotype GenotypeCategory; //{0/0,0/1,1/1}
-        public int QScore;
-        public float[] GenotypePosteriors;
+        public SimplifiedDiploidGenotype GenotypeCategory { get; set; } // 0/0, 0/1 or 1/1
+        public int QScore { get; set; }
+        public float[] GenotypePosteriors { get; set; }
 
-        public int GentoptypeCategoryAsInt
+        public int GenotypeCategoryAsInt
         {
-            get
+            get { return GetGenoptypeCategoryAsInt(); }
+            set { GenotypeCategory = IntToGenotypeCategory(value); }
+        }
+
+        private int GetGenoptypeCategoryAsInt()
+        {
+            switch (GenotypeCategory)
             {
-                switch (GenotypeCategory)
-                {
-                    case SimplifiedDiploidGenotype.HomozygousRef:
-                        return 0;
-                    case SimplifiedDiploidGenotype.HeterozygousAltRef:
-                        return 1;
-                    case SimplifiedDiploidGenotype.HomozygousAlt:
-                        return 2;
-                    default:
-                        throw (new ArgumentException("The given genotype is not allowed." + GenotypeCategory));
-                }
+                case SimplifiedDiploidGenotype.HomozygousRef:
+                    return 0;
+                case SimplifiedDiploidGenotype.HeterozygousAltRef:
+                    return 1;
+                case SimplifiedDiploidGenotype.HomozygousAlt:
+                    return 2;
+                // This is technically unreachable for now, but it future proofs this class
+                default:
+                    throw new ArgumentException("The given genotype is not allowed." + GenotypeCategory);
             }
         }
 
-        public static SimplifiedDiploidGenotype IntToGentoptypeCategory(int i)
+        public static int GenotypeCategoryToInt(SimplifiedDiploidGenotype genotype)
         {
+            return (int)genotype;
+        }
 
+        public static SimplifiedDiploidGenotype IntToGenotypeCategory(int i)
+        {
             switch (i)
             {
                 case 0:
@@ -50,17 +59,16 @@ namespace Pisces.Genotyping
                 case 2:
                     return SimplifiedDiploidGenotype.HomozygousAlt;
                 default:
-                    throw (new ArgumentException("The given genotype number  is not allowed." + i));
+                    throw new ArgumentException("The given genotype number  is not allowed." + i);
             }
         }
-
     }
-    
 
     public class MixtureModel
     {
         private static readonly float _maxQScore = 100F;
         private static readonly double[] _defaultMeans = new double[] { 0.01, 0.45, 0.95 };
+        private static readonly int[] _defaultQScoreEffectiveN = { 25, 25, 10 };
 
         private readonly IList<int> AlleleDepths;
         private readonly IList<int> TotalDepths;
@@ -68,28 +76,31 @@ namespace Pisces.Genotyping
         private readonly int[] ClusterCounts;
 
         #region Properties
-        public double[] Means { get; }
+        public double[] Means { get; private set; }
         public IList<int> Clustering { get; }
         public double[] MixtureWeights { get; private set; }
         public int[] QScores { get; }
         public List<double> LogLikelihoods { get; } = new List<double>();
         public List<float[]> PhredPosteriors { get; } = new List<float[]>();
-        #endregion
-
+        public int[] QScoreEffectiveN { get; private set; }
         public MixtureModelResult PrimaryResult
         {
             get
             {
-                return new MixtureModelResult() {GenotypeCategory = MixtureModelResult.IntToGentoptypeCategory( Clustering[0]), QScore = QScores[0], GenotypePosteriors = PhredPosteriors[0] };
-
+                return new MixtureModelResult()
+                {
+                    GenotypeCategory = MixtureModelResult.IntToGenotypeCategory(Clustering[0]),
+                    QScore = QScores[0],
+                    GenotypePosteriors = PhredPosteriors[0]
+                };
             }
         }
+        #endregion
 
         #region Constructors
-        public MixtureModel() { }
-        public MixtureModel(IList<int> ad, IList<int> dp) : this(ad, dp, _defaultMeans) { }
+        private MixtureModel(IList<int> ad, IList<int> dp) : this(ad, dp, _defaultMeans) { }
 
-        public MixtureModel(IList<int> k, IList<int> n, double[] startingMeans) : 
+        private MixtureModel(IList<int> k, IList<int> n, double[] startingMeans) :
             this(k, n, startingMeans, new double[startingMeans.Length])
         {
             int minIndex = Array.IndexOf(Means, Means.Min());
@@ -102,14 +113,12 @@ namespace Pisces.Genotyping
             }
         }
 
-        // If the model has already been fit, use this constructor to specify means and priors and then call 
-        // UpdateClusteringAndQScore()
-        public MixtureModel(IList<int> k, IList<int> n, double[] means, double[] priors)
+        private MixtureModel(IList<int> k, IList<int> n, double[] means, double[] priors)
         {
             Means = means;
             Array.Sort(Means);
             AlleleDepths = k;
-            TotalDepths = n;            
+            TotalDepths = n;
             QScores = new int[AlleleDepths.Count];
             ClusterCounts = new int[3];
             Clustering = new SparseArray<int>(TotalDepths.Count);
@@ -120,11 +129,11 @@ namespace Pisces.Genotyping
         #endregion
 
         #region Main methods
-        public void FitBinomialModel()
+        private void FitBinomialModel()
         {
             // Algorithm based on this page modified to be a binomial mixture model
             // http://tinyheero.github.io/2016/01/03/gmm-em.html
-             
+
             LogLikelihoods.Add(UpdateExpectation());
             UpdateParameters();
 
@@ -137,62 +146,17 @@ namespace Pisces.Genotyping
                 UpdateParameters();
                 counter++;
             }
-            
+
             UpdateClusteringAndQScore();
 
             for (int k = 0; k < ClusterCounts.Length; k++)
                 if (ClusterCounts[k] == 0)
-                    throw new Exception(
+                    throw new MixtureModelException(
                         "Germline adative genotyper failed because there are not enough variants to " +
                         "fit the model.  Please check that the sample is diploid.  Consider enlarging the calling" +
                         "region or using a pre-fit model.");
         }
-        public void UpdateClusteringAndQScore()
-        {
-            Array.Clear(ClusterCounts, 0, ClusterCounts.Length);
 
-            // Get the 3 indices closest to 0, 0.5 and 1
-            int[] clusterCategories = GetClusterCategories(Means);
-
-            for (int i = 0; i < Clustering.Count; i++)
-            {
-                int maxIndex = clusterCategories[0];
-
-                // Include possible somatic mutation when calculating posteriors
-                // 2.7E-7 from paper Differences between germline and somatic mutation rates in humans and mice
-                double[] qScorePosterior = CalculatePosteriors(AlleleDepths[i], TotalDepths[i],
-                    Means.Concat(new double[] { (double)AlleleDepths[i] / TotalDepths[i] }).ToArray(),
-                    MixtureWeights.Concat(new double[] { 2.7E-7 / ((double)AlleleDepths[i] / TotalDepths[i] / 0.1)}).ToArray());
-
-                double maxPost = Posteriors[i, 0];
-                float[] phredScores = new float[clusterCategories.Length];
-                phredScores[0] = Math.Min(_maxQScore, MathOperations.PToQ_CapAt300(qScorePosterior[0]));
-                for (int k = 1; k < Means.Length; k++)
-                {
-                    if (Posteriors[i, k] > maxPost && clusterCategories.Contains(k))
-                    {
-                        maxIndex = k;
-                        maxPost = Posteriors[i, k];
-                    }
-                    if (clusterCategories.Contains(k))
-                        phredScores[Array.IndexOf(clusterCategories, k)] = Math.Min(_maxQScore, MathOperations.PToQ_CapAt300(qScorePosterior[k]));
-                }
-                Clustering[i] = Array.IndexOf(clusterCategories, maxIndex);
-                ClusterCounts[Array.IndexOf(clusterCategories, maxIndex)]++;
-                QScores[i] = Math.Min((int)_maxQScore, (int)Math.Round(MathOperations.PToQ_CapAt300(1 - qScorePosterior[maxIndex])));
-                PhredPosteriors.Add(phredScores);
-            }
-        }
-
-        public void UpdateWithNewMixtureWeights(double[] newMixes)
-        {
-            MixtureWeights = newMixes;
-            LogLikelihoods.Add(UpdateExpectation());
-            UpdateClusteringAndQScore();
-        }
-        #endregion
-
-        #region Helper methods
         // Expectation step
         private double UpdateExpectation()
         {
@@ -211,7 +175,7 @@ namespace Pisces.Genotyping
                     {
                         for (int kk = 0; kk < Means.Length; kk++)
                         {
-                            tempPosts[kk] = Normal.PDF(Means[kk], Math.Sqrt(TotalDepths[i] * Means[kk] * (1 - Means[kk])), 
+                            tempPosts[kk] = Normal.PDF(Means[kk], Math.Sqrt(TotalDepths[i] * Means[kk] * (1 - Means[kk])),
                                 (double)AlleleDepths[i] / TotalDepths[i]);
                             posteriorsSum[i] += tempPosts[k];
                         }
@@ -248,59 +212,218 @@ namespace Pisces.Genotyping
             // Update mixture weights
             for (int k = 0; k < Means.Length; k++)
                 MixtureWeights[k] = nUnscaled[k] / AlleleDepths.Count;
-
         }
-        /*private double[] DownsamplePosterior(int i)
+
+        private void UpdateClusteringAndQScore()
         {
-            double[] downsampledPosterior = new double[Means.Length];
-            int newSupport = (int)Math.Round((double)AlleleDepths[i] / TotalDepths[i] * MaxDepth);
-            double[] tempPosts = new double[Means.Length];
-            double posteriorsSum = 0;
-            for (int j = 0; j < Means.Length; j++)
+            // Update clustering
+            Array.Clear(ClusterCounts, 0, ClusterCounts.Length);
+
+            // Sort the means and mixture weights
+            Array.Sort(Means, MixtureWeights);
+
+            // Keep track of variant frequencies by cluster
+            var vfByCluster = new List<List<double>>()
             {
-                tempPosts[j] = PBinom.dbinom(newSupport, MaxDepth, Means[j]) * MixtureWeights[j];
-                posteriorsSum += tempPosts[j];
+                new List<double>(),
+                new List<double>(),
+                new List<double>()
+            };
+
+            for (int i = 0; i < Clustering.Count; i++)
+            {
+                int maxIndex = 0;
+                double maxPost = Posteriors[i, 0];
+                for (int k = 1; k < Means.Length; k++)
+                {
+                    if (Posteriors[i, k] > maxPost)
+                    {
+                        maxIndex = k;
+                        maxPost = Posteriors[i, k];
+                    }
+                }
+                Clustering[i] = maxIndex;
+                ClusterCounts[maxIndex]++;
+                vfByCluster[Clustering[i]].Add((double)AlleleDepths[i] / TotalDepths[i]);
             }
 
-            for (int j = 0; j < Means.Length; j++)
-                downsampledPosterior[j] = tempPosts[j] / posteriorsSum;
-
-            return downsampledPosterior;
-        }*/
-        #endregion Helper methods
-
-        #region Static methods
-        /// <summary>
-        /// When using a model with more than 3 discrete models, this method finds the three closest points to 0, 0.5 and 1.
-        /// </summary>
-        /// <param name="models">
-        /// An IList of models that need to be reduced to 3 elements each.  Each model is specified via a double array.
-        /// </param>
-        /// <returns>
-        /// A list of models, each model is a three member double array.
-        /// </returns>
-        public static List<double[]> GetActualMeans(IList<double[]> models)
-        {
-            // if model means exceed three elements, ignore other ones
-            List<double[]> tempMeans = new List<double[]>();
-            for (int i = 0; i < models.Count; i++)
+            // Update Q scores
+            QScoreEffectiveN = new int[Means.Length];
+            for (int k = 0; k < QScoreEffectiveN.Length; k++)
             {
-                tempMeans.Add(new double[models[i].Length]);
-                Array.Copy(models[i], tempMeans[i], models[i].Length);
-                if (models[i].Length > 3)
+                double variance = vfByCluster[k].Variance();
+                if (double.IsNaN(variance) || double.IsInfinity(variance))
                 {
-                    int[] idx = MixtureModel.GetClusterCategories(models[i]);
-                    double[] newMeans = new double[]
-                    {
-                            models[i][idx[0]],
-                            models[i][idx[1]],
-                            models[i][idx[2]]
-                    };
-                    tempMeans[i] = newMeans;
+                    QScoreEffectiveN = _defaultQScoreEffectiveN;
+                    break;
+                }
+                else
+                {
+                    QScoreEffectiveN[k] = (int)Math.Round(Means[k] * (1 - Means[k])
+                        / variance);
                 }
             }
-            return tempMeans;
+
+            for (int i = 0; i < Clustering.Count; i++)
+            {
+                (int qScore, float[] phredScores) = CalculateQScoreAndGenotypePosteriors(AlleleDepths[i], TotalDepths[i],
+                    Clustering[i], Means, MixtureWeights, QScoreEffectiveN);
+
+                QScores[i] = qScore;
+                PhredPosteriors.Add(phredScores);
+            }
         }
+
+        #endregion
+
+        #region Helper methods
+
+        private static (int qScore, float[] phredPosteriors) CalculateQScoreAndGenotypePosteriors(int alleleDepth, 
+            int totalDepth, int category, double[] means, double[] priors, int[] maxN)
+        {
+            float[] phredScores = new float[means.Length];
+            double[] posteriors = CalculatePosteriorsWithMaxN(alleleDepth, totalDepth, means, priors, maxN);
+
+            for (int i = 0; i < means.Length; i++)
+            {
+                phredScores[i] = Math.Min(_maxQScore, MathOperations.PToQ_CapAt300(posteriors[i]));
+            }
+
+            var qScore = Math.Min((int)_maxQScore, (int)Math.Round(MathOperations.PToQ_CapAt300(1 - posteriors[category])));
+
+            return (qScore, phredScores);
+        }
+
+        private static double[] CalculatePosteriorsWithMaxN(int k, int n, double[] means, double[] priors, int[] maxN)
+        {
+            // If N exceeds maxN, rescale data
+            var kArray = new int[maxN.Length];
+            var nArray = new int[maxN.Length];
+            for (int i = 0; i < maxN.Length; i++)
+            {
+                if (n > maxN[i])
+                {
+                    var vf = (double)k / n;
+                    kArray[i] = (int)Math.Round(vf * maxN[i]);
+                    nArray[i] = maxN[i];
+                }
+                else
+                {
+                    kArray[i] = k;
+                    nArray[i] = n;
+                }
+            }
+            return CalculatePosteriors(kArray, nArray, means, priors);
+        }
+
+        private static double[] CalculatePosteriors(int[] kArray, int[] nArray, double[] means, double[] priors)
+        {
+            double[] posteriors = new double[means.Length];
+            double[] tempPosts = new double[means.Length];
+            double posteriorsSum = 0;
+
+            for (int i = 0; i < means.Length; i++)
+            {
+                tempPosts[i] = Binomial.PMF(means[i], nArray[i], kArray[i]) * priors[i];
+                posteriorsSum += tempPosts[i];
+
+                // Use normal approximation if sum of posteriors is zero
+                if (i == (means.Length - 1) && posteriorsSum == 0)
+                {
+                    for (int ii = 0; ii < means.Length; ii++)
+                    {
+                        tempPosts[ii] = Normal.PDF(means[ii], Math.Sqrt(nArray[i] * means[ii] * (1 - means[ii])),
+                            (double)kArray[i] / nArray[i]);
+                        posteriorsSum += tempPosts[ii];
+                    }
+                }
+            }
+
+            for (int i = 0; i < means.Length; i++)
+                posteriors[i] = tempPosts[i] / posteriorsSum;
+
+            return posteriors;
+        }
+
+        private static double[] CalculatePosteriors(int k, int n, double[] means, double[] priors)
+        {
+            var kArray = new int[means.Length];
+            var nArray = new int[means.Length];
+            for (int i = 0; i < means.Length; i++)
+            {
+                kArray[i] = k;
+                nArray[i] = n;
+            }
+
+            return CalculatePosteriors(kArray, nArray, means, priors);
+        }
+
+        private static double GetLogLikelihood(double[] arr)
+        {
+            double sum = 0;
+            for (int i = 0; i < arr.Length; i++)
+                sum += Math.Log(arr[i]);
+            return sum;
+        }
+
+        private static double Distance(double point1, double point2)
+        {
+            return Math.Pow(point1 - point2, 2);
+        }
+
+        #endregion Helper methods
+
+        #region Public static methods
+
+        public static SimplifiedDiploidGenotype GetSimplifiedGenotype(int alleleDepth, int totalDepth, double[] means,
+            double[] priors)
+        {
+            // Get genotype category
+            double[] posteriors = CalculatePosteriors(alleleDepth, totalDepth, means, priors);
+            var maxPosterior = posteriors.Max();
+            int category = Array.IndexOf(posteriors, maxPosterior);
+
+            return MixtureModelResult.IntToGenotypeCategory(category);
+        }
+
+        public static MixtureModelResult CalculateQScoreAndGenotypePosteriors(int alleleDepth, int totalDepth, double[] means,
+            double[] priors)
+        {
+            // Get genotype category
+            int category = MixtureModelResult.GenotypeCategoryToInt(GetSimplifiedGenotype(alleleDepth, 
+                totalDepth, means, priors));
+
+            // Get Q score and genotype posterior
+            (int qScore, float[] genotypePosteriors) = CalculateQScoreAndGenotypePosteriors(alleleDepth, totalDepth, category,
+                means, priors,  _defaultQScoreEffectiveN);
+
+            return new MixtureModelResult
+            {
+                GenotypeCategoryAsInt = category,
+                QScore = qScore,
+                GenotypePosteriors = genotypePosteriors
+            };
+        }
+
+        public static MixtureModel UsePrefitModel(IList<int> ad, IList<int> dp, double[] means, double[] priors)
+        {
+            var mm = new MixtureModel(ad, dp, means, priors);
+            mm.UpdateClusteringAndQScore();
+            return mm;
+        }
+
+        public static MixtureModel FitMixtureModel(IList<int> ad, IList<int> dp)
+        {
+            return FitMixtureModel(ad, dp, _defaultMeans);
+        }
+
+        public static MixtureModel FitMixtureModel(IList<int> ad, IList<int> dp, double[] startingMeans)
+        {
+            var mm = new MixtureModel(ad, dp, startingMeans);
+            mm.FitBinomialModel();
+            return mm;
+        }
+
         /// <summary>
         /// Calculates the Q scores and phred-scaled genotype posteriors for a 1/2 locus.
         /// This method uses a multinomial distribution to calculate the Q score and posteriors for a 1/2 locus.  The probabilities
@@ -323,16 +446,16 @@ namespace Pisces.Genotyping
         /// The prior probability is specified as: homozygous reference-99%, uniform prior for the other possible genotypes.
         /// If total read depth is greater than 500, Q score and posteriors cannot be estimated so the maximal values are returned.
         /// </remarks>
-        //public static RecalibratedVariant GetMultinomialQScores(int[] ad, int dp, IList<double[]> means)
         public static MixtureModelResult GetMultinomialQScores(int[] ad, int dp, IList<double[]> means)
         {
             if (dp > 500) // Can't be calculated
-                 return new MixtureModelResult() { GenotypeCategory = SimplifiedDiploidGenotype.HeterozygousAltRef, QScore = (int)_maxQScore,
-                     GenotypePosteriors = new float[] {_maxQScore, _maxQScore, _maxQScore, _maxQScore, 0, _maxQScore} };   
+                return new MixtureModelResult()
+                {
+                    GenotypeCategory = SimplifiedDiploidGenotype.HeterozygousAltRef,
+                    QScore = (int)_maxQScore,
+                    GenotypePosteriors = new float[] { _maxQScore, _maxQScore, _maxQScore, _maxQScore, 0, _maxQScore }
+                };
 
-            means = GetActualMeans(means);
-
-            double[] p = new double[means[0].Length];
             double[] tempPosts = new double[6];
             int postCount = 0;
             double postNorm = 0;
@@ -341,21 +464,12 @@ namespace Pisces.Genotyping
             {
                 for (int m1 = 0; m1 < means[0].Length; m1++)
                 {
-                    if (m1 == 2 && m2 != 0 || m2 == 2 && m1 != 0)
+                    // Exclude when either allele is hom-alt and the other alelle is not hom-ref
+                    if ((m1 == 2 && m2 != 0) ||
+                        (m2 == 2 && m1 != 0))
                         continue;
-                    p[1] = means[0][m1];
-                    p[2] = means[1][m2];
-                    p[0] = 1 - p[1] - p[2];
 
-                    if (p[0] < 0)
-                    {
-                        if (m1 == 2)
-                            p[0] = (1 - p[1]);
-                        else if (m2 == 2)
-                            p[0] = (1 - p[2]);
-                        else if (m1 == 1 && m2 == 1)
-                            p[0] = 1 - means[0][2];
-                    }
+                    var p = CalculateProbabilities(m1, m2, means);
 
                     Multinomial mm = new Multinomial(p, dp);
                     double prior = 0.01 / 5;
@@ -367,82 +481,40 @@ namespace Pisces.Genotyping
                     postCount++;
                 }
             }
+
             float[] gp = new float[tempPosts.Length];
             for (int i = 0; i < tempPosts.Length; i++)
                 gp[i] = Math.Min(_maxQScore, MathOperations.PToQ_CapAt300(tempPosts[i] / postNorm));
+
             int qScore = Math.Min((int)_maxQScore, (int)Math.Round(MathOperations.PToQ_CapAt300(1 - tempPosts[4] / postNorm)));
 
-            return new MixtureModelResult() { GenotypeCategory = SimplifiedDiploidGenotype.HeterozygousAltRef, QScore = qScore, GenotypePosteriors = gp };
-        }
-
-      
-        private static double[] CalculatePosteriors(int k, int n, double[] means, double[] priors)
-        {
-            double[] posteriors = new double[means.Length];
-            double[] tempPosts = new double[means.Length];
-            double posteriorsSum = 0;
-
-            for (int i = 0; i < means.Length; i++)
-                {
-                    tempPosts[i] = Binomial.PMF(means[i], n, k) * priors[i];
-                    posteriorsSum += tempPosts[i];
-
-                    // Use normal approximation if sum of posteriors are zero
-                    if (i == (means.Length - 1) && posteriorsSum == 0)
-                    {
-                        for (int ii = 0; ii < means.Length; ii++)
-                        {
-                            tempPosts[ii] = Normal.PDF(means[ii], Math.Sqrt(n * means[ii] * (1 - means[ii])),
-                                (double)k / n);
-                            posteriorsSum += tempPosts[ii];
-                        }
-                    }
-                }
-
-            for (int i = 0; i < means.Length; i++)
-                posteriors[i] = tempPosts[i] / posteriorsSum;
-
-            return posteriors;
-        }
-        private static int[] GetClusterCategories(double[] means)
-        {
-            double target = 0;
-            int[] result = new int[3];
-            for (int k = 0; k < result.Length; k++)
+            return new MixtureModelResult()
             {
-                if (k == 1)
-                    target = 0.5;
-                else if (k == 2)
-                    target = 1;
+                GenotypeCategory = SimplifiedDiploidGenotype.HeterozygousAltRef,
+                QScore = qScore,
+                GenotypePosteriors = gp
+            };
 
-                int currIdx = 0;
-                double currDist = Distance(target, means[0]);
-                for (int i = 1; i < means.Length; i++)
+            // Helper method
+            double[] CalculateProbabilities(int genotype1, int genotype2, IList<double[]> probs)
+            {
+                double[] result = new double[probs[0].Length];
+                result[1] = probs[0][genotype1];
+                result[2] = probs[1][genotype2];
+                result[0] = 1 - result[1] - result[2];
+
+                // Deal with when p is less than or equal to 0
+                if (result[0] <= 0)
                 {
-                    if (Distance(target, means[i]) < currDist)
-                    {
-                        currIdx = i;
-                        currDist = Distance(target, means[i]);
-                    }
+                    if (genotype1 == 2)
+                        result[0] = 1 - result[1];
+                    else if (genotype2 == 2)
+                        result[0] = 1 - result[2];
+                    else if (genotype1 == 1 && genotype2 == 1)
+                        result[0] = 1 - probs[0][2];
                 }
-                result[k] = currIdx;
+                return result;
             }
-
-            return result;
-        }
-
-
-        private static double GetLogLikelihood(double[] arr)
-        {
-            double sum = 0;
-            for (int i = 0; i < arr.Length; i++)
-                sum += Math.Log(arr[i]);
-            return sum;
-        }
-
-        private static double Distance(double point1, double point2)
-        {
-            return Math.Pow(point1 - point2, 2);
         }
 
         /// <summary>
@@ -450,12 +522,12 @@ namespace Pisces.Genotyping
         /// </summary>
         /// <param name="modelsFile"></param>
         /// <returns></returns>
-        public static new List<MixtureModelInput> ReadModelsFile(string modelsFile)
+        public static List<MixtureModelParameters> ReadModelsFile(string modelsFile)
         {
             Logger.WriteToLog("Reading models file " + modelsFile);
 
-           var mixtureModelInputList = new List<MixtureModelInput> { };
-           var models = new List<double[]>();
+            var mixtureModelInputList = new List<MixtureModelParameters> { };
+            var models = new List<double[]>();
 
             using (StreamReader sr = new StreamReader(modelsFile))
             {
@@ -473,10 +545,10 @@ namespace Pisces.Genotyping
             if (models.Count != 4 && models.Count != 2)
                 throw new InvalidOperationException("Invalid model file.  Fix models file, or run without it.");
 
-            mixtureModelInputList.Add(new MixtureModelInput()  { Means = models[0], Weights = models[1] });
+            mixtureModelInputList.Add(new MixtureModelParameters() { Means = models[0], Priors = models[1] });
 
-            if (models.Count==4)
-                mixtureModelInputList.Add(new MixtureModelInput() { Means = models[2], Weights = models[3] });
+            if (models.Count == 4)
+                mixtureModelInputList.Add(new MixtureModelParameters() { Means = models[2], Priors = models[3] });
 
             return mixtureModelInputList;
         }
@@ -496,6 +568,12 @@ namespace Pisces.Genotyping
                 }
             }
         }
+
         #endregion Static methods
+    }
+
+    public class MixtureModelException : Exception
+    {
+        public MixtureModelException(string msg) : base(msg) { }
     }
 }

@@ -79,7 +79,7 @@ namespace ReadRealignmentLogic
         }
 
         private RealignmentResult AddIndelAndGetResult(string readSequence, CandidateIndel priorIndel,
-            string refSequence, bool anchorLeft, int[] positionMap)
+            string refSequence, bool anchorLeft, PositionMap positionMap)
         {
             var foundIndel = false;
             var insertionPostionInReadStart = -1;
@@ -90,7 +90,7 @@ namespace ReadRealignmentLogic
                 // move along position map to see if we can insert indel
                 for (var i = 0; i < positionMap.Length; i++)
                 {
-                    if (positionMap[i] == priorIndel.ReferencePosition && i != positionMap.Length - 1)  // make sure we dont end right before indel
+                    if (positionMap.GetPositionAtIndex(i) == priorIndel.ReferencePosition && i != positionMap.Length - 1)  // make sure we dont end right before indel
                     {
                         foundIndel = true;
 
@@ -103,14 +103,14 @@ namespace ReadRealignmentLogic
                             {
                                 if (j - i <= priorIndel.Length)
                                 {
-                                    positionMap[j] = -1;
+                                    positionMap.UpdatePositionAtIndex(j, -1, true);
                                     if (j - i == priorIndel.Length || j == positionMap.Length - 1)
                                         insertionPositionInReadEnd = j;
                                 }
                                 else
                                 {
-                                    if (positionMap[j] != -1) // preserve existing insertions
-                                        positionMap[j] = positionMap[j] - priorIndel.Length;
+                                    if (positionMap.GetPositionAtIndex(j) != -1) // preserve existing insertions
+                                        positionMap.UpdatePositionAtIndex(j, positionMap.GetPositionAtIndex(j) - priorIndel.Length);
                                 }
                             }
                             break;
@@ -121,8 +121,8 @@ namespace ReadRealignmentLogic
                             // offset positions after deletion
                             for (var j = i + 1; j < positionMap.Length; j++)
                             {
-                                if (positionMap[j] != -1)  // preserve existing insertions
-                                    positionMap[j] += priorIndel.Length;
+                                if (positionMap.GetPositionAtIndex(j) != -1)  // preserve existing insertions
+                                    positionMap.UpdatePositionAtIndex(j, positionMap.GetPositionAtIndex(j) + priorIndel.Length);
                             }
                             break;
                         }
@@ -136,12 +136,12 @@ namespace ReadRealignmentLogic
                 {
                     for (var i = positionMap.Length - 1; i >= 0; i--)
                     {
-                        if (positionMap[i] == priorIndel.ReferencePosition + 1 && i != 0)
+                        if (positionMap.GetPositionAtIndex(i) == priorIndel.ReferencePosition + 1 && i != 0)
                         {
                             foundIndel = true;
                             insertionPositionInReadEnd = i - 1;
                         }
-                        else if (positionMap[i] == priorIndel.ReferencePosition && i != positionMap.Length - 1)
+                        else if (positionMap.GetPositionAtIndex(i) == priorIndel.ReferencePosition && i != positionMap.Length - 1)
                         {
                             foundIndel = true;
                             insertionPositionInReadEnd = i;
@@ -154,14 +154,14 @@ namespace ReadRealignmentLogic
                             {
                                 if (insertionPositionInReadEnd - j + 1 <= priorIndel.Length)
                                 {
-                                    positionMap[j] = -1;
+                                    positionMap.UpdatePositionAtIndex(j,-1, true);
                                     if (insertionPositionInReadEnd - j + 1 == priorIndel.Length || j == 0)
                                         insertionPostionInReadStart = j;
                                 }
                                 else
                                 {
-                                    if (positionMap[j] != -1) // Don't update position map for things that were already -1
-                                        positionMap[j] = positionMap[j] + priorIndel.Length;
+                                    if (positionMap.GetPositionAtIndex(j) != -1) // Don't update position map for things that were already -1
+                                        positionMap.UpdatePositionAtIndex(j, positionMap.GetPositionAtIndex(j) + priorIndel.Length);
                                 }
                             }
 
@@ -173,15 +173,15 @@ namespace ReadRealignmentLogic
                 {
                     for (var i = positionMap.Length - 1; i >= 1; i--)
                     {
-                        if (positionMap[i] == priorIndel.ReferencePosition + priorIndel.Length + 1) //deletions must be fully anchored to be observed
+                        if (positionMap.GetPositionAtIndex(i) == priorIndel.ReferencePosition + priorIndel.Length + 1) //deletions must be fully anchored to be observed
                         {
                             foundIndel = true;
 
                             // offset positions after deletion
                             for (var j = i - 1; j >= 0; j--)
                             {
-                                if (positionMap[j] != -1) // preserve existing insertions
-                                    positionMap[j] -= priorIndel.Length;
+                                if (positionMap.GetPositionAtIndex(j) != -1) // preserve existing insertions
+                                    positionMap.UpdatePositionAtIndex(j, positionMap.GetPositionAtIndex(j) - priorIndel.Length);
                             }
 
                             break;
@@ -190,7 +190,7 @@ namespace ReadRealignmentLogic
                 }
             }
 
-            if (!foundIndel || !Helper.IsValidMap(positionMap, refSequence))
+            if (!foundIndel || !Helper.IsValidMap(positionMap.Map, refSequence))
                 return null;
 
             // verify insertion matches
@@ -215,15 +215,15 @@ namespace ReadRealignmentLogic
                 }
             }
 
-            var newCigar = Helper.ConstructCigar(positionMap);
+            var newCigar = Helper.ConstructCigar(positionMap.Map);
 
-            var newSummary = Extensions.GetAlignmentSummary(positionMap.First(p => p >= 0) - 1, newCigar, refSequence,
+            var newSummary = Extensions.GetAlignmentSummary(positionMap.FirstMappableBase() - 1, newCigar, refSequence,
                 readSequence);
 
             if (newSummary == null)
             return null;
 
-            var readHasPosition = positionMap.Any(p => p >= 0);
+            var readHasPosition = positionMap.HasAnyMappableBases();
             if (!readHasPosition)
             {
                 throw new InvalidDataException(string.Format("Trying to generate result and read does not have any alignable bases. ({0}, {1})", newCigar, string.Join(",", positionMap)));
@@ -232,7 +232,7 @@ namespace ReadRealignmentLogic
             {
                 Cigar = newCigar,
                 NumIndels = newCigar.NumIndels(),
-                Position = positionMap.First(p => p >= 0),
+                Position = positionMap.FirstMappableBase(),
                 NumMismatches = newSummary.NumMismatches,
                 NumNonNMismatches = newSummary.NumNonNMismatches,
                 NumMismatchesIncludeSoftclip = newSummary.NumMismatchesIncludeSoftclip,
@@ -280,10 +280,11 @@ namespace ReadRealignmentLogic
             freshCigarWithoutTerminalNs.Compress();
 
             // start with fresh position map
-            var positionMapWithoutTerminalNs = new int[read.ReadLength - nPrefixLength - nSuffixLength];
-            Read.UpdatePositionMap(position, read.Name, freshCigarWithoutTerminalNs, positionMapWithoutTerminalNs);
+            //var positionMapWithoutTerminalNsArray = new int[read.ReadLength - nPrefixLength - nSuffixLength];
+            var positionMapWithoutTerminalNs = new PositionMap(read.ReadLength - nPrefixLength - nSuffixLength);
+            Read.UpdatePositionMap(position, freshCigarWithoutTerminalNs, positionMapWithoutTerminalNs);
             var prefixSoftclip = read.CigarData.GetPrefixClip();
-            var suffixSoftclip = read.CigarData.GetSuffixClip();
+            var suffixSoftclip = read.CigarData.GetSuffixClip();    
 
             RealignmentResult result = null;
             var sequenceWithoutTerminalNs = read.Sequence.Substring(nPrefixLength, read.Sequence.Length - nPrefixLength - nSuffixLength);
@@ -352,7 +353,7 @@ namespace ReadRealignmentLogic
             // Re-append the N-prefix
             var nPrefixPositionMap = Enumerable.Repeat(-1, nPrefixLength);
             var nSuffixPositionMap = Enumerable.Repeat(-1, nSuffixLength);
-            var finalPositionMap = nPrefixPositionMap.Concat(positionMapWithoutTerminalNs).Concat(nSuffixPositionMap).ToArray();
+            var finalPositionMap = new PositionMap(nPrefixPositionMap.Concat(positionMapWithoutTerminalNs.Map).Concat(nSuffixPositionMap).ToArray());
 
             var finalCigar = new CigarAlignment {new CigarOp('S', (uint) nPrefixLength)};
             foreach (CigarOp op in result.Cigar)
@@ -378,7 +379,7 @@ namespace ReadRealignmentLogic
             // In case realignment introduced a bunch of mismatch-Ms where there was previously softclipping, optionally re-mask them.
             if (result!=null && _remaskSoftclips)
             {
-                var mismatchMap = Helper.GetMismatchMap(read.Sequence, finalPositionMap, refSequence);
+                var mismatchMap = Helper.GetMismatchMap(read.Sequence, finalPositionMap.Map, refSequence);
 
                 var softclipAdjustedCigar = Helper.SoftclipCigar(result.Cigar, mismatchMap, prefixSoftclip, suffixSoftclip, maskNsOnly: true, prefixNs: Helper.GetCharacterBookendLength(read.Sequence, 'N', false), suffixNs: Helper.GetCharacterBookendLength(read.Sequence, 'N', true));
 
@@ -386,15 +387,15 @@ namespace ReadRealignmentLogic
                 var adjustedPrefixClip = softclipAdjustedCigar.GetPrefixClip();
                 for (var i = 0; i < adjustedPrefixClip; i++)
                 {
-                    finalPositionMap[i] = -2;
+                    finalPositionMap.UpdatePositionAtIndex(i,-2, true);
                 }
                 var adjustedSuffixClip = softclipAdjustedCigar.GetSuffixClip();
                 for (var i = 0; i < adjustedSuffixClip; i++)
                 {
-                    finalPositionMap[finalPositionMap.Length - 1 - i] = -2;
+                    finalPositionMap.UpdatePositionAtIndex(finalPositionMap.Length - 1 - i, -2, true);
                 }
 
-                var editDistance = Helper.GetEditDistance(read.Sequence, finalPositionMap, refSequence);
+                var editDistance = Helper.GetEditDistance(read.Sequence, finalPositionMap.Map, refSequence);
                 if (editDistance == null)
                 {
                     // This shouldn't happen at this point - we already have a successful result
@@ -402,13 +403,13 @@ namespace ReadRealignmentLogic
                                         string.Join(",", finalPositionMap) + " and CIGAR " + softclipAdjustedCigar);
                 }
 
-                var readHasPosition = finalPositionMap.Any(p => p >= 0);
+                var readHasPosition = finalPositionMap.HasAnyMappableBases();
                 if (!readHasPosition)
                 {
                     throw new InvalidDataException(string.Format("Read does not have any alignable bases. ({2} --> {0} --> {3}, {1})", freshCigarWithoutTerminalNs, string.Join(",", finalPositionMap), read.CigarData, softclipAdjustedCigar));
                 }
 
-                result.Position = finalPositionMap.First(p => p >= 0);
+                result.Position = finalPositionMap.FirstMappableBase();
                 result.Cigar = softclipAdjustedCigar;
                 result.NumMismatches = editDistance.Value;
 

@@ -20,6 +20,8 @@ namespace Pisces.Domain.Interfaces
 
         List<ReadCoverageSummary> GetSpanningReadSummaries(int startPosition, int endPosition);
 
+        AmpliconCounts GetCoverageByAmplicon(int position);
+
         bool ExpectStitchedReads { get; }
     }
 }

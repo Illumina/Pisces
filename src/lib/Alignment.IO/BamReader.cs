@@ -12,8 +12,9 @@ namespace Alignment.IO.Sequencing
 {
 	public interface IBamReader : IDisposable
 	{
-		bool GetNextAlignment(ref BamAlignment alignment, bool skipAdditionalParsing);
-		int GetReferenceIndex(string referenceName);
+	    bool GetNextAlignment(ref BamAlignment alignment, bool skipAdditionalParsing);
+
+	    int GetReferenceIndex(string referenceName);
 		bool Jump(int refID, int position);
 		List<string> GetReferenceNames();
 	}
@@ -132,8 +133,8 @@ namespace Alignment.IO.Sequencing
 			return builder.ToString();
 		}
 
-		// retrieves next available alignment
-		public bool GetNextAlignment(ref BamAlignment alignment, bool skipAdditionalParsing)
+	    // retrieves next available alignment
+        public bool GetNextAlignment(ref BamAlignment alignment, bool skipAdditionalParsing)
 		{
 			// check that our file is open
 			if (!IsOpen) return false;
@@ -217,10 +218,13 @@ namespace Alignment.IO.Sequencing
 			return true;
 		}
 
-		/// <summary>
-		///     given a reference name, this method returns the reference index
-		/// </summary>
-		public int GetReferenceIndex(string referenceName)
+
+
+
+	    /// <summary>
+        ///     given a reference name, this method returns the reference index
+        /// </summary>
+        public int GetReferenceIndex(string referenceName)
 		{
 			int ret;
 			if (!_referenceNameToIndex.TryGetValue(referenceName, out ret)) ret = -1;

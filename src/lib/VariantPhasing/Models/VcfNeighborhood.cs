@@ -25,7 +25,8 @@ namespace VariantPhasing.Models
         public int FirstPositionOfInterest { get; set; } = -1;
         public int SoftClipEndBeforeNbhd { get; set; } = -1;
         public int SoftClipPosAfterNbhd { get; set; } = -1;
-
+        public int PassingVariants { get; private set; }
+        public int NonPassingVariants { get; private set; }
 
         public VcfNeighborhood(int nbhdNum, string refName, VariantSite vs1, VariantSite vs2)
         {
@@ -42,6 +43,14 @@ namespace VariantPhasing.Models
         public void AddVariantSite(VariantSite variantSite)
         {
             VcfVariantSites.Add(variantSite.DeepCopy());
+            if (variantSite.IsPassing)
+            {
+                PassingVariants++;
+            }
+            else
+            {
+                NonPassingVariants++;
+            }
         }
 
         public void SetID(int nbhdNum)

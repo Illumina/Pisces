@@ -82,6 +82,11 @@ namespace Pisces.IO
                 Writer.WriteLine("##FORMAT=<ID={0},Number=1,Type=Float,Description=\"ProbeBias Score\">", _formatter.ProbeBiasFormat);
             }
 
+            if (_config.ShouldOutputAmpliconBias)
+            {
+                Writer.WriteLine("##FORMAT=<ID={0},Number=1,Type=Float,Description=\"AmpliconBias Score\">", _formatter.AmpliconBiasFormat);
+            }
+
             if (_config.ShouldOutputStrandBiasAndNoiseLevel)
             {
                 Writer.WriteLine("##FORMAT=<ID={0},Number=1,Type=Integer,Description=\"Applied BaseCall Noise Level\">", _formatter.NoiseLevelFormat);
@@ -261,6 +266,7 @@ namespace Pisces.IO
         public bool ShouldOutputSuspiciousCoverageFraction { get; set; }
         public bool ShouldOutputNoCallFraction { get; set; }
         public bool ShouldOutputStrandBiasAndNoiseLevel { get; set; }
+        public bool ShouldOutputAmpliconBias { get; set; }
         public bool ShouldOutputProbeBias { get; set; }
         public bool ShouldFilterOnlyOneStrandCoverage { get; set; }
         public bool ShouldOutputRcCounts { get; set; }
@@ -273,6 +279,7 @@ namespace Pisces.IO
         public int? IndelRepeatFilterThreshold { get; set; }
         public float? StrandBiasFilterThreshold { get; set; }
         public float? ProbePoolBiasFilterThreshold { get; set; }
+        public float? AmpliconBiasFilterThreshold { get; set; }
         public float MinFrequencyThreshold { get; set; }
         public float? FrequencyFilterThreshold { get; set; }
         public int EstimatedBaseCallQuality { get; set; }
@@ -297,7 +304,8 @@ namespace Pisces.IO
             VariantQualityFilterThreshold = callerOptions.MinimumVariantQScoreFilter;
             GenotypeQualityFilterThreshold = callerOptions.LowGenotypeQualityFilter.HasValue && callerOptions.MinimumVariantQScoreFilter > callerOptions.MinimumVariantQScore ? callerOptions.LowGenotypeQualityFilter : null;
             StrandBiasFilterThreshold = callerOptions.StrandBiasAcceptanceCriteria < 1 ? callerOptions.StrandBiasAcceptanceCriteria : (float?)null;
-            FrequencyFilterThreshold = (callerOptions.MinimumFrequencyFilter > callerOptions.MinimumFrequency) ? callerOptions.MinimumFrequencyFilter : (float?)null;
+            AmpliconBiasFilterThreshold = callerOptions.AmpliconBiasFilterThreshold > 0 ? callerOptions.AmpliconBiasFilterThreshold : (float?)null;
+            FrequencyFilterThreshold =  GetMinFreqFilterForVcfHeader(callerOptions);
             MinFrequencyThreshold = callerOptions.MinimumFrequency;
             ShouldOutputNoCallFraction = outputOptions.ReportNoCalls;
             ShouldOutputStrandBiasAndNoiseLevel = ShouldOutputNoiseLevelAndStrandBias(debugMode, outputBiasFiles, callerOptions.StrandBiasAcceptanceCriteria);
@@ -321,6 +329,22 @@ namespace Pisces.IO
                 ProbePoolBiasFilterThreshold = sampleAggregationParameters.ProbePoolBiasThreshold;
             }
             HasForcedGt = hasForcedGT;
+        }
+
+        private static float? GetMinFreqFilterForVcfHeader(VariantCallingParameters callerOptions)
+        {
+            //this gets the right value when the min frequency is a definite number.
+            //Ie, any pisces genotyping methods that have a min freq cutoff.
+           var frequencyFilterThreshold = (callerOptions.MinimumFrequencyFilter > callerOptions.MinimumFrequency) ? callerOptions.MinimumFrequencyFilter : (float?)null;
+
+            //AdaptiveGT needs special handling, because there is no hard-coded minimum frequency to call a GT 0/1 variant.
+            //But we cant have NULL or NAN in the vcf header. Using the min emit freq instead is appropriate here.
+            if (callerOptions.PloidyModel == PloidyModel.DiploidByAdaptiveGT)
+            {
+                frequencyFilterThreshold = callerOptions.MinimumFrequency;
+            }
+
+           return frequencyFilterThreshold;
         }
 
 

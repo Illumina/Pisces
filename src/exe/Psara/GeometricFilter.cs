@@ -1,13 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.IO;
-using Pisces.IO.Sequencing;
 using Pisces.Domain.Models;
 using Pisces.Domain.Utility;
-using Pisces.IO;
 using Pisces.Domain.Models.Alleles;
-using Pisces.Domain.Options;
 
 namespace Psara
 {

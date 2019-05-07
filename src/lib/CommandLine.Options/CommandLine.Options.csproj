@@ -2,11 +2,12 @@
 
   <PropertyGroup>
     <TargetFramework>netcoreapp2.0</TargetFramework>
-    <GenerateAssemblyConfigurationAttribute>false</GenerateAssemblyConfigurationAttribute>
+	 <GenerateAssemblyConfigurationAttribute>false</GenerateAssemblyConfigurationAttribute>
     <GenerateAssemblyCompanyAttribute>false</GenerateAssemblyCompanyAttribute>
     <GenerateAssemblyProductAttribute>false</GenerateAssemblyProductAttribute>
-    <Version>5.2.10.49</Version>
+    <Version>5.2.11.163</Version>
     <Copyright>Copyright © Illumina 2019</Copyright>
+    <RepositoryUrl>https://github.com/Illumina/Pisces</RepositoryUrl>
   </PropertyGroup>
 
   <ItemGroup>
@@ -16,8 +17,8 @@
   <ItemGroup>
     <ProjectReference Include="..\CommandLine.IO\CommandLine.Util.csproj" />
     <ProjectReference Include="..\Common.IO\Common.IO.csproj" />
-    <ProjectReference Include="..\Pisces.Domain\Pisces.Domain.csproj" />
     <ProjectReference Include="..\Pisces.Genotyping\Pisces.Genotyping.csproj" />
   </ItemGroup>
 
 </Project>
+

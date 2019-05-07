@@ -4,7 +4,7 @@ namespace Pisces.Domain.Models.Alleles
 {
     /// <summary>
     /// Variants are considered equal if at the same chr/loci AND have same ref & alt allele.
-    /// This forces a deterministic ordering on co-loacted variants.
+    /// This forces a deterministic ordering on co-located variants.
     /// </summary>
     public class AlleleCompareByLociAndAllele : IComparer<CalledAllele>
     {

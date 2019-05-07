@@ -24,7 +24,7 @@ namespace Pisces.Processing.Tests.UnitTests
             var testRegion = new MyRegionState(1000, 2000);
             var snv1 = new CandidateAllele("chr1", 1500, "A", "T", AlleleCategory.Snv) { SupportByDirection = new[] { 10, 0, 0 } };
 
-            testRegion.AddCandidate(snv1);
+            testRegion.AddCandidate(snv1, false, false);
 
             var allCandidates = testRegion.GetAllCandidates(false, null);
             Assert.Equal(allCandidates.Count, 1);
@@ -36,7 +36,7 @@ namespace Pisces.Processing.Tests.UnitTests
             // add same type of candidate but at different position
             // -----------------------------------------------
             var snv2 = new CandidateAllele("chr1", 1501, "A", "T", AlleleCategory.Snv) { SupportByDirection = new[] { 5, 0, 0 } };
-            testRegion.AddCandidate(snv2);
+            testRegion.AddCandidate(snv2, false, false);
 
             allCandidates = testRegion.GetAllCandidates(false, null);
             Assert.Equal(allCandidates.Count, 2);
@@ -51,7 +51,7 @@ namespace Pisces.Processing.Tests.UnitTests
             // add a different type of candidate at same position
             // -----------------------------------------------
             var deletion1 = new CandidateAllele("chr1", 1500, "AT", "A", AlleleCategory.Deletion) { SupportByDirection = new[] { 15, 0, 0 } };
-            testRegion.AddCandidate(deletion1);
+            testRegion.AddCandidate(deletion1, false, false);
 
             allCandidates = testRegion.GetAllCandidates(false, null);
             Assert.Equal(allCandidates.Count, 3);
@@ -68,7 +68,7 @@ namespace Pisces.Processing.Tests.UnitTests
             // add same variant, but more coverage
             // -----------------------------------------------
             var moreSnv1 = new CandidateAllele("chr1", 1500, "A", "T", AlleleCategory.Snv) { SupportByDirection = new[] { 2, 0, 0 }, ReadCollapsedCountsMut = new[] { 9, 8, 7, 6, 0, 0, 0, 0} };
-            testRegion.AddCandidate(moreSnv1);
+            testRegion.AddCandidate(moreSnv1, false, false);
 
             allCandidates = testRegion.GetAllCandidates(false, null);
             Assert.Equal(allCandidates.Count, 3);
@@ -90,7 +90,7 @@ namespace Pisces.Processing.Tests.UnitTests
                 Assert.True(fetchedCandidate != null && fetchedCandidate.ReadCollapsedCountsMut[i] == 0);
 
             var moreDeletion1 = new CandidateAllele("chr1", 1500, "AT", "A", AlleleCategory.Deletion) { SupportByDirection = new[] { 0, 18, 0 } };
-            testRegion.AddCandidate(moreDeletion1);
+            testRegion.AddCandidate(moreDeletion1, false, false);
 
             allCandidates = testRegion.GetAllCandidates(false, null);
             Assert.Equal(allCandidates.Count, 3);
@@ -109,7 +109,7 @@ namespace Pisces.Processing.Tests.UnitTests
             // add insertion that goes off block
             // -----------------------------------------------
             var edgeInsertion = new CandidateAllele("chr1", 2000, "A", "TCG", AlleleCategory.Insertion) { SupportByDirection = new[] { 5, 0, 0 } };
-            testRegion.AddCandidate(edgeInsertion);
+            testRegion.AddCandidate(edgeInsertion, false, false);
 
             allCandidates = testRegion.GetAllCandidates(false, null);
             Assert.Equal(allCandidates.Count, 4);
@@ -119,7 +119,7 @@ namespace Pisces.Processing.Tests.UnitTests
             // add mnv that goes off block
             // -----------------------------------------------
             var edgeMnv = new CandidateAllele("chr1", 1999, "ATCC", "TCGG", AlleleCategory.Mnv) { SupportByDirection = new[] { 5, 0, 0 } };
-            testRegion.AddCandidate(edgeMnv);
+            testRegion.AddCandidate(edgeMnv, false, false);
 
             allCandidates = testRegion.GetAllCandidates(false, null);
             Assert.Equal(allCandidates.Count, 5);
@@ -129,7 +129,7 @@ namespace Pisces.Processing.Tests.UnitTests
             // add deletion that goes off block
             // -----------------------------------------------
             var edgeDeletion = new CandidateAllele("chr1", 1999, "A" + new string('T', 25), "A", AlleleCategory.Deletion) { SupportByDirection = new[] { 5, 0, 0 } };
-            testRegion.AddCandidate(edgeDeletion);
+            testRegion.AddCandidate(edgeDeletion, false, false);
 
             allCandidates = testRegion.GetAllCandidates(false, null);
             Assert.Equal(allCandidates.Count, 6);
@@ -139,7 +139,7 @@ namespace Pisces.Processing.Tests.UnitTests
             // add variant that goes off block but not as far as the deletion did - max endpoint should stay the same
             // -----------------------------------------------
             var edgeMnv2 = new CandidateAllele("chr1", 1999, "ATCGA", "TCGCT", AlleleCategory.Mnv) { SupportByDirection = new[] { 5, 0, 0 } };
-            testRegion.AddCandidate(edgeMnv2);
+            testRegion.AddCandidate(edgeMnv2, false, false);
 
             allCandidates = testRegion.GetAllCandidates(false, null);
             Assert.Equal(allCandidates.Count, 7);
@@ -185,7 +185,7 @@ namespace Pisces.Processing.Tests.UnitTests
             var testRegion = new MyRegionState(1000, 2000);
 
             Assert.Throws<ArgumentException>(
-                () => testRegion.AddCandidate(new CandidateAllele("chr1", 999, "A", "T", AlleleCategory.Snv)));
+                () => testRegion.AddCandidate(new CandidateAllele("chr1", 999, "A", "T", AlleleCategory.Snv),  false, false));
 
             Assert.Throws<ArgumentException>(
                () => testRegion.GetAlleleCount(2001, AlleleType.A, DirectionType.Forward));
@@ -354,8 +354,8 @@ namespace Pisces.Processing.Tests.UnitTests
             {
                 SupportByDirection = new[] { 10, 5, 0 }
             };
-            testRegion.AddCandidate(snv1);
-            testRegion.AddCandidate(snv2);
+            testRegion.AddCandidate(snv1, false, false);
+            testRegion.AddCandidate(snv2, false, false);
 
             for (var i = 0; i < 5; i++)
             {

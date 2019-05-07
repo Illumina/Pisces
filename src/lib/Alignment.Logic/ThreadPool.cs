@@ -18,7 +18,7 @@ namespace Alignment.Logic
         private BlockingCollection<Task> _taskQueue;
         private Thread[] _threads;
 
-        public ThreadPool(BlockingCollection<Task> taskQueue, int numThreads)
+        public ThreadPool(BlockingCollection<Task> taskQueue, int numThreads, string threadName = "Thread")
         {
             _taskQueue = taskQueue;
             _threads = new Thread[numThreads];
@@ -27,7 +27,7 @@ namespace Alignment.Logic
             {
                 int threadNum = i;
                 _threads[i] = new Thread(() => Execute(threadNum));
-                _threads[i].Name = string.Format("Thread {0}", i);
+                _threads[i].Name = $"{threadName} {i}";
                 _threads[i].Start();
             }
         }

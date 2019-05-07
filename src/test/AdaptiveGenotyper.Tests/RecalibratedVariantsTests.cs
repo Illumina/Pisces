@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.IO;
 using Pisces.Genotyping;
 using Pisces.Domain.Types;
+using Pisces.Domain.Models.Alleles;
+using Pisces.IO;
 using Xunit;
 
 namespace AdaptiveGenotyper.Tests
@@ -15,18 +17,19 @@ namespace AdaptiveGenotyper.Tests
         {
             RecalCollection = new RecalibratedVariantsCollection();
             var vcfPath = Path.Combine(TestPaths.LocalTestDataDirectory, "VariantDepthReaderTest.vcf");
-            using (var reader = new VcfReader(vcfPath))
+            using (var reader = new AlleleReader(vcfPath))
             {
-                var variant = new VcfVariant();
-                var lastVariant = new VcfVariant();
-                while (reader.GetNextVariant(variant))
+                var coLocatedVariantList = new List<CalledAllele>();
+                var lastVariant = new CalledAllele();
+                while (reader.GetNextVariants(out coLocatedVariantList))
                 {
+                    var variant = coLocatedVariantList[0];
                     if (lastVariant.ReferencePosition == variant.ReferencePosition)
                         continue;
 
                     RecalCollection.AddLocus(variant);
                     lastVariant = variant;
-                    variant = new VcfVariant();
+                    variant = new CalledAllele();
                 }
             }
         }
@@ -45,10 +48,9 @@ namespace AdaptiveGenotyper.Tests
         public void RecalibratedVariantModelAndIndexerTests()
         {
             var modelsFile = Path.Combine(TestPaths.LocalTestDataDirectory, "example.model");
-            List<MixtureModelInput> models = MixtureModel.ReadModelsFile(modelsFile);
+            List<MixtureModelParameters> models = MixtureModel.ReadModelsFile(modelsFile);
 
-            var mm = new MixtureModel(RecalCollection.Ad, RecalCollection.Dp, models[0].Means, models[0].Weights);
-            mm.UpdateClusteringAndQScore();
+            var mm = MixtureModel.UsePrefitModel(RecalCollection.Ad, RecalCollection.Dp, models[0].Means, models[0].Priors);
 
             RecalCollection.AddMixtureModelResults(mm);
 

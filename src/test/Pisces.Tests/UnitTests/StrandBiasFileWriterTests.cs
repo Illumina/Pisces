@@ -135,22 +135,22 @@ namespace Pisces.Tests.UnitTests
 
             //All variants that are present in VCF where ref!=alt should be included
             var biasFileContents = File.ReadAllLines(biasFilePath);
-            var alleles = VcfReader.GetAllVariantsInFile(vcfFilePath);
-            var variantCalls = alleles.Where(a => a.VariantAlleles[0] != ".").ToList();
+            var alleles = AlleleReader.GetAllVariantsInFile(vcfFilePath);
+            var variantCalls = alleles.Where(a => a.AlternateAllele != ".").ToList();
             foreach (var variantCall in variantCalls)
             {
                 Console.WriteLine(variantCall);
-                Assert.True(biasFileContents.Count(l => l.Split('\t')[0] == variantCall.ReferenceName &&
+                Assert.True(biasFileContents.Count(l => l.Split('\t')[0] == variantCall.Chromosome &&
                                                         l.Split('\t')[1] == variantCall.ReferencePosition.ToString() &&
                                                         l.Split('\t')[2] == variantCall.ReferenceAllele &&
-                                                        l.Split('\t')[3] == variantCall.VariantAlleles.First()) == 1);
+                                                        l.Split('\t')[3] == variantCall.AlternateAllele) == 1);
             }
-            foreach (var refCall in alleles.Where(a => a.VariantAlleles[0] == ".").ToList())
+            foreach (var refCall in alleles.Where(a => a.AlternateAllele == ".").ToList())
             {
-                Assert.False(biasFileContents.Count(l => l.Split('\t')[0] == refCall.ReferenceName &&
+                Assert.False(biasFileContents.Count(l => l.Split('\t')[0] == refCall.Chromosome &&
                                                          l.Split('\t')[1] == refCall.ReferencePosition.ToString() &&
                                                          l.Split('\t')[2] == refCall.ReferenceAllele &&
-                                                         l.Split('\t')[3] == refCall.VariantAlleles.First()) == 1);
+                                                         l.Split('\t')[3] == refCall.AlternateAllele) == 1);
             }
 
             //Bias files should have expected contents

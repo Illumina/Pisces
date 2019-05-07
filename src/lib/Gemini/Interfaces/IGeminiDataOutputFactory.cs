@@ -1,11 +1,10 @@
-﻿using System.IO;
-using Gemini.IO;
+﻿using Gemini.Interfaces;
 
 namespace Gemini
 {
     public interface IGeminiDataOutputFactory
     {
-        IBamWriterFactory GetBamWriterFactory(string inBam);
-        TextWriter GetTextWriter(string outFile);
+        ITextWriter GetTextWriter(string outFile);
+        IWriterSource GetWriterSource(string inBam, string outBam);
     }
 }

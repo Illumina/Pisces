@@ -67,6 +67,7 @@ namespace VennVcf
             //So we only write them to header if Pisces already has them in the header.
             vennFilterLines.Remove(FilterType.RMxN);
             vennFilterLines.Remove(FilterType.IndelRepeatLength);
+            vennFilterLines.Remove(FilterType.AmpliconBias);
 
             int lastFilterIndex = _originalHeader.FindLastIndex(x => x.Contains("##FILTER"));
 
@@ -104,7 +105,7 @@ namespace VennVcf
         {
             var comparer = new AlleleCompareByLoci();
             var sortedVariants = calledAlleles.OrderBy(a => a, comparer).ThenBy(a => a.ReferenceAllele).ThenBy(a => a.AlternateAllele);
-            base.Write(sortedVariants);
+            base.Write(sortedVariants, mapper);
         }
 
 

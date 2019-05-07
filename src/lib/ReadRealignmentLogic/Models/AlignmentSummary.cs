@@ -20,7 +20,9 @@ namespace ReadRealignmentLogic.Models
         public bool HasHighFrequencyIndel { get; set; }
         public List<string> MismatchesIncludeSoftclip { get; set; }
         public int? SumOfMismatchingQualities { get; set; }
-
+        public int NumHighQualityMismatches { get; set; }
+        public int NumHighQualityMismatchesIncludeSoftclip { get; set; }
+        public string Conclusion { get; set; }
 
     }
 }

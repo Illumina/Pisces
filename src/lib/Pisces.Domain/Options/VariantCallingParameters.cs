@@ -7,9 +7,9 @@ namespace Pisces.Domain.Options
 
     public class DiploidThresholdingParameters
     {
-        public float MinorVF = 0.20f;
-        public float MajorVF = 0.70f;
-        public float SumVFforMultiAllelicSite = 0.80f;
+        public float MinorVF { get; set; } = 0.20f;
+        public float MajorVF { get; set; } = 0.70f;
+        public float SumVFforMultiAllelicSite { get; set; } = 0.80f;
 
         //not too safe, but dev use only.
         public DiploidThresholdingParameters(float[] parameters)
@@ -28,38 +28,29 @@ namespace Pisces.Domain.Options
     public class AdaptiveGenotypingParameters
     {
 
-        //for when we fall back to thresholding alg
-        public float MinVarFrequency = 0.1f;
-        public float SumVFforMultiAllelicSite = 0.80F;
-        public int MaxGenotypePosteriors = 3000;
+        // for when we fall back to thresholding alg
+        public float SumVFforMultiAllelicSite { get; set; } = 0.80F;
+        public int MaxGenotypePosteriors { get; set; } = 3000;
 
-        //Each model is a 3 element double array (+ noise cluster).
-        public double[] SnvModel = new double[] { 0.034, 0.167, 0.499, 0.998 };
+        // Each model is a 3 element double array.
+        public double[] SnvModel { get; set; } = new double[] { 0.037, 0.439, 0.976 };
+        public double[] IndelModel { get; set; } = new double[] { 0.037, 0.443, 0.905 };
+        public double[] SnvPrior { get; set; } = new double[] { 0.755, 0.154, 0.0919 };
+        public double[] IndelPrior { get; set; } = new double[] { 0.962, 0.0266, 0.0114 };
 
-        public double[] IndelModel = new double[] { 0.037, 0.443, 0.905 };
+        public AdaptiveGenotypingParameters() { }
 
-        public double[] SnvPrior = new double[] { 0.729, 0.044, 0.141, 0.087 };
-
-        public double[] IndelPrior = new double[] { 0.962, 0.0266, 0.0114 };
-
-        public AdaptiveGenotypingParameters()
+        public (double[] model, double[] priors) GetModelsAndPriors(BaseAllele allele)
         {
-        }
+            if (allele.Type == AlleleCategory.Snv ||
+                allele.Type == AlleleCategory.Reference ||
+                allele.Type == AlleleCategory.Mnv)
+                return (SnvModel, SnvPrior);
+            else if (allele.Type == AlleleCategory.Deletion ||
+                allele.Type == AlleleCategory.Insertion)
+                return (IndelModel, IndelPrior);
 
-        public double[] GetModelsForVariantType(BaseAllele allele)
-        {
-            if (allele.Length == 1)
-                return SnvModel;
-            else
-                return IndelModel;
-        }
-
-        public double[] GetPriorsForVariantType(BaseAllele allele)
-        {
-            if (allele.Length == 1)
-                return SnvPrior;
-            else
-                return IndelPrior;
+            throw new ArgumentException("Allele category unsupported for diploid adaptive model.");
         }
     }
 
@@ -106,6 +97,14 @@ namespace Pisces.Domain.Options
         public bool FilterOutVariantsPresentOnlyOneStrand = false;
 
         public float NoCallFilterThreshold = 0.6f;
+
+        //tjd+
+        //public float? AmpliconBiasFilterThreshold = 0.01f; <- turing this off by default for 5.2.11 release.
+        // but I'd like to have it on as soon as we have it more well tested.
+        //The concern here is just with performance/speed & objectionable command line constipation,
+        //Not really with the new feature, per se
+        //tjd -
+        public float? AmpliconBiasFilterThreshold = null;
 
         public void SetDerivedParameters(BamFilterParameters bamFilterParameters)
         {

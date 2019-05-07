@@ -196,27 +196,6 @@ namespace Pisces.IO.Sequencing
         }
 
         #endregion
-
-        /*
-        #region Batch operation
-        public delegate T VcfOperation<out T>(VcfVariant variant);
-        public static List<T> OperateOnVariantsInFile<T>(string fileName, VcfOperation<T> operation)
-        {
-            if (!File.Exists(fileName))
-                return null;
-            List<T> variantList = new List<T>();
-
-            using (VcfReader reader = new VcfReader(fileName))
-            {
-                foreach (VcfVariant variant in reader.GetVariants())
-                {
-                    variantList.Add(operation(variant));
-                }
-            }
-            return variantList;
-        }
-
-        #endregion
-        */
+     
     }
 }

@@ -196,6 +196,19 @@ FindVariantResults(List<VariantSite> variantsFromVcf, BamAlignment read)
                     }
                 }
 
+                //we get here if the vcf variant we were looking for is an indel and none of the indels found matched (maybe at dif positions)
+                //Now we need to find out if what _is_ there at the indel site, if it is ref or not for this read.
+                // NEW CODE HERE
+
+                if (result == StateOfPhasingSiteInRead.IDontKnow)
+                {
+                    if (HaveWeSeenEvidenceForAReferenceCall(variantToLookFor,
+                                            allelesInFoundAlignment, firstPosInAlignment, lastPosInAlignment))
+                    {
+                        result = StateOfPhasingSiteInRead.FoundReferenceVariant;
+                    }
+                }
+                  
                 switch (result)
                 {
                     case StateOfPhasingSiteInRead.IDontKnow:
@@ -332,7 +345,7 @@ FindVariantResults(List<VariantSite> variantsFromVcf, BamAlignment read)
             return sb.ToString();
         }
 
-        public Dictionary<SubsequenceType, List<VariantSite>> SetCandidateVariantsFoundInRead(int minBaseCallQScore, 
+        public static Dictionary<SubsequenceType, List<VariantSite>> SetCandidateVariantsFoundInRead(int minBaseCallQScore, 
             BamAlignment alignment, out int lastPosInAlignment)
         {
 
@@ -366,7 +379,7 @@ FindVariantResults(List<VariantSite> variantsFromVcf, BamAlignment read)
                         var rawAllele = alignment.Bases.Substring(overallCycleIndex, operationLength).ToCharArray();
                         var rawQ = new byte[operationLength];
                         Array.Copy(alignment.Qualities, overallCycleIndex, rawQ, 0, operationLength);
-
+                        vs.VcfReferenceAllele = "";
                         var sb = new StringBuilder();
                         for (int i = 0; i < operationLength; i++)
                         {

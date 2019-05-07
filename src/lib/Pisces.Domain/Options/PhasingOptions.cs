@@ -10,6 +10,7 @@ namespace Pisces.Domain.Options
         public string[] ChrToProcessArray = { };
         public string FilteredNbhdToProcess = null;  //debugging option, to given nbhds
         public int MaxNumNbhdsToProcess = -1;  //debugging option, to restrict num of nbhds we will go through
+        public int MinPassingVariantsInNbhd = 0;
     }
 
     public class ClusteringParameters

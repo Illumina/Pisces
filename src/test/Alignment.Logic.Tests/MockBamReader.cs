@@ -24,7 +24,6 @@ namespace Alignment.Logic.Tests
             //
         }
 
-
         public bool GetNextAlignment(ref BamAlignment alignment, bool skipAdditionalParsing)
         {
             if (_currentIndex >= _alignments.Count) return false;
@@ -34,6 +33,7 @@ namespace Alignment.Logic.Tests
 
             return true;
         }
+
 
         public int GetReferenceIndex(string referenceName)
         {

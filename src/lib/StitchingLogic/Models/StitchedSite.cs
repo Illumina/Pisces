@@ -1,16 +1,17 @@
 using System.Collections.Generic;
 using System.Linq;
 using Alignment.Domain.Sequencing;
+using Pisces.Domain.Utility;
 
 namespace StitchingLogic
 {
     public struct StitchableItem
     {
-        public CigarOp CigarOp { get; private set; }
-        public char? Base { get; private set; }
+        public char CigarOp { get; private set; }
+        public char Base { get; private set; }
         public byte? Quality { get; private set; }
 
-        public StitchableItem(CigarOp op, char? seqBase, byte? quality)
+        public StitchableItem(char op, char seqBase, byte? quality)
         {
             CigarOp = op;
             Base = seqBase;
@@ -25,6 +26,9 @@ namespace StitchingLogic
 
     public class StitchedSite
     {
+        protected bool R1HasReferenceSpan;
+        protected bool R2HasReferenceSpan;
+
         protected List<StitchableItem> R1Ops { get; private set; }
         protected List<StitchableItem> R2Ops { get; private set; }
 
@@ -37,6 +41,17 @@ namespace StitchingLogic
             R2Ops = new List<StitchableItem>();
         }
 
+        public bool ReadHasAnyReferenceSpan(ReadNumber num)
+        {
+            if (num == ReadNumber.Read1)
+            {
+                return R1HasReferenceSpan;
+                //return R1Ops.Any(x => x.CigarOp.IsReferenceSpan());
+            }
+
+            return R2HasReferenceSpan;
+            //else return R2Ops.Any(x => x.CigarOp.IsReferenceSpan());
+        }
         public List<StitchableItem> GetOpsForRead(ReadNumber num)
         {
             if (num == ReadNumber.Read1)
@@ -61,11 +76,13 @@ namespace StitchingLogic
             {
                 R1Ops = ops;
                 R1OpsCount = ops.Count;
+                R1HasReferenceSpan = ops.Any(x => CigarExtensions.IsReferenceSpan(x.CigarOp));
             }
             else
             {
                 R2Ops = ops;
                 R2OpsCount = ops.Count;
+                R2HasReferenceSpan = ops.Any(x => CigarExtensions.IsReferenceSpan(x.CigarOp));
             }
         }
 
@@ -75,11 +92,20 @@ namespace StitchingLogic
             {
                 R1OpsCount++;
                 R1Ops.Add(ops);
+                if (CigarExtensions.IsReferenceSpan(ops.CigarOp))
+                {
+                    R1HasReferenceSpan = true;
+                }
             }
             else
             {
                 R2OpsCount++;
                 R2Ops.Add(ops);
+                if (CigarExtensions.IsReferenceSpan(ops.CigarOp))
+                {
+                    R2HasReferenceSpan = true;
+                }
+
             }
 
         }
@@ -90,11 +116,21 @@ namespace StitchingLogic
             {
                 R1OpsCount += ops.Count;
                 R1Ops.AddRange(ops);
+                if (!R1HasReferenceSpan)
+                {
+                    R1HasReferenceSpan = ops.Any(x => CigarExtensions.IsReferenceSpan(x.CigarOp));
+                }
+
             }
             else
             {
                 R2OpsCount += ops.Count;
                 R2Ops.AddRange(ops);
+                if (!R2HasReferenceSpan)
+                {
+                    R2HasReferenceSpan = ops.Any(x => CigarExtensions.IsReferenceSpan(x.CigarOp));
+                }
+
             }
 
         }
@@ -106,8 +142,8 @@ namespace StitchingLogic
 
         public string Stringify()
         {
-            return string.Join("", R1Ops?.Select(x => x.CigarOp.Type)) + "/" +
-                   string.Join("", R2Ops?.Select(x => x.CigarOp.Type));
+            return string.Join("", R1Ops?.Select(x => x.CigarOp)) + "/" +
+                   string.Join("", R2Ops?.Select(x => x.CigarOp));
         }
 
         public void Reset()
@@ -116,6 +152,9 @@ namespace StitchingLogic
             R2Ops?.Clear();
             R1OpsCount = 0;
             R2OpsCount = 0;
+            R1HasReferenceSpan = false;
+            R2HasReferenceSpan = false;
+
         }
     }
 
@@ -123,11 +162,11 @@ namespace StitchingLogic
     {
         public bool R1HasInsertion()
         {
-            return R1Ops !=null && R1Ops.Any(x => x.CigarOp.Type == 'I');
+            return R1Ops !=null && R1Ops.Any(x => x.CigarOp == 'I');
         }
         public bool R2HasInsertion()
         {
-            return R2Ops != null && R2Ops.Any(x => x.CigarOp.Type == 'I');
+            return R2Ops != null && R2Ops.Any(x => x.CigarOp == 'I');
         }
 
         public bool IsPrefix;

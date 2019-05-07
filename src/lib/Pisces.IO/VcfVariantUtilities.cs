@@ -252,7 +252,7 @@ namespace Pisces.IO
             return allele;
         }
 
-        private static void FillInCollapsedReadsCount(bool shouldOutputRcCounts, bool shouldOutputTsCounts, CalledAllele allele, List<string> tsCounts)
+        public static void FillInCollapsedReadsCount(bool shouldOutputRcCounts, bool shouldOutputTsCounts, CalledAllele allele, List<string> tsCounts)
         {
             if (shouldOutputRcCounts)
             {
@@ -401,9 +401,14 @@ namespace Pisces.IO
         }
 
 
-        public static List<FilterType> MapFilterString(string filterString)
+        public static List<FilterType> MapFilterString(string rawFilterString)
         {
-            if (string.IsNullOrEmpty(filterString))
+            if (string.IsNullOrEmpty(rawFilterString))
+                return new List<FilterType>();
+
+            var filterString = rawFilterString.Trim();
+
+            if ((filterString==".") || (filterString == ""))
                 return new List<FilterType>();
 
             filterString = filterString.ToLower();
@@ -413,15 +418,26 @@ namespace Pisces.IO
             if (filterString == VcfFormatter.PassFilter.ToLower())
                 return filterAsEnum;
 
-            foreach (var filter in filterStrings)
+            foreach (var rawFilter in filterStrings)
             {
+                var filter = rawFilter.Trim();
+
+                if ((filter == ".") || (filter == ""))
+                    continue;
+
                 int thresholdValue = LookForThresholdValue(1, filter);
 
                 if (filter.Contains("lowq") || (filter[0] == 'q') && (thresholdValue > 0))
                     filterAsEnum.Add(FilterType.LowVariantQscore);
 
+                else if (filter == "pb")
+                    filterAsEnum.Add(FilterType.PoolBias);
+
                 else if (filter == "sb")
                     filterAsEnum.Add(FilterType.StrandBias);
+
+                else if (filter == "ab")
+                    filterAsEnum.Add(FilterType.AmpliconBias);
 
                 else if ((filter == "lowdp") || (filter == "lowdepth"))
                     filterAsEnum.Add(FilterType.LowDepth);
@@ -429,7 +445,7 @@ namespace Pisces.IO
                 else if ((filter == "lowvariantfreq") || (filter == "lowfreq"))
                     filterAsEnum.Add(FilterType.LowVariantFrequency);
 
-                else if ((filter == "lowgq") || (filter.Substring(0, 2) == "gq"))
+                else if ((filter == "lowgq") ||(filter.Length>1) &&  (filter.Substring(0, 2) == "gq"))
                     filterAsEnum.Add(FilterType.LowGenotypeQuality);
 
                 else if ((filter[0] == 'r') && (thresholdValue > 0))
@@ -473,7 +489,7 @@ namespace Pisces.IO
                 var filterString = (x.Split(',')[0].Replace("##FILTER=<ID=", ""));
                 var filterTypesInString = MapFilterString(filterString);  //should have length 0 or 1.
 
-                if (filterTypesInString.Count() == 1)//otherwise somethign really odd happened...
+                if (filterTypesInString.Count() == 1)//otherwise something really odd happened...
                 {
                     if (!filterStringsForHeader.ContainsKey(filterTypesInString[0]))
                         filterStringsForHeader.Add(filterTypesInString[0], x);

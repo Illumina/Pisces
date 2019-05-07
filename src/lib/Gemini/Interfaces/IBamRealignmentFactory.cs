@@ -1,14 +1,18 @@
 ﻿using System.Collections.Generic;
-using Alignment.IO;
+using Gemini.IndelCollection;
+using Gemini.Logic;
 using Gemini.Realignment;
+using ReadRealignmentLogic.Models;
 using StitchingLogic;
 
 namespace Gemini.Interfaces
 {
     public interface IBamRealignmentFactory
     {
-        IReadPairHandler GetRealignPairHandler(bool tryRestitch, bool alreadyStitched, bool pairAwareRealign,
+        ReadPairRealignerAndCombiner GetRealignPairHandler(bool tryRestitch, bool alreadyStitched,
+            bool pairAwareRealign,
             Dictionary<int, string> refIdMapping, ReadStatusCounter statusCounter, bool isSnowball,
-            IChromosomeIndelSource indelSource, string chromosome, Dictionary<string, int[]> masterLookup);
+            IChromosomeIndelSource indelSource, string chromosome, Dictionary<string, IndelEvidence> masterLookup,
+            bool hasIndels, Dictionary<HashableIndel, int[]> outcomesLookup, bool skipRestitchIfNothingChanged);
     }
 }

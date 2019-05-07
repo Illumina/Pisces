@@ -73,6 +73,7 @@ namespace Pisces.Domain.Models
 
     public class Read
     {
+       
         public CigarAlignment CigarData { get { return _bamAlignment == null ? null : _bamAlignment.CigarData; } }
         public string Sequence { get { return BamAlignment.Bases; } }
         public int ReadLength { get { return BamAlignment.Bases.Length; } }
@@ -206,7 +207,7 @@ namespace Pisces.Domain.Models
         }
 
         // for every base in the sequence, map back to reference position or -1 if does not map
-        public int[] PositionMap
+        public PositionMap PositionMap
         {
             get
             {
@@ -231,7 +232,7 @@ namespace Pisces.Domain.Models
         private bool _stitchedCigarInitialized;
         private bool? _isDuplex;
         private string _readPairDirection;
-        private int[] _positionMap;
+        private PositionMap _positionMap;
         private bool _positionMapInitialized;
 
 
@@ -303,6 +304,8 @@ namespace Pisces.Domain.Models
 
             _directionCigar = null;
             _sequencedBaseDirectionMap = null;
+            _nSuffix = -1;
+            _nPrefix = -1;
         }
 
         private bool GetIsDuplexFromBam()
@@ -310,9 +313,19 @@ namespace Pisces.Domain.Models
             if (BamAlignment.TagData != null && BamAlignment.TagData.Length > 0)
             {
                 var umi1 = BamAlignment.GetIntTag("XV");
+                if (umi1 == null || umi1 == 0)
+                {
+                    return false;
+                }
                 var umi2 = BamAlignment.GetIntTag("XW");
-                if (umi1 != null && umi2 != null)
-                    return umi1 != 0 && umi2 != 0;
+                if (umi2 == null || umi2 == 0)
+                {
+                    return false;
+                }
+
+                return true;
+                //if (umi1 != null && umi2 != null)
+                //    return umi1 != 0 && umi2 != 0;
             }
             return false;
         }
@@ -330,11 +343,10 @@ namespace Pisces.Domain.Models
             {
                 var dir = BamAlignment.IsReverseStrand() ? reverse : forward;
                 var dirmate = (dir == forward) ? reverse : forward;  //Assumption of opposite mate is valid only if reads are properly paired
-                xr = BamAlignment.IsFirstMate() ? string.Format("{0}{1}", dir, dirmate) : string.Format("{0}{1}", dirmate, dir);
+                xr = BamAlignment.IsFirstMate() ? string.Concat(dir,dirmate) : string.Concat(dirmate,dir);
             } //read pair are not stiched and direction is inferred from the flag tag. Only properly paired reads are considered.
             return xr;
         }
-
 
         private void GetDirectionCigarFromBam()
         {
@@ -364,14 +376,14 @@ namespace Pisces.Domain.Models
         private void GetPositionMapFromBam()
         {
             if (_positionMap == null || _positionMap.Length != ReadLength)
-                _positionMap = new int[ReadLength];
+                _positionMap = new PositionMap(ReadLength);
 
             for (var i = 0; i < ReadLength; i++)
             {
-                _positionMap[i] = -1;
+                _positionMap.UpdatePositionAtIndex(i, -1, true);
             }
             if (CigarData != null && CigarData.Count > 0)
-                UpdatePositionMap(Position, Name, CigarData, _positionMap);
+                UpdatePositionMap(Position, CigarData, _positionMap);
             _positionMapInitialized = true;
         }
 
@@ -463,6 +475,15 @@ namespace Pisces.Domain.Models
             return remappedIndexes;
         }
 
+        /// <summary>
+        /// Return Amplicon name from XN tag, which records the amplicon tile ID associated with the read,
+        /// _if_ it exists. Otherwise, gently return null.
+        /// </summary>
+        /// <returns></returns>
+        public string GetAmpliconNameIfExists()
+        {
+           return BamAlignment.GetStringTagIfTagDataExists("XN");
+        }
 
         public Read DeepCopy()
         {
@@ -484,7 +505,7 @@ namespace Pisces.Domain.Models
             }
             if (_positionMapInitialized)
             {
-                read.PositionMap = (int[])PositionMap.Clone();
+                read.PositionMap = new PositionMap((int[])PositionMap.Map.Clone());
             }
             return read;
         }
@@ -511,8 +532,38 @@ namespace Pisces.Domain.Models
             }
         }
 
-        public static void UpdatePositionMap(int position, string readName, CigarAlignment cigarData, int[] positionMap, bool differentiateSoftClip = false)
+        public static void UpdatePositionMap(int position, CigarAlignment cigarData, PositionMap positionMap, bool differentiateSoftClip = false, string readName = null)
         {
+            if (cigarData != null)
+                ValidateCigar(cigarData, positionMap.Length);
+
+            int readIndex = 0;
+            int referencePosition = position;
+
+            for (var cigarOpIndex = 0; cigarOpIndex < cigarData.Count; cigarOpIndex++)
+            {
+                var operation = cigarData[cigarOpIndex];
+                var readSpan = operation.IsReadSpan();
+                var refSpan = operation.IsReferenceSpan();
+
+                for (var opIndex = 0; opIndex < operation.Length; opIndex++)
+                {
+                    if (readSpan)
+                    {
+                        positionMap.UpdatePositionAtIndex(readIndex, refSpan ? referencePosition++ : differentiateSoftClip && operation.Type == 'S' ? -2 : -1, true);
+                        readIndex++;
+                    }
+                    else if (refSpan)
+                    {
+                        referencePosition++;
+                    }
+                }
+            }
+        }
+
+        public static void UpdatePositionMap(int position, CigarAlignment cigarData, int[] positionMapArray, bool differentiateSoftClip = false, string readName = null)
+        {
+            var positionMap = new PositionMap(positionMapArray);
             if (cigarData != null)
                 ValidateCigar(cigarData, positionMap.Length, readName);
 
@@ -529,7 +580,7 @@ namespace Pisces.Domain.Models
                 {
                     if (readSpan)
                     {
-                        positionMap[readIndex] = refSpan ? referencePosition++ : differentiateSoftClip && operation.Type == 'S' ? -2 : -1;
+                        positionMap.UpdatePositionAtIndex(readIndex, refSpan ? referencePosition++ : differentiateSoftClip && operation.Type == 'S' ? -2 : -1, true);
                         readIndex++;
                     }
                     else if (refSpan)
@@ -540,7 +591,7 @@ namespace Pisces.Domain.Models
             }
         }
 
-        private static void ValidateCigar(CigarAlignment cigarData, int readLength, string readName)
+        private static void ValidateCigar(CigarAlignment cigarData, int readLength, string readName = "")
         {
             if (cigarData.Count == 1 && (cigarData[0].Type == 'I' || cigarData[0].Type == 'D'))
             {
@@ -629,6 +680,112 @@ namespace Pisces.Domain.Models
             }
             return sequencedBaseDirectionMap;
         }
+
+        private int _nPrefix = -1;
+        private int _nSuffix = -1;
+
+        private int _anyRepeatPrefix = -1;
+        private int _anyRepeatSuffix = -1;
+
+        // This shouldn't change because sequence shouldn't change. However, the best thing would be to also enforce that the seq doesn't change and if it does reset this.
+        public int GetNPrefix()
+        {
+            if (_nPrefix >= 0)
+            {
+                return _nPrefix;
+            }
+
+            return GetAnyMonoPrefix('N');
+
+        }
+
+        // This shouldn't change because sequence shouldn't change. However, the best thing would be to also enforce that the seq doesn't change and if it does reset this.
+        public int GetNSuffix()
+        {
+            if (_nSuffix >= 0)
+            {
+                return _nSuffix;
+            }
+
+
+            return GetAnyMonoSuffix('N');
+        }
+
+        // This shouldn't change because sequence shouldn't change. However, the best thing would be to also enforce that the seq doesn't change and if it does reset this.
+        public int GetMonoRepeatPrefix()
+        {
+            // TODO what about if it starts with NNNNATCG? Is that 5xA? 4xN? 1xA? currently it's returning 4x all.
+            if (_anyRepeatPrefix >= 0)
+            {
+                return _anyRepeatPrefix;
+            }
+
+            var maxPrefix = 0;
+            foreach (var nucleotide in new char[]{'A','C','T','G'})
+            {
+                // TODO perf should be able to bail out of this once we find something > 1
+                var prefixLength = GetAnyMonoPrefix(nucleotide);
+                if (prefixLength > maxPrefix)
+                {
+                    maxPrefix = prefixLength;
+                }
+            }
+
+            return maxPrefix;
+        }
+
+        // This shouldn't change because sequence shouldn't change. However, the best thing would be to also enforce that the seq doesn't change and if it does reset this.
+        public int GetMonoRepeatSuffix()
+        {
+            if (_anyRepeatSuffix >= 0)
+            {
+                return _anyRepeatSuffix;
+            }
+
+            var maxSuffix = 0;
+            foreach (var nucleotide in new char[] { 'A', 'C', 'T', 'G' })
+            {
+                // TODO perf should be able to bail out of this once we find something > 1
+                var suffixLength = GetAnyMonoSuffix(nucleotide);
+                if (suffixLength > maxSuffix)
+                {
+                    maxSuffix = suffixLength;
+                }
+            }
+
+            return maxSuffix;
+        }
+
+        private int GetAnyMonoPrefix(char nucleotide, bool includeNs = true)
+        {
+            var numPrefixNs = 0;
+            foreach (var nuc in Sequence)
+            {
+                if (nuc == 'N')
+                {
+                    numPrefixNs++;
+                }
+                else break;
+            }
+            return numPrefixNs;
+        }
+
+        private int GetAnyMonoSuffix(char nucleotide, bool includeNs = true)
+        {
+            var numSuffixNs = 0;
+            for (int index = Sequence.Length - 1; index >= 0; index--)
+            {
+                var nuc = Sequence[index];
+                if (nuc == nucleotide || (includeNs && nuc == 'N'))
+                {
+                    numSuffixNs++;
+                }
+                else break;
+            }
+            return numSuffixNs;
+
+        }
+
     }
 
 }

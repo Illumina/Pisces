@@ -245,22 +245,49 @@ namespace VariantPhasing.Logic
             }
 
             var allele = new CalledAllele(category)
-                {
-                    Chromosome = chromosome,
-                    ReferencePosition = alleleCoordinate,
-                    ReferenceAllele = alleleReference,
-                    AlternateAllele = alleleAlternate,
-                    TotalCoverage = totalCoverage,
-                    Type = category,
-                    AlleleSupport = varCount,
-                    ReferenceSupport = refSpt,
-                    NumNoCalls = noCallCount,
-                    VariantQscore = VariantQualityCalculator.AssignPoissonQScore(varCount, totalCoverage, qNoiselevel, maxQscore)
-                };
+            {
+                Chromosome = chromosome,
+                ReferencePosition = alleleCoordinate,
+                ReferenceAllele = alleleReference,
+                AlternateAllele = alleleAlternate,
+                TotalCoverage = totalCoverage,
+                Type = category,
+                AlleleSupport = varCount,
+                ReferenceSupport = refSpt,
+                NumNoCalls = noCallCount,
+                VariantQscore = VariantQualityCalculator.AssignPoissonQScore(varCount, totalCoverage, qNoiselevel, maxQscore),
+                NoiseLevelApplied = qNoiselevel
+            };
 
             allele.SetFractionNoCalls();
             return allele;
         }
+
+        /// <summary>
+        /// Combines two variants made by PhasedVariantExtractor.
+        /// Simplistic in that it only worries about the relevant fields, and not every possible field.
+        /// LIMITATION: this assumes that allele1 and allele2 are the same variant in terms of chr, pos, ref / alt alleles.
+        /// see CalledAllele.IsSameAlle() . This should be true for the variants in this method
+        /// </summary>
+        /// <param name="allele1"></param>
+        /// <param name="allele2"></param>
+        /// <param name="maxQscore"></param>
+        /// <returns></returns>
+        public static CalledAllele CombinePhasedVariants(CalledAllele allele1, CalledAllele allele2, int maxQscore)
+        {
+            //NOTE this assumes that allele1 and allele2 are the same variant in terms of chr, pos, ref / alt alleles.
+            //see CalledAllele.IsSameAlle() . This should be true for the variants in this method
+            CalledAllele result = Create(allele1.Chromosome, allele1.ReferencePosition, allele1.ReferenceAllele, allele1.AlternateAllele,
+            allele1.AlleleSupport + allele2.AlleleSupport,
+            (allele1.NumNoCalls + allele2.NumNoCalls) / 2,
+            (allele1.TotalCoverage + allele2.TotalCoverage) /2,
+            (allele1.ReferenceSupport + allele2.ReferenceSupport) /2,
+            allele1.Type, allele1.NoiseLevelApplied,
+            maxQscore);
+
+            return result;
+        }
+
 
         private static string FillGapWithReferenceData(string reference,
             VariantSite variantSite, IEnumerable<int> suckedUpReferenceCalls)

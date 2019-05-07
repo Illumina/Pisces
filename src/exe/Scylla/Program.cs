@@ -3,7 +3,7 @@ using System.IO;
 using System.Collections.Generic;
 using VariantPhasing;
 using VariantPhasing.Logic;
-using Pisces.IO.Sequencing;
+using Pisces.IO;
 using Common.IO.Utility;
 using CommandLine.Options;
 using CommandLine.VersionProvider;
@@ -59,12 +59,7 @@ namespace Scylla
         private void AdjustOptions(ref ScyllaApplicationOptions scyllaOptions)
         {
            
-            List<string> vcfHeaderLines;
-            using (var reader = new VcfReader(scyllaOptions.VcfPath))
-            {
-                vcfHeaderLines = reader.HeaderLines;
-            }
-
+            List<string> vcfHeaderLines = AlleleReader.GetAllHeaderLines(scyllaOptions.VcfPath);          
 
             //where to find the Pisces options used to make the original vcf
             var piscesLogDirectory = Path.Combine(Path.GetDirectoryName(scyllaOptions.VcfPath), "PiscesLogs");

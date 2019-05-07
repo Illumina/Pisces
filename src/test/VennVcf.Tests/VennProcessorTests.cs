@@ -7,6 +7,7 @@ using Pisces.IO;
 using Pisces.IO.Sequencing;
 using Pisces.Domain.Options;
 using Pisces.Domain.Models.Alleles;
+using Pisces.Domain.Types;
 using Pisces.Calculators;
 using TestUtilities;
 
@@ -35,35 +36,13 @@ namespace VennVcf.Tests
             parameters.ConsensusFileName = Path.Combine(outDir, "Consensus.vcf");
             parameters.OutputDirectory = outDir;
             parameters.DebugMode = true;
+            parameters.CommandLineArguments = new string[] { "testcase commandline" };
 
             VennProcessor Venn = new VennProcessor(new string[] { VcfA, VcfB }, parameters);
             Venn.DoPairwiseVenn();
 
-            Assert.True(File.Exists(OutputPath));
-
-            using (VcfReader ReaderE = new VcfReader(ExpectedPath))
-            {
-                using (VcfReader ReaderO = new VcfReader(OutputPath))
-                {
-                    VcfVariant ExpectedVariant = new VcfVariant();
-                    VcfVariant OutputVariant = new VcfVariant();
-
-                    while (true)
-                    {
-
-                        bool ExpectedVariantExists = ReaderE.GetNextVariant(ExpectedVariant);
-                        bool OutputVariantExists = ReaderO.GetNextVariant(OutputVariant);
-
-                        Assert.Equal(ExpectedVariantExists, OutputVariantExists);
-
-                        if (!ExpectedVariantExists || !OutputVariantExists)
-                            break;
-
-                        Assert.Equal(ExpectedVariant.ToString(), OutputVariant.ToString());
-
-                    }
-                }
-            }
+            TestHelper.CompareFiles(OutputPath, ExpectedPath);
+           
         }
 
 
@@ -95,6 +74,7 @@ namespace VennVcf.Tests
             parameters.ConsensusFileName = Path.Combine(outDir, "Consensus.vcf");
             parameters.OutputDirectory = outDir;
             parameters.DebugMode = true;
+            parameters.VariantCallingParams.AmpliconBiasFilterThreshold = null;
 
             VennProcessor Venn = new VennProcessor(new string[] { VcfA, VcfB }, parameters);
             Venn.DoPairwiseVenn();
@@ -125,7 +105,7 @@ namespace VennVcf.Tests
             Venn.DoPairwiseVenn();
 
             Assert.True(File.Exists(OutputPath));
-            var observedVariants = VcfReader.GetAllVariantsInFile(OutputPath);
+            var observedVariants = AlleleReader.GetAllVariantsInFile(OutputPath);
 
             Assert.Equal(0, observedVariants.Count);
         }
@@ -152,8 +132,8 @@ namespace VennVcf.Tests
             Venn.DoPairwiseVenn();
 
             Assert.True(File.Exists(OutputPath));
-            var expectedVariants = VcfReader.GetAllVariantsInFile(ExpectedPath);
-            var observedVariants = VcfReader.GetAllVariantsInFile(OutputPath);
+            var expectedVariants = AlleleReader.GetAllVariantsInFile(ExpectedPath);
+            var observedVariants = AlleleReader.GetAllVariantsInFile(OutputPath);
 
             Assert.Equal(expectedVariants.Count, observedVariants.Count);
 
@@ -193,11 +173,11 @@ namespace VennVcf.Tests
 
             Assert.Equal(File.Exists(parameters.ConsensusFileName), true);
 
-            List<VcfVariant> CombinedVariants = VcfReader.GetAllVariantsInFile(parameters.ConsensusFileName);
-            List<VcfVariant> AandBVariants = VcfReader.GetAllVariantsInFile(Path.Combine(outDir, "small_S14_and_S17.vcf"));
-            List<VcfVariant> BandAVariants = VcfReader.GetAllVariantsInFile(Path.Combine(outDir, "small_S17_and_S14.vcf"));
-            List<VcfVariant> AnotBVariants = VcfReader.GetAllVariantsInFile(Path.Combine(outDir, "small_S14_not_S17.vcf"));
-            List<VcfVariant> BnotAVariants = VcfReader.GetAllVariantsInFile(Path.Combine(outDir, "small_S17_not_S14.vcf"));
+            var CombinedVariants = AlleleReader.GetAllVariantsInFile(parameters.ConsensusFileName);
+            var AandBVariants = AlleleReader.GetAllVariantsInFile(Path.Combine(outDir, "small_S14_and_S17.vcf"));
+            var BandAVariants = AlleleReader.GetAllVariantsInFile(Path.Combine(outDir, "small_S17_and_S14.vcf"));
+            var AnotBVariants = AlleleReader.GetAllVariantsInFile(Path.Combine(outDir, "small_S14_not_S17.vcf"));
+            var BnotAVariants = AlleleReader.GetAllVariantsInFile(Path.Combine(outDir, "small_S17_not_S14.vcf"));
 
             //poolA
             //chr1	     115258743	.	A	.	100	PASS	DP=35354	GT:GQ:AD:VF:NL:SB	0/0:100:30256:0.1442:20:-100.0000
@@ -220,23 +200,20 @@ namespace VennVcf.Tests
             //(issue#1) at 743 we had a A->. in only one pool. It should be marked as BIAS and not PASS.
             //(issue#2) at 744 we had a C->T at 6% when it should be at ~0%, and called as a ref.
 
-            string VFstring = "";
-            VcfVariant FunnyResult0 = CombinedVariants[3];
-            VFstring = FunnyResult0.Genotypes[0]["VF"] ;
-            Assert.Equal(VFstring, "0.144");
-            Assert.Equal(FunnyResult0.Filters, "PB");
+            var FunnyResult0 = CombinedVariants[3];
+            Assert.Equal(FunnyResult0.Frequency, 0.8558, 4);
+            Assert.Equal(FunnyResult0.Filters.Count, 1);
+            Assert.Equal(FunnyResult0.Filters[0], FilterType.PoolBias);
             Assert.Equal(FunnyResult0.ReferenceAllele, "A");
-            Assert.Equal(FunnyResult0.VariantAlleles[0], ".");
+            Assert.Equal(FunnyResult0.AlternateAllele, ".");
             //this used to be a reference as a pass, even though it was only called in one pool.
 
-            VcfVariant FunnyResult = CombinedVariants[6];
+            var FunnyResult = CombinedVariants[6];
             Assert.Equal(FunnyResult.ReferencePosition, 115258744);
-
-            VFstring = FunnyResult.Genotypes[0]["VF"];
-            Assert.Equal(VFstring, "0.129");
-            Assert.Equal(FunnyResult.Filters, "PASS");
+            Assert.Equal(FunnyResult.Frequency, 0.8711,4);
+            Assert.Equal(FunnyResult.Filters.Count, 0);
             Assert.Equal(FunnyResult.ReferenceAllele, "C");
-            Assert.Equal(FunnyResult.VariantAlleles[0], ".");
+            Assert.Equal(FunnyResult.AlternateAllele, ".");
             //when we had the bug, this used to get called at 6%. 
 
 
@@ -248,27 +225,27 @@ namespace VennVcf.Tests
 
             Assert.Equal(115258743, AandBVariants[0].ReferencePosition);
             Assert.Equal("AC", AandBVariants[0].ReferenceAllele);
-            Assert.Equal("TT", AandBVariants[0].VariantAlleles[0]);
+            Assert.Equal("TT", AandBVariants[0].AlternateAllele);
 
             Assert.Equal(115258747, AandBVariants[1].ReferencePosition);
             Assert.Equal("C", AandBVariants[1].ReferenceAllele);
-            Assert.Equal("T", AandBVariants[1].VariantAlleles[0]);
+            Assert.Equal("T", AandBVariants[1].AlternateAllele);
 
             Assert.Equal(115258743, BandAVariants[0].ReferencePosition);
             Assert.Equal("AC", BandAVariants[0].ReferenceAllele);
-            Assert.Equal("TT", BandAVariants[0].VariantAlleles[0]);
+            Assert.Equal("TT", BandAVariants[0].AlternateAllele);
 
             Assert.Equal(115258747, BandAVariants[1].ReferencePosition);
             Assert.Equal("C", BandAVariants[1].ReferenceAllele);
-            Assert.Equal("T", BandAVariants[1].VariantAlleles[0]);
+            Assert.Equal("T", BandAVariants[1].AlternateAllele);
 
             Assert.Equal(115258743, AnotBVariants[0].ReferencePosition);
             Assert.Equal("A", AnotBVariants[0].ReferenceAllele);
-            Assert.Equal("T", AnotBVariants[0].VariantAlleles[0]);
+            Assert.Equal("T", AnotBVariants[0].AlternateAllele);
 
             Assert.Equal(115258744, AnotBVariants[1].ReferencePosition);
             Assert.Equal("C", AnotBVariants[1].ReferenceAllele);
-            Assert.Equal("T", AnotBVariants[1].VariantAlleles[0]);
+            Assert.Equal("T", AnotBVariants[1].AlternateAllele);
 
 
         }
@@ -288,10 +265,10 @@ namespace VennVcf.Tests
             parameters.ConsensusFileName = OutputPath;
 
             string VcfPath_PoolA = Path.Combine(VcfPathRoot, "09H-03403-MT1-1_S7.genome.vcf");
-            List<CalledAllele> PoolAVariants = VcfVariantUtilities.Convert(VcfReader.GetAllVariantsInFile(VcfPath_PoolA)).ToList();
+            var PoolAVariants = (AlleleReader.GetAllVariantsInFile(VcfPath_PoolA)).ToList();
 
             string VcfPath_PoolB = Path.Combine(VcfPathRoot, "09H-03403-MT1-1_S8.genome.vcf");
-            List<CalledAllele> PoolBVariants = VcfVariantUtilities.Convert(VcfReader.GetAllVariantsInFile(VcfPath_PoolB)).ToList();
+            var PoolBVariants = (AlleleReader.GetAllVariantsInFile(VcfPath_PoolB)).ToList();
 
             CalledAllele VariantA =  PoolAVariants[0];
             CalledAllele VariantB = PoolBVariants[0];
@@ -468,45 +445,45 @@ namespace VennVcf.Tests
 
             Assert.Equal(File.Exists(OutputPath), true);
 
-            List<VcfVariant> PoolAVariants = VcfReader.GetAllVariantsInFile(VcfPath_PoolA);
-            List<VcfVariant> PoolBVariants = VcfReader.GetAllVariantsInFile(VcfPath_PoolB);
-            List<VcfVariant> CombinedVariants = VcfReader.GetAllVariantsInFile(OutputPath);
+            var PoolAVariants = AlleleReader.GetAllVariantsInFile(VcfPath_PoolA);
+            var PoolBVariants = AlleleReader.GetAllVariantsInFile(VcfPath_PoolB);
+            var CombinedVariants = AlleleReader.GetAllVariantsInFile(OutputPath);
 
             //Rule "E" test    (ie an Alt+ref call converges to a REf, and we also had a ref call following it)       
             //E	if we end up with multiple REF calls for the same loci, combine those .VCF lines into one ref call.
 
-            VcfVariant VariantA_1 = PoolAVariants[0];
-            Assert.Equal(VariantA_1.Genotypes[0]["GT"], "0/0");
-            Assert.Equal(VariantA_1.Genotypes[0]["VF"], "0.0021");
-            Assert.Equal(VariantA_1.Quality, 100);
-            Assert.Equal(VariantA_1.Filters, "PASS");
+            var VariantA_1 = PoolAVariants[0];
+            Assert.Equal(VariantA_1.Genotype, Genotype.HomozygousRef);
+            Assert.Equal(VariantA_1.Frequency,1.0 -  0.0021,4); //note Vf here is the ref freq
+            Assert.Equal(VariantA_1.VariantQscore, 100);
+            Assert.Equal(VariantA_1.Filters.Count, 0);
             Assert.Equal(VariantA_1.ReferencePosition, 25378561);
 
-            VcfVariant VariantA_2 = PoolAVariants[1];
+            var VariantA_2 = PoolAVariants[1];
             Assert.Equal(VariantA_2.ReferencePosition, 25378562);
 
-            VcfVariant VariantB_1 = PoolBVariants[0];
-            Assert.Equal(VariantB_1.Genotypes[0]["GT"], "0/1");
-            Assert.Equal(VariantB_1.Genotypes[0]["VF"], "0.0173");
-            Assert.Equal(VariantB_1.Quality, 100);
-            Assert.Equal(VariantB_1.Filters, "PASS");
+            var VariantB_1 = PoolBVariants[0];
+            Assert.Equal(VariantB_1.Genotype, Genotype.HeterozygousAltRef); //"0/1");
+            Assert.Equal(VariantB_1.Frequency, 0.0173,4);
+            Assert.Equal(VariantB_1.VariantQscore, 100);
+            Assert.Equal(VariantB_1.Filters.Count, 0);
             Assert.Equal(VariantB_1.ReferencePosition, 25378561);
 
-            VcfVariant VariantB_2 = PoolBVariants[1];
-            Assert.Equal(VariantB_2.Genotypes[0]["GT"], "0/0");
-            Assert.Equal(VariantB_2.Genotypes[0]["VF"], "0.0021");
-            Assert.Equal(VariantB_2.Quality, 100);
-            Assert.Equal(VariantB_2.Filters, "PASS");
+            var VariantB_2 = PoolBVariants[1];
+            Assert.Equal(VariantB_2.Genotype, Genotype.HomozygousRef);
+            Assert.Equal(VariantB_2.Frequency,0.9827, 4);  //note Vf here is the ref freq
+            Assert.Equal(VariantB_2.VariantQscore, 100);
+            Assert.Equal(VariantB_2.Filters.Count, 0);
             Assert.Equal(VariantB_2.ReferencePosition, 25378561);
 
-            VcfVariant Consensus_1 = CombinedVariants[0];
-            Assert.Equal(Consensus_1.Genotypes[0]["GT"], "0/0");
-            Assert.Equal(Consensus_1.Genotypes[0]["VF"], "0.009"); //slightly improved from .008
-            Assert.Equal(Consensus_1.Quality, 100);
-            Assert.Equal(Consensus_1.Filters, "PASS"); //<-low VF tag will NOT added by post-processing b/c is ref call
+            var Consensus_1 = CombinedVariants[0];
+            Assert.Equal(Consensus_1.Genotype, Genotype.HomozygousRef);
+            Assert.Equal(Consensus_1.Frequency,0.9907, 4); //slightly improved from .008.  //note Vf here is the ref freq
+            Assert.Equal(Consensus_1.VariantQscore, 100);
+            Assert.Equal(Consensus_1.Filters.Count, 0); //<-low VF tag will NOT added by post-processing b/c is ref call
             Assert.Equal(Consensus_1.ReferencePosition, 25378561);
 
-            VcfVariant Consensus_2 = CombinedVariants[1];
+            var Consensus_2 = CombinedVariants[1];
             Assert.Equal(Consensus_2.ReferencePosition, 25378562);
 
             //Rule "F" test    (ie various alt calls all ended up as no-call. 
@@ -514,31 +491,31 @@ namespace VennVcf.Tests
 
 
             VariantA_1 = PoolAVariants[1];
-            Assert.Equal(VariantA_1.Genotypes[0]["GT"], "0/1");
-            Assert.Equal(VariantA_1.Genotypes[0]["VF"], "0.0725");
-            Assert.Equal(VariantA_1.Quality, 100);
-            Assert.Equal(VariantA_1.Filters, "PASS");
+            Assert.Equal(VariantA_1.Genotype, Genotype.HeterozygousAltRef); //"0/1");
+            Assert.Equal(VariantA_1.Frequency, 0.0776,4);
+            Assert.Equal(VariantA_1.VariantQscore, 100);
+            Assert.Equal(VariantA_1.Filters.Count, 0);
             Assert.Equal(VariantA_1.ReferencePosition, 25378562);
 
             VariantA_2 = PoolAVariants[2];
-            Assert.Equal(VariantA_2.Genotypes[0]["GT"], "0/1");
-            Assert.Equal(VariantA_2.Genotypes[0]["VF"], "0.0725");
-            Assert.Equal(VariantA_2.Quality, 100);
-            Assert.Equal(VariantA_2.Filters, "PASS");
+            Assert.Equal(VariantA_2.Genotype, Genotype.HeterozygousAltRef); //"0/1");
+            Assert.Equal(VariantA_2.Frequency, 0.0776, 4);
+            Assert.Equal(VariantA_2.VariantQscore, 100);
+            Assert.Equal(VariantA_2.Filters.Count, 0);
             Assert.Equal(VariantA_2.ReferencePosition, 25378562);
 
-            VcfVariant VariantA_3 = PoolAVariants[3];
-            Assert.Equal(VariantA_3.Genotypes[0]["GT"], "0/1");
-            Assert.Equal(VariantA_3.Genotypes[0]["VF"], "0.0725");
-            Assert.Equal(VariantA_3.Quality, 100);
-            Assert.Equal(VariantA_3.Filters, "PASS");
+            var VariantA_3 = PoolAVariants[3];
+            Assert.Equal(VariantA_3.Genotype, Genotype.HeterozygousAltRef); //"0/1");
+            Assert.Equal(VariantA_3.Frequency, 0.0776,4);
+            Assert.Equal(VariantA_3.VariantQscore, 100);
+            Assert.Equal(VariantA_3.Filters.Count, 0);
             Assert.Equal(VariantA_3.ReferencePosition, 25378562);
 
             VariantB_1 = PoolBVariants[2];
-            Assert.Equal(VariantB_1.Genotypes[0]["GT"], "0/0");
-            Assert.Equal(VariantB_1.Genotypes[0]["VF"], "0.0024");
-            Assert.Equal(VariantB_1.Quality, 100);
-            Assert.Equal(VariantB_1.Filters, "PASS");
+            Assert.Equal(VariantB_1.Genotype, Genotype.HomozygousRef);
+            Assert.Equal(VariantB_1.Frequency, 0.9989,4);
+            Assert.Equal(VariantB_1.VariantQscore, 100);
+            Assert.Equal(VariantB_1.Filters.Count, 0);
             Assert.Equal(VariantB_1.ReferencePosition, 25378562);
 
             VariantB_2 = PoolBVariants[3];
@@ -546,32 +523,35 @@ namespace VennVcf.Tests
 
             Consensus_1 = CombinedVariants[1];
             Assert.Equal(Consensus_1.ReferencePosition, 25378562);
-            Assert.Equal(Consensus_1.Genotypes[0]["GT"], "./.");
-            Assert.Equal(Consensus_1.Genotypes[0]["VF"], "0.007");
-            Assert.Equal(Consensus_1.Quality, 0);
-            Assert.Equal(Consensus_1.Filters, "PB"); //<-low VF tag will also get added by post-processing
+            Assert.Equal(Consensus_1.Genotype, Genotype.AltLikeNoCall);
+            Assert.Equal(Consensus_1.Frequency, 0.0069, 4);
+            Assert.Equal(Consensus_1.VariantQscore, 0);
+            Assert.Equal(Consensus_1.Filters.Count, 1); //<-low VF tag will also get added by post-processing
+            Assert.Equal(Consensus_1.Filters[0], FilterType.PoolBias); //<-low VF tag will also get added by post-processing
             Assert.Equal(Consensus_1.ReferenceAllele, "C");
-            Assert.Equal(Consensus_1.VariantAlleles[0], "T");
+            Assert.Equal(Consensus_1.AlternateAllele, "T");
 
             Consensus_2 = CombinedVariants[2];
             Assert.Equal(Consensus_2.ReferencePosition, 25378562);
-            Assert.Equal(Consensus_2.Genotypes[0]["GT"], "./.");
-            Assert.Equal(Consensus_2.Genotypes[0]["VF"], "0.007");
-            Assert.Equal(Consensus_2.Quality, 0);
-            Assert.Equal(Consensus_2.Filters, "PB"); //<-low VF tag will also get added by post-processing
+            Assert.Equal(Consensus_2.Genotype, Genotype.AltLikeNoCall);
+            Assert.Equal(Consensus_2.Frequency, 0.0069, 4);
+            Assert.Equal(Consensus_2.VariantQscore, 0);
+            Assert.Equal(Consensus_1.Filters.Count, 1); //<-low VF tag will also get added by post-processing
+            Assert.Equal(Consensus_1.Filters[0], FilterType.PoolBias); //<-low VF tag will also get added by post-processing
             Assert.Equal(Consensus_2.ReferenceAllele, "C");
-            Assert.Equal(Consensus_2.VariantAlleles[0], "TT");
+            Assert.Equal(Consensus_2.AlternateAllele, "TT");
 
-            VcfVariant Consensus_3 = CombinedVariants[3];
+            var Consensus_3 = CombinedVariants[3];
             Assert.Equal(Consensus_3.ReferencePosition, 25378562);
-            Assert.Equal(Consensus_3.Genotypes[0]["GT"], "./.");
-            Assert.Equal(Consensus_3.Genotypes[0]["VF"], "0.007");
-            Assert.Equal(Consensus_3.Quality, 0);
-            Assert.Equal(Consensus_3.Filters, "PB"); //<-low VF tag will also get added by post-processing
+            Assert.Equal(Consensus_3.Genotype, Genotype.AltLikeNoCall);
+            Assert.Equal(Consensus_3.Frequency, 0.0069, 4);
+            Assert.Equal(Consensus_3.VariantQscore, 0);
+            Assert.Equal(Consensus_1.Filters.Count, 1); //<-low VF tag will also get added by post-processing
+            Assert.Equal(Consensus_1.Filters[0], FilterType.PoolBias); //<-low VF tag will also get added by post-processing
             Assert.Equal(Consensus_3.ReferenceAllele, "CC");
-            Assert.Equal(Consensus_3.VariantAlleles[0], "T");
+            Assert.Equal(Consensus_3.AlternateAllele, "T");
 
-            VcfVariant Consensus_4 = CombinedVariants[4];
+            var Consensus_4 = CombinedVariants[4];
             Assert.Equal(Consensus_4.ReferencePosition, 25378563);
 
             if (File.Exists(OutputPath)) File.Delete(OutputPath);
@@ -713,19 +693,19 @@ namespace VennVcf.Tests
             venn.DoPairwiseVenn();
 
             Assert.Equal(File.Exists(OutputPath), true);
-            List<VcfVariant> CombinedVariants = VcfReader.GetAllVariantsInFile(OutputPath);
-            List<VcfVariant> ExpectedVariants = VcfReader.GetAllVariantsInFile(VcfPath_Consensus);
+            var CombinedVariants = AlleleReader.GetAllVariantsInFile(OutputPath);
+            var ExpectedVariants = AlleleReader.GetAllVariantsInFile(VcfPath_Consensus);
             Assert.Equal(ExpectedVariants.Count, CombinedVariants.Count);
 
             int NumVariantsAtPos92604460 = 0;
 
             for (int i = 0; i < ExpectedVariants.Count; i++)
             {
-                VcfVariant EVariant = ExpectedVariants[i];
-                VcfVariant Variant = CombinedVariants[i];
+                var EVariant = ExpectedVariants[i];
+                var Variant = CombinedVariants[i];
 
                 if ((Variant.ReferencePosition == 92604460)
-                    && (Variant.ReferenceName == "chr15"))
+                    && (Variant.Chromosome == "chr15"))
                 {
                     NumVariantsAtPos92604460++;
                 }

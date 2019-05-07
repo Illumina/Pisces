@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+
 namespace BamStitchingLogic
 {
     public class StitcherOptions
@@ -25,5 +27,7 @@ namespace BamStitchingLogic
         public bool FilterPairUnmapped = false;
         public bool FilterPairLowMapQ = true;
         public int MaxNumDisagreeingBases = int.MaxValue;
+        public bool CountNsTowardDisagreeingBases { get; set; }
+        public List<string> StringTagsToKeepFromR1 { get; set; }
     }
 }

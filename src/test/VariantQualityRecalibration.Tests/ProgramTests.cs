@@ -69,5 +69,23 @@ namespace VariantQualityRecalibration.Tests
             Assert.Equal((int)ExitCodeType.UnknownCommandLineOption, Program.Main(new string[] { "-vcf", vcfPath, "-blah", "won't work" }));
 
         }
+
+
+        [Fact]
+        public void CheckCommandLineArgumentHandling_HappyPath()
+        {
+            var vcfPath = Path.Combine(TestPaths.LocalTestDataDirectory, "RewriterTest.phased.genome.vcf");
+            var outDir = Path.Combine(TestPaths.LocalScratchDirectory, "HappyPathExecution");
+            var testInput = Path.Combine(outDir, "RewriterTest.phased.genome.vcf");
+            var expectedOutput = Path.Combine(TestPaths.LocalTestDataDirectory, "ExpectedRewriterTest.phased.genome.vcf.recal");
+            var observedOutput = testInput + ".recal";
+
+            TestUtilities.TestHelper.RecreateDirectory(outDir);
+            File.Copy(vcfPath, testInput);
+
+            Assert.Equal((int)ExitCodeType.Success, Program.Main(new string[] { "-vcf", testInput }));
+
+            TestUtilities.TestHelper.CompareFiles(observedOutput, expectedOutput);
+        }
     }
 }

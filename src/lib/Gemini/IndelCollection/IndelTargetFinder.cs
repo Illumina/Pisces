@@ -8,16 +8,12 @@ namespace Gemini.IndelCollection
 {
     public class IndelTargetFinder
     {
-        private int _minBaseCallQuality = 20;
-
-        public List<PreIndel> FindIndels(BamAlignment read, string chromosomeName)
+        public List<PreIndel> FindIndels(BamAlignment read, string chromosomeName, int minBaseCallQuality = 10)
         {
-            // TODO Lazy load?
-            //List<CandidateIndel> candidates;
             var candidates = new List<PreIndel>();
 
-            int startIndexInRead = 0;
-            int startIndexInReference = read.Position;
+            var startIndexInRead = 0;
+            var startIndexInReference = read.Position;
 
             for (var cigarOpIndex = 0; cigarOpIndex < read.CigarData.Count; cigarOpIndex++)
             {
@@ -39,13 +35,13 @@ namespace Gemini.IndelCollection
                             var qualAtBase = read.Qualities[indexInRead];
                             totalQualities += (int)qualAtBase;
 
-                            if (qualAtBase < _minBaseCallQuality)
+                            if (qualAtBase < minBaseCallQuality)
                             {
                                 qualitiesNotGoodEnough++;
                             }
                         }
 
-                        if (qualitiesNotGoodEnough / (float) operation.Length > 0.1)
+                        if (qualitiesNotGoodEnough / (float)operation.Length > 0.1)
                         {
                             insertionQualityGoodEnough = false;
                         }
@@ -58,16 +54,16 @@ namespace Gemini.IndelCollection
                         {
                             candidates.Add(new PreIndel(insertion)
                             {
-                                LeftAnchor = cigarOpIndex > 0 && read.CigarData[cigarOpIndex - 1].Type == 'M' ? read.CigarData[cigarOpIndex - 1].Length : 0,
-                                RightAnchor = cigarOpIndex < read.CigarData.Count - 1 && read.CigarData[cigarOpIndex + 1].Type == 'M' ? read.CigarData[cigarOpIndex + 1].Length : 0,
-                                AverageQualityRounded = totalQualities/(int)operation.Length // Loss of fraction here is ok
+                                LeftAnchor = (int)(cigarOpIndex > 0 && read.CigarData[cigarOpIndex - 1].Type == 'M' ? read.CigarData[cigarOpIndex - 1].Length : 0),
+                                RightAnchor = (int)(cigarOpIndex < read.CigarData.Count - 1 && read.CigarData[cigarOpIndex + 1].Type == 'M' ? read.CigarData[cigarOpIndex + 1].Length : 0),
+                                AverageQualityRounded = totalQualities / (int)operation.Length // Loss of fraction here is ok
                             });
                         }
                         break;
                     case 'D':
-                        // TAILOR-SPECIFIC: Note that this checks both the quality of the base preceding the deletion and the base after the deletion, or if there is no base after the deletion, counts that as low quality.
-                        var deletionQualityGoodEnough = read.Qualities[startIndexInRead] >= _minBaseCallQuality &&
-                                                        (startIndexInRead + 1 < read.Qualities.Length && read.Qualities[startIndexInRead + 1] >= _minBaseCallQuality);
+                        // Note that this checks both the quality of the base preceding the deletion and the base after the deletion, or if there is no base after the deletion, counts that as low quality.
+                        var deletionQualityGoodEnough = read.Qualities[startIndexInRead] >= minBaseCallQuality &&
+                                                        (startIndexInRead + 1 < read.Qualities.Length && read.Qualities[startIndexInRead + 1] >= minBaseCallQuality);
 
                         // TODO this is not legit for the ref bases but going to do this for now. May not even really need to care about the reference base, honestly.
                         var referenceBases = new string('N', (int)operation.Length + 1);
@@ -75,10 +71,12 @@ namespace Gemini.IndelCollection
                         if (deletion != null && deletionQualityGoodEnough)
                             candidates.Add(new PreIndel(deletion)
                             {
-                                LeftAnchor = cigarOpIndex > 0 && read.CigarData[cigarOpIndex - 1].Type == 'M' ? read.CigarData[cigarOpIndex - 1].Length : 0,
-                                RightAnchor = cigarOpIndex < read.CigarData.Count - 1 && read.CigarData[cigarOpIndex + 1].Type == 'M' ? read.CigarData[cigarOpIndex + 1].Length : 0,
-                                AverageQualityRounded = (read.Qualities[startIndexInRead] + (read.Qualities.Length > startIndexInRead + 2 ? read.Qualities[startIndexInRead+1] : 0))/2
+                                LeftAnchor = (int)(cigarOpIndex > 0 && read.CigarData[cigarOpIndex - 1].Type == 'M' ? read.CigarData[cigarOpIndex - 1].Length : 0),
+                                RightAnchor = (int)(cigarOpIndex < read.CigarData.Count - 1 && read.CigarData[cigarOpIndex + 1].Type == 'M' ? read.CigarData[cigarOpIndex + 1].Length : 0),
+                                AverageQualityRounded = (read.Qualities[startIndexInRead] + (read.Qualities.Length > startIndexInRead + 2 ? read.Qualities[startIndexInRead + 1] : 0)) / 2
                             });
+                        break;
+                    default:
                         break;
                 }
 
@@ -93,4 +91,5 @@ namespace Gemini.IndelCollection
         }
 
     }
+
 }

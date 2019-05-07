@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using Pisces;
-using Pisces.Logic;
 using Pisces.Domain.Interfaces;
 using Pisces.Domain.Models;
 using Pisces.IO;
@@ -14,10 +13,12 @@ namespace CallVariants.Logic.Processing
     public class GenomeProcessor : BaseGenomeProcessor
     {
         private readonly Dictionary<string, VcfFileWriter> _writerByChrLookup = new Dictionary<string, VcfFileWriter>();
-        private readonly Dictionary<string, StrandBiasFileWriter> _biasWriterByChrLookup = new Dictionary<string, StrandBiasFileWriter>();
+        private readonly Dictionary<string, StrandBiasFileWriter> _sbBiasWriterByChrLookup = new Dictionary<string, StrandBiasFileWriter>();
+        private readonly Dictionary<string, AmpliconBiasFileWriter> _abBiasWriterByChrLookup = new Dictionary<string, AmpliconBiasFileWriter>();
 
         private readonly List<VcfFileWriter> _writers = new List<VcfFileWriter>(); 
-        private readonly List<StrandBiasFileWriter> _biasWriters = new List<StrandBiasFileWriter>(); 
+        private readonly List<StrandBiasFileWriter> _sbBiasWriters = new List<StrandBiasFileWriter>();
+        private readonly List<AmpliconBiasFileWriter> _abBiasWriters = new List<AmpliconBiasFileWriter>();
 
         private readonly Factory _factory;
         private readonly bool _writeHeader;
@@ -49,7 +50,14 @@ namespace CallVariants.Logic.Processing
                     if (_writeHeader)
                         vcfWriter.WriteHeader();
 
-                    var biasFileWriter = _factory.CreateBiasFileWriter(workRequest.OutputFilePath);
+
+                    StrandBiasFileWriter sbBiasFileWriter = null;
+                    AmpliconBiasFileWriter abBiasFileWriter = null;
+                    if (_factory.Options.OutputBiasFiles)
+                    {
+                        sbBiasFileWriter = _factory.CreateStrandBiasFileWriter(workRequest.OutputFilePath);
+                        abBiasFileWriter = _factory.CreateAmpliconBiasFileWriter(workRequest.OutputFilePath);
+                    }
 
                     // use same writer across all chr.  we will never be writing multiple chrs for a given bam at the same time
                     foreach (var chrName in Genome.ChromosomesToProcess)
@@ -57,12 +65,17 @@ namespace CallVariants.Logic.Processing
                         var writerKey = GetChrOutputPath(workRequest, chrName);
 
                         _writerByChrLookup[writerKey] = vcfWriter;
-                        _biasWriterByChrLookup[writerKey] = biasFileWriter;
+                        _sbBiasWriterByChrLookup[writerKey] = sbBiasFileWriter;
+                        _abBiasWriterByChrLookup[writerKey] = abBiasFileWriter;
                     }
 
                     _writers.Add(vcfWriter);
-                    if (biasFileWriter != null)
-                        _biasWriters.Add(biasFileWriter);
+
+                    if (sbBiasFileWriter != null)
+                        _sbBiasWriters.Add(sbBiasFileWriter);
+
+                    if (abBiasFileWriter != null)
+                        _abBiasWriters.Add(abBiasFileWriter);
                 }
             }
             else
@@ -83,16 +96,27 @@ namespace CallVariants.Logic.Processing
                             ContigsByChr = Genome.ChromosomeLengths
                         });
 
-                        var biasFileWriter = _factory.CreateBiasFileWriter(outputPath);
+                        StrandBiasFileWriter sbBiasFileWriter = null;
+                        AmpliconBiasFileWriter abBiasFileWriter = null;
+                        if (_factory.Options.OutputBiasFiles)
+                        {
+                            sbBiasFileWriter = _factory.CreateStrandBiasFileWriter(outputPath);
+                            abBiasFileWriter = _factory.CreateAmpliconBiasFileWriter(outputPath);
+                        }
 
                         var writerKey = outputPath;
 
                         _writerByChrLookup[writerKey] = vcfWriter;
-                        _biasWriterByChrLookup[writerKey] = biasFileWriter;
+                        _sbBiasWriterByChrLookup[writerKey] = sbBiasFileWriter;
+                        _abBiasWriterByChrLookup[writerKey] = abBiasFileWriter;
 
                         _writers.Add(vcfWriter);
-                        if (biasFileWriter != null)
-                            _biasWriters.Add(biasFileWriter);
+
+                        if (sbBiasFileWriter != null)
+                            _sbBiasWriters.Add(sbBiasFileWriter);
+
+                        if (abBiasFileWriter != null)
+                            _abBiasWriters.Add(abBiasFileWriter);
                     }
                 }
             }
@@ -105,7 +129,12 @@ namespace CallVariants.Logic.Processing
                 writer.Dispose();
             }
 
-            foreach (var writer in _biasWriters)
+            foreach (var writer in _sbBiasWriters)
+            {
+                writer.Dispose();
+            }
+
+            foreach (var writer in _abBiasWriters)
             {
                 writer.Dispose();
             }
@@ -119,7 +148,7 @@ namespace CallVariants.Logic.Processing
             var writerKey = GetChrOutputPath(workRequest, chrReference.Name);
 
             var caller = _factory.CreateSomaticVariantCaller(chrReference, workRequest.BamFilePath,
-                _writerByChrLookup[writerKey], _biasWriterByChrLookup[writerKey], null, Genome.ChromosomesToProcess);
+                _writerByChrLookup[writerKey], _sbBiasWriterByChrLookup[writerKey], _abBiasWriterByChrLookup[writerKey], null, Genome.ChromosomesToProcess);
             
             caller.Execute();
         }

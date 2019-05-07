@@ -91,6 +91,64 @@ namespace Scylla.Tests
             CheckIt(inBam, inVcf, expectedPhasedVcf, outVcf, args);
         }
 
+
+        [Fact]
+        public void TestWithNCandUSData()
+        {
+            var inBam = Path.Combine(TestPaths.LocalTestDataDirectory, "chr21_11085587_S1.bam");
+            var inVcf = Path.Combine(TestPaths.LocalTestDataDirectory, "TestWithNCandUSData.vcf");
+            var expectedPhasedVcf = Path.Combine(TestPaths.LocalTestDataDirectory, "TestWithNCandUSData.exp.phased.vcf");
+            var outDir = Path.Combine(TestPaths.LocalScratchDirectory, "TestWithNCandUSData");
+            var outVcf = Path.Combine(outDir, "TestWithNCandUSData.phased.vcf");
+
+            TestUtilities.TestHelper.RecreateDirectory(outDir);
+              
+            string[] args = new string[] { "-bam", "myBam", "-vcf", "myVcf", "-out", outDir, "-reportnocalls", "true" ,
+                "-reportrccounts" , "true" , "-reporttscounts" , "true"};
+            CheckIt(inBam, inVcf, expectedPhasedVcf, outVcf, args);
+        }
+
+
+
+        [Fact]
+        public void TestWithForcedReport()
+        {
+            var inBam = Path.Combine(TestPaths.LocalTestDataDirectory, "chr21_11085587_S1.bam");
+            var inVcf = Path.Combine(TestPaths.LocalTestDataDirectory, "TestWithForcedReport.vcf");
+            var expectedPhasedVcf = Path.Combine(TestPaths.LocalTestDataDirectory, "TestWithForcedReport.exp.phased.vcf");
+            var outDir = Path.Combine(TestPaths.LocalScratchDirectory, "TestWithForcedReport");
+            var outVcf = Path.Combine(outDir, "TestWithForcedReport.phased.vcf");
+
+            TestUtilities.TestHelper.RecreateDirectory(outDir);
+
+            string[] args = new string[] { "-bam", "myBam", "-vcf", "myVcf", "-out", outDir };
+            CheckIt(inBam, inVcf, expectedPhasedVcf, outVcf, args);
+        }
+
+        [Fact]
+        public void TestWithDiploidEdgeNbhd()
+        {
+            var inBam = Path.Combine(TestPaths.LocalTestDataDirectory, "chr21_11085587_S1.bam");
+            var inVcf = Path.Combine(TestPaths.LocalTestDataDirectory, "TinyDiploid.vcf");
+            var expectedPhasedVcf = Path.Combine(TestPaths.LocalTestDataDirectory, "TinyDiploid.exp.phased.vcf");
+            var outDir = Path.Combine(TestPaths.LocalScratchDirectory, "DiploidEdgeNbhd");
+            var outVcf = Path.Combine(outDir, "TinyDiploid.phased.vcf");
+
+            TestUtilities.TestHelper.RecreateDirectory(outDir);
+
+            //take in a diploid bam and rewrite as diploid
+
+            //expected results and explanation:
+            //chr1    1.A.   100 PASS DP = 364  <- because chr 1 exists in the phix bam, and when we looked for A->G,T, we totally didnt see it
+            //chr22   1230237.GTC G,GTCT  50  DP = 1370 <- because we cant do any phasing here, no reads. so just flow through the orignal vcf
+            //chrX    79.CG  GTG,AA  50  DP = 1370 <- because we cant do any phasing here, no reads. so just flow through the orignal vcf
+
+            string[] args = new string[] { "-bam", "myBam", "-vcf", "myVcf", "-out", outDir, "-ploidy", "diploid" };
+            CheckIt(inBam, inVcf, expectedPhasedVcf, outVcf, args);
+
+        }
+
+
         private static void CheckIt(string inBam, string inVcf, string expVcf, string outVcf, string[] args)
         {
             args[1] = inBam;

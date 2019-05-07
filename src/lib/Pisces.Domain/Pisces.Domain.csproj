@@ -6,13 +6,16 @@
     <RootNamespace>Pisces.Domain</RootNamespace>
     <OutputType>Library</OutputType>
     <PackageId>Pisces.Domain</PackageId>
+    
+    
     <GenerateAssemblyConfigurationAttribute>false</GenerateAssemblyConfigurationAttribute>
     <GenerateAssemblyCompanyAttribute>false</GenerateAssemblyCompanyAttribute>
     <GenerateAssemblyProductAttribute>false</GenerateAssemblyProductAttribute>
-    <Version>5.2.10.49</Version>
+    <Version>5.2.11.163</Version>
     <Copyright>Copyright © Illumina 2019</Copyright>
     <ApplicationIcon />
     <OutputTypeEx>library</OutputTypeEx>
+    <RepositoryUrl>https://github.com/Illumina/Pisces</RepositoryUrl>
   </PropertyGroup>
 
   <ItemGroup>
@@ -22,3 +25,4 @@
   </ItemGroup>
 
 </Project>
+

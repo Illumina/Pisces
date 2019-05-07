@@ -102,8 +102,13 @@ namespace VennVcf
             bool doConsensus = (consensusBuilder != null);
             bool requireGenotypes = false;
 
-            using (VcfReader ReaderA = new VcfReader(_inputPaths[0], requireGenotypes))
-            using (VcfReader ReaderB = new VcfReader(_inputPaths[1], requireGenotypes))
+            var backLogPoolAAlleles = new List<CalledAllele>() { };
+            var backLogPoolBAlleles = new List<CalledAllele>() { };
+
+
+
+            using (AlleleReader ReaderA = new AlleleReader(_inputPaths[0], requireGenotypes))
+            using (AlleleReader ReaderB = new AlleleReader(_inputPaths[1], requireGenotypes))
             {
                 var vcfA_HeaderLines = ReaderA.HeaderLines;
                 var chrOrderingFromInput = ChrCompare.GetChrListFromVcfHeader(vcfA_HeaderLines);
@@ -116,15 +121,10 @@ namespace VennVcf
 
                 //read the first variant from each gvcf file...
                 var currentAllele = new CalledAllele();
-                var backLogPoolAVcfVariant = new VcfVariant();
-                var backLogPoolBVcfVariant = new VcfVariant();
-
-                var backLogExistPoolA = ReaderA.GetNextVariant(backLogPoolAVcfVariant);
-                var backLogExistPoolB = ReaderB.GetNextVariant(backLogPoolBVcfVariant);
-
-                var backLogPoolAAlleles = backLogExistPoolA ? VcfVariantUtilities.Convert(new List<VcfVariant> { backLogPoolAVcfVariant }).ToList() : null;
-                var backLogPoolBAlleles = backLogExistPoolB ? VcfVariantUtilities.Convert(new List<VcfVariant> { backLogPoolBVcfVariant }).ToList() : null;
-
+             
+                var backLogExistPoolA = ReaderA.GetNextVariants(out backLogPoolAAlleles);
+                var backLogExistPoolB = ReaderB.GetNextVariants(out backLogPoolBAlleles);
+               
                 //keep reading and processing until we are done with both gvcfs
                 while (true)
                 {
@@ -359,17 +359,18 @@ namespace VennVcf
         /// <param name="TheBackLog"></param>
         /// <returns></returns>
         private static List<CalledAllele> AssembleColocatedList(
-            VcfReader Reader, CalledAllele CurrentVariant, AlleleCompareByLoci alleleOrdering,
+            AlleleReader Reader, CalledAllele CurrentVariant, AlleleCompareByLoci alleleOrdering,
             ref bool BackLogExists, ref List<CalledAllele> TheBackLog)
         {
 
             List<CalledAllele> CoLocatedVariants = new List<CalledAllele>();
             bool ContinueReadA = true;
+            var NextVariantList = new List<CalledAllele>();
 
             while (ContinueReadA)
             {
-                var NextVariantList = new List<CalledAllele>();
-           
+                
+
                 if (BackLogExists)
                 {
                     NextVariantList =  TheBackLog;
@@ -377,13 +378,10 @@ namespace VennVcf
                 }
                 else
                 {
-                    VcfVariant NextVariant = new VcfVariant();
-                    ContinueReadA = Reader.GetNextVariant(NextVariant); 
+                    ContinueReadA = Reader.GetNextVariants(out NextVariantList); 
 
                     if (!ContinueReadA) 
                         break;
-
-                    NextVariantList = VcfVariantUtilities.Convert(new List<VcfVariant> { NextVariant }).ToList();
                     
                 }
 

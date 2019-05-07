@@ -28,6 +28,9 @@ namespace Alignment.Domain.Sequencing
 
     public class BamAlignment
     {
+        private Dictionary<string, int?> _intTags = new Dictionary<string, int?>();
+        //private Dictionary<string, string> _stringTags = new Dictionary<string, string>();
+
         // variables
         private const uint Paired = 1;
         private const uint ProperPair = 2;
@@ -95,10 +98,19 @@ namespace Alignment.Domain.Sequencing
         /// ID number for reference sequence
         /// </summary>
         public int RefID;
+
         /// <summary>
         /// Tag data (accessors will pull the requested information out)
         /// </summary>
-        public byte[] TagData;
+        public byte[] TagData
+        {
+            get => _tagData;
+            set
+            {
+                _intTags.Clear();
+                _tagData = value;
+            }
+        }
 
         /// <summary>
         /// Parses the cigar string to determine the last 
@@ -106,6 +118,7 @@ namespace Alignment.Domain.Sequencing
         /// </summary>
         public int EndPosition => _endPosition ?? (_endPosition = Position + (int)CigarData.GetReferenceSpan() - 1).Value;
         private int? _endPosition;
+        private byte[] _tagData;
 
         /// <summary>
         /// constructor
@@ -141,9 +154,18 @@ namespace Alignment.Domain.Sequencing
         public BamAlignment(BamAlignment a)
         {
             AlignmentFlag = a.AlignmentFlag;
+            Bin = a.Bin;
+            FragmentLength = a.FragmentLength;
+            MapQuality = a.MapQuality;
+            MatePosition = a.MatePosition;
+            MateRefID = a.MateRefID;
+            Name = a.Name;
+            Position = a.Position;
+            RefID = a.RefID;
+            AlignmentFlag = a.AlignmentFlag;
             Bases = a.Bases;
             Bin = a.Bin;
-            CigarData = new CigarAlignment(a.CigarData.ToString());
+            CigarData = new CigarAlignment(a.CigarData);
             FragmentLength = a.FragmentLength;
             MapQuality = a.MapQuality;
             MatePosition = a.MatePosition;
@@ -156,8 +178,19 @@ namespace Alignment.Domain.Sequencing
             RefID = a.RefID;
             TagData = a.TagData;
             _endPosition = a._endPosition;
+
         }
 
+        public void ReplaceOrAddIntTag(string tagName, int tagValue, bool addIfNotFound)
+        {
+            UpdateIntTagData(tagName, tagValue, addIfNotFound);
+        }
+
+        public void ReplaceOrAddStringTag(string tagName, string tagValue)
+        {
+            TagUtils.ReplaceOrAddStringTag(ref _tagData, tagName, tagValue);
+
+        }
         /// <summary>
         /// Compute the bam bin for an alignment covering [beg, end) - pseudocode taken straight from the bam spec.
         /// </summary>
@@ -211,7 +244,12 @@ namespace Alignment.Domain.Sequencing
         /// </summary>
         public void UpdateIntTagData(string s, int value, bool addIfNotFound = false)
         {
-            bool replaced = TagUtils.ReplaceOrAddIntTag(ref TagData, s, value, addIfNotFound);           
+            bool replaced = TagUtils.ReplaceOrAddIntTag(ref _tagData, s, value, addIfNotFound);
+
+            if (replaced)
+            {
+                _intTags[s] = value;
+            }
         }
 
         /// <summary>
@@ -235,7 +273,22 @@ namespace Alignment.Domain.Sequencing
         /// </summary> 
         public int? GetIntTag(string s)
         {
-            return TagUtils.GetIntTag(TagData, s);
+            if (_intTags.TryGetValue(s, out var result))
+            {
+                if (result != null)
+                {
+                    return result;
+                }
+            }
+
+            result = TagUtils.GetIntTag(TagData, s);
+
+            if (result != null)
+            {
+                _intTags[s] = result;
+            }
+
+            return result;
         }
 
         /// <summary> 
@@ -243,7 +296,18 @@ namespace Alignment.Domain.Sequencing
         /// </summary>
         public string GetStringTag(string s)
         {
-            return TagUtils.GetStringTag(TagData, s);
+           return TagUtils.GetStringTag(TagData, s);          
+        }
+
+        /// <summary> 
+        ///  retrieves the string data associated with the specified tag if TagData exists
+        /// </summary>
+        public string GetStringTagIfTagDataExists(string s)
+        {
+            if (TagData != null)
+                return TagUtils.GetStringTag(TagData, s);
+            else
+                return null;
         }
 
         /// <summary>
@@ -532,6 +596,9 @@ namespace Alignment.Domain.Sequencing
     {
         private readonly List<CigarOp> _data;
 
+        public bool HasIndels { get; private set; }
+        public bool HasSoftclips { get; private set; }
+
         public CigarAlignment()
         {
             _data = new List<CigarOp>();
@@ -540,6 +607,14 @@ namespace Alignment.Domain.Sequencing
         public CigarAlignment(CigarAlignment other)
         {
             _data = new List<CigarOp>(other._data);
+            foreach (var cigarOp in _data)
+            {
+                var doneChecking = CheckOpStatus(cigarOp);
+                if (doneChecking)
+                {
+                    break;
+                }
+            }
         }
 
         /// <summary>
@@ -558,10 +633,11 @@ namespace Alignment.Domain.Sequencing
                 {
                     throw new InvalidDataException(string.Format("ERROR: Unexpected format in character {0} of CIGAR string: {1}",
                                                       (i + 1), cigarString));
-                 
+
                 }
                 var length = uint.Parse(cigarString.Substring(head, i - head));
                 var op = new CigarOp(cigarString[i], length);
+                CheckOpStatus(op);
                 _data.Add(op);
                 head = i + 1;
             }
@@ -572,9 +648,55 @@ namespace Alignment.Domain.Sequencing
             }
         }
 
+        /// <summary>
+        /// As a performance optimization for things we check a lot in Gemini, added a shortcut to flag whether a given cigar alignment is known to have softclips or indels.
+        /// This method checks whether we already have that information, and if we don't, checks the incoming op for each if needed. If we do have that info, it exits.
+        /// </summary>
+        /// <param name="op"></param>
+        /// <returns></returns>
+        private bool CheckOpStatus(CigarOp op)
+        {
+            var hasIndels = CheckHasIndels(op);
+            var hasSoftclips = CheckHasSoftclips(op);
+            return hasIndels && hasSoftclips;
+        }
+
+        /// <summary>
+        /// As a performance optimization for things we check a lot in Gemini, added a shortcut to flag whether a given cigar alignment is known to have indels.
+        /// This method checks whether we already have that information, and if we don't, checks the incoming op for each if needed. If we do have that info, it exits.
+        /// </summary>
+        /// <param name="op"></param>
+        /// <returns></returns>
+        private bool CheckHasIndels(CigarOp op)
+        {
+            if (!HasIndels && (op.Type == 'I' || op.Type == 'D'))
+            {
+                HasIndels = true;
+            }
+
+            return HasIndels;
+        }
+
+        /// <summary>
+        /// As a performance optimization for things we check a lot in Gemini, added a shortcut to flag whether a given cigar alignment is known to have softclips.
+        /// This method checks whether we already have that information, and if we don't, checks the incoming op for each if needed. If we do have that info, it exits.
+        /// </summary>
+        /// <param name="op"></param>
+        /// <returns></returns>
+        private bool CheckHasSoftclips(CigarOp op)
+        {
+            if (!HasSoftclips && (op.Type == 'S'))
+            {
+                HasSoftclips = true;
+            }
+
+            return HasSoftclips;
+        }
+
         public void Insert(int index, CigarOp op)
         {
             _data.Insert(index, op);
+            CheckOpStatus(op);
         }
 
         public int Count
@@ -599,17 +721,21 @@ namespace Alignment.Domain.Sequencing
             set
             {
                 _data[i] = value;
+                CheckOpStatus(value);
             }
         }
 
         public void Clear()
         {
             _data.Clear();
+            HasIndels = false;
+            HasSoftclips = false;
         }
 
         public void Add(CigarOp op)
         {
             _data.Add(op);
+            CheckOpStatus(op);
         }
 
         public void Reverse()
@@ -1055,6 +1181,7 @@ namespace Alignment.Domain.Sequencing
         // retrieves the string data associated with the specified tag
         public static string GetStringTag(byte[] tagData, string tagKey)
         {
+
             int tagDataBegin = GetTagBeginIndex(tagData, tagKey);
 
             if (tagDataBegin < 0) return null;
@@ -1216,6 +1343,7 @@ namespace Alignment.Domain.Sequencing
 
             return replaced;
         }
+
 
         /// <summary>
         /// Replace or add the specified string tag
