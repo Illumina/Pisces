@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using Alignment.Domain.Sequencing;
 using Gemini.Models;
 using Pisces.Domain.Models.Alleles;
@@ -62,42 +61,20 @@ namespace Gemini.IndelCollection
                         }
                         break;
                     case 'D':
-                        //try
-                        {
-                            // Note that this checks both the quality of the base preceding the deletion and the base after the deletion, or if there is no base after the deletion, counts that as low quality.
-                            var deletionQualityGoodEnough =
-                                startIndexInRead >= 0 && startIndexInRead <= read.Qualities.Length -1 &&  read.Qualities[startIndexInRead] >= minBaseCallQuality &&
-                                (startIndexInRead + 1 <= read.Qualities.Length - 1 &&
-                                 read.Qualities[startIndexInRead + 1] >= minBaseCallQuality);
+                        // Note that this checks both the quality of the base preceding the deletion and the base after the deletion, or if there is no base after the deletion, counts that as low quality.
+                        var deletionQualityGoodEnough = read.Qualities[startIndexInRead] >= minBaseCallQuality &&
+                                                        (startIndexInRead + 1 < read.Qualities.Length && read.Qualities[startIndexInRead + 1] >= minBaseCallQuality);
 
-                            // TODO this is not legit for the ref bases but going to do this for now. May not even really need to care about the reference base, honestly.
-                            var referenceBases = new string('N', (int) operation.Length + 1);
-                            var deletion = new PreIndel(new CandidateAllele(chromosomeName, startIndexInReference,
-                                referenceBases, "N", AlleleCategory.Deletion));
-                            if (deletion != null && deletionQualityGoodEnough)
-                                candidates.Add(new PreIndel(deletion)
-                                {
-                                    LeftAnchor = (int) (cigarOpIndex > 0 && read.CigarData[cigarOpIndex - 1].Type == 'M'
-                                        ? read.CigarData[cigarOpIndex - 1].Length
-                                        : 0),
-                                    RightAnchor =
-                                        (int) (cigarOpIndex < read.CigarData.Count - 1 &&
-                                               read.CigarData[cigarOpIndex + 1].Type == 'M'
-                                            ? read.CigarData[cigarOpIndex + 1].Length
-                                            : 0),
-                                    AverageQualityRounded =
-                                        (read.Qualities[startIndexInRead] +
-                                         (read.Qualities.Length > startIndexInRead + 2
-                                             ? read.Qualities[startIndexInRead + 1]
-                                             : 0)) / 2
-                                });
-                        }
-                        //catch (Exception e)
-                        //{
-                        //    Console.WriteLine($"Failed on read: {read.Name}, deletion at {startIndexInRead} ({read.CigarData.ToString()} with qualities {read.Qualities.Length} and base {read.Bases.Length}");
-                        //    throw (e);
-                        //}
-
+                        // TODO this is not legit for the ref bases but going to do this for now. May not even really need to care about the reference base, honestly.
+                        var referenceBases = new string('N', (int)operation.Length + 1);
+                        var deletion = new PreIndel(new CandidateAllele(chromosomeName, startIndexInReference, referenceBases, "N", AlleleCategory.Deletion));
+                        if (deletion != null && deletionQualityGoodEnough)
+                            candidates.Add(new PreIndel(deletion)
+                            {
+                                LeftAnchor = (int)(cigarOpIndex > 0 && read.CigarData[cigarOpIndex - 1].Type == 'M' ? read.CigarData[cigarOpIndex - 1].Length : 0),
+                                RightAnchor = (int)(cigarOpIndex < read.CigarData.Count - 1 && read.CigarData[cigarOpIndex + 1].Type == 'M' ? read.CigarData[cigarOpIndex + 1].Length : 0),
+                                AverageQualityRounded = (read.Qualities[startIndexInRead] + (read.Qualities.Length > startIndexInRead + 2 ? read.Qualities[startIndexInRead + 1] : 0)) / 2
+                            });
                         break;
                     default:
                         break;

@@ -273,20 +273,8 @@ namespace Gemini.CandidateIndelSelection
         private static string ReferenceSuffix(GenomeSnippet snippet, PreIndel preIndel, int contextStart, int minLength = 10)
         {
             var offset = Math.Max(minLength, 3 * preIndel.Length);
-            string prefixSequence;
-            try
-            {
-                prefixSequence = snippet.Sequence.Substring(
-                    preIndel.ReferencePosition + preIndel.ReferenceAllele.Length - 1 - contextStart, offset);
-            }
-            catch (Exception e)
-            {
-                Console.WriteLine(preIndel);
-                Console.WriteLine(snippet.Sequence.Length);
-                Console.WriteLine(preIndel.ReferencePosition);
-                throw;
-            }
-
+            var prefixSequence = snippet.Sequence.Substring(                                
+                preIndel.ReferencePosition + preIndel.ReferenceAllele.Length - 1 - contextStart, offset);
             return prefixSequence;
         }
 
