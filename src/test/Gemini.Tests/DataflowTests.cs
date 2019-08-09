@@ -88,7 +88,7 @@ namespace Gemini.Tests
                 var pairResults = new List<PairResult>();
                 return pairResults;
             });
-            classifierBlockFactory.Setup(x => x.GetClassifierBlock()).Returns(classificationBlock);
+            classifierBlockFactory.Setup(x => x.GetClassifierBlock(It.IsAny<string>())).Returns(classificationBlock);
             return classifierBlockFactory;
         }
 
@@ -110,7 +110,7 @@ namespace Gemini.Tests
         {
             // Per-region calls
             batchBlockFactory.Verify(x => x.GetBlock(), Times.Exactly(expectedTimes));
-            classifierBlockFactory.Verify(x => x.GetClassifierBlock(), Times.Exactly(expectedTimes));
+            classifierBlockFactory.Verify(x => x.GetClassifierBlock(It.IsAny<string>()), Times.Exactly(expectedTimes));
             classificationBlockFactory.Verify(x => x.GetAndLinkAllClassificationBlocksWithEcFinalization(
                 It.IsAny<TransformManyBlock<IEnumerable<ReadPair>, PairResult>>(), It.IsAny<int>(),
                 It.IsAny<int>(), It.IsAny<ConcurrentDictionary<int, EdgeState>>(),

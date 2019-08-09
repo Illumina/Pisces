@@ -595,9 +595,17 @@ namespace Alignment.Domain.Sequencing
     public class CigarAlignment : IEnumerable
     {
         private readonly List<CigarOp> _data;
+        private bool _hasIndels;
+        private bool _hasSoftclips;
 
-        public bool HasIndels { get; private set; }
-        public bool HasSoftclips { get; private set; }
+        public bool HasIndels
+        {
+            get { return _hasIndels; }
+        }
+        public bool HasSoftclips
+        {
+            get { return _hasSoftclips; }
+        }
 
         public CigarAlignment()
         {
@@ -669,12 +677,12 @@ namespace Alignment.Domain.Sequencing
         /// <returns></returns>
         private bool CheckHasIndels(CigarOp op)
         {
-            if (!HasIndels && (op.Type == 'I' || op.Type == 'D'))
+            if (!_hasIndels && (op.Type == 'I' || op.Type == 'D'))
             {
-                HasIndels = true;
+                _hasIndels = true;
             }
 
-            return HasIndels;
+            return _hasIndels;
         }
 
         /// <summary>
@@ -685,12 +693,12 @@ namespace Alignment.Domain.Sequencing
         /// <returns></returns>
         private bool CheckHasSoftclips(CigarOp op)
         {
-            if (!HasSoftclips && (op.Type == 'S'))
+            if (!_hasSoftclips && (op.Type == 'S'))
             {
-                HasSoftclips = true;
+                _hasSoftclips = true;
             }
 
-            return HasSoftclips;
+            return _hasSoftclips;
         }
 
         public void Insert(int index, CigarOp op)
@@ -728,8 +736,8 @@ namespace Alignment.Domain.Sequencing
         public void Clear()
         {
             _data.Clear();
-            HasIndels = false;
-            HasSoftclips = false;
+            _hasIndels = false;
+            _hasSoftclips = false;
         }
 
         public void Add(CigarOp op)
@@ -787,6 +795,10 @@ namespace Alignment.Domain.Sequencing
         public uint GetPrefixClip()
         {
             uint length = 0;
+            if (!_hasSoftclips)
+            {
+                return length;
+            }
             foreach (CigarOp op in _data)
             {
                 if (op.Type == 'S')
@@ -807,6 +819,10 @@ namespace Alignment.Domain.Sequencing
         public uint GetSuffixClip()
         {
             uint length = 0;
+            if (!_hasSoftclips)
+            {
+                return length;
+            }
 
             for (int index = (_data.Count - 1); index >= 0; index--)
             {

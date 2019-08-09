@@ -23,6 +23,8 @@ namespace ReadRealignmentLogic.Models
         public int NumHighQualityMismatches { get; set; }
         public int NumHighQualityMismatchesIncludeSoftclip { get; set; }
         public string Conclusion { get; set; }
+        public int FirstMismatchPosition = -1;
+        public int LastMismatchPosition = -1;
 
     }
 }

@@ -14,7 +14,7 @@ namespace StitchingLogic
 {
     public class OverlapEvaluator
     {
-        public static List<string> SlideSequence(string overlapBases, int windowsize)
+        public static IEnumerable<string> SlideSequence(string overlapBases, int windowsize)
         {
             if (windowsize >= 4)
             {
@@ -22,7 +22,7 @@ namespace StitchingLogic
             }
 
             var overlapLength = overlapBases.Length;
-            List<string> possibleUnits = new List<string>();
+            var possibleUnits = new HashSet<string>();
             int i = 0;
             ///
             /// Requires at least 5bp to span all possible combinations of 3base units. (e.g. ABCAB = ABC, BCA, CAB)
@@ -34,7 +34,7 @@ namespace StitchingLogic
             while (i <= stringIndexLimit)
             {
                 string unit = overlapBases.Substring(i, windowsize);
-                if (!possibleUnits.Contains(unit))
+                //if (!possibleUnits.Contains(unit))
                 {
                     possibleUnits.Add(unit);
                 }
@@ -60,17 +60,28 @@ namespace StitchingLogic
                         continue;
                     }
 
-                    string baseSeq = String.Concat(Enumerable.Repeat(unit, multiplier));
+                    string baseSeq;
+                    if (unit.Length == 1)
+                    {
+                        baseSeq = new string(unit[0], multiplier);
+                    }
+                    else
+                    {
+                        baseSeq = string.Concat(Enumerable.Repeat(unit, multiplier));
+                    }
+
                     if (overlapBases == baseSeq)
                     {
                         repeatUnit = unit;
                         return true;
                     }
-                    else if (overlapBases.Contains(baseSeq))
+                    else
                     {
-                        if (overlapBases.IndexOf(baseSeq) == 0)
+                        var indexOfBase = overlapBases.IndexOf(baseSeq);
+                        if (indexOfBase == 0)
                         {
-                            string remainingSeq = overlapBases.Substring(baseSeq.Length, overlapBases.Length - baseSeq.Length);
+                            string remainingSeq =
+                                overlapBases.Substring(baseSeq.Length, overlapBases.Length - baseSeq.Length);
                             if (unit.Substring(0, remainingSeq.Length) == remainingSeq)
                             {
                                 repeatUnit = unit;

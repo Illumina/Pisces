@@ -30,6 +30,7 @@ namespace Alignment.Domain
 
     public class ReadPair
     {
+        private readonly bool _inclSupplementary;
         public int NumPrimaryReads = 0;
         public string Name { get; set; }
         public BamAlignment Read1;
@@ -52,6 +53,9 @@ namespace Alignment.Domain
         public bool BadRestitch;
         public int FragmentSize;
         public bool NormalPairOrientation;
+        public string Message;
+        private List<BamAlignment> _alignments = null;
+
 
         public List<BamAlignment> Read1Alignments
         {
@@ -90,11 +94,14 @@ namespace Alignment.Domain
         public int Nm1 { get; set; }
         public int Nm2 { get; set; }
 
-        public ReadPair(BamAlignment alignment, string name = null, ReadNumber readNumber = ReadNumber.NA)
+        public ReadPair(BamAlignment alignment, string name = null, ReadNumber readNumber = ReadNumber.NA, bool inclSupplementary = false)
         {
             Name = name ?? alignment.Name;
 
             AddAlignment(alignment, readNumber);
+
+            _inclSupplementary = inclSupplementary;
+
         }
 
         public void AddAlignment(BamAlignment alignment, ReadNumber readNumber = ReadNumber.NA)
@@ -252,7 +259,27 @@ namespace Alignment.Domain
         /// </summary>
         /// <returns></returns>
         public IEnumerable<BamAlignment> GetAlignments()
-        {
+        {           
+            if (_alignments == null)
+            {
+                _alignments = new List<BamAlignment>();
+                if (Read1 != null)
+                {
+                    _alignments.Add(Read1);
+                }
+
+                if (Read2 != null)
+                {
+                    _alignments.Add(Read2);
+                }
+            }
+
+            if (!_inclSupplementary)
+            {
+                return _alignments;
+            }
+
+
             return
                 new List<BamAlignment>() { Read1, Read2 }
                 .Concat(Read1SupplementaryAlignments ?? new List<BamAlignment>())

@@ -440,7 +440,8 @@ namespace StitchingLogic
             var mergedRead = new Read(read1.Chromosome, new BamAlignment
             {
                 Name = read1.Name,
-                Bases = GetSequenceFromArray(stitchingInfo.StitchedBases),
+                Bases = stitchingInfo.FinalStitchedBasesString,
+                //Bases = stitchingInfo.StitchedBasesString ?? GetSequenceFromArray(stitchingInfo.StitchedBases),
                 Position = Math.Min(read1.Position - 1, read2.Position - 1),
                 Qualities = stitchingInfo.StitchedQualities.ToArray(),
                 CigarData = stitchingInfo.StitchedCigar

@@ -34,7 +34,7 @@ namespace ReadRealignmentLogic
         /// </summary>
         /// <param name="other"></param>
         /// <returns></returns>
-        public override int CompareAlignments(AlignmentSummary original, AlignmentSummary other)
+        public override int CompareAlignments(AlignmentSummary original, AlignmentSummary other, bool penalizeIndelCount = true)
         {
             if (other == null) return 1;
 

@@ -238,7 +238,9 @@ namespace ReadRealignmentLogic
                 NumMismatchesIncludeSoftclip = newSummary.NumMismatchesIncludeSoftclip,
                 NumSoftclips = newSummary.NumSoftclips,
                 NumNonNSoftclips = newSummary.NumNonNSoftclips,
-                NumIndelBases = newSummary.NumIndelBases
+                NumIndelBases = newSummary.NumIndelBases,
+                FirstMismatchPosition = newSummary.FirstMismatchPosition,
+                LastMismatchPosition = newSummary.LastMismatchPosition
 
             };
         }

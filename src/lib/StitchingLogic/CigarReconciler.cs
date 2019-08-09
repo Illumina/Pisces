@@ -265,13 +265,14 @@ namespace StitchingLogic
                 }
 
                 var stitchedBasesString = new string(stitchedBases);
-                var finalBases = FinalBases(r1OrigBases, r2OrigBases, r1BeforeOverlapLength, overlapLength, stitchedBasesString);
-                var cigar = CigarAlignment(finalBases.Count, softClipPrefix1, softClipSuffix2);
+                var finalBases = FinalBasesString(r1OrigBases, r2OrigBases, r1BeforeOverlapLength, overlapLength, stitchedBasesString);
+                var cigar = CigarAlignment(finalBases.Length, softClipPrefix1, softClipSuffix2);
                 var directions = CigarDirection(reverseFirst, r1BeforeOverlapLength, r2AfterOverlapLength, overlapLength);
 
-                var stitchingInfo = new StitchingInfo()
+                var stitchingInfo = new StitchingInfo(true)
                 {
-                    StitchedBases = finalBases,
+                    //StitchedBases = finalBases,
+                    StitchedBasesString =  finalBases,
                     StitchedQualities = quals.ToList(),
                     StitchedCigar = cigar,
                     StitchedDirections = directions,
@@ -321,6 +322,25 @@ namespace StitchingLogic
 
             var finalBases = bases.ToCharArray().ToList();
             return finalBases;
+        }
+
+        private string FinalBasesString(string r1OrigBases, string r2OrigBases, int r1BeforeOverlapLength, int overlapLength,
+            string stitchedBases)
+        {
+            var r1BeforeOverlapBases = r1OrigBases.Substring(0, r1BeforeOverlapLength);
+            var r2AdditionalBases = r2OrigBases.Substring(overlapLength);
+
+            var bases = r1BeforeOverlapBases + stitchedBases + r2AdditionalBases;
+
+            if (bases.Length > _stitchPositions.Length)
+            {
+                // Added this here to be consistent with non-super-simple
+                throw new StitchedCigarLengthException(
+                    "Combined length of reads is greater than the expected maximum stitched read length of " +
+                    _stitchPositions.Length);
+            }
+
+            return bases;
         }
 
         private bool NotSimpleEnough(CigarAlignment cigar1, CigarAlignment cigar2, int overlapLength,

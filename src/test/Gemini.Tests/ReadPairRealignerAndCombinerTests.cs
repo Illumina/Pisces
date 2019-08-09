@@ -120,7 +120,7 @@ namespace Gemini.Tests
             mockEvaluator
                 .Setup(x => x.GetFinalAlignment(It.IsAny<BamAlignment>(), out realigned, out softclipped, out confirmed, out sketchy,
                     It.IsAny<List<PreIndel>>(), It.IsAny<List<PreIndel>>(), It.IsAny<bool>(),
-                    It.IsAny<List<HashableIndel>>(), It.IsAny<List<PreIndel>>()))
+                    It.IsAny<List<HashableIndel>>(), It.IsAny<List<PreIndel>>(), It.IsAny<RealignmentState>()))
                 .Returns<BamAlignment, bool, bool, bool, bool, List<PreIndel>, List<PreIndel>, bool, List<HashableIndel>,
                     List<PreIndel>>((b, r, sc, conf, s, i, i2, z, c, mateIndels) =>
                 {

@@ -68,12 +68,12 @@ namespace ReadRealignmentLogic.Utlity
                                                 summary.MismatchesIncludeSoftclip = new List<string> { };
                                             }
                                             
-                                            // TODO WHEN KILL HYGEA, remove this if we're not using anymore, to save time
-                                            var mismatch = string.Format("{0}_{1}_{2}",
-                                                startIndexInReference + i,
-                                                refSequence[startIndexInReference + i],
-                                                readSequence[startIndexInRead + i]);
-                                            summary.MismatchesIncludeSoftclip.Add(mismatch);
+                                            //// TODO WHEN KILL HYGEA, remove this if we're not using anymore, to save time
+                                            //var mismatch = string.Format("{0}_{1}_{2}",
+                                            //    startIndexInReference + i,
+                                            //    refSequence[startIndexInReference + i],
+                                            //    readSequence[startIndexInRead + i]);
+                                            //summary.MismatchesIncludeSoftclip.Add(mismatch);
                                         }
                                     }
 
@@ -111,6 +111,12 @@ namespace ReadRealignmentLogic.Utlity
                             if (baseAtIndex != 'N' && baseAtIndex !=
                                 refSequence[startIndexInReference + i])
                             {
+                                if (summary.FirstMismatchPosition == -1)
+                                {
+                                    summary.FirstMismatchPosition = i;
+                                }
+
+                                summary.LastMismatchPosition = i;
                                 summary.NumMismatches++;
                                 summary.NumMismatchesIncludeSoftclip++;
 

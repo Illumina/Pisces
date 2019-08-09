@@ -27,9 +27,14 @@ namespace ReadRealignmentLogic.Models
         public int NumRepeatsNearby;
         public int NumApproxDupsLeft;
         public int NumApproxDupsRight;
+        public bool IsSpiked;
+        public bool PossiblePartial;
+        public int Observations;
+        public bool FromSoftclip;
+
         public bool HardToCall
         {
-            get { return Type == AlleleCategory.Insertion && Length > 5 || IsDuplication; }
+            get { return Type == AlleleCategory.Insertion && (Length > 7 || (IsDuplication && (!IsRepeat || RepeatUnit.Length > 1))); }
         }
     }
 

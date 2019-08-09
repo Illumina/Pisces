@@ -14,7 +14,7 @@ namespace ReadRealignmentLogic
             _debug = debug;
         }
 
-        public override int CompareAlignments(AlignmentSummary originalAlignmentSummary, AlignmentSummary realignResult)
+        public override int CompareAlignments(AlignmentSummary originalAlignmentSummary, AlignmentSummary realignResult, bool penalizeIndelCount = true)
         {
             var originalScore = _alignmentScorer.GetAlignmentScore(originalAlignmentSummary);
             var realignedScore = _alignmentScorer.GetAlignmentScore(realignResult);

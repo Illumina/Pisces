@@ -9,6 +9,7 @@ namespace StitchingLogic.Models
         public CigarAlignment StitchedCigar;
         public CigarDirection StitchedDirections;
         public List<char> StitchedBases;
+        public string StitchedBasesString = null;
         public List<byte> StitchedQualities;
         public int InsertionAdjustment = 0;
         public int IgnoredProbePrefixBases = 0;
@@ -19,12 +20,23 @@ namespace StitchingLogic.Models
         public int NumNDisagreements;
         public int NumAgreements;
 
-        public StitchingInfo()
+        public string FinalStitchedBasesString
         {
-            StitchedCigar = new CigarAlignment();
-            StitchedDirections = new CigarDirection();
-            StitchedBases = new List<char>();
-            StitchedQualities = new List<byte>();
+            get
+            {
+                return StitchedBasesString ?? new string(StitchedBases.ToArray());
+            }
+        }
+
+        public StitchingInfo(bool finalized = false)
+        {
+            if (!finalized)
+            {
+                StitchedCigar = new CigarAlignment();
+                StitchedDirections = new CigarDirection();
+                StitchedBases = new List<char>();
+                StitchedQualities = new List<byte>();
+            }
         }
     }
 }
