@@ -64,10 +64,17 @@ https://github.com/Illumina/Pisces/wiki
 https://github.com/Illumina/Pisces/wiki/Frequently-Asked-Questions
 
 # Support
+
+Questions on Illumina products that include Pisces:
+
 techsupport@illumina.com
 
-If you are using Pisces, feel free to introduce yourself!
+
+Questions on open source Pisces (outside of Illumina products):
+
 [Tamsen Dunn](https://www.linkedin.com/in/tamsen-dunn-7340145) and
 [Gwenn Berry](https://www.linkedin.com/in/gwenn-berry-43071939)
+
+If you are using Pisces, feel free to introduce yourself!
 
 
