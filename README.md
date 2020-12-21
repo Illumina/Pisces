@@ -65,11 +65,6 @@ https://github.com/Illumina/Pisces/wiki/Frequently-Asked-Questions
 
 # Support
 
-Questions on Illumina products that include Pisces:
-
-techsupport@illumina.com
-
-
 Questions on open source Pisces (outside of Illumina products):
 
 [Tamsen Dunn](https://www.linkedin.com/in/tamsen-dunn-7340145) and
