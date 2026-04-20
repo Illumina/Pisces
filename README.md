@@ -9,7 +9,7 @@ POC:
 Quick start: [Example command lines](https://github.com/Illumina/Pisces/wiki/Pisces-Quick-Start-5.2.9)
 
 # License
-Pisces source code is provided under the GPLv3 license. Pisces includes third party packages provided under other open source licenses, please see COPYRIGHT.txt for additional details.
+Pisces source code is provided under the [PolyForm Strict License 1.0.0](https://github.com/Illumina/Pisces/blob/master/LICENSE.txt). Pisces includes third party packages provided under other open source licenses, please see COPYRIGHT.txt for additional details.
 
 # System requirements
 
